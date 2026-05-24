@@ -1,16 +1,16 @@
 /** Default theme settings */
 export const themeSettings: App.Theme.ThemeSetting = {
-  themeScheme: 'light',
+  themeScheme: 'dark',
   grayscale: false,
   colourWeakness: false,
   recommendColor: false,
-  themeColor: '#646cff',
-  themeRadius: 6,
+  themeColor: '#2B6BFF',
+  themeRadius: 8,
   otherColor: {
-    info: '#2080f0',
-    success: '#52c41a',
-    warning: '#faad14',
-    error: '#f5222d'
+    info: '#2B6BFF',
+    success: '#2EE59D',
+    warning: '#FBBF24',
+    error: '#FB7185'
   },
   isInfoFollowPrimary: true,
   layout: {
@@ -59,7 +59,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
   },
   watermark: {
     visible: false,
-    text: 'SoybeanAdmin',
+    text: 'Geo-LLM',
     enableUserName: false,
     enableTime: false,
     timeFormat: 'YYYY-MM-DD HH:mm'
@@ -80,9 +80,15 @@ export const themeSettings: App.Theme.ThemeSetting = {
     },
     dark: {
       colors: {
-        container: 'rgb(28, 28, 28)',
-        layout: 'rgb(18, 18, 18)',
-        'base-text': 'rgb(224, 224, 224)'
+        container: 'rgb(15, 27, 45)',
+        layout: 'rgb(11, 18, 32)',
+        inverted: 'rgb(15, 27, 45)',
+        'base-text': 'rgb(234, 234, 234)'
+      },
+      boxShadow: {
+        header: '0 1px 2px rgb(0, 0, 0, 0.25)',
+        sider: '2px 0 8px 0 rgb(0, 0, 0, 0.22)',
+        tab: '0 1px 2px rgb(0, 0, 0, 0.25)'
       }
     }
   }

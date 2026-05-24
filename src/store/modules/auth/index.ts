@@ -6,10 +6,12 @@ import { fetchGetUserInfo, fetchLogin } from '@/service/api';
 import { useRouterPush } from '@/hooks/common/router';
 import { localStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
-import { $t } from '@/locales';
 import { useRouteStore } from '../route';
 import { useTabStore } from '../tab';
 import { clearAuthStorage, getToken } from './shared';
+
+const DEMO_LOGIN_TOKEN = 'demo-token';
+const DEMO_REFRESH_TOKEN = 'demo-refresh-token';
 
 export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   const route = useRoute();
@@ -99,6 +101,31 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   async function login(userName: string, password: string, redirect = true) {
     startLoading();
 
+    if (import.meta.env.DEV) {
+      const pass = await loginByToken({ token: DEMO_LOGIN_TOKEN, refreshToken: DEMO_REFRESH_TOKEN });
+
+      if (pass) {
+        const isClear = checkTabClear();
+        let needRedirect = redirect;
+
+        if (isClear) {
+          needRedirect = false;
+        }
+        await redirectFromLogin(needRedirect);
+
+        window.$notification?.success({
+          title: '登录成功',
+          content: `欢迎回来，${userInfo.userName}`,
+          duration: 4500
+        });
+      } else {
+        resetStore();
+      }
+
+      endLoading();
+      return;
+    }
+
     const { data: loginToken, error } = await fetchLogin(userName, password);
 
     if (!error) {
@@ -116,8 +143,8 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
         await redirectFromLogin(needRedirect);
 
         window.$notification?.success({
-          title: $t('page.login.common.loginSuccess'),
-          content: $t('page.login.common.welcomeBack', { userName: userInfo.userName }),
+          title: '登录成功',
+          content: `欢迎回来，${userInfo.userName}`,
           duration: 4500
         });
       }
@@ -151,6 +178,17 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     if (!error) {
       // update store
       Object.assign(userInfo, info);
+
+      return true;
+    }
+
+    if (getToken() === DEMO_LOGIN_TOKEN) {
+      Object.assign(userInfo, {
+        userId: 'demo',
+        userName: 'Admin',
+        roles: [import.meta.env.VITE_STATIC_SUPER_ROLE],
+        buttons: []
+      });
 
       return true;
     }

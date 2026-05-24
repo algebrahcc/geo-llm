@@ -1,7 +1,6 @@
 import { h } from 'vue';
 import type { App } from 'vue';
 import { NButton } from 'naive-ui';
-import { $t } from '@/locales';
 
 export function setupAppErrorHandle(app: App) {
   app.config.errorHandler = (err, vm, info) => {
@@ -34,8 +33,8 @@ export function setupAppVersionNotification() {
 
     // Show update notification
     const n = window.$notification?.create({
-      title: $t('system.updateTitle'),
-      content: $t('system.updateContent'),
+      title: '发现新版本',
+      content: '检测到新版本，是否刷新页面？',
       action() {
         return h('div', { style: { display: 'flex', justifyContent: 'end', gap: '12px', width: '325px' } }, [
           h(
@@ -46,7 +45,7 @@ export function setupAppVersionNotification() {
                 isShow = false;
               }
             },
-            () => $t('system.updateCancel')
+            () => '取消'
           ),
           h(
             NButton,
@@ -56,7 +55,7 @@ export function setupAppVersionNotification() {
                 location.reload();
               }
             },
-            () => $t('system.updateConfirm')
+            () => '刷新'
           )
         ]);
       },

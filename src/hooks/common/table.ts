@@ -6,7 +6,6 @@ import type { PaginationData, TableColumnCheck, UseTableOptions } from '@sa/hook
 import type { FlatResponseData } from '@sa/axios';
 import { jsonClone } from '@sa/utils';
 import { useAppStore } from '@/store/modules/app';
-import { $t } from '@/locales';
 
 export type UseNaiveTableOptions<ResponseData, ApiData, Pagination extends boolean> = Omit<
   UseTableOptions<ResponseData, ApiData, NaiveUI.TableColumn<ApiData>, Pagination>,
@@ -30,7 +29,7 @@ const EXPAND_KEY = '__expand__';
 
 export function useNaiveTable<ResponseData, ApiData>(options: UseNaiveTableOptions<ResponseData, ApiData, false>) {
   const scope = effectScope();
-  const appStore = useAppStore();
+  useAppStore();
 
   const result = useTable<ResponseData, ApiData, NaiveUI.TableColumn<ApiData>, false>({
     ...options,
@@ -45,14 +44,7 @@ export function useNaiveTable<ResponseData, ApiData>(options: UseNaiveTableOptio
     }, 0);
   });
 
-  scope.run(() => {
-    watch(
-      () => appStore.locale,
-      () => {
-        result.reloadColumns();
-      }
-    );
-  });
+  scope.run(() => {});
 
   onScopeDispose(() => {
     scope.stop();
@@ -93,7 +85,7 @@ export function useNaivePaginatedTable<ResponseData, ApiData>(
     itemCount: 0,
     showSizePicker: true,
     pageSizes: [10, 15, 20, 25, 30],
-    prefix: showTotal.value ? page => $t('datatable.itemCount', { total: page.itemCount }) : undefined,
+    prefix: showTotal.value ? page => `共 ${page.itemCount} 条` : undefined,
     onUpdatePage(page) {
       pagination.page = page;
     },
@@ -146,13 +138,6 @@ export function useNaivePaginatedTable<ResponseData, ApiData>(
   }
 
   scope.run(() => {
-    watch(
-      () => appStore.locale,
-      () => {
-        result.reloadColumns();
-      }
-    );
-
     watch(paginationParams, async newVal => {
       await options.onPaginationParamsChange?.(newVal);
 
@@ -202,7 +187,7 @@ export function useTableOperate<TableData>(
 
   /** the hook after the batch delete operation is completed */
   async function onBatchDeleted() {
-    window.$message?.success($t('common.deleteSuccess'));
+    window.$message?.success('删除成功');
 
     checkedRowKeys.value = [];
 
@@ -211,7 +196,7 @@ export function useTableOperate<TableData>(
 
   /** the hook after the delete operation is completed */
   async function onDeleted() {
-    window.$message?.success($t('common.deleteSuccess'));
+    window.$message?.success('删除成功');
 
     await getData();
   }
@@ -272,7 +257,7 @@ function getColumnChecks<Column extends NaiveUI.TableColumn<any>>(
     } else if (column.type === 'selection') {
       checks.push({
         key: SELECTION_KEY,
-        title: $t('common.check'),
+        title: '勾选',
         checked: true,
         fixed: column.fixed ?? 'unFixed',
         visible: getColumnVisible?.(column) ?? false
@@ -280,7 +265,7 @@ function getColumnChecks<Column extends NaiveUI.TableColumn<any>>(
     } else if (column.type === 'expand') {
       checks.push({
         key: EXPAND_KEY,
-        title: $t('common.expandColumn'),
+        title: '展开',
         checked: true,
         fixed: column.fixed ?? 'unFixed',
         visible: getColumnVisible?.(column) ?? false

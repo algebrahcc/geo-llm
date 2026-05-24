@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { $t } from '@/locales';
-
 defineOptions({
   name: 'GlobalLogo'
 });
@@ -16,12 +14,25 @@ withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-  <RouterLink to="/" class="w-full flex-center nowrap-hidden">
-    <SystemLogo class="size-32px" />
-    <h2 v-show="showTitle" class="pl-8px text-16px text-primary font-bold transition duration-300 ease-in-out">
-      {{ $t('system.title') }}
-    </h2>
+  <RouterLink
+    to="/"
+    class="w-full flex-y-center nowrap-hidden"
+    :class="showTitle ? 'justify-start gap-10px px-12px' : 'justify-center'"
+  >
+    <SystemLogo class="shrink-0 size-28px" />
+    <h2 v-show="showTitle" class="brand-title min-w-0 flex-1 truncate">智能辅助决策系统</h2>
   </RouterLink>
 </template>
 
-<style scoped></style>
+<style scoped>
+.brand-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: transparent;
+  background: linear-gradient(90deg, rgb(var(--primary-400-color)), rgb(var(--primary-700-color)));
+  background-clip: text;
+  -webkit-background-clip: text;
+  text-shadow: 0 6px 18px rgb(var(--primary-500-color) / 22%);
+}
+</style>

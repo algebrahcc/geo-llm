@@ -1,7 +1,6 @@
 <script setup lang="ts" generic="T extends Record<string, unknown>, K = never">
 import { computed } from 'vue';
 import { VueDraggable } from 'vue-draggable-plus';
-import { $t } from '@/locales';
 
 defineOptions({
   name: 'TableColumnSetting'
@@ -11,10 +10,10 @@ const columns = defineModel<NaiveUI.TableColumnCheck[]>('columns', {
   required: true
 });
 
-const tooltipRecord: Record<NaiveUI.TableColumnFixed, App.I18n.I18nKey> = {
-  left: 'datatable.fixed.right',
-  right: 'datatable.fixed.unFixed',
-  unFixed: 'datatable.fixed.left'
+const tooltipRecord: Record<NaiveUI.TableColumnFixed, string> = {
+  left: '固定到右侧',
+  right: '取消固定',
+  unFixed: '固定到左侧'
 };
 
 function handleFixed(column: NaiveUI.TableColumnCheck) {
@@ -66,7 +65,7 @@ function toggleSelectAll(checked: boolean) {
         <template #icon>
           <icon-ant-design-setting-outlined class="text-icon" />
         </template>
-        {{ $t('common.columnSetting') }}
+        列设置
       </NButton>
     </template>
     <div>
@@ -78,7 +77,7 @@ function toggleSelectAll(checked: boolean) {
           class="flex-1"
           @update:checked="toggleSelectAll"
         >
-          {{ $t('common.selectAll') }}
+          全选
         </NCheckbox>
       </div>
       <NDivider class="!my-4px" />
@@ -101,7 +100,7 @@ function toggleSelectAll(checked: boolean) {
           <ButtonIcon
             :disabled="!item.checked"
             :focusable="false"
-            :tooltip-content="$t(tooltipRecord[item.fixed!])"
+            :tooltip-content="tooltipRecord[item.fixed!]"
             @click="handleFixed(item)"
           >
             <icon-octicon-pin-16 v-if="item.fixed === 'unFixed'" />

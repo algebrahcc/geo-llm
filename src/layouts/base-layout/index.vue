@@ -9,7 +9,6 @@ import GlobalSider from '../modules/global-sider/index.vue';
 import GlobalTab from '../modules/global-tab/index.vue';
 import GlobalContent from '../modules/global-content/index.vue';
 import GlobalFooter from '../modules/global-footer/index.vue';
-import ThemeDrawer from '../modules/theme-drawer/index.vue';
 import { provideMixMenuContext } from '../modules/global-menu/context';
 
 defineOptions({
@@ -21,6 +20,7 @@ const themeStore = useThemeStore();
 const { secondLevelMenus, childLevelMenus, isActiveFirstLevelMenuHasChildren } = provideMixMenuContext();
 
 const GlobalMenu = defineAsyncComponent(() => import('../modules/global-menu/index.vue'));
+const ThemeDrawer = defineAsyncComponent(() => import('../modules/theme-drawer/index.vue'));
 
 const layoutMode = computed(() => {
   const vertical: LayoutMode = 'vertical';
@@ -148,11 +148,11 @@ function getSiderAndCollapsedWidth(isCollapsed: boolean) {
     </template>
     <GlobalMenu />
     <GlobalContent />
-    <ThemeDrawer />
     <template #footer>
       <GlobalFooter />
     </template>
   </AdminLayout>
+  <ThemeDrawer />
 </template>
 
 <style lang="scss">

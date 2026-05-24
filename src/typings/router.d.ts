@@ -9,12 +9,6 @@ declare module 'vue-router' {
      */
     title: string;
     /**
-     * I18n key of the route
-     *
-     * It's used in i18n, if it is set, the title will be ignored
-     */
-    i18nKey?: App.I18n.I18nKey | null;
-    /**
      * Roles of the route
      *
      * Route can be accessed if the current user has at least one of the roles

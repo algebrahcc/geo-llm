@@ -12,7 +12,7 @@ export function setupElegantRouter() {
       const key = routeName as RouteKey;
 
       if (key === 'login') {
-        const modules: UnionKey.LoginModule[] = ['pwd-login', 'code-login', 'register', 'reset-pwd', 'bind-wechat'];
+        const modules: UnionKey.LoginModule[] = ['pwd-login'];
 
         const moduleReg = modules.join('|');
 
@@ -27,9 +27,23 @@ export function setupElegantRouter() {
       const constantRoutes: RouteKey[] = ['login', '403', '404', '500'];
 
       const meta: Partial<RouteMeta> = {
-        title: key,
-        i18nKey: `route.${key}` as App.I18n.I18nKey
+        title: key
       };
+
+      const routeMetaMap: Partial<Record<RouteKey, Partial<RouteMeta>>> = {
+        screen: { title: '统计大屏', order: 1, icon: 'mdi:monitor-dashboard' },
+        globe: { title: 'Web球', order: 2, icon: 'mdi:earth' },
+        catalog: { title: '数据目录', order: 3, icon: 'mdi:database' },
+        building: { title: '楼宇夺控', order: 4, icon: 'mdi:office-building' },
+        river: { title: '渡河保障方案', order: 5, icon: 'mdi:ferry' },
+        planning: { title: '机动路线规划', order: 6, icon: 'mdi:routes' },
+        knowledge: { title: '知识库', order: 7, icon: 'mdi:book-open-variant' },
+        agent: { title: 'AI Agent', order: 8, icon: 'mdi:robot' }
+      };
+
+      if (routeMetaMap[key]) {
+        Object.assign(meta, routeMetaMap[key]);
+      }
 
       if (constantRoutes.includes(key)) {
         meta.constant = true;

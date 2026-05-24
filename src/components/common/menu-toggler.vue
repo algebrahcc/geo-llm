@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { $t } from '@/locales';
 
 defineOptions({ name: 'MenuToggler' });
 
@@ -42,7 +41,7 @@ const icon = computed(() => {
 <template>
   <ButtonIcon
     :key="String(collapsed)"
-    :tooltip-content="collapsed ? $t('icon.expand') : $t('icon.collapse')"
+    :tooltip-content="collapsed ? '展开菜单' : '收起菜单'"
     tooltip-placement="bottom-start"
     :z-index="zIndex"
   >

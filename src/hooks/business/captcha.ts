@@ -1,16 +1,15 @@
 import { computed } from 'vue';
 import { useCountDown, useLoading } from '@sa/hooks';
 import { REG_PHONE } from '@/constants/reg';
-import { $t } from '@/locales';
 
 export function useCaptcha() {
   const { loading, startLoading, endLoading } = useLoading();
   const { count, start, stop, isCounting } = useCountDown(10);
 
   const label = computed(() => {
-    let text = $t('page.login.codeLogin.getCode');
+    let text = '获取验证码';
 
-    const countingLabel = $t('page.login.codeLogin.reGetCode', { time: count.value });
+    const countingLabel = `${count.value}秒后重新获取`;
 
     if (loading.value) {
       text = '';
@@ -25,13 +24,13 @@ export function useCaptcha() {
 
   function isPhoneValid(phone: string) {
     if (phone.trim() === '') {
-      window.$message?.error?.($t('form.phone.required'));
+      window.$message?.error?.('请输入手机号');
 
       return false;
     }
 
     if (!REG_PHONE.test(phone)) {
-      window.$message?.error?.($t('form.phone.invalid'));
+      window.$message?.error?.('手机号格式不正确');
 
       return false;
     }
@@ -53,7 +52,7 @@ export function useCaptcha() {
       setTimeout(resolve, 500);
     });
 
-    window.$message?.success?.($t('page.login.codeLogin.sendCodeSuccess'));
+    window.$message?.success?.('验证码发送成功');
 
     start();
 

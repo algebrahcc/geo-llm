@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { $t } from '@/locales';
-
 defineOptions({
   name: 'ReloadButton'
 });
@@ -13,7 +11,7 @@ defineProps<Props>();
 </script>
 
 <template>
-  <ButtonIcon :tooltip-content="$t('icon.reload')">
+  <ButtonIcon tooltip-content="刷新">
     <icon-ant-design-reload-outlined :class="{ 'animate-spin animate-duration-750': loading }" />
   </ButtonIcon>
 </template>

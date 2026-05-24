@@ -1,7 +1,7 @@
 {
-  "name": "soybean-admin",
+  "name": "geo-llm",
   "version": "2.2.0",
-  "description": "A fresh and elegant admin template, based on Vue3、Vite8、TypeScript、NaiveUI and UnoCSS. 一个基于Vue3、Vite8、TypeScript、NaiveUI and UnoCSS的清新优雅的中后台模版。",
+  "description": "Geo-LLM assisted decision prototype system. 基于 Vue3、Vite、TypeScript、NaiveUI、UnoCSS 的地理大模型辅助决策原型系统。",
   "keywords": [
     "TypeScript",
     "UnoCSS",
@@ -12,18 +12,16 @@
     "naive-ui-admin",
     "vue-admin-template"
   ],
-  "homepage": "https://github.com/soybeanjs/soybean-admin",
+  "homepage": "",
   "bugs": {
-    "url": "https://github.com/soybeanjs/soybean-admin/issues"
+    "url": ""
   },
   "license": "MIT",
   "author": {
-    "name": "Soybean",
-    "email": "soybeanjs@outlook.com",
-    "url": "https://github.com/soybeanjs"
+    "name": "Geo-LLM"
   },
   "repository": {
-    "url": "https://github.com/soybeanjs/soybean-admin.git"
+    "url": ""
   },
   "type": "module",
   "scripts": {
@@ -56,14 +54,15 @@
     "dayjs": "1.11.20",
     "defu": "6.1.7",
     "echarts": "6.0.0",
+    "echarts-wordcloud": "^2.1.0",
     "json5": "2.2.3",
     "naive-ui": "2.44.1",
     "nprogress": "0.2.0",
+    "ol": "^10.9.0",
     "pinia": "3.0.4",
     "tailwind-merge": "3.6.0",
     "vue": "3.5.34",
     "vue-draggable-plus": "0.6.1",
-    "vue-i18n": "11.4.2",
     "vue-router": "5.0.7"
   },
   "devDependencies": {
@@ -104,5 +103,5 @@
     "node": ">=20.19.0",
     "pnpm": ">=10.5.0"
   },
-  "website": "https://admin.soybeanjs.cn"
+  "website": ""
 }
