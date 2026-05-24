@@ -46,7 +46,7 @@ export function setupLoading() {
       ${dot}
     </div>
   </div>
-  <h2 class="text-28px font-500 text-primary">智能辅助决策系统</h2>
+  <h2 class="text-28px font-500 text-primary">地理环境信息辅助决策系统</h2>
 </div>`;
 
   const app = document.getElementById('app');

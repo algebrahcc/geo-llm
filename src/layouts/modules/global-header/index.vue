@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
 import { useFullscreen } from '@vueuse/core';
 import { GLOBAL_HEADER_MENU_ID } from '@/constants/app';
 import { useAppStore } from '@/store/modules/app';
@@ -23,9 +24,20 @@ interface Props {
 
 defineProps<Props>();
 
+const router = useRouter();
 const appStore = useAppStore();
 const themeStore = useThemeStore();
 const { isFullscreen, toggle } = useFullscreen();
+
+function openScreen() {
+  const url = router.resolve({ name: 'screen-fullscreen' }).href;
+  window.open(url, '_blank');
+}
+
+function openGlobe() {
+  const url = router.resolve({ name: 'globe-fullscreen' }).href;
+  window.open(url, '_blank');
+}
 </script>
 
 <template>
@@ -37,6 +49,8 @@ const { isFullscreen, toggle } = useFullscreen();
       <GlobalBreadcrumb v-if="!appStore.isMobile" class="ml-12px" />
     </div>
     <div class="h-full flex-y-center justify-end">
+      <ButtonIcon icon="mdi:monitor-dashboard" tooltip-content="统计大屏" @click="openScreen" />
+      <ButtonIcon icon="mdi:earth" tooltip-content="Web球" @click="openGlobe" />
       <FullScreen v-if="!appStore.isMobile" :full="isFullscreen" @click="toggle" />
       <ThemeSchemaSwitch
         :theme-schema="themeStore.themeScheme"

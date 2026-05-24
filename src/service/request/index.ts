@@ -37,6 +37,8 @@ export const request = createFlatRequest(
     async onBackendFail(response, instance) {
       const authStore = useAuthStore();
       const responseCode = String(response.data.code);
+      const currentToken = localStg.get('token');
+      const isDevDemoToken = import.meta.env.DEV && currentToken === 'demo-token';
 
       function handleLogout() {
         authStore.resetStore();
@@ -85,6 +87,12 @@ export const request = createFlatRequest(
       // the api `refreshToken` can not return error code in `expiredTokenCodes`, otherwise it will be a dead loop, should return `logoutCodes` or `modalLogoutCodes`
       const expiredTokenCodes = import.meta.env.VITE_SERVICE_EXPIRED_TOKEN_CODES?.split(',') || [];
       if (expiredTokenCodes.includes(responseCode)) {
+        // In dev mode the app uses a built-in demo token, which is not a real backend user.
+        // Skip refresh/logout flow so auth store can fall back to demo user info locally.
+        if (isDevDemoToken) {
+          return null;
+        }
+
         const success = await handleExpiredRequest(request.state);
         if (success) {
           const Authorization = getAuthorization();

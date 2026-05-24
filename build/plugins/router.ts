@@ -4,6 +4,20 @@ import type { RouteKey } from '@elegant-router/types';
 
 export function setupElegantRouter() {
   return ElegantVueRouter({
+    customRoutes: {
+      map: {
+        'screen-fullscreen': '/screen-fullscreen',
+        'globe-fullscreen': '/globe-fullscreen',
+        agent_workbench: '/agent/workbench',
+        agent_config: '/agent/config',
+        agent_test: '/agent/test',
+        agent_task_detail: '/agent/task-detail',
+        knowledge_overview: '/knowledge/overview',
+        knowledge_collections: '/knowledge/collections',
+        knowledge_retrieval: '/knowledge/retrieval',
+        knowledge_detail: '/knowledge/detail'
+      }
+    },
     layouts: {
       base: 'src/layouts/base-layout/index.vue',
       blank: 'src/layouts/blank-layout/index.vue'

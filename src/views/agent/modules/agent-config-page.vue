@@ -1,0 +1,79 @@
+<script setup lang="ts">
+import { useRoute, useRouter } from 'vue-router';
+import { updateAgentConfig } from '@/mock/agent';
+import AgentConfigForm from './agent-config-form.vue';
+import AgentSidebar from './agent-sidebar.vue';
+import { useAgentSelection } from './use-agent';
+
+defineOptions({
+  name: 'AgentConfigPage'
+});
+
+const route = useRoute();
+const router = useRouter();
+const { agentKey, selectedAgent, updateAgentQuery } = useAgentSelection(route, router);
+
+function handleSelect(key: typeof agentKey.value) {
+  updateAgentQuery(key);
+}
+
+function handleSubmit(config: Parameters<typeof updateAgentConfig>[0]) {
+  updateAgentConfig(config);
+  window.$message?.success('智能体配置已保存');
+}
+</script>
+
+<template>
+  <div class="agent-domain-page">
+    <div class="agent-grid">
+      <div class="agent-left">
+        <AgentSidebar :active-key="agentKey" @select="handleSelect" />
+      </div>
+
+      <div class="agent-main">
+        <NCard :bordered="false" class="page-hero">
+          <div class="text-22px font-700 text-[#f8fafc]">{{ selectedAgent.name }}配置中心</div>
+          <div class="mt-8px text-13px text-[#94a3b8]">
+            维护模型、提示词、工具开关和发布状态，支撑工作台和测试页的运行表现。
+          </div>
+        </NCard>
+
+        <AgentConfigForm :agent-key="agentKey" @submit="handleSubmit" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.agent-domain-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.agent-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.agent-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-hero {
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.84));
+}
+
+@media (max-width: 1199px) {
+  .agent-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

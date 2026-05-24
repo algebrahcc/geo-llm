@@ -17,6 +17,16 @@ declare module "@elegant-router/types" {
   export type RouteMap = {
     "root": "/";
     "not-found": "/:pathMatch(.*)*";
+    "screen-fullscreen": "/screen-fullscreen";
+    "globe-fullscreen": "/globe-fullscreen";
+    "agent_workbench": "/agent/workbench";
+    "agent_config": "/agent/config";
+    "agent_test": "/agent/test";
+    "agent_task_detail": "/agent/task-detail";
+    "knowledge_overview": "/knowledge/overview";
+    "knowledge_collections": "/knowledge/collections";
+    "knowledge_retrieval": "/knowledge/retrieval";
+    "knowledge_detail": "/knowledge/detail";
     "403": "/403";
     "404": "/404";
     "500": "/500";
@@ -49,6 +59,16 @@ declare module "@elegant-router/types" {
     RouteKey,
     | "root"
     | "not-found"
+    | "screen-fullscreen"
+    | "globe-fullscreen"
+    | "agent_workbench"
+    | "agent_config"
+    | "agent_test"
+    | "agent_task_detail"
+    | "knowledge_overview"
+    | "knowledge_collections"
+    | "knowledge_retrieval"
+    | "knowledge_detail"
   >;
 
   /**
@@ -83,6 +103,16 @@ declare module "@elegant-router/types" {
     CustomRouteKey,
     | "root"
     | "not-found"
+    | "screen-fullscreen"
+    | "globe-fullscreen"
+    | "agent_workbench"
+    | "agent_config"
+    | "agent_test"
+    | "agent_task_detail"
+    | "knowledge_overview"
+    | "knowledge_collections"
+    | "knowledge_retrieval"
+    | "knowledge_detail"
   >;
 
   /**
@@ -112,6 +142,16 @@ declare module "@elegant-router/types" {
     CustomRouteKey,
     | "root"
     | "not-found"
+    | "screen-fullscreen"
+    | "globe-fullscreen"
+    | "agent_workbench"
+    | "agent_config"
+    | "agent_test"
+    | "agent_task_detail"
+    | "knowledge_overview"
+    | "knowledge_collections"
+    | "knowledge_retrieval"
+    | "knowledge_detail"
   >;
 
   /**

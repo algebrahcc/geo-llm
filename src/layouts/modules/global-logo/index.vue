@@ -20,7 +20,7 @@ withDefaults(defineProps<Props>(), {
     :class="showTitle ? 'justify-start gap-10px px-12px' : 'justify-center'"
   >
     <SystemLogo class="shrink-0 size-28px" />
-    <h2 v-show="showTitle" class="brand-title min-w-0 flex-1 truncate">智能辅助决策系统</h2>
+    <h2 v-show="showTitle" class="brand-title min-w-0 flex-1 truncate">地理大模型辅助决策系统</h2>
   </RouterLink>
 </template>
 

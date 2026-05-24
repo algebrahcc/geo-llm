@@ -2,6 +2,7 @@ import type { PluginOption } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import vueJsx from '@vitejs/plugin-vue-jsx';
 import progress from 'vite-plugin-progress';
+import vitePluginCesium from 'vite-plugin-cesium';
 import vueRootValidator from 'vite-plugin-vue-transition-root-validator';
 import { setupElegantRouter } from './router';
 import { setupUnocss } from './unocss';
@@ -13,6 +14,7 @@ export function setupVitePlugins(viteEnv: Env.ImportMeta, buildTime: string) {
   const plugins: PluginOption = [
     vue(),
     vueJsx(),
+    vitePluginCesium(),
     setupDevtoolsPlugin(viteEnv),
     setupElegantRouter(),
     setupUnocss(viteEnv),
