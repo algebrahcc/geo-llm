@@ -38,8 +38,17 @@ const statusMeta = {
 <style scoped>
 .step-item {
   padding: 14px 16px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  border: 1px solid var(--agent-card-border, rgba(148, 163, 184, 0.12));
   border-radius: 18px;
-  background: rgba(15, 23, 42, 0.42);
+  background: var(--agent-panel-bg, rgba(15, 23, 42, 0.42));
+}
+
+.step-item :deep(.text-\[\#f8fafc\]) {
+  color: var(--agent-title, #0f172a) !important;
+}
+
+.step-item :deep(.text-\[\#94a3b8\]),
+.step-item :deep(.text-\[\#7890ad\]) {
+  color: var(--agent-subtitle, #64748b) !important;
 }
 </style>

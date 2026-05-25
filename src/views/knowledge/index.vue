@@ -3,6 +3,7 @@ import { computed, h } from 'vue';
 import { useRouter } from 'vue-router';
 import type { DataTableColumns } from 'naive-ui';
 import { NButton, NTag } from 'naive-ui';
+import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import {
   getKnowledgeStatusMeta,
@@ -25,6 +26,8 @@ defineOptions({
 });
 
 const router = useRouter();
+const themeStore = useThemeStore();
+const darkMode = computed(() => themeStore.darkMode);
 const {
   selectedCategory,
   selectedCollection,
@@ -131,8 +134,9 @@ const columns: DataTableColumns<RowData> = [
     key: 'category',
     width: 120,
     render(row) {
+      const mutedClass = darkMode.value ? 'muted-text muted-text--dark' : 'muted-text';
       const category = knowledgeCategories.find(item => item.key === row.category);
-      return h('span', { class: 'muted-text' }, category?.label || row.category);
+      return h('span', { class: mutedClass }, category?.label || row.category);
     }
   },
   {
@@ -140,8 +144,9 @@ const columns: DataTableColumns<RowData> = [
     key: 'collection',
     width: 140,
     render(row) {
+      const mutedClass = darkMode.value ? 'muted-text muted-text--dark' : 'muted-text';
       const collection = knowledgeCollections.find(item => item.key === row.collection);
-      return h('span', { class: 'muted-text' }, collection?.label || row.collection);
+      return h('span', { class: mutedClass }, collection?.label || row.collection);
     }
   },
   {
@@ -254,7 +259,7 @@ const columns: DataTableColumns<RowData> = [
 </script>
 
 <template>
-  <div class="knowledge-page">
+  <div class="knowledge-page" :class="{ 'knowledge-page--dark': darkMode }">
     <div class="content-layout">
       <KnowledgeCollectionNav
         class="collection-nav"
@@ -337,9 +342,56 @@ const columns: DataTableColumns<RowData> = [
 
 <style scoped>
 .knowledge-page {
+  --knowledge-title: #0f172a;
+  --knowledge-subtitle: #64748b;
+  --knowledge-card-bg:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.98));
+  --knowledge-card-border: rgba(148, 163, 184, 0.16);
+  --knowledge-card-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  --knowledge-head-bg: linear-gradient(180deg, rgba(59, 130, 246, 0.04), rgba(255, 255, 255, 0));
+  --knowledge-table-head-bg: rgba(241, 245, 249, 0.92);
+  --knowledge-table-head-text: #3b82f6;
+  --knowledge-row-hover: rgba(59, 130, 246, 0.05);
+  --knowledge-row-border: rgba(226, 232, 240, 0.95);
+  --knowledge-page-bg: transparent;
+  --knowledge-doc-icon-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(96, 165, 250, 0.05));
+  --knowledge-doc-icon-border: rgba(96, 165, 250, 0.18);
+  --knowledge-doc-icon-color: #3b82f6;
+  --knowledge-doc-title: #0f172a;
+  --knowledge-doc-summary: #64748b;
+  --knowledge-doc-meta: #64748b;
+  --knowledge-muted-text: #334155;
+  --knowledge-tag-bg: rgba(59, 130, 246, 0.1);
+  --knowledge-tag-color: #2563eb;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  background: var(--knowledge-page-bg);
+}
+
+.knowledge-page--dark {
+  --knowledge-title: #f8fafc;
+  --knowledge-subtitle: #94a3b8;
+  --knowledge-card-bg:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.86), rgba(30, 41, 59, 0.8));
+  --knowledge-card-border: rgba(148, 163, 184, 0.16);
+  --knowledge-card-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+  --knowledge-head-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+  --knowledge-table-head-bg: rgba(15, 23, 42, 0.35);
+  --knowledge-table-head-text: #8fb5ff;
+  --knowledge-row-hover: rgba(59, 130, 246, 0.06);
+  --knowledge-row-border: rgba(148, 163, 184, 0.08);
+  --knowledge-doc-icon-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(96, 165, 250, 0.05));
+  --knowledge-doc-icon-border: rgba(96, 165, 250, 0.18);
+  --knowledge-doc-icon-color: #8fb5ff;
+  --knowledge-doc-title: #f8fafc;
+  --knowledge-doc-summary: #8ea3bd;
+  --knowledge-doc-meta: #7890ad;
+  --knowledge-muted-text: #d5deea;
+  --knowledge-tag-bg: rgba(59, 130, 246, 0.14);
+  --knowledge-tag-color: #c9defd;
 }
 
 .content-layout {
@@ -358,18 +410,16 @@ const columns: DataTableColumns<RowData> = [
 
 .table-card {
   border-radius: 20px;
-  background:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
-    linear-gradient(135deg, rgba(15, 23, 42, 0.86), rgba(30, 41, 59, 0.8));
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+  background: var(--knowledge-card-bg);
+  border: 1px solid var(--knowledge-card-border);
+  box-shadow: var(--knowledge-card-shadow);
   overflow: hidden;
 }
 
 .table-card :deep(.n-card-header) {
   padding: 18px 20px 16px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+  border-bottom: 1px solid var(--knowledge-card-border);
+  background: var(--knowledge-head-bg);
 }
 
 .table-card :deep(.n-card__content) {
@@ -382,12 +432,12 @@ const columns: DataTableColumns<RowData> = [
   }
 
   .n-data-table-thead {
-    background: rgba(15, 23, 42, 0.35);
+    background: var(--knowledge-table-head-bg);
 
     .n-data-table-th {
       padding: 13px 16px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-      color: #8fb5ff;
+      border-bottom: 1px solid var(--knowledge-card-border);
+      color: var(--knowledge-table-head-text);
       font-size: 12px;
       font-weight: 600;
       letter-spacing: 0.04em;
@@ -405,13 +455,13 @@ const columns: DataTableColumns<RowData> = [
         box-shadow 0.2s ease;
 
       &:hover {
-        background: rgba(59, 130, 246, 0.06);
+        background: var(--knowledge-row-hover);
       }
 
       &.knowledge-row {
         .n-data-table-td {
           padding: 15px 16px;
-          border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+          border-bottom: 1px solid var(--knowledge-row-border);
           background: transparent;
         }
 
@@ -446,12 +496,13 @@ const columns: DataTableColumns<RowData> = [
   flex-shrink: 0;
   border-radius: 12px;
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(96, 165, 250, 0.05));
-  border: 1px solid rgba(96, 165, 250, 0.18);
+  border: 1px solid var(--knowledge-doc-icon-border);
+  background: var(--knowledge-doc-icon-bg);
 }
 
 .doc-icon {
   font-size: 18px;
-  color: #8fb5ff;
+  color: var(--knowledge-doc-icon-color);
 }
 
 .doc-cell {
@@ -462,13 +513,13 @@ const columns: DataTableColumns<RowData> = [
 }
 
 .doc-title {
-  color: #f8fafc;
+  color: var(--knowledge-doc-title);
   font-weight: 600;
   line-height: 1.45;
 }
 
 .doc-subtitle {
-  color: #8ea3bd;
+  color: var(--knowledge-doc-summary);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -478,7 +529,7 @@ const columns: DataTableColumns<RowData> = [
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  color: #7890ad;
+  color: var(--knowledge-doc-meta);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -492,7 +543,7 @@ const columns: DataTableColumns<RowData> = [
 }
 
 .muted-text {
-  color: #d5deea;
+  color: var(--knowledge-muted-text);
 }
 
 .tag-group {
@@ -502,8 +553,8 @@ const columns: DataTableColumns<RowData> = [
 }
 
 .doc-tag {
-  background: rgba(59, 130, 246, 0.14);
-  color: #c9defd;
+  background: var(--knowledge-tag-bg);
+  color: var(--knowledge-tag-color);
 }
 
 .action-group {

@@ -71,7 +71,13 @@ const emit = defineEmits<{
 
 <style scoped>
 .toolbar-card {
-  background: rgba(15, 23, 42, 0.72);
+  background: var(--knowledge-card-bg, rgba(15, 23, 42, 0.72));
   border-radius: 20px;
+  border: 1px solid var(--knowledge-card-border, rgba(148, 163, 184, 0.14));
+  box-shadow: var(--knowledge-card-shadow, none);
+}
+
+.toolbar-card :deep(.text-\[\#94a3b8\]) {
+  color: var(--knowledge-subtitle, #64748b) !important;
 }
 </style>

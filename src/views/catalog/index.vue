@@ -2,6 +2,7 @@
 import { h, ref, computed } from 'vue';
 import type { TreeSelectOption, DataTableColumns } from 'naive-ui';
 import { NTag, NButton, NDropdown, NTree, NDataTable } from 'naive-ui';
+import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { catalogCategories, catalogTypes, catalogData, getFilteredData, type CatalogItem } from '@/mock/catalog';
 
@@ -15,6 +16,8 @@ const searchKeyword = ref('');
 const isLoading = ref(false);
 const expandedKeys = ref<string[]>(['img', 'dem', 'oblique', 'hydro', 'pipe']);
 const dataList = ref<CatalogItem[]>([...catalogData]);
+const themeStore = useThemeStore();
+const darkMode = computed(() => themeStore.darkMode);
 
 const treeOptions: TreeSelectOption[] = catalogCategories.map(cat => ({
   label: cat.label,
@@ -233,7 +236,7 @@ function showImport() {
 </script>
 
 <template>
-  <div class="catalog-page">
+  <div class="catalog-page" :class="{ 'catalog-page--dark': darkMode }">
     <!-- 主内容区域 -->
     <div class="main-content">
       <!-- 左侧分类树 -->
@@ -311,13 +314,50 @@ function showImport() {
 
 <style scoped lang="scss">
 .catalog-page {
+  --catalog-page-bg: linear-gradient(135deg, #f4f7fb 0%, #eef3f9 100%);
+  --catalog-surface-bg: rgba(255, 255, 255, 0.9);
+  --catalog-surface-border: rgba(148, 163, 184, 0.18);
+  --catalog-header-border: rgba(148, 163, 184, 0.16);
+  --catalog-tab-group-bg: rgba(148, 163, 184, 0.12);
+  --catalog-tree-hover-bg: rgba(59, 130, 246, 0.08);
+  --catalog-text-primary: #1e293b;
+  --catalog-text-secondary: #475569;
+  --catalog-text-tertiary: #64748b;
+  --catalog-input-bg: rgba(255, 255, 255, 0.96);
+  --catalog-input-border: rgba(148, 163, 184, 0.24);
+  --catalog-input-placeholder: rgba(100, 116, 139, 0.8);
+  --catalog-table-head-bg: rgba(241, 245, 249, 0.92);
+  --catalog-table-head-text: #475569;
+  --catalog-table-row-hover: rgba(59, 130, 246, 0.06);
+  --catalog-table-row-border: rgba(226, 232, 240, 0.92);
+  --catalog-card-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
   height: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 16px;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
+  background: var(--catalog-page-bg);
   overflow: hidden;
+}
+
+.catalog-page--dark {
+  --catalog-page-bg: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
+  --catalog-surface-bg: rgba(255, 255, 255, 0.03);
+  --catalog-surface-border: rgba(255, 255, 255, 0.06);
+  --catalog-header-border: rgba(255, 255, 255, 0.06);
+  --catalog-tab-group-bg: rgba(0, 0, 0, 0.2);
+  --catalog-tree-hover-bg: rgba(255, 255, 255, 0.05);
+  --catalog-text-primary: #fff;
+  --catalog-text-secondary: rgba(255, 255, 255, 0.7);
+  --catalog-text-tertiary: rgba(255, 255, 255, 0.6);
+  --catalog-input-bg: rgba(0, 0, 0, 0.2);
+  --catalog-input-border: rgba(255, 255, 255, 0.08);
+  --catalog-input-placeholder: rgba(255, 255, 255, 0.35);
+  --catalog-table-head-bg: rgba(255, 255, 255, 0.05);
+  --catalog-table-head-text: rgba(255, 255, 255, 0.7);
+  --catalog-table-row-hover: rgba(255, 255, 255, 0.04);
+  --catalog-table-row-border: rgba(255, 255, 255, 0.04);
+  --catalog-card-shadow: none;
 }
 
 // 主内容区域
@@ -333,12 +373,13 @@ function showImport() {
 .sidebar {
   width: 260px;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--catalog-surface-bg);
+  border: 1px solid var(--catalog-surface-border);
   border-radius: 16px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: var(--catalog-card-shadow);
 }
 
 .section-header {
@@ -346,7 +387,7 @@ function showImport() {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--catalog-header-border);
 
   .section-icon {
     font-size: 18px;
@@ -356,7 +397,7 @@ function showImport() {
   .section-title {
     font-size: 15px;
     font-weight: 600;
-    color: #fff;
+    color: var(--catalog-text-primary);
     flex: 1;
   }
 
@@ -380,7 +421,7 @@ function showImport() {
       transition: all 0.2s ease;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--catalog-tree-hover-bg);
       }
 
       &--selected {
@@ -407,9 +448,10 @@ function showImport() {
   justify-content: space-between;
   gap: 16px;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--catalog-surface-bg);
+  border: 1px solid var(--catalog-surface-border);
   border-radius: 12px;
+  box-shadow: var(--catalog-card-shadow);
 }
 
 .toolbar-left {
@@ -420,7 +462,7 @@ function showImport() {
 
 .tab-group {
   display: flex;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--catalog-tab-group-bg);
   border-radius: 8px;
   padding: 4px;
 
@@ -428,7 +470,7 @@ function showImport() {
     padding: 6px 14px;
     font-size: 13px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--catalog-text-tertiary);
     background: transparent;
     border: none;
     border-radius: 6px;
@@ -436,7 +478,7 @@ function showImport() {
     transition: all 0.2s ease;
 
     &:hover {
-      color: rgba(255, 255, 255, 0.9);
+      color: var(--catalog-text-primary);
     }
 
     &.active {
@@ -477,7 +519,7 @@ function showImport() {
     position: absolute;
     left: 12px;
     font-size: 16px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--catalog-text-tertiary);
     pointer-events: none;
     transition: color 0.2s ease;
   }
@@ -487,24 +529,24 @@ function showImport() {
     height: 36px;
     padding: 0 12px 0 36px;
     font-size: 13px;
-    color: #fff;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--catalog-text-primary);
+    background: var(--catalog-input-bg);
+    border: 1px solid var(--catalog-input-border);
     border-radius: 8px;
     transition: all 0.2s ease;
 
     &::placeholder {
-      color: rgba(255, 255, 255, 0.35);
+      color: var(--catalog-input-placeholder);
     }
 
     &:hover {
-      border-color: rgba(255, 255, 255, 0.15);
+      border-color: rgba(var(--primary-500-color), 0.22);
     }
 
     &:focus {
       outline: none;
       border-color: rgba(var(--primary-500-color), 0.5);
-      background: rgba(0, 0, 0, 0.3);
+      background: var(--catalog-input-bg);
       box-shadow: 0 0 0 3px rgba(var(--primary-500-color), 0.1);
 
       & + .search-icon {
@@ -537,10 +579,11 @@ function showImport() {
 // 表格容器
 .table-container {
   flex: 1;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--catalog-surface-bg);
+  border: 1px solid var(--catalog-surface-border);
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: var(--catalog-card-shadow);
 
   :deep(.n-data-table) {
     .n-data-table-wrapper {
@@ -548,16 +591,16 @@ function showImport() {
     }
 
     .n-data-table-thead {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--catalog-table-head-bg);
 
       .n-data-table-th {
         font-weight: 600;
         font-size: 12px;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--catalog-table-head-text);
         text-transform: uppercase;
         letter-spacing: 0.5px;
         padding: 14px 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        border-bottom: 1px solid var(--catalog-header-border);
       }
     }
 
@@ -566,13 +609,13 @@ function showImport() {
         transition: background 0.2s ease;
 
         &:hover {
-          background: rgba(255, 255, 255, 0.04);
+          background: var(--catalog-table-row-hover);
         }
 
         &.data-row {
           .n-data-table-td {
             padding: 14px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            border-bottom: 1px solid var(--catalog-table-row-border);
           }
         }
       }
@@ -625,33 +668,33 @@ function showImport() {
   .data-name {
     font-size: 14px;
     font-weight: 500;
-    color: #fff;
+    color: var(--catalog-text-primary);
     line-height: 1.4;
   }
 
   .data-source {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--catalog-text-tertiary);
   }
 }
 
 // 时间文本
 .time-text {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--catalog-text-tertiary);
   font-family: 'Inter', monospace;
 }
 
 // 范围文本
 .range-text {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--catalog-text-secondary);
 }
 
 // 大小文本
 .size-text {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--catalog-text-tertiary);
   font-family: 'Inter', monospace;
 }
 
@@ -680,7 +723,7 @@ function showImport() {
   }
 
   &.status-offline {
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--catalog-text-tertiary);
   }
 }
 
@@ -702,7 +745,7 @@ function showImport() {
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--catalog-tree-hover-bg);
   }
 
   &.preview-btn:hover {

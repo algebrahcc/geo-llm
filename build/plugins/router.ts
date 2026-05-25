@@ -8,6 +8,11 @@ export function setupElegantRouter() {
       map: {
         'screen-fullscreen': '/screen-fullscreen',
         'globe-fullscreen': '/globe-fullscreen',
+        building_overview: '/building/overview',
+        building_workspace: '/building/workspace',
+        building_structure: '/building/structure',
+        building_material: '/building/material',
+        building_task_detail: '/building/task-detail',
         agent_workbench: '/agent/workbench',
         agent_config: '/agent/config',
         agent_test: '/agent/test',

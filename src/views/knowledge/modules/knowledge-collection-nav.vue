@@ -63,11 +63,13 @@ const emit = defineEmits<{
   position: sticky;
   top: 16px;
   border-radius: 22px;
-  background: rgba(15, 23, 42, 0.82);
+  background: var(--knowledge-card-bg, rgba(15, 23, 42, 0.82));
+  border: 1px solid var(--knowledge-card-border, rgba(148, 163, 184, 0.14));
+  box-shadow: var(--knowledge-card-shadow, none);
 }
 
 .group-title {
-  color: #93c5fd;
+  color: var(--knowledge-table-head-text, #3b82f6);
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -75,11 +77,11 @@ const emit = defineEmits<{
 
 .nav-item {
   width: 100%;
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  border: 1px solid var(--knowledge-card-border, rgba(148, 163, 184, 0.14));
   border-radius: 16px;
   padding: 12px 14px;
   text-align: left;
-  background: rgba(30, 41, 59, 0.62);
+  background: var(--knowledge-table-head-bg, rgba(30, 41, 59, 0.62));
   transition:
     border-color 0.18s ease,
     transform 0.18s ease,
@@ -100,10 +102,19 @@ const emit = defineEmits<{
   min-width: 32px;
   border-radius: 999px;
   padding: 4px 8px;
-  background: rgba(59, 130, 246, 0.16);
-  color: #bfdbfe;
+  background: var(--knowledge-tag-bg, rgba(59, 130, 246, 0.16));
+  color: var(--knowledge-tag-color, #bfdbfe);
   text-align: center;
   font-size: 12px;
   font-weight: 600;
+}
+
+.collection-nav-card :deep(.text-\[\#f8fafc\]),
+.collection-nav-card :deep(.text-\[\#e2e8f0\]) {
+  color: var(--knowledge-title, #0f172a) !important;
+}
+
+.collection-nav-card :deep(.text-\[\#94a3b8\]) {
+  color: var(--knowledge-subtitle, #64748b) !important;
 }
 </style>

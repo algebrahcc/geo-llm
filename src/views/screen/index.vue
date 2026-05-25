@@ -21,6 +21,19 @@ defineOptions({
 
 const southeastCoastCenter = fromLonLat([121.5, 26.0]) as [number, number];
 
+const screenBaseTileLayers = [
+  {
+    url: '/google satellite-z0-8.yocMFTJvR/{z}/{x}/{y}.jpg',
+    maxZoom: 8
+  },
+  {
+    url: '/taiwan/{z}/{x}/{y}.jpg',
+    extent: [119.9, 21.8, 122.2, 25.5] as [number, number, number, number],
+    maxZoom: 14,
+    zIndex: 10
+  }
+];
+
 const { domRef: taskDistributionDomRef } = useEcharts(() => ({
   tooltip: { trigger: 'item' },
   legend: { bottom: 0, left: 'center' },
@@ -230,10 +243,10 @@ const { domRef: bottomTrendDomRef } = useEcharts(() => ({
             <div class="h-full w-full">
               <OfflineOlMap
                 class="h-full w-full"
-                tile-url="/google satellite-z0-8.yocMFTJvR/{z}/{x}/{y}.jpg"
+                :tile-layers="screenBaseTileLayers"
                 :center="southeastCoastCenter"
                 :min-zoom="0"
-                :max-zoom="8"
+                :max-zoom="14"
                 :zoom="3"
               />
             </div>

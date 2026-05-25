@@ -19,6 +19,10 @@ declare module "@elegant-router/types" {
     "not-found": "/:pathMatch(.*)*";
     "screen-fullscreen": "/screen-fullscreen";
     "globe-fullscreen": "/globe-fullscreen";
+    "planning-fullscreen": "/planning-fullscreen";
+    "river-fullscreen": "/river-fullscreen";
+    "building-fullscreen": "/building-fullscreen";
+    "building_workspace": "/building/workspace";
     "agent_workbench": "/agent/workbench";
     "agent_config": "/agent/config";
     "agent_test": "/agent/test";
@@ -61,6 +65,10 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "screen-fullscreen"
     | "globe-fullscreen"
+    | "planning-fullscreen"
+    | "river-fullscreen"
+    | "building-fullscreen"
+    | "building_workspace"
     | "agent_workbench"
     | "agent_config"
     | "agent_test"
@@ -105,6 +113,10 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "screen-fullscreen"
     | "globe-fullscreen"
+    | "planning-fullscreen"
+    | "river-fullscreen"
+    | "building-fullscreen"
+    | "building_workspace"
     | "agent_workbench"
     | "agent_config"
     | "agent_test"
@@ -144,6 +156,10 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "screen-fullscreen"
     | "globe-fullscreen"
+    | "planning-fullscreen"
+    | "river-fullscreen"
+    | "building-fullscreen"
+    | "building_workspace"
     | "agent_workbench"
     | "agent_config"
     | "agent_test"

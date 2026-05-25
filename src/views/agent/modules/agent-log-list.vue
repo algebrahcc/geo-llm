@@ -58,15 +58,29 @@ const sortedTasks = computed(() => [...props.tasks]);
 <style scoped>
 .log-card {
   border-radius: 20px;
-  background:
+  background: var(
+    --agent-card-bg,
     radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82));
+    linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82))
+  );
+  border: 1px solid var(--agent-card-border, rgba(148, 163, 184, 0.12));
+  box-shadow: var(--agent-card-shadow, none);
 }
 
 .task-item {
   padding: 14px 16px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  border: 1px solid var(--agent-card-border, rgba(148, 163, 184, 0.12));
   border-radius: 18px;
-  background: rgba(15, 23, 42, 0.42);
+  background: var(--agent-panel-bg, rgba(15, 23, 42, 0.42));
+}
+
+.log-card :deep(.text-\[\#f8fafc\]) {
+  color: var(--agent-title, #0f172a) !important;
+}
+
+.log-card :deep(.text-\[\#8ea3bd\]),
+.log-card :deep(.text-\[\#7890ad\]),
+.log-card :deep(.text-\[\#94a3b8\]) {
+  color: var(--agent-subtitle, #64748b) !important;
 }
 </style>

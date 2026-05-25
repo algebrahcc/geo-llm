@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useThemeStore } from '@/store/modules/theme';
 import { knowledgeCategories, knowledgeCollections, runKnowledgeRetrieval } from '@/mock/knowledge';
 
 defineOptions({
@@ -9,6 +10,8 @@ defineOptions({
 const query = ref('台湾 港口 岸线');
 const searched = ref(false);
 const results = ref(runKnowledgeRetrieval(query.value));
+const themeStore = useThemeStore();
+const darkMode = computed(() => themeStore.darkMode);
 
 const quickQueries = ['台湾 港口 岸线', '堤防 风险 保障', '术语 模板 提示词'];
 
@@ -30,7 +33,7 @@ function getCollectionLabel(key: string) {
 </script>
 
 <template>
-  <div class="retrieval-page">
+  <div class="retrieval-page" :class="{ 'retrieval-page--dark': darkMode }">
     <NCard :bordered="false" class="search-card">
       <div class="text-18px font-700 text-[#f8fafc]">检索测试</div>
       <div class="mt-6px text-13px text-[#94a3b8]">输入问题或关键词，快速验证知识库目前能召回哪些文档和分块。</div>
@@ -105,35 +108,80 @@ function getCollectionLabel(key: string) {
 
 <style scoped>
 .retrieval-page {
+  --knowledge-block-bg:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.98));
+  --knowledge-block-border: rgba(148, 163, 184, 0.14);
+  --knowledge-block-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  --knowledge-title: #0f172a;
+  --knowledge-subtitle: #64748b;
+  --knowledge-body: #334155;
+  --knowledge-strong: #1d4ed8;
+  --knowledge-tag-bg: rgba(59, 130, 246, 0.1);
+  --knowledge-tag-color: #2563eb;
+  --knowledge-item-bg: rgba(255, 255, 255, 0.78);
+  --knowledge-inner-bg: rgba(241, 245, 249, 0.96);
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
+.retrieval-page--dark {
+  --knowledge-block-bg:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(30, 41, 59, 0.82));
+  --knowledge-block-border: rgba(148, 163, 184, 0.14);
+  --knowledge-block-shadow: none;
+  --knowledge-title: #f8fafc;
+  --knowledge-subtitle: #94a3b8;
+  --knowledge-body: #cbd5e1;
+  --knowledge-strong: #dbeafe;
+  --knowledge-tag-bg: rgba(59, 130, 246, 0.14);
+  --knowledge-tag-color: #c9defd;
+  --knowledge-item-bg: rgba(15, 23, 42, 0.34);
+  --knowledge-inner-bg: rgba(30, 41, 59, 0.74);
+}
+
 .search-card,
 .result-card {
   border-radius: 20px;
-  background:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
-    linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(30, 41, 59, 0.82));
+  background: var(--knowledge-block-bg);
+  box-shadow: var(--knowledge-block-shadow);
 }
 
 .query-tag {
   cursor: pointer;
-  background: rgba(59, 130, 246, 0.14);
-  color: #c9defd;
+  background: var(--knowledge-tag-bg);
+  color: var(--knowledge-tag-color);
 }
 
 .result-item {
   padding: 16px 18px;
   border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background: rgba(15, 23, 42, 0.34);
+  border: 1px solid var(--knowledge-block-border);
+  background: var(--knowledge-item-bg);
 }
 
 .match-card {
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(30, 41, 59, 0.74);
+  background: var(--knowledge-inner-bg);
+}
+
+.retrieval-page :deep(.text-\[\#f8fafc\]) {
+  color: var(--knowledge-title) !important;
+}
+
+.retrieval-page :deep(.text-\[\#94a3b8\]),
+.retrieval-page :deep(.text-\[\#8ea3bd\]) {
+  color: var(--knowledge-subtitle) !important;
+}
+
+.retrieval-page :deep(.text-\[\#cbd5e1\]) {
+  color: var(--knowledge-body) !important;
+}
+
+.retrieval-page :deep(.text-\[\#dbeafe\]) {
+  color: var(--knowledge-strong) !important;
 }
 </style>

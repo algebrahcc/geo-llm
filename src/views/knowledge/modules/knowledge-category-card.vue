@@ -27,12 +27,13 @@ const emit = defineEmits<{
 
 <style scoped>
 .category-card {
+  color: var(--knowledge-title, #0f172a);
   width: 100%;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  border: 1px solid var(--knowledge-card-border, rgba(148, 163, 184, 0.2));
   border-radius: 18px;
   padding: 18px;
   text-align: left;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+  background: var(--knowledge-card-bg, linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92)));
   transition:
     border-color 0.18s ease,
     transform 0.18s ease,
@@ -42,7 +43,7 @@ const emit = defineEmits<{
 .category-card:hover {
   transform: translateY(-2px);
   border-color: rgba(96, 165, 250, 0.45);
-  box-shadow: 0 16px 24px rgba(15, 23, 42, 0.2);
+  box-shadow: var(--knowledge-card-shadow, 0 16px 24px rgba(15, 23, 42, 0.2));
 }
 
 .category-card--active {
@@ -54,10 +55,18 @@ const emit = defineEmits<{
   min-width: 40px;
   border-radius: 999px;
   padding: 6px 12px;
-  background: rgba(59, 130, 246, 0.16);
-  color: #bfdbfe;
+  background: var(--knowledge-tag-bg, rgba(59, 130, 246, 0.16));
+  color: var(--knowledge-tag-color, #bfdbfe);
   text-align: center;
   font-size: 12px;
   font-weight: 600;
+}
+
+.category-card :deep(.text-\[\#f5f7fa\]) {
+  color: var(--knowledge-title, #0f172a) !important;
+}
+
+.category-card :deep(.text-\[\#94a3b8\]) {
+  color: var(--knowledge-subtitle, #64748b) !important;
 }
 </style>

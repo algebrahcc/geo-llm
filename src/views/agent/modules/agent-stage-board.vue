@@ -77,16 +77,20 @@ const colorMap = {
 <style scoped>
 .stage-card {
   border-radius: 20px;
-  background:
+  background: var(
+    --agent-card-bg,
     radial-gradient(circle at top right, rgba(96, 165, 250, 0.08), transparent 24%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82));
+    linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82))
+  );
+  border: 1px solid var(--agent-card-border, rgba(148, 163, 184, 0.12));
+  box-shadow: var(--agent-card-shadow, none);
 }
 
 .stage-item {
   padding: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  border: 1px solid var(--agent-card-border, rgba(148, 163, 184, 0.12));
   border-radius: 18px;
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--agent-panel-bg, rgba(15, 23, 42, 0.4));
 }
 
 .stage-icon {
@@ -96,6 +100,16 @@ const colorMap = {
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--agent-tag-bg, rgba(255, 255, 255, 0.05));
+}
+
+.stage-card :deep(.text-\[\#f8fafc\]) {
+  color: var(--agent-title, #0f172a) !important;
+}
+
+.stage-card :deep(.text-\[\#8ea3bd\]),
+.stage-card :deep(.text-\[\#7890ad\]),
+.stage-card :deep(.text-\[\#94a3b8\]) {
+  color: var(--agent-subtitle, #64748b) !important;
 }
 </style>

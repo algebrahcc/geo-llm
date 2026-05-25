@@ -108,8 +108,20 @@ function handleSubmit() {
 <style scoped>
 .config-card {
   border-radius: 20px;
-  background:
+  background: var(
+    --agent-card-bg,
     radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 26%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82));
+    linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82))
+  );
+  border: 1px solid var(--agent-card-border, rgba(148, 163, 184, 0.12));
+  box-shadow: var(--agent-card-shadow, none);
+}
+
+.config-card :deep(.text-\[\#f8fafc\]) {
+  color: var(--agent-title, #0f172a) !important;
+}
+
+.config-card :deep(.text-\[\#8ea3bd\]) {
+  color: var(--agent-subtitle, #64748b) !important;
 }
 </style>

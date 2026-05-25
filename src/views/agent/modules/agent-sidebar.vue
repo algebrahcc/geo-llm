@@ -72,24 +72,37 @@ const items = computed(() =>
 <style scoped>
 .sidebar-card {
   border-radius: 20px;
-  background:
+  background: var(
+    --agent-card-bg,
     radial-gradient(circle at top left, rgba(59, 130, 246, 0.1), transparent 28%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82));
+    linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82))
+  );
+  border: 1px solid var(--agent-card-border, rgba(148, 163, 184, 0.12));
+  box-shadow: var(--agent-card-shadow, none);
 }
 
 .agent-item {
   width: 100%;
   padding: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  border: 1px solid var(--agent-card-border, rgba(148, 163, 184, 0.12));
   border-radius: 18px;
-  background: rgba(15, 23, 42, 0.4);
-  transition: 180ms ease;
+  background: var(--agent-panel-bg, rgba(15, 23, 42, 0.4));
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
 .agent-item:hover,
 .agent-item--active {
-  border-color: rgba(96, 165, 250, 0.38);
-  background: rgba(30, 41, 59, 0.86);
+  border-color: var(--agent-interactive-border, rgba(96, 165, 250, 0.38));
+  background: var(--agent-interactive-bg, rgba(30, 41, 59, 0.86));
+  box-shadow: var(--agent-interactive-shadow, none);
+}
+
+.agent-item:hover {
+  transform: translateY(-1px);
 }
 
 .agent-icon {
@@ -99,7 +112,16 @@ const items = computed(() =>
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: rgba(59, 130, 246, 0.14);
-  color: #bfdbfe;
+  background: var(--agent-tag-bg, rgba(59, 130, 246, 0.14));
+  color: var(--agent-tag-color, #bfdbfe);
+}
+
+.sidebar-card :deep(.text-\[\#f8fafc\]) {
+  color: var(--agent-title, #0f172a) !important;
+}
+
+.sidebar-card :deep(.text-\[\#8ea3bd\]),
+.sidebar-card :deep(.text-\[\#7890ad\]) {
+  color: var(--agent-subtitle, #64748b) !important;
 }
 </style>

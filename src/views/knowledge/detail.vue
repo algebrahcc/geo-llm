@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useThemeStore } from '@/store/modules/theme';
 import {
   getKnowledgeDocumentDetailById,
   getKnowledgeStatusMeta,
@@ -18,6 +19,8 @@ defineOptions({
 const route = useRoute();
 const router = useRouter();
 const editVisible = ref(false);
+const themeStore = useThemeStore();
+const darkMode = computed(() => themeStore.darkMode);
 
 const documentId = computed(() => String(route.query.id || ''));
 const detail = computed(() => getKnowledgeDocumentDetailById(documentId.value));
@@ -84,7 +87,7 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
 </script>
 
 <template>
-  <div class="knowledge-detail-page">
+  <div class="knowledge-detail-page" :class="{ 'knowledge-detail-page--dark': darkMode }">
     <template v-if="detail">
       <NCard :bordered="false" class="detail-hero">
         <div class="flex flex-wrap items-start justify-between gap-16px">
@@ -230,22 +233,50 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
 
 <style scoped>
 .knowledge-detail-page {
+  --knowledge-block-bg: rgba(255, 255, 255, 0.96);
+  --knowledge-hero-bg:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+  --knowledge-block-border: rgba(148, 163, 184, 0.16);
+  --knowledge-block-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  --knowledge-title: #0f172a;
+  --knowledge-subtitle: #64748b;
+  --knowledge-body: #334155;
+  --knowledge-strong: #1e293b;
+  --knowledge-tag-bg: rgba(59, 130, 246, 0.1);
+  --knowledge-tag-color: #2563eb;
+  --knowledge-inner-bg: rgba(241, 245, 249, 0.96);
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.knowledge-detail-page--dark {
+  --knowledge-block-bg: rgba(15, 23, 42, 0.82);
+  --knowledge-hero-bg:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 38%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92));
+  --knowledge-block-border: rgba(148, 163, 184, 0.16);
+  --knowledge-block-shadow: none;
+  --knowledge-title: #f8fafc;
+  --knowledge-subtitle: #94a3b8;
+  --knowledge-body: #cbd5e1;
+  --knowledge-strong: #e2e8f0;
+  --knowledge-tag-bg: rgba(59, 130, 246, 0.12);
+  --knowledge-tag-color: #bfdbfe;
+  --knowledge-inner-bg: rgba(30, 41, 59, 0.72);
 }
 
 .detail-hero,
 .detail-card,
 .detail-empty {
   border-radius: 22px;
-  background: rgba(15, 23, 42, 0.82);
+  background: var(--knowledge-block-bg);
+  box-shadow: var(--knowledge-block-shadow);
 }
 
 .detail-hero {
-  background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 38%),
-    linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92));
+  background: var(--knowledge-hero-bg);
 }
 
 .meta-item,
@@ -258,22 +289,22 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
 .metric-row {
   padding: 12px 14px;
   border-radius: 16px;
-  background: rgba(30, 41, 59, 0.72);
+  background: var(--knowledge-inner-bg);
 }
 
 .meta-label {
-  color: #94a3b8;
+  color: var(--knowledge-subtitle);
   font-size: 12px;
 }
 
 .meta-value {
-  color: #e2e8f0;
+  color: var(--knowledge-strong);
   line-height: 1.7;
 }
 
 .detail-tag {
-  background: rgba(59, 130, 246, 0.12);
-  color: #bfdbfe;
+  background: var(--knowledge-tag-bg);
+  color: var(--knowledge-tag-color);
 }
 
 .log-item,
@@ -281,7 +312,23 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
 .chunk-card {
   padding: 14px 16px;
   border-radius: 18px;
-  background: rgba(30, 41, 59, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: var(--knowledge-inner-bg);
+  border: 1px solid var(--knowledge-block-border);
+}
+
+.knowledge-detail-page :deep(.text-\[\#f8fafc\]) {
+  color: var(--knowledge-title) !important;
+}
+
+.knowledge-detail-page :deep(.text-\[\#94a3b8\]) {
+  color: var(--knowledge-subtitle) !important;
+}
+
+.knowledge-detail-page :deep(.text-\[\#cbd5e1\]) {
+  color: var(--knowledge-body) !important;
+}
+
+.knowledge-detail-page :deep(.text-\[\#e2e8f0\]) {
+  color: var(--knowledge-strong) !important;
 }
 </style>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { agentDefinitions, createAgentRunTask, getTasksByAgentKey } from '@/mock/agent';
 import AgentLogList from './modules/agent-log-list.vue';
@@ -14,7 +15,9 @@ defineOptions({
 
 const route = useRoute();
 const router = useRouter();
+const themeStore = useThemeStore();
 const { agentKey, selectedAgent, updateAgentQuery } = useAgentSelection(route, router);
+const darkMode = computed(() => themeStore.darkMode);
 
 const runForm = reactive({
   title: '',
@@ -84,7 +87,7 @@ function goTaskDetail(taskId: string) {
 </script>
 
 <template>
-  <div class="agent-page">
+  <div class="agent-page" :class="{ 'agent-page--dark': darkMode }">
     <div class="agent-grid">
       <div class="agent-left">
         <AgentSidebar :active-key="agentKey" @select="handleAgentSelect" />
@@ -207,9 +210,42 @@ function goTaskDetail(taskId: string) {
 
 <style scoped>
 .agent-page {
+  --agent-card-bg:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.98));
+  --agent-panel-bg: rgba(255, 255, 255, 0.78);
+  --agent-card-border: rgba(148, 163, 184, 0.14);
+  --agent-card-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  --agent-title: #0f172a;
+  --agent-subtitle: #64748b;
+  --agent-meta: #64748b;
+  --agent-strong: #0f172a;
+  --agent-tag-bg: rgba(59, 130, 246, 0.1);
+  --agent-tag-color: #1d4ed8;
+  --agent-interactive-bg: rgba(59, 130, 246, 0.08);
+  --agent-interactive-border: rgba(59, 130, 246, 0.28);
+  --agent-interactive-shadow: 0 10px 22px rgba(59, 130, 246, 0.08);
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.agent-page--dark {
+  --agent-card-bg:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 30%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.84));
+  --agent-panel-bg: rgba(15, 23, 42, 0.42);
+  --agent-card-border: rgba(148, 163, 184, 0.12);
+  --agent-card-shadow: none;
+  --agent-title: #f8fafc;
+  --agent-subtitle: #94a3b8;
+  --agent-meta: #7890ad;
+  --agent-strong: #f8fafc;
+  --agent-tag-bg: rgba(59, 130, 246, 0.14);
+  --agent-tag-color: #dbeafe;
+  --agent-interactive-bg: rgba(30, 41, 59, 0.86);
+  --agent-interactive-border: rgba(96, 165, 250, 0.38);
+  --agent-interactive-shadow: none;
 }
 
 .agent-grid {
@@ -233,9 +269,9 @@ function goTaskDetail(taskId: string) {
 .input-card,
 .context-card {
   border-radius: 20px;
-  background:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 30%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.84));
+  background: var(--agent-card-bg);
+  border: 1px solid var(--agent-card-border);
+  box-shadow: var(--agent-card-shadow);
 }
 
 .hero-icon {
@@ -245,8 +281,8 @@ function goTaskDetail(taskId: string) {
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  background: rgba(59, 130, 246, 0.14);
-  color: #dbeafe;
+  background: var(--agent-tag-bg);
+  color: var(--agent-tag-color);
 }
 
 .metric-item,
@@ -255,22 +291,22 @@ function goTaskDetail(taskId: string) {
   flex-direction: column;
   gap: 6px;
   padding: 12px 14px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  border: 1px solid var(--agent-card-border);
   border-radius: 16px;
-  background: rgba(15, 23, 42, 0.42);
+  background: var(--agent-panel-bg);
 }
 
 .metric-label,
 .summary-label {
   font-size: 12px;
-  color: #7890ad;
+  color: var(--agent-meta);
 }
 
 .metric-value,
 .summary-value {
   font-size: 14px;
   font-weight: 600;
-  color: #f8fafc;
+  color: var(--agent-strong);
 }
 
 .run-grid {
@@ -281,8 +317,17 @@ function goTaskDetail(taskId: string) {
 
 .prompt-tag {
   cursor: pointer;
-  background: rgba(59, 130, 246, 0.14);
-  color: #dbeafe;
+  background: var(--agent-tag-bg);
+  color: var(--agent-tag-color);
+}
+
+.agent-page :deep(.text-\[\#f8fafc\]) {
+  color: var(--agent-title) !important;
+}
+
+.agent-page :deep(.text-\[\#94a3b8\]),
+.agent-page :deep(.text-\[\#8ea3bd\]) {
+  color: var(--agent-subtitle) !important;
 }
 
 @media (max-width: 1199px) {

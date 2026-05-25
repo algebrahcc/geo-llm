@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
+import { useThemeStore } from '@/store/modules/theme';
 import {
   createKnowledgeCollection,
   knowledgeCollections,
@@ -15,6 +16,8 @@ defineOptions({
 
 const drawerVisible = ref(false);
 const editingKey = ref('');
+const themeStore = useThemeStore();
+const darkMode = computed(() => themeStore.darkMode);
 
 const form = reactive<KnowledgeCollectionFormModel>({
   label: '',
@@ -113,7 +116,7 @@ function handleDelete(key: string, label: string) {
 </script>
 
 <template>
-  <div class="collections-page">
+  <div class="collections-page" :class="{ 'collections-page--dark': darkMode }">
     <NCard :bordered="false" class="hero-card">
       <div class="flex flex-wrap items-center justify-between gap-16px">
         <div>
@@ -181,20 +184,57 @@ function handleDelete(key: string, label: string) {
 
 <style scoped>
 .collections-page {
+  --knowledge-block-bg:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.98));
+  --knowledge-block-border: rgba(148, 163, 184, 0.14);
+  --knowledge-block-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  --knowledge-title: #0f172a;
+  --knowledge-subtitle: #64748b;
+  --knowledge-body: #334155;
+  --knowledge-meta: #64748b;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
+.collections-page--dark {
+  --knowledge-block-bg:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(30, 41, 59, 0.82));
+  --knowledge-block-border: rgba(148, 163, 184, 0.14);
+  --knowledge-block-shadow: none;
+  --knowledge-title: #f8fafc;
+  --knowledge-subtitle: #94a3b8;
+  --knowledge-body: #cbd5e1;
+  --knowledge-meta: #7890ad;
+}
+
 .hero-card,
 .collection-card {
   border-radius: 20px;
-  background:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
-    linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(30, 41, 59, 0.82));
+  background: var(--knowledge-block-bg);
+  box-shadow: var(--knowledge-block-shadow);
 }
 
 .collection-card {
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  border: 1px solid var(--knowledge-block-border);
+}
+
+.collections-page :deep(.text-\[\#f8fafc\]) {
+  color: var(--knowledge-title) !important;
+}
+
+.collections-page :deep(.text-\[\#94a3b8\]),
+.collections-page :deep(.text-\[\#8ea3bd\]) {
+  color: var(--knowledge-subtitle) !important;
+}
+
+.collections-page :deep(.text-\[\#cbd5e1\]) {
+  color: var(--knowledge-body) !important;
+}
+
+.collections-page :deep(.text-\[\#7890ad\]) {
+  color: var(--knowledge-meta) !important;
 }
 </style>

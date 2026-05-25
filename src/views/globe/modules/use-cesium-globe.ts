@@ -8,9 +8,11 @@ import {
   Entity,
   HeightReference,
   HorizontalOrigin,
+  ImageryLayer,
   LabelStyle,
   Math as CesiumMath,
   PolygonHierarchy,
+  Rectangle,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   UrlTemplateImageryProvider,
@@ -48,7 +50,9 @@ function sleep(ms: number) {
 export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
   const containerRef = shallowRef<HTMLDivElement | null>(null);
   const viewerRef = shallowRef<Viewer | null>(null);
-  const localImageryUrl = `${import.meta.env.BASE_URL}google satellite-z0-8.yocMFTJvR/{z}/{x}/{y}.jpg`;
+  const globalImageryUrl = `${import.meta.env.BASE_URL}google satellite-z0-8.yocMFTJvR/{z}/{x}/{y}.jpg`;
+  const taiwanImageryUrl = `${import.meta.env.BASE_URL}taiwan/{z}/{x}/{y}.jpg`;
+  const taiwanImageryRectangle = Rectangle.fromDegrees(119.9, 21.8, 122.2, 25.5);
 
   const layerVisibility: Record<GlobeLayerKey, boolean> = {
     imagery: true,
@@ -69,6 +73,7 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
   const dynamicRouteEntities: Entity[] = [];
   const dynamicMeasureEntities: Entity[] = [];
   const measurePositions: Cartesian3[] = [];
+  const imageryLayers: ImageryLayer[] = [];
 
   let activeTool: GlobeInteractiveTool | 'browse' = 'browse';
   let annotationIndex = 1;
@@ -410,12 +415,25 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
 
     (viewer.cesiumWidget.creditContainer as HTMLElement).style.display = 'none';
 
-    viewer.imageryLayers.addImageryProvider(
-      new UrlTemplateImageryProvider({
-        url: localImageryUrl,
-        minimumLevel: 0,
-        maximumLevel: 8
-      })
+    imageryLayers.push(
+      viewer.imageryLayers.addImageryProvider(
+        new UrlTemplateImageryProvider({
+          url: globalImageryUrl,
+          minimumLevel: 0,
+          maximumLevel: 8
+        })
+      )
+    );
+
+    imageryLayers.push(
+      viewer.imageryLayers.addImageryProvider(
+        new UrlTemplateImageryProvider({
+          url: taiwanImageryUrl,
+          minimumLevel: 9,
+          maximumLevel: 14,
+          rectangle: taiwanImageryRectangle
+        })
+      )
     );
 
     addStaticEntities();
@@ -469,9 +487,9 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
     if (!viewer) return;
 
     if (layerKey === 'imagery') {
-      const imageryLayer = viewer.imageryLayers.get(0);
-
-      if (imageryLayer) imageryLayer.show = visible;
+      imageryLayers.forEach(imageryLayer => {
+        imageryLayer.show = visible;
+      });
     } else {
       [...staticEntities[layerKey], ...dynamicMarkEntities, ...dynamicRouteEntities].forEach(entity => {
         if (layerKey === 'mark' && dynamicMarkEntities.includes(entity)) entity.show = visible;
