@@ -19,9 +19,6 @@ declare module "@elegant-router/types" {
     "not-found": "/:pathMatch(.*)*";
     "screen-fullscreen": "/screen-fullscreen";
     "globe-fullscreen": "/globe-fullscreen";
-    "planning-fullscreen": "/planning-fullscreen";
-    "river-fullscreen": "/river-fullscreen";
-    "building-fullscreen": "/building-fullscreen";
     "building_overview": "/building/overview";
     "building_workspace": "/building/workspace";
     "building_structure": "/building/structure";
@@ -69,9 +66,6 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "screen-fullscreen"
     | "globe-fullscreen"
-    | "planning-fullscreen"
-    | "river-fullscreen"
-    | "building-fullscreen"
     | "building_overview"
     | "building_workspace"
     | "building_structure"
@@ -121,9 +115,6 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "screen-fullscreen"
     | "globe-fullscreen"
-    | "planning-fullscreen"
-    | "river-fullscreen"
-    | "building-fullscreen"
     | "building_overview"
     | "building_workspace"
     | "building_structure"
@@ -168,9 +159,6 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "screen-fullscreen"
     | "globe-fullscreen"
-    | "planning-fullscreen"
-    | "river-fullscreen"
-    | "building-fullscreen"
     | "building_overview"
     | "building_workspace"
     | "building_structure"

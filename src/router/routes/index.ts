@@ -5,7 +5,7 @@ import { generatedRoutes } from '../elegant/routes';
 import { layouts, views } from '../elegant/imports';
 import { transformElegantRoutesToVueRoutes } from '../elegant/transform';
 
-const customRoutes: CustomRoute[] = [
+const customRoutes = [
   {
     name: 'screen-fullscreen',
     path: '/screen-fullscreen',
@@ -51,7 +51,7 @@ const customRoutes: CustomRoute[] = [
       hideInMenu: true
     }
   }
-];
+] as unknown as CustomRoute[];
 
 function createRiverElegantRoute() {
   return {

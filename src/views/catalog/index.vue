@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { h, ref, computed } from 'vue';
-import type { TreeSelectOption, DataTableColumns } from 'naive-ui';
-import { NTag, NButton, NDropdown, NTree, NDataTable } from 'naive-ui';
+import { computed, ref, watch } from 'vue';
+import type { SelectOption } from 'naive-ui';
+import { NSelect, NTree } from 'naive-ui';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import { catalogCategories, catalogTypes, catalogData, getFilteredData, type CatalogItem } from '@/mock/catalog';
+import { catalogCategories, catalogData, type CatalogItem } from '@/mock/catalog';
 
 defineOptions({
   name: 'CatalogPage'
@@ -13,192 +13,191 @@ defineOptions({
 const activeTab = ref('总览');
 const selectedCategory = ref<string | null>(null);
 const searchKeyword = ref('');
+const selectedType = ref('');
 const isLoading = ref(false);
 const expandedKeys = ref<string[]>(['img', 'dem', 'oblique', 'hydro', 'pipe']);
 const dataList = ref<CatalogItem[]>([...catalogData]);
 const themeStore = useThemeStore();
 const darkMode = computed(() => themeStore.darkMode);
+const currentPage = ref(1);
+const pageSize = ref(10);
 
-const treeOptions: TreeSelectOption[] = catalogCategories.map(cat => ({
-  label: cat.label,
-  key: cat.key,
-  children: cat.children?.map(child => ({
-    label: child.label,
-    key: child.key
-  }))
-}));
-
-const filteredData = computed(() => {
-  return getFilteredData(activeTab.value, selectedCategory.value, searchKeyword.value);
+const categoryCountMap = computed<Record<string, number>>(() => {
+  return dataList.value.reduce<Record<string, number>>((acc, item) => {
+    if (item.type === '影像') {
+      acc.img = (acc.img || 0) + 1;
+      acc['img-global'] = (acc['img-global'] || 0) + 1;
+    } else if (item.type === '高程') {
+      acc.dem = (acc.dem || 0) + 1;
+      acc['dem-30'] = (acc['dem-30'] || 0) + 1;
+    } else if (item.type === '倾斜摄影') {
+      acc.oblique = (acc.oblique || 0) + 1;
+      acc['oblique-city'] = (acc['oblique-city'] || 0) + 1;
+    } else if (item.type === '气象水文') {
+      acc.hydro = (acc.hydro || 0) + 1;
+      acc['hydro-rain'] = (acc['hydro-rain'] || 0) + 1;
+    } else if (item.type === '矢量管网') {
+      acc.pipe = (acc.pipe || 0) + 1;
+      acc['pipe-vector'] = (acc['pipe-vector'] || 0) + 1;
+    } else {
+      acc.topic = (acc.topic || 0) + 1;
+    }
+    return acc;
+  }, {});
 });
 
-type RowData = CatalogItem;
+const treeOptions = computed(() =>
+  catalogCategories.map(cat => ({
+    label: `${cat.label} (${categoryCountMap.value[cat.key] || 0})`,
+    key: cat.key,
+    children: cat.children?.map(child => ({
+      label: `${child.label} (${categoryCountMap.value[child.key] || 0})`,
+      key: child.key
+    }))
+  }))
+);
 
-const columns: DataTableColumns<RowData> = [
-  {
-    title: '数据名称',
-    key: 'name',
-    width: 280,
-    render(row) {
-      return h('div', { class: 'data-name-cell' }, [
-        h('div', { class: 'data-icon-wrapper' }, [
-          h(SvgIcon, { icon: getDataTypeIcon(row.type), class: 'data-type-icon' })
-        ]),
-        h('div', { class: 'data-info' }, [
-          h('span', { class: 'data-name' }, row.name),
-          h('span', { class: 'data-source' }, row.source)
-        ])
-      ]);
-    }
-  },
-  {
-    title: '入库时间',
-    key: 'ingestTime',
-    width: 120,
-    render(row) {
-      return h('span', { class: 'time-text' }, row.ingestTime);
-    }
-  },
-  {
-    title: '时相',
-    key: 'timePhase',
-    width: 100,
-    render(row) {
-      return h(
-        NTag,
-        { size: 'small', round: true, type: 'default', class: 'phase-tag' },
-        { default: () => row.timePhase }
-      );
-    }
-  },
-  {
-    title: '空间范围',
-    key: 'range',
-    width: 120,
-    render(row) {
-      return h('span', { class: 'range-text' }, row.range);
-    }
-  },
-  {
-    title: '数据类型',
-    key: 'type',
-    width: 110,
-    render(row) {
-      const typeColors: Record<string, string> = {
-        影像: '#3b82f6',
-        高程: '#10b981',
-        倾斜摄影: '#8b5cf6',
-        气象水文: '#06b6d4',
-        矢量管网: '#f59e0b',
-        专题数据: '#ec4899'
-      };
-      return h(
-        NTag,
-        {
-          size: 'small',
-          round: true,
-          style: {
-            backgroundColor: `${typeColors[row.type]}20`,
-            color: typeColors[row.type],
-            borderColor: `${typeColors[row.type]}40`
-          },
-          bordered: true
-        },
-        { default: () => row.type }
-      );
-    }
-  },
-  {
-    title: '大小',
-    key: 'size',
-    width: 90,
-    render(row) {
-      return h('span', { class: 'size-text' }, row.size);
-    }
-  },
-  {
-    title: '状态',
-    key: 'status',
-    width: 100,
-    render(row) {
-      const statusConfig: Record<string, { type: 'success' | 'warning' | 'default'; label: string; icon: string }> = {
-        published: { type: 'success', label: '已发布', icon: 'mdi:check-circle' },
-        draft: { type: 'warning', label: '草稿', icon: 'mdi:pencil-circle' },
-        offline: { type: 'default', label: '已下线', icon: 'mdi:minus-circle' }
-      };
-      const config = statusConfig[row.status];
-      return h('div', { class: 'status-cell' }, [
-        h(SvgIcon, { icon: config.icon, class: `status-icon status-${row.status}` }),
-        h(NTag, { size: 'small', type: config.type, round: true, bordered: false }, { default: () => config.label })
-      ]);
-    }
-  },
-  {
-    title: '操作',
-    key: 'actions',
-    width: 160,
-    fixed: 'right',
-    render(row) {
-      return h('div', { class: 'action-cell' }, [
-        h(
-          NButton,
-          { size: 'tiny', quaternary: true, class: 'action-btn preview-btn' },
-          { icon: () => h(SvgIcon, { icon: 'mdi:eye-outline', class: 'action-icon' }) }
-        ),
-        h(
-          NButton,
-          { size: 'tiny', quaternary: true, class: 'action-btn edit-btn' },
-          { icon: () => h(SvgIcon, { icon: 'mdi:pencil-outline', class: 'action-icon' }) }
-        ),
-        h(
-          NDropdown,
-          {
-            trigger: 'click',
-            options: [
-              {
-                label: row.status === 'published' ? '下线' : '发布',
-                key: 'toggle',
-                icon: () => h(SvgIcon, { icon: row.status === 'published' ? 'mdi:eye-off-outline' : 'mdi:eye-outline' })
-              },
-              { type: 'divider', key: 'd1' },
-              { label: '删除', key: 'delete', icon: () => h(SvgIcon, { icon: 'mdi:delete-outline' }) }
-            ],
-            onSelect: (key: string) => {
-              if (key === 'toggle') togglePublish(row);
-              if (key === 'delete') handleDelete(row);
-            }
-          },
-          () =>
-            h(
-              NButton,
-              { size: 'tiny', quaternary: true, class: 'action-btn more-btn' },
-              { icon: () => h(SvgIcon, { icon: 'mdi:dots-vertical', class: 'action-icon' }) }
-            )
-        )
-      ]);
-    }
+const typeOptions = computed<SelectOption[]>(() => [
+  { label: '全部', value: '' },
+  { label: '影像数据', value: '影像' },
+  { label: '高程数据', value: '高程' },
+  { label: '倾斜摄影', value: '倾斜摄影' },
+  { label: '气象水文', value: '气象水文' },
+  { label: '矢量管网', value: '矢量管网' },
+  { label: '专题数据', value: '专题数据' }
+]);
+
+const filteredData = computed(() => {
+  let filtered = [...dataList.value];
+
+  if (activeTab.value && activeTab.value !== '总览') {
+    filtered = filtered.filter(item => {
+      switch (activeTab.value) {
+        case '影像数据':
+          return item.type === '影像' || item.type === '倾斜摄影';
+        case '数字高程':
+          return item.type === '高程';
+        case '地下管网':
+          return item.type === '矢量管网';
+        case '专题数据':
+          return item.type === '专题数据';
+        default:
+          return true;
+      }
+    });
   }
+
+  if (selectedCategory.value) {
+    filtered = filtered.filter(item => {
+      if (selectedCategory.value?.includes('img')) return item.type === '影像' || item.type === '倾斜摄影';
+      if (selectedCategory.value?.includes('dem')) return item.type === '高程';
+      if (selectedCategory.value?.includes('oblique')) return item.type === '倾斜摄影';
+      if (selectedCategory.value?.includes('hydro')) return item.type === '气象水文';
+      if (selectedCategory.value?.includes('pipe')) return item.type === '矢量管网';
+      return false;
+    });
+  }
+
+  if (searchKeyword.value) {
+    const keyword = searchKeyword.value.toLowerCase();
+    filtered = filtered.filter(
+      item =>
+        item.name.toLowerCase().includes(keyword) ||
+        item.range.toLowerCase().includes(keyword) ||
+        item.source.toLowerCase().includes(keyword)
+    );
+  }
+
+  if (selectedType.value) {
+    filtered = filtered.filter(item => item.type === selectedType.value);
+  }
+  return filtered;
+});
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredData.value.length / pageSize.value)));
+const pageItems = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredData.value.slice(start, start + pageSize.value);
+});
+
+const pageNumberList = computed<(number | string)[]>(() => {
+  const total = totalPages.value;
+  const page = currentPage.value;
+  if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1);
+  if (page <= 4) return [1, 2, 3, 4, 5, '...', total];
+  if (page >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  return [1, '...', page - 1, page, page + 1, '...', total];
+});
+
+const summaryMetrics = computed(() => {
+  const total = dataList.value.length;
+  const published = dataList.value.filter(item => item.status === 'published').length;
+  const draft = dataList.value.filter(item => item.status === 'draft').length;
+  const totalSize = dataList.value.reduce((sum, item) => sum + normalizeSize(item.size), 0);
+  return {
+    total,
+    published,
+    draft,
+    totalSize: `${totalSize.toFixed(2)} GB`
+  };
+});
+
+watch([filteredData, pageSize], () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value;
+  }
+});
+
+type CatalogActionKey = 'publish' | 'download' | 'delete' | 'refresh' | 'detail';
+
+interface CatalogActionItem {
+  key: CatalogActionKey;
+  label: string;
+  icon: string;
+  danger?: boolean;
+}
+
+const actionGroups: CatalogActionItem[] = [
+  { key: 'publish', label: '发布', icon: 'mdi:send-outline' },
+  { key: 'download', label: '下载', icon: 'mdi:download-outline' },
+  { key: 'delete', label: '删除', icon: 'mdi:trash-can-outline', danger: true },
+  { key: 'refresh', label: '更新', icon: 'mdi:refresh' },
+  { key: 'detail', label: '详情', icon: 'mdi:information-outline' }
 ];
+
+function normalizeSize(size: string) {
+  const value = parseFloat(size);
+  if (size.toUpperCase().includes('MB')) return value / 1024;
+  return value;
+}
 
 function getDataTypeIcon(type: string): string {
   const iconMap: Record<string, string> = {
-    影像: 'mdi:image-outline',
-    倾斜摄影: 'mdi:rotate-3d-variant',
-    高程: 'mdi:elevation-rise',
-    气象水文: 'mdi:weather-partly-cloudy',
-    矢量管网: 'mdi:pipe',
-    专题数据: 'mdi:map-marker-question-outline'
+    影像: 'mdi:database',
+    倾斜摄影: 'mdi:layers-triple',
+    高程: 'mdi:terrain',
+    气象水文: 'mdi:weather-rainy',
+    矢量管网: 'mdi:transit-connection-horizontal',
+    专题数据: 'mdi:folder-star-outline'
   };
   return iconMap[type] || 'mdi:file-document-outline';
 }
 
-function handleTabChange(tab: string) {
-  activeTab.value = tab;
-  selectedCategory.value = null;
+function getTypeTagClass(type: string) {
+  const typeClassMap: Record<string, string> = {
+    影像: 'type-chip--image',
+    倾斜摄影: 'type-chip--oblique',
+    高程: 'type-chip--elevation',
+    气象水文: 'type-chip--hydro',
+    矢量管网: 'type-chip--pipe',
+    专题数据: 'type-chip--topic'
+  };
+  return typeClassMap[type] || 'type-chip--default';
 }
 
 function handleCategorySelect(keys: string[]) {
   selectedCategory.value = keys.length > 0 ? keys[0] : null;
+  currentPage.value = 1;
 }
 
 function togglePublish(item: CatalogItem) {
@@ -233,21 +232,55 @@ function handleDelete(item: CatalogItem) {
 function showImport() {
   window.$message?.info('数据入库功能开发中...');
 }
+
+function handleSearch() {
+  currentPage.value = 1;
+}
+
+function handleReset() {
+  activeTab.value = '总览';
+  selectedCategory.value = null;
+  searchKeyword.value = '';
+  selectedType.value = '';
+  currentPage.value = 1;
+}
+
+function handleAction(action: CatalogActionKey, item: CatalogItem) {
+  switch (action) {
+    case 'publish':
+      togglePublish(item);
+      break;
+    case 'download':
+      window.$message?.success(`开始下载：${item.name}`);
+      break;
+    case 'delete':
+      handleDelete(item);
+      break;
+    case 'refresh':
+      window.$message?.info(`已触发更新：${item.name}`);
+      break;
+    case 'detail':
+      window.$message?.info(`查看详情：${item.name}`);
+      break;
+    default:
+      break;
+  }
+}
+
+function changePage(page: number) {
+  if (page < 1 || page > totalPages.value) return;
+  currentPage.value = page;
+}
 </script>
 
 <template>
   <div class="catalog-page" :class="{ 'catalog-page--dark': darkMode }">
-    <!-- 主内容区域 -->
-    <div class="main-content">
-      <!-- 左侧分类树 -->
-      <div class="sidebar">
-        <div class="section-header">
-          <SvgIcon icon="mdi:folder-tree" class="section-icon" />
-          <span class="section-title">数据分类</span>
-          <span class="section-count">{{ filteredData.length }}</span>
+    <div class="catalog-shell">
+      <aside class="catalog-sidebar">
+        <div class="catalog-sidebar__header">
+          <div class="catalog-sidebar__title">数据目录</div>
         </div>
-
-        <div class="tree-container">
+        <div class="catalog-sidebar__panel">
           <NTree
             v-model:expanded-keys="expandedKeys"
             block-line
@@ -257,523 +290,1022 @@ function showImport() {
             @update:selected-keys="handleCategorySelect"
           />
         </div>
-      </div>
+      </aside>
 
-      <!-- 右侧数据表格 -->
-      <div class="content-area">
-        <!-- 工具栏 -->
-        <div class="toolbar">
-          <div class="toolbar-left">
-            <div class="tab-group">
-              <button
-                v-for="t in catalogTypes"
-                :key="t"
-                class="tab-btn"
-                :class="[{ active: activeTab === t }]"
-                @click="handleTabChange(t)"
-              >
-                {{ t }}
-              </button>
+      <section class="catalog-main">
+        <div class="catalog-topbar">
+          <div class="catalog-topbar__left">
+            <div class="catalog-search-panel">
+              <div class="catalog-search-panel__label">目录检索</div>
+              <div class="catalog-search">
+                <SvgIcon icon="mdi:magnify" class="catalog-search__icon" />
+                <input
+                  v-model="searchKeyword"
+                  type="text"
+                  class="catalog-search__input"
+                  placeholder="请输入关键词搜索数据名称"
+                  @keyup.enter="handleSearch"
+                />
+                <button type="button" class="catalog-primary-btn catalog-primary-btn--inline" @click="handleSearch">
+                  搜索
+                </button>
+              </div>
             </div>
-            <NTag v-if="selectedCategory" size="small" closable class="filter-tag" @close="selectedCategory = null">
-              {{ selectedCategory }}
-            </NTag>
           </div>
-
-          <div class="toolbar-right">
-            <div class="search-box">
-              <SvgIcon icon="mdi:magnify" class="search-icon" />
-              <input v-model="searchKeyword" type="text" placeholder="搜索数据..." class="search-input" />
+          <div class="catalog-topbar__right">
+            <div class="catalog-filter-card">
+              <div class="catalog-filter-card__glow" />
+              <div class="catalog-filter">
+                <span class="catalog-filter__label">数据类型</span>
+                <NSelect v-model:value="selectedType" class="catalog-filter__select" :options="typeOptions" />
+              </div>
             </div>
-            <NButton type="primary" class="import-btn" @click="showImport">
-              <template #icon>
-                <SvgIcon icon="mdi:upload" class="btn-icon" />
-              </template>
-              导入数据
-            </NButton>
+            <button type="button" class="catalog-primary-btn catalog-primary-btn--upload" @click="showImport">
+              <SvgIcon icon="mdi:upload-outline" />
+              <span>上传</span>
+            </button>
+            <button type="button" class="catalog-ghost-btn" @click="handleReset">重置</button>
           </div>
         </div>
 
-        <!-- 数据表格 -->
-        <div class="table-container">
-          <NDataTable
-            :columns="columns"
-            :data="filteredData"
-            :loading="isLoading"
-            size="small"
-            :scroll-x="1200"
-            :pagination="{ pageSize: 10, showSizePicker: true, pageSizes: [10, 20, 50] }"
-            :row-class-name="() => 'data-row'"
-            :row-key="(row: CatalogItem) => row.id"
-          />
+        <div class="catalog-main__card">
+          <div class="catalog-card-head">
+            <div class="catalog-card-head__title">目录清单</div>
+            <div class="catalog-card-head__meta">
+              <span v-if="selectedCategory">当前分类：{{ selectedCategory }}</span>
+              <span>共 {{ filteredData.length }} 条结果</span>
+            </div>
+          </div>
+
+          <div class="catalog-table-wrap">
+            <div v-if="isLoading" class="catalog-loading">数据加载中...</div>
+
+            <template v-else>
+              <div class="catalog-table">
+                <div class="catalog-table__head">
+                  <div class="col-name">数据名称</div>
+                  <div class="col-time">数据时间</div>
+                  <div class="col-type">数据类型</div>
+                  <div class="col-range">空间范围</div>
+                  <div class="col-source">数据来源</div>
+                  <div class="col-size">数据大小</div>
+                  <div class="col-actions">管理操作</div>
+                </div>
+
+                <div class="catalog-table__body">
+                  <div v-for="item in pageItems" :key="item.id" class="catalog-row">
+                    <div class="col-name">
+                      <div class="dataset-cell">
+                        <SvgIcon icon="mdi:database" class="dataset-cell__bullet" />
+                        <div class="dataset-cell__content">
+                          <div class="dataset-cell__title">{{ item.name }}</div>
+                          <div class="dataset-cell__sub">{{ item.timePhase }}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="col-time row-text row-text--muted">{{ item.ingestTime }}</div>
+
+                    <div class="col-type">
+                      <span class="type-chip" :class="getTypeTagClass(item.type)">
+                        {{ item.type }}
+                      </span>
+                    </div>
+
+                    <div class="col-range row-text">{{ item.range }}</div>
+                    <div class="col-source row-text">{{ item.source }}</div>
+                    <div class="col-size row-text row-text--mono">{{ item.size }}</div>
+
+                    <div class="col-actions">
+                      <button
+                        v-for="action in actionGroups"
+                        :key="action.key"
+                        type="button"
+                        class="action-item"
+                        :class="{ 'action-item--danger': action.danger }"
+                        @click="handleAction(action.key, item)"
+                      >
+                        <SvgIcon :icon="action.icon" class="action-item__icon" />
+                        <span class="action-item__text">{{ action.label }}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="catalog-mobile-list">
+                <div v-for="item in pageItems" :key="`mobile-${item.id}`" class="catalog-mobile-card">
+                  <div class="catalog-mobile-card__head">
+                    <div class="dataset-cell">
+                      <SvgIcon :icon="getDataTypeIcon(item.type)" class="dataset-cell__bullet" />
+                      <div class="dataset-cell__content">
+                        <div class="dataset-cell__title">{{ item.name }}</div>
+                        <div class="dataset-cell__sub">{{ item.ingestTime }}</div>
+                      </div>
+                    </div>
+                    <span class="type-chip" :class="getTypeTagClass(item.type)">
+                      {{ item.type }}
+                    </span>
+                  </div>
+                  <div class="catalog-mobile-card__grid">
+                    <div>
+                      <span>空间范围</span>
+                      {{ item.range }}
+                    </div>
+                    <div>
+                      <span>数据来源</span>
+                      {{ item.source }}
+                    </div>
+                    <div>
+                      <span>数据大小</span>
+                      {{ item.size }}
+                    </div>
+                    <div>
+                      <span>时相</span>
+                      {{ item.timePhase }}
+                    </div>
+                  </div>
+                  <div class="catalog-mobile-card__actions">
+                    <button
+                      v-for="action in actionGroups"
+                      :key="`${item.id}-${action.key}`"
+                      type="button"
+                      class="action-item"
+                      :class="{ 'action-item--danger': action.danger }"
+                      @click="handleAction(action.key, item)"
+                    >
+                      <SvgIcon :icon="action.icon" class="action-item__icon" />
+                      <span class="action-item__text">{{ action.label }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="catalog-footer">
+                <div class="catalog-footer__summary">
+                  共 {{ filteredData.length }} 条
+                  <span class="catalog-footer__divider" />
+                  已发布 {{ summaryMetrics.published }} 条
+                  <span class="catalog-footer__divider" />
+                  草稿 {{ summaryMetrics.draft }} 条
+                  <span class="catalog-footer__divider" />
+                  总容量 {{ summaryMetrics.totalSize }}
+                </div>
+
+                <div class="catalog-pagination">
+                  <button type="button" class="pager-btn" @click="changePage(currentPage - 1)">
+                    <SvgIcon icon="mdi:chevron-left" />
+                  </button>
+                  <button
+                    v-for="page in pageNumberList"
+                    :key="`page-${page}`"
+                    type="button"
+                    class="pager-btn"
+                    :class="{ 'pager-btn--active': page === currentPage, 'pager-btn--ghost': page === '...' }"
+                    :disabled="page === '...'"
+                    @click="typeof page === 'number' && changePage(page)"
+                  >
+                    {{ page }}
+                  </button>
+                  <button type="button" class="pager-btn" @click="changePage(currentPage + 1)">
+                    <SvgIcon icon="mdi:chevron-right" />
+                  </button>
+                  <div class="page-size-box">
+                    <span>{{ pageSize }}条/页</span>
+                  </div>
+                  <div class="page-jumper">
+                    <span>跳至</span>
+                    <input
+                      :value="currentPage"
+                      type="number"
+                      min="1"
+                      :max="totalPages"
+                      @change="changePage(Number(($event.target as any).value || 1))"
+                    />
+                    <span>页</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
 .catalog-page {
-  --catalog-page-bg: linear-gradient(135deg, #f4f7fb 0%, #eef3f9 100%);
-  --catalog-surface-bg: rgba(255, 255, 255, 0.9);
-  --catalog-surface-border: rgba(148, 163, 184, 0.18);
-  --catalog-header-border: rgba(148, 163, 184, 0.16);
-  --catalog-tab-group-bg: rgba(148, 163, 184, 0.12);
-  --catalog-tree-hover-bg: rgba(59, 130, 246, 0.08);
-  --catalog-text-primary: #1e293b;
-  --catalog-text-secondary: #475569;
-  --catalog-text-tertiary: #64748b;
-  --catalog-input-bg: rgba(255, 255, 255, 0.96);
-  --catalog-input-border: rgba(148, 163, 184, 0.24);
-  --catalog-input-placeholder: rgba(100, 116, 139, 0.8);
-  --catalog-table-head-bg: rgba(241, 245, 249, 0.92);
-  --catalog-table-head-text: #475569;
-  --catalog-table-row-hover: rgba(59, 130, 246, 0.06);
-  --catalog-table-row-border: rgba(226, 232, 240, 0.92);
-  --catalog-card-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --catalog-page-bg:
+    radial-gradient(circle at top, rgba(0, 153, 255, 0.14) 0%, rgba(0, 0, 0, 0) 36%),
+    linear-gradient(180deg, #041528 0%, #041120 38%, #03101b 100%);
+  --catalog-surface-bg: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
+  --catalog-surface-border: rgba(43, 131, 255, 0.28);
+  --catalog-strong-border: rgba(38, 142, 255, 0.4);
+  --catalog-line: rgba(25, 95, 176, 0.35);
+  --catalog-text-primary: #eaf5ff;
+  --catalog-text-secondary: rgba(203, 227, 255, 0.72);
+  --catalog-text-tertiary: rgba(147, 196, 255, 0.62);
+  --catalog-input-bg: rgba(2, 18, 36, 0.92);
+  --catalog-input-border: rgba(35, 111, 196, 0.4);
+  --catalog-table-head-bg: linear-gradient(180deg, rgba(6, 29, 56, 0.94) 0%, rgba(4, 22, 43, 0.94) 100%);
+  --catalog-table-row-hover: rgba(33, 116, 212, 0.14);
+  --catalog-glow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 18px 40px rgba(1, 8, 18, 0.45);
+  --catalog-button-bg: linear-gradient(180deg, #0d5fc8 0%, #093f8a 100%);
+  --catalog-button-border: rgba(96, 191, 255, 0.32);
+  --catalog-accent: #29a3ff;
+  --catalog-danger: #ff6b6b;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
   background: var(--catalog-page-bg);
+  color: var(--catalog-text-primary);
   overflow: hidden;
 }
 
 .catalog-page--dark {
-  --catalog-page-bg: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
-  --catalog-surface-bg: rgba(255, 255, 255, 0.03);
-  --catalog-surface-border: rgba(255, 255, 255, 0.06);
-  --catalog-header-border: rgba(255, 255, 255, 0.06);
-  --catalog-tab-group-bg: rgba(0, 0, 0, 0.2);
-  --catalog-tree-hover-bg: rgba(255, 255, 255, 0.05);
-  --catalog-text-primary: #fff;
-  --catalog-text-secondary: rgba(255, 255, 255, 0.7);
-  --catalog-text-tertiary: rgba(255, 255, 255, 0.6);
-  --catalog-input-bg: rgba(0, 0, 0, 0.2);
-  --catalog-input-border: rgba(255, 255, 255, 0.08);
-  --catalog-input-placeholder: rgba(255, 255, 255, 0.35);
-  --catalog-table-head-bg: rgba(255, 255, 255, 0.05);
-  --catalog-table-head-text: rgba(255, 255, 255, 0.7);
-  --catalog-table-row-hover: rgba(255, 255, 255, 0.04);
-  --catalog-table-row-border: rgba(255, 255, 255, 0.04);
-  --catalog-card-shadow: none;
+  color-scheme: dark;
 }
 
-// 主内容区域
-.main-content {
-  flex: 1;
-  display: flex;
-  gap: 16px;
-  min-height: 0;
-  overflow: hidden;
+.catalog-shell {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px 14px;
+  box-sizing: border-box;
 }
 
-// 侧边栏
-.sidebar {
-  width: 260px;
-  flex-shrink: 0;
+.catalog-sidebar,
+.catalog-main__card,
+.catalog-topbar {
   background: var(--catalog-surface-bg);
   border: 1px solid var(--catalog-surface-border);
-  border-radius: 16px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: var(--catalog-card-shadow);
+  box-shadow: var(--catalog-glow);
 }
 
-.section-header {
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid var(--catalog-header-border);
-
-  .section-icon {
-    font-size: 18px;
-    color: rgb(var(--primary-400-color));
-  }
-
-  .section-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--catalog-text-primary);
-    flex: 1;
-  }
-
-  .section-count {
-    font-size: 12px;
-    padding: 2px 8px;
-    background: rgba(var(--primary-500-color), 0.15);
-    border-radius: 10px;
-    color: rgb(var(--primary-400-color));
-  }
-}
-
-.tree-container {
-  flex: 1;
-  padding: 12px;
-  overflow-y: auto;
-
-  :deep(.n-tree) {
-    .n-tree-node {
-      border-radius: 8px;
-      transition: all 0.2s ease;
-
-      &:hover {
-        background: var(--catalog-tree-hover-bg);
-      }
-
-      &--selected {
-        background: rgba(var(--primary-500-color), 0.15) !important;
-      }
-    }
-  }
-}
-
-// 内容区域
-.content-area {
-  flex: 1;
+.catalog-sidebar {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  border-radius: 4px;
   overflow: hidden;
 }
 
-// 工具栏
-.toolbar {
+.catalog-sidebar__header {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--catalog-line);
+  background: linear-gradient(180deg, rgba(10, 38, 72, 0.96) 0%, rgba(5, 25, 47, 0.96) 100%);
+}
+
+.catalog-sidebar__title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.catalog-sidebar__panel {
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+  overflow: auto;
+}
+
+.catalog-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.catalog-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 12px 16px;
-  background: var(--catalog-surface-bg);
-  border: 1px solid var(--catalog-surface-border);
-  border-radius: 12px;
-  box-shadow: var(--catalog-card-shadow);
+  gap: 18px;
+  min-height: 60px;
+  padding: 12px 18px;
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(7, 31, 58, 0.98) 0%, rgba(4, 21, 41, 0.98) 100%),
+    linear-gradient(90deg, rgba(22, 116, 214, 0.12) 0%, rgba(0, 0, 0, 0) 34%);
+  position: relative;
 }
 
-.toolbar-left {
+.catalog-topbar::after {
+  content: '';
+  position: absolute;
+  inset: auto 16px 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(57, 171, 255, 0.22) 0%, rgba(57, 171, 255, 0.04) 100%);
+}
+
+.catalog-topbar__left,
+.catalog-topbar__right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.tab-group {
+.catalog-topbar__left {
+  min-width: 0;
+}
+
+.catalog-search-panel {
   display: flex;
-  background: var(--catalog-tab-group-bg);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.catalog-search-panel__label {
+  height: 36px;
+  padding: 0 14px;
   border-radius: 8px;
-  padding: 4px;
-
-  .tab-btn {
-    padding: 6px 14px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--catalog-text-tertiary);
-    background: transparent;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      color: var(--catalog-text-primary);
-    }
-
-    &.active {
-      color: #fff;
-      background: rgba(var(--primary-500-color), 0.8);
-      box-shadow: 0 2px 8px rgba(var(--primary-500-color), 0.3);
-    }
-  }
+  border: 1px solid rgba(58, 145, 231, 0.18);
+  background: linear-gradient(180deg, rgba(8, 42, 82, 0.82) 0%, rgba(5, 24, 48, 0.88) 100%);
+  color: rgba(203, 227, 255, 0.76);
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(129, 211, 255, 0.08);
 }
 
-.filter-tag {
-  animation: slideIn 0.2s ease;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.toolbar-right {
+.catalog-search {
+  position: relative;
+  width: min(380px, 100%);
+  min-width: 280px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(2, 16, 31, 0.98) 0%, rgba(4, 23, 44, 0.98) 100%),
+    linear-gradient(90deg, rgba(37, 122, 211, 0.06) 0%, rgba(0, 0, 0, 0) 50%);
+  border: 1px solid rgba(43, 118, 197, 0.38);
+  box-shadow:
+    inset 0 1px 0 rgba(136, 214, 255, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.25);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
-.search-box {
+.catalog-search:focus-within {
+  border-color: rgba(58, 160, 255, 0.56);
+  box-shadow:
+    inset 0 1px 0 rgba(136, 214, 255, 0.06),
+    0 0 0 2px rgba(41, 163, 255, 0.12),
+    0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.catalog-search__icon {
+  position: absolute;
+  left: 12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  color: #7cc4f0;
+}
+
+.catalog-search__input,
+.catalog-ghost-btn,
+.catalog-primary-btn,
+.page-jumper input {
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
+}
+
+.catalog-search__input {
+  width: 100%;
+  height: 38px;
+  padding: 0 96px 0 40px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--catalog-text-primary);
+  font-size: 13px;
+  outline: none;
+  letter-spacing: 0.2px;
+}
+
+.catalog-search__input::placeholder {
+  color: rgba(132, 177, 233, 0.5);
+}
+
+.catalog-search__input:focus {
+  + .catalog-primary-btn--inline {
+    filter: brightness(1.08);
+    box-shadow:
+      inset 0 1px 0 rgba(181, 233, 255, 0.22),
+      0 0 12px rgba(12, 110, 206, 0.3);
+  }
+}
+
+.catalog-primary-btn--inline {
+  position: absolute;
+  right: 4px;
+  height: 30px;
+  padding: 0 18px;
+  font-size: 12px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(23, 131, 240, 0.96) 0%, rgba(8, 83, 171, 0.96) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(181, 233, 255, 0.18),
+    0 0 10px rgba(12, 110, 206, 0.2);
+}
+
+.catalog-primary-btn,
+.catalog-ghost-btn,
+.action-item,
+.pager-btn {
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.catalog-primary-btn,
+.catalog-ghost-btn {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 8px;
+  border: 1px solid var(--catalog-button-border);
+  font-size: 13px;
+  color: #e9f5ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.catalog-primary-btn {
+  background: linear-gradient(180deg, rgba(23, 131, 240, 0.96) 0%, rgba(8, 83, 171, 0.96) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(181, 233, 255, 0.14),
+    0 8px 20px rgba(4, 79, 162, 0.22);
+}
+
+.catalog-ghost-btn {
+  background: linear-gradient(180deg, rgba(9, 43, 82, 0.94) 0%, rgba(5, 23, 46, 0.96) 100%);
+}
+
+.catalog-primary-btn:hover,
+.catalog-ghost-btn:hover,
+.pager-btn:hover,
+.action-item:hover {
+  transform: translateY(-1px);
+}
+
+.catalog-primary-btn--upload {
+  min-width: 88px;
+}
+
+.catalog-filter-card {
+  position: relative;
+  padding: 2px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(9, 43, 82, 0.96) 0%, rgba(4, 22, 43, 0.96) 100%);
+  border: 1px solid rgba(46, 130, 223, 0.24);
+  box-shadow:
+    inset 0 1px 0 rgba(152, 219, 255, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.catalog-filter-card__glow {
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(43, 163, 255, 0.08) 0%, rgba(0, 0, 0, 0) 55%);
+}
+
+.catalog-filter {
   position: relative;
   display: flex;
   align-items: center;
-
-  .search-icon {
-    position: absolute;
-    left: 12px;
-    font-size: 16px;
-    color: var(--catalog-text-tertiary);
-    pointer-events: none;
-    transition: color 0.2s ease;
-  }
-
-  .search-input {
-    width: 240px;
-    height: 36px;
-    padding: 0 12px 0 36px;
-    font-size: 13px;
-    color: var(--catalog-text-primary);
-    background: var(--catalog-input-bg);
-    border: 1px solid var(--catalog-input-border);
-    border-radius: 8px;
-    transition: all 0.2s ease;
-
-    &::placeholder {
-      color: var(--catalog-input-placeholder);
-    }
-
-    &:hover {
-      border-color: rgba(var(--primary-500-color), 0.22);
-    }
-
-    &:focus {
-      outline: none;
-      border-color: rgba(var(--primary-500-color), 0.5);
-      background: var(--catalog-input-bg);
-      box-shadow: 0 0 0 3px rgba(var(--primary-500-color), 0.1);
-
-      & + .search-icon {
-        color: rgb(var(--primary-400-color));
-      }
-    }
-  }
+  gap: 10px;
+  min-width: 214px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 6px;
 }
 
-.import-btn {
-  height: 36px;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 500;
-  background: linear-gradient(135deg, rgb(var(--primary-500-color)) 0%, rgb(var(--primary-600-color)) 100%);
-  border: none;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(var(--primary-500-color), 0.4);
-  }
-
-  .btn-icon {
-    font-size: 16px;
-  }
+.catalog-filter__label {
+  font-size: 12px;
+  color: rgba(205, 229, 255, 0.72);
+  white-space: nowrap;
 }
 
-// 表格容器
-.table-container {
+.catalog-filter__select {
+  width: 136px;
+}
+
+.catalog-main__card {
   flex: 1;
-  background: var(--catalog-surface-bg);
-  border: 1px solid var(--catalog-surface-border);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: var(--catalog-card-shadow);
-
-  :deep(.n-data-table) {
-    .n-data-table-wrapper {
-      background: transparent;
-    }
-
-    .n-data-table-thead {
-      background: var(--catalog-table-head-bg);
-
-      .n-data-table-th {
-        font-weight: 600;
-        font-size: 12px;
-        color: var(--catalog-table-head-text);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 14px 16px;
-        border-bottom: 1px solid var(--catalog-header-border);
-      }
-    }
-
-    .n-data-table-tbody {
-      .n-data-table-tr {
-        transition: background 0.2s ease;
-
-        &:hover {
-          background: var(--catalog-table-row-hover);
-        }
-
-        &.data-row {
-          .n-data-table-td {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--catalog-table-row-border);
-          }
-        }
-      }
-    }
-  }
-}
-
-// 数据名称单元格
-.data-name-cell {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.data-icon-wrapper {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(
-    135deg,
-    rgba(var(--primary-500-color), 0.15) 0%,
-    rgba(var(--primary-500-color), 0.05) 100%
-  );
-  border: 1px solid rgba(var(--primary-500-color), 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: scale(1.05);
-    background: linear-gradient(
-      135deg,
-      rgba(var(--primary-500-color), 0.25) 0%,
-      rgba(var(--primary-500-color), 0.1) 100%
-    );
-  }
-
-  .data-type-icon {
-    font-size: 20px;
-    color: rgb(var(--primary-400-color));
-  }
-}
-
-.data-info {
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-
-  .data-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--catalog-text-primary);
-    line-height: 1.4;
-  }
-
-  .data-source {
-    font-size: 12px;
-    color: var(--catalog-text-tertiary);
-  }
+  border-radius: 4px;
+  overflow: hidden;
 }
 
-// 时间文本
-.time-text {
-  font-size: 13px;
+.catalog-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--catalog-line);
+  background: linear-gradient(180deg, rgba(7, 27, 51, 0.94) 0%, rgba(4, 20, 40, 0.96) 100%);
+}
+
+.catalog-card-head__title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.catalog-card-head__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
   color: var(--catalog-text-tertiary);
-  font-family: 'Inter', monospace;
+  font-size: 12px;
 }
 
-// 范围文本
-.range-text {
-  font-size: 13px;
+.catalog-table-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.catalog-loading {
+  flex: 1;
+  display: grid;
+  place-items: center;
   color: var(--catalog-text-secondary);
 }
 
-// 大小文本
-.size-text {
-  font-size: 13px;
-  color: var(--catalog-text-tertiary);
-  font-family: 'Inter', monospace;
+.catalog-table {
+  display: block;
+  min-width: 1120px;
 }
 
-// 时相标签
-.phase-tag {
+.catalog-table__head,
+.catalog-row {
+  display: grid;
+  grid-template-columns: 2.4fr 1.35fr 1.1fr 1.05fr 1.05fr 0.8fr 1.9fr;
+  align-items: center;
+}
+
+.catalog-table__head {
+  min-height: 44px;
+  padding: 0 12px;
+  background: var(--catalog-table-head-bg);
+  border-bottom: 1px solid var(--catalog-line);
+  color: var(--catalog-text-secondary);
   font-size: 12px;
-  font-weight: 500;
 }
 
-// 状态单元格
-.status-cell {
+.catalog-table__body {
+  overflow: auto;
+  flex: 1;
+}
+
+.catalog-row {
+  min-height: 66px;
+  padding: 0 12px;
+  border-bottom: 1px solid rgba(18, 73, 135, 0.32);
+}
+
+.catalog-row:hover {
+  background: var(--catalog-table-row-hover);
+}
+
+.dataset-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  min-width: 0;
 }
 
-.status-icon {
-  font-size: 16px;
-
-  &.status-published {
-    color: #10b981;
-  }
-
-  &.status-draft {
-    color: #f59e0b;
-  }
-
-  &.status-offline {
-    color: var(--catalog-text-tertiary);
-  }
+.dataset-cell__bullet {
+  flex-shrink: 0;
+  font-size: 18px;
+  color: #62c4ff;
 }
 
-// 操作单元格
-.action-cell {
+.dataset-cell__content {
+  min-width: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 4px;
 }
 
-.action-btn {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  display: flex;
+.dataset-cell__title {
+  color: var(--catalog-text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dataset-cell__sub {
+  color: var(--catalog-text-tertiary);
+  font-size: 11px;
+}
+
+.row-text {
+  color: var(--catalog-text-secondary);
+  font-size: 12px;
+}
+
+.row-text--muted {
+  color: rgba(160, 198, 241, 0.74);
+}
+
+.row-text--mono {
+  font-family: 'DIN', 'Consolas', monospace;
+}
+
+.type-chip {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 74px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.type-chip--image {
+  background: rgba(73, 105, 255, 0.22);
+  border-color: rgba(97, 127, 255, 0.32);
+  color: #b1c0ff;
+}
+
+.type-chip--oblique {
+  background: rgba(70, 105, 216, 0.22);
+  border-color: rgba(70, 140, 255, 0.34);
+  color: #98c5ff;
+}
+
+.type-chip--elevation {
+  background: rgba(111, 175, 57, 0.22);
+  border-color: rgba(121, 203, 61, 0.36);
+  color: #d2ff9e;
+}
+
+.type-chip--hydro {
+  background: rgba(19, 141, 170, 0.22);
+  border-color: rgba(47, 191, 223, 0.34);
+  color: #8deaff;
+}
+
+.type-chip--pipe {
+  background: rgba(183, 122, 17, 0.22);
+  border-color: rgba(255, 176, 52, 0.36);
+  color: #ffd586;
+}
+
+.type-chip--topic,
+.type-chip--default {
+  background: rgba(150, 69, 18, 0.22);
+  border-color: rgba(255, 132, 72, 0.34);
+  color: #ffb087;
+}
+
+.col-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.action-item {
+  min-width: 34px;
+  padding: 0 2px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--catalog-text-secondary);
+  background: transparent;
+  border: none;
+}
+
+.action-item__icon {
+  font-size: 16px;
+}
+
+.action-item__text {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.action-item--danger {
+  color: #ff8d8d;
+}
+
+.catalog-footer {
+  min-height: 48px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--catalog-line);
+  background: linear-gradient(180deg, rgba(4, 21, 41, 0.98) 0%, rgba(4, 18, 34, 0.98) 100%);
+}
+
+.catalog-footer__summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--catalog-text-secondary);
+  font-size: 12px;
+}
+
+.catalog-footer__divider {
+  width: 1px;
+  height: 10px;
+  background: rgba(70, 122, 190, 0.45);
+}
+
+.catalog-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pager-btn,
+.page-size-box,
+.page-jumper {
+  height: 28px;
+  border: 1px solid rgba(45, 111, 183, 0.34);
+  background: rgba(6, 25, 50, 0.82);
+  color: var(--catalog-text-secondary);
+  border-radius: 3px;
+}
+
+.pager-btn {
+  min-width: 28px;
+  padding: 0 8px;
+}
+
+.pager-btn--active {
+  color: #fff;
+  border-color: rgba(70, 176, 255, 0.5);
+  background: linear-gradient(180deg, rgba(17, 100, 206, 0.64) 0%, rgba(8, 66, 138, 0.64) 100%);
+}
+
+.pager-btn--ghost {
+  cursor: default;
+}
+
+.page-size-box,
+.page-jumper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.page-jumper input {
+  width: 36px;
+  height: 20px;
+  background: rgba(2, 18, 36, 0.88);
+  border: 1px solid rgba(45, 111, 183, 0.34);
+  color: #fff;
+  text-align: center;
+}
+
+.catalog-mobile-list {
+  display: none;
+}
+
+:deep(.n-tree-node-content) {
+  height: 36px;
+  padding-left: 4px;
   border-radius: 6px;
-  transition: all 0.2s ease;
+  color: var(--catalog-text-secondary);
+  border: 1px solid transparent;
+}
 
-  &:hover {
-    background: var(--catalog-tree-hover-bg);
+:deep(.n-tree-node-content:hover) {
+  background: linear-gradient(90deg, rgba(17, 79, 153, 0.16) 0%, rgba(8, 37, 74, 0.16) 100%);
+  border-color: rgba(47, 133, 225, 0.22);
+}
+
+:deep(.n-tree-node--selected > .n-tree-node-content) {
+  background: linear-gradient(90deg, rgba(19, 95, 182, 0.38) 0%, rgba(9, 46, 92, 0.16) 100%);
+  color: #fff;
+  border-color: rgba(61, 166, 255, 0.28);
+}
+
+:deep(.n-tree-node-indent) {
+  width: 12px !important;
+}
+
+:deep(.n-tree-node-switcher) {
+  color: var(--catalog-text-tertiary);
+  width: 18px;
+}
+
+:deep(.n-tree-node-content__text) {
+  font-size: 13px;
+}
+
+:deep(.catalog-filter__select .n-base-selection) {
+  height: 30px;
+  border-radius: 6px;
+  background: rgba(2, 18, 36, 0.5);
+  border-color: rgba(54, 132, 212, 0.12);
+  box-shadow: none;
+}
+
+:deep(.catalog-filter__select .n-base-selection-label) {
+  color: var(--catalog-text-primary);
+}
+
+:deep(.catalog-filter__select .n-base-selection-placeholder),
+:deep(.catalog-filter__select .n-base-selection-input__content) {
+  color: var(--catalog-text-tertiary);
+}
+
+:deep(.catalog-filter__select .n-base-selection__border) {
+  display: none;
+}
+
+:deep(.catalog-filter__select .n-base-selection-input) {
+  padding-left: 6px;
+}
+
+.catalog-sidebar__panel::-webkit-scrollbar,
+.catalog-table__body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.catalog-sidebar__panel::-webkit-scrollbar-thumb,
+.catalog-table__body::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(48, 127, 212, 0.58);
+}
+
+.catalog-sidebar__panel::-webkit-scrollbar-track,
+.catalog-table__body::-webkit-scrollbar-track {
+  background: rgba(4, 20, 40, 0.45);
+}
+
+@media (max-width: 1280px) {
+  .catalog-topbar {
+    flex-wrap: wrap;
   }
 
-  &.preview-btn:hover {
-    color: #3b82f6;
+  .catalog-search-panel {
+    width: 100%;
   }
 
-  &.edit-btn:hover {
-    color: #10b981;
+  .catalog-topbar__right {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
-  &.more-btn:hover {
-    color: #f59e0b;
-  }
-
-  .action-icon {
-    font-size: 16px;
+  .catalog-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 }
 
-// 响应式
 @media (max-width: 1024px) {
-  .main-content {
-    flex-direction: column;
+  .catalog-shell {
+    grid-template-columns: 1fr;
   }
 
-  .sidebar {
+  .catalog-sidebar {
+    max-height: 280px;
+  }
+
+  .catalog-search {
+    min-width: 100%;
     width: 100%;
-    max-height: 300px;
+  }
+
+  .catalog-search-panel__label {
+    display: none;
+  }
+
+  .catalog-topbar__left,
+  .catalog-topbar__right {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .catalog-shell {
+    padding: 10px;
+  }
+
+  .catalog-topbar {
+    gap: 10px;
+  }
+
+  .catalog-primary-btn:not(.catalog-primary-btn--inline),
+  .catalog-ghost-btn,
+  .catalog-filter-card,
+  .catalog-filter,
+  .catalog-filter__select,
+  .catalog-primary-btn--upload {
+    width: 100%;
+  }
+
+  .catalog-filter {
+    min-width: 0;
+    justify-content: space-between;
+  }
+
+  .catalog-card-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .catalog-table {
+    display: none;
+  }
+
+  .catalog-mobile-list {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    overflow: auto;
+  }
+
+  .catalog-mobile-card {
+    border: 1px solid rgba(33, 111, 195, 0.28);
+    border-radius: 6px;
+    background: linear-gradient(180deg, rgba(5, 24, 46, 0.98) 0%, rgba(3, 18, 34, 0.98) 100%);
+    padding: 12px;
+  }
+
+  .catalog-mobile-card__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .catalog-mobile-card__grid {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .catalog-mobile-card__grid div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--catalog-text-secondary);
+  }
+
+  .catalog-mobile-card__grid span {
+    color: var(--catalog-text-tertiary);
+    font-size: 11px;
+  }
+
+  .catalog-mobile-card__actions {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .catalog-footer__summary {
+    flex-wrap: wrap;
+  }
+
+  .catalog-pagination {
+    flex-wrap: wrap;
   }
 }
 </style>
