@@ -28,11 +28,16 @@ withDefaults(defineProps<Props>(), {
 .brand-title {
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.8px;
   color: transparent;
-  background: linear-gradient(90deg, rgb(var(--primary-400-color)), rgb(var(--primary-700-color)));
+  background: linear-gradient(90deg, #29b6ff, #00d4aa);
   background-clip: text;
   -webkit-background-clip: text;
-  text-shadow: 0 6px 18px rgb(var(--primary-500-color) / 22%);
+  text-shadow: 0 6px 18px rgba(41, 182, 255, 0.18);
+}
+html.dark .brand-title {
+  background: linear-gradient(90deg, #29b6ff, #00d4aa);
+  background-clip: text;
+  -webkit-background-clip: text;
 }
 </style>

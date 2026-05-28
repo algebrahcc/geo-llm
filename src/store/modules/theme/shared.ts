@@ -257,6 +257,20 @@ export function getNaiveTheme(
     },
     Tag: {
       borderRadius: `${settings.themeRadius}px`
+    },
+    Menu: {
+      borderRadius: '4px',
+      itemTextColorHoverHorizontal: 'rgba(175, 208, 245, 0.9)',
+      itemTextColorActiveHorizontal: '#29b6ff',
+      itemTextColorActiveHoverHorizontal: '#29b6ff',
+      itemIconColorHoverHorizontal: 'rgba(175, 208, 245, 0.85)',
+      itemIconColorActiveHorizontal: '#29b6ff',
+      itemIconColorActiveHoverHorizontal: '#29b6ff',
+      itemColorHover: 'rgba(41, 182, 255, 0.08)',
+      itemColorActive: 'rgba(41, 182, 255, 0.1)',
+      itemColorActiveHover: 'rgba(41, 182, 255, 0.14)',
+      arrowColorHover: 'rgba(175, 208, 245, 0.7)',
+      arrowColorActive: '#29b6ff'
     }
   };
 

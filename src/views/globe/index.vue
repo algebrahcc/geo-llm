@@ -368,8 +368,10 @@ watch(
 
 <style scoped>
 .globe-page {
-  height: 100%;
+  position: absolute;
+  inset: 0;
   padding: 16px;
+  box-sizing: border-box;
   background: rgb(11, 18, 32);
 }
 
@@ -378,7 +380,7 @@ watch(
   height: 100%;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .layer-panel-wrap {

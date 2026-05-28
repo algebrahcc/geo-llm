@@ -80,13 +80,13 @@ export const themeSettings: App.Theme.ThemeSetting = {
     },
     dark: {
       colors: {
-        container: 'rgb(15, 27, 45)',
-        layout: 'rgb(11, 18, 32)',
-        inverted: 'rgb(15, 27, 45)',
-        'base-text': 'rgb(234, 234, 234)'
+        container: 'rgb(6, 20, 38)',
+        layout: 'rgb(4, 16, 28)',
+        inverted: 'rgb(6, 20, 38)',
+        'base-text': 'rgb(228, 242, 255)'
       },
       boxShadow: {
-        header: '0 1px 2px rgb(0, 0, 0, 0.25)',
+        header: '0 1px 0 rgba(36, 112, 196, 0.18)',
         sider: '2px 0 8px 0 rgb(0, 0, 0, 0.22)',
         tab: '0 1px 2px rgb(0, 0, 0, 0.25)'
       }

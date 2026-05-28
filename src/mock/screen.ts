@@ -99,21 +99,21 @@ export interface ScreenGlobeFlyline {
 
 export const screenGlobePoints: ScreenGlobePoint[] = [
   { id: 'p1', name: '任务节点-台北', longitude: 121.52, latitude: 25.05, value: 86 },
-  { id: 'p2', name: '任务节点-福州', longitude: 119.3, latitude: 26.08, value: 64 },
+  { id: 'p2', name: '任务节点-福州', longitude: 119.30, latitude: 26.08, value: 64 },
   { id: 'p3', name: '任务节点-厦门', longitude: 118.09, latitude: 24.48, value: 52 },
   { id: 'p4', name: '任务节点-高雄', longitude: 120.31, latitude: 22.62, value: 41 },
-  { id: 'p5', name: '任务节点-花莲', longitude: 121.6, latitude: 23.98, value: 35 },
+  { id: 'p5', name: '任务节点-花莲', longitude: 121.60, latitude: 23.98, value: 35 },
   { id: 'p6', name: '任务节点-台中', longitude: 120.67, latitude: 24.15, value: 29 },
   { id: 'p7', name: '任务节点-基隆', longitude: 121.74, latitude: 25.13, value: 22 },
   { id: 'p8', name: '任务节点-台南', longitude: 120.21, latitude: 22.99, value: 18 }
 ];
 
 export const screenGlobeFlylines: ScreenGlobeFlyline[] = [
-  { id: 'f1', fromLon: 119.3, fromLat: 26.08, toLon: 121.52, toLat: 25.05, name: '福州→台北' },
+  { id: 'f1', fromLon: 119.30, fromLat: 26.08, toLon: 121.52, toLat: 25.05, name: '福州→台北' },
   { id: 'f2', fromLon: 118.09, fromLat: 24.48, toLon: 120.31, toLat: 22.62, name: '厦门→高雄' },
-  { id: 'f3', fromLon: 121.52, fromLat: 25.05, toLon: 121.6, toLat: 23.98, name: '台北→花莲' },
+  { id: 'f3', fromLon: 121.52, fromLat: 25.05, toLon: 121.60, toLat: 23.98, name: '台北→花莲' },
   { id: 'f4', fromLon: 121.74, fromLat: 25.13, toLon: 120.67, toLat: 24.15, name: '基隆→台中' },
-  { id: 'f5', fromLon: 120.21, fromLat: 22.99, toLon: 119.3, toLat: 26.08, name: '台南→福州' },
+  { id: 'f5', fromLon: 120.21, fromLat: 22.99, toLon: 119.30, toLat: 26.08, name: '台南→福州' },
   { id: 'f6', fromLon: 120.67, fromLat: 24.15, toLon: 120.31, toLat: 22.62, name: '台中→高雄' }
 ];
 

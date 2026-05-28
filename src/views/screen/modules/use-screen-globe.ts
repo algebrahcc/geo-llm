@@ -52,7 +52,7 @@ export function useScreenGlobe() {
         alpha: 0.6 * (1 - t1)
       });
 
-      const elapsed2 = (now - animStart + 1500) % 3000;
+      const elapsed2 = ((now - animStart) + 1500) % 3000;
       const t2 = elapsed2 / 3000;
       ringStates.set(`ring2-${point.id}`, {
         radius: 5000 + t2 * 40000,

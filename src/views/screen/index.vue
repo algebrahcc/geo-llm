@@ -81,6 +81,9 @@ const { domRef: taskDistributionDomRef } = useEcharts(() => ({
         ...item,
         itemStyle: { color: PIE_COLORS[i % PIE_COLORS.length] }
       })),
+      animationType: 'scale',
+      animationEasing: 'elasticOut',
+      animationDuration: 1200,
       graphic: {
         type: 'text',
         left: 'center',
@@ -241,7 +244,7 @@ const { domRef: hotKeywordsDomRef } = useEcharts(
         {
           type: 'wordCloud',
           sizeRange: [11, 26],
-          rotationRange: [-10, 10],
+          rotationRange: [0, 0],
           gridSize: 5,
           drawOutOfBound: false,
           layoutAnimation: true,
@@ -374,6 +377,9 @@ const { domRef: bottomDistDomRef } = useEcharts(() => ({
         borderWidth: 2
       },
       label: { show: false },
+      animationType: 'scale',
+      animationEasing: 'elasticOut',
+      animationDuration: 1000,
       emphasis: {
         scale: true,
         scaleSize: 6,
@@ -397,7 +403,7 @@ const { domRef: bottomRadarDomRef } = useEcharts(() => ({
   },
   legend: {
     top: 4,
-    left: 'center',
+    right: 8,
     itemWidth: 12,
     itemHeight: 3,
     itemGap: 16,
@@ -440,8 +446,18 @@ const { domRef: bottomRadarDomRef } = useEcharts(() => ({
       symbol: 'circle',
       symbolSize: 4,
       lineStyle: { width: 2 },
+      itemStyle: { color: CHART_COLORS.primary },
       areaStyle: { opacity: 0.18 },
-      data: screenSpatialCoverage
+      data: screenSpatialCoverage.map((item, i) => ({
+        ...item,
+        lineStyle: { color: i === 0 ? CHART_COLORS.primary : CHART_COLORS.secondary },
+        itemStyle: { color: i === 0 ? CHART_COLORS.primary : CHART_COLORS.secondary },
+        areaStyle: {
+          color: i === 0
+            ? 'rgba(41, 182, 255, 0.18)'
+            : 'rgba(0, 212, 170, 0.15)'
+        }
+      }))
     }
   ]
 }));
@@ -770,10 +786,88 @@ function getKpiIcon(key: string): string {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .screen-panel:hover {
   border-color: var(--sd-border-glow);
+  box-shadow:
+    0 0 0 1px rgba(41, 162, 255, 0.1) inset,
+    0 4px 24px rgba(0, 0, 0, 0.3),
+    0 0 12px rgba(41, 162, 255, 0.06);
+}
+
+/* Panel corner accents — all 4 corners, always visible */
+.screen-panel::before,
+.screen-panel::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+.screen-panel::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--sd-accent-blue);
+  border-left: 2px solid var(--sd-accent-blue);
+  border-radius: 6px 0 0 0;
+}
+.screen-panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--sd-accent-blue);
+  border-right: 2px solid var(--sd-accent-blue);
+  border-radius: 0 0 6px 0;
+}
+.screen-panel:hover::before,
+.screen-panel:hover::after {
+  opacity: 0.7;
+}
+
+/* Top-right & bottom-left corners via panel-header and chart-body */
+.screen-panel .panel-header::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 12px;
+  height: 12px;
+  border-top: 2px solid var(--sd-accent-blue);
+  border-right: 2px solid var(--sd-accent-blue);
+  border-radius: 0 6px 0 0;
+  pointer-events: none;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+.screen-panel:hover .panel-header::after {
+  opacity: 0.7;
+}
+.screen-panel .chart-body::before,
+.screen-panel .notice-list::before {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: -1px;
+  width: 12px;
+  height: 12px;
+  border-bottom: 2px solid var(--sd-accent-blue);
+  border-left: 2px solid var(--sd-accent-blue);
+  border-radius: 0 0 0 6px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+.screen-panel:hover .chart-body::before,
+.screen-panel:hover .notice-list::before {
+  opacity: 0.7;
+}
+.chart-body,
+.notice-list {
+  position: relative;
 }
 
 /* Panel Header */
@@ -786,7 +880,22 @@ function getKpiIcon(key: string): string {
   background: linear-gradient(180deg, rgba(12, 38, 72, 0.5) 0%, rgba(6, 22, 44, 0.3) 100%);
   user-select: none;
   flex-shrink: 0;
+  position: relative;
 }
+
+/* Header left accent bar */
+.panel-header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 2px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, transparent, var(--sd-accent-blue), transparent);
+  opacity: 0.5;
+}
+
 .panel-header--sm {
   justify-content: space-between;
   padding: 8px 12px;
@@ -796,13 +905,15 @@ function getKpiIcon(key: string): string {
   font-size: 16px;
   color: var(--sd-accent-blue);
   opacity: 0.85;
+  filter: drop-shadow(0 0 4px rgba(41, 182, 255, 0.25));
 }
 
 .panel-header__title {
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.5px;
   color: var(--sd-text-primary);
+  text-shadow: 0 0 8px rgba(41, 182, 255, 0.12);
 }
 
 .panel-tabs {
@@ -865,10 +976,30 @@ function getKpiIcon(key: string): string {
   border: 1px solid var(--sd-border);
   border-radius: 4px;
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.15);
-  transition: border-color 0.25s ease;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
 }
 .kpi-item:hover {
   border-color: var(--sd-border-glow);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2), 0 0 8px rgba(41, 162, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+/* KPI top highlight bar */
+.kpi-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--sd-accent-blue), transparent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.kpi-item:hover::before {
+  opacity: 0.6;
 }
 
 .kpi-item__icon-wrap {
@@ -879,9 +1010,10 @@ function getKpiIcon(key: string): string {
   place-items: center;
   font-size: 15px;
   flex-shrink: 0;
-  color: rgba(180, 220, 255, 0.8);
-  background: rgba(15, 40, 75, 0.7);
+  color: var(--sd-accent-blue);
+  background: linear-gradient(135deg, rgba(15, 40, 75, 0.8), rgba(10, 30, 60, 0.6));
   border: 1px solid rgba(41, 120, 200, 0.2);
+  box-shadow: 0 0 6px rgba(41, 182, 255, 0.1);
 }
 
 .kpi-item__info {
@@ -906,6 +1038,7 @@ function getKpiIcon(key: string): string {
   color: var(--sd-text-primary);
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  text-shadow: 0 0 6px rgba(41, 182, 255, 0.1);
 }
 .kpi-item__delta {
   font-size: 10px;
@@ -935,6 +1068,23 @@ function getKpiIcon(key: string): string {
   box-shadow:
     0 0 0 1px rgba(8, 40, 80, 0.15) inset,
     0 4px 20px rgba(0, 0, 0, 0.25);
+  animation: globe-border-breathe 4s ease-in-out infinite;
+}
+
+@keyframes globe-border-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(8, 40, 80, 0.15) inset,
+      0 4px 20px rgba(0, 0, 0, 0.25),
+      0 0 0 rgba(41, 162, 255, 0);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(8, 40, 80, 0.15) inset,
+      0 4px 20px rgba(0, 0, 0, 0.25),
+      0 0 8px rgba(41, 162, 255, 0.12);
+  }
 }
 
 .map-canvas {
@@ -992,6 +1142,14 @@ function getKpiIcon(key: string): string {
 }
 .bottom-charts .screen-panel {
   min-height: 200px;
+  transition: all 0.3s ease;
+}
+.bottom-charts .screen-panel:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px rgba(41, 162, 255, 0.12) inset,
+    0 6px 28px rgba(0, 0, 0, 0.35),
+    0 0 16px rgba(41, 162, 255, 0.08);
 }
 
 /* ============================================================
@@ -1017,13 +1175,15 @@ function getKpiIcon(key: string): string {
   gap: 10px;
   padding: 8px 6px;
   border-bottom: 1px solid rgba(36, 112, 196, 0.08);
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
+  border-radius: 3px;
 }
 .notice-item:last-child {
   border-bottom: none;
 }
 .notice-item:hover {
   background: rgba(41, 162, 255, 0.05);
+  transform: translateX(3px);
 }
 
 .notice-time {
@@ -1058,12 +1218,16 @@ function getKpiIcon(key: string): string {
 }
 .notice-level--info::before {
   background: var(--sd-accent-blue);
+  box-shadow: 0 0 4px var(--sd-accent-blue);
 }
 .notice-level--warning::before {
   background: var(--sd-accent-orange);
+  box-shadow: 0 0 4px var(--sd-accent-orange);
 }
 .notice-level--error::before {
   background: var(--sd-accent-red);
+  box-shadow: 0 0 4px var(--sd-accent-red);
+  animation: notice-pulse 2s ease-in-out infinite;
 }
 .notice-level--info {
   color: var(--sd-text-secondary);
@@ -1080,6 +1244,45 @@ function getKpiIcon(key: string): string {
   font-size: 11px;
   color: var(--sd-text-muted);
   line-height: 1.4;
+}
+
+/* ============================================================
+   Global Effects — Breathing glow, animations
+   ============================================================ */
+
+/* Notice error pulse animation */
+@keyframes notice-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* KPI number shimmer effect */
+@keyframes value-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.kpi-item:hover .kpi-item__value {
+  background: linear-gradient(
+    90deg,
+    var(--sd-text-primary) 40%,
+    var(--sd-accent-blue) 50%,
+    var(--sd-text-primary) 60%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: value-shimmer 2s ease-in-out infinite;
 }
 
 /* ============================================================

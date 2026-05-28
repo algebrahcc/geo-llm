@@ -41,14 +41,14 @@ function openGlobe() {
 </script>
 
 <template>
-  <DarkModeContainer class="h-full flex-y-center px-12px shadow-header">
+  <DarkModeContainer class="h-full flex-y-center px-12px shadow-header header-bar">
     <GlobalLogo v-if="showLogo" class="h-full" :style="{ width: themeStore.sider.width + 'px' }" />
     <MenuToggler v-if="showMenuToggler" :collapsed="appStore.siderCollapse" @click="appStore.toggleSiderCollapse" />
     <div v-if="showMenu" :id="GLOBAL_HEADER_MENU_ID" class="h-full flex-y-center flex-1-hidden"></div>
     <div v-else class="h-full flex-y-center flex-1-hidden">
       <GlobalBreadcrumb v-if="!appStore.isMobile" class="ml-12px" />
     </div>
-    <div class="h-full flex-y-center justify-end">
+    <div class="h-full flex-y-center justify-end header-actions">
       <ButtonIcon icon="mdi:monitor-dashboard" tooltip-content="统计大屏" @click="openScreen" />
       <ButtonIcon icon="mdi:earth" tooltip-content="Web球" @click="openGlobe" />
       <FullScreen v-if="!appStore.isMobile" :full="isFullscreen" @click="toggle" />

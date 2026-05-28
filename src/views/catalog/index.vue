@@ -540,6 +540,59 @@ function changePage(page: number) {
   background: var(--catalog-surface-bg);
   border: 1px solid var(--catalog-surface-border);
   box-shadow: var(--catalog-glow);
+  position: relative;
+}
+
+/* Sidebar corner accents */
+.catalog-sidebar::before,
+.catalog-sidebar::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.35;
+}
+.catalog-sidebar::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--catalog-accent);
+  border-left: 2px solid var(--catalog-accent);
+  border-radius: 4px 0 0 0;
+}
+.catalog-sidebar::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--catalog-accent);
+  border-right: 2px solid var(--catalog-accent);
+  border-radius: 0 0 4px 0;
+}
+
+/* Main card corner accents */
+.catalog-main__card::before,
+.catalog-main__card::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.35;
+}
+.catalog-main__card::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--catalog-accent);
+  border-left: 2px solid var(--catalog-accent);
+  border-radius: 4px 0 0 0;
+}
+.catalog-main__card::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--catalog-accent);
+  border-right: 2px solid var(--catalog-accent);
+  border-radius: 0 0 4px 0;
 }
 
 .catalog-sidebar {
@@ -557,12 +610,27 @@ function changePage(page: number) {
   padding: 0 14px;
   border-bottom: 1px solid var(--catalog-line);
   background: linear-gradient(180deg, rgba(10, 38, 72, 0.96) 0%, rgba(5, 25, 47, 0.96) 100%);
+  position: relative;
+}
+
+/* Sidebar header left accent bar */
+.catalog-sidebar__header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 2px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, transparent, var(--catalog-accent), transparent);
+  opacity: 0.5;
 }
 
 .catalog-sidebar__title {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.5px;
+  text-shadow: 0 0 8px rgba(41, 163, 255, 0.12);
 }
 
 .catalog-sidebar__panel {
@@ -824,12 +892,27 @@ function changePage(page: number) {
   padding: 12px 14px;
   border-bottom: 1px solid var(--catalog-line);
   background: linear-gradient(180deg, rgba(7, 27, 51, 0.94) 0%, rgba(4, 20, 40, 0.96) 100%);
+  position: relative;
+}
+
+/* Card head left accent bar */
+.catalog-card-head::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 2px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, transparent, var(--catalog-accent), transparent);
+  opacity: 0.5;
 }
 
 .catalog-card-head__title {
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.3px;
+  text-shadow: 0 0 8px rgba(41, 163, 255, 0.1);
 }
 
 .catalog-card-head__meta {
@@ -885,6 +968,7 @@ function changePage(page: number) {
   min-height: 66px;
   padding: 0 12px;
   border-bottom: 1px solid rgba(18, 73, 135, 0.32);
+  transition: background 0.2s ease;
 }
 
 .catalog-row:hover {
@@ -902,6 +986,7 @@ function changePage(page: number) {
   flex-shrink: 0;
   font-size: 18px;
   color: #62c4ff;
+  filter: drop-shadow(0 0 4px rgba(98, 196, 255, 0.25));
 }
 
 .dataset-cell__content {
@@ -949,6 +1034,11 @@ function changePage(page: number) {
   border: 1px solid transparent;
   font-size: 11px;
   line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.catalog-row:hover .type-chip {
+  box-shadow: 0 0 6px rgba(41, 163, 255, 0.12);
 }
 
 .type-chip--image {
@@ -1006,10 +1096,22 @@ function changePage(page: number) {
   color: var(--catalog-text-secondary);
   background: transparent;
   border: none;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.action-item:hover {
+  color: var(--catalog-accent);
+  background: rgba(41, 163, 255, 0.08);
 }
 
 .action-item__icon {
   font-size: 16px;
+  transition: transform 0.2s ease;
+}
+
+.action-item:hover .action-item__icon {
+  transform: scale(1.15);
 }
 
 .action-item__text {
@@ -1019,6 +1121,10 @@ function changePage(page: number) {
 
 .action-item--danger {
   color: #ff8d8d;
+}
+.action-item--danger:hover {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.08);
 }
 
 .catalog-footer {
@@ -1043,7 +1149,7 @@ function changePage(page: number) {
 .catalog-footer__divider {
   width: 1px;
   height: 10px;
-  background: rgba(70, 122, 190, 0.45);
+  background: linear-gradient(180deg, transparent, rgba(70, 122, 190, 0.45), transparent);
 }
 
 .catalog-pagination {
@@ -1071,6 +1177,7 @@ function changePage(page: number) {
   color: #fff;
   border-color: rgba(70, 176, 255, 0.5);
   background: linear-gradient(180deg, rgba(17, 100, 206, 0.64) 0%, rgba(8, 66, 138, 0.64) 100%);
+  box-shadow: 0 0 6px rgba(41, 163, 255, 0.2);
 }
 
 .pager-btn--ghost {
@@ -1116,6 +1223,7 @@ function changePage(page: number) {
   background: linear-gradient(90deg, rgba(19, 95, 182, 0.38) 0%, rgba(9, 46, 92, 0.16) 100%);
   color: #fff;
   border-color: rgba(61, 166, 255, 0.28);
+  box-shadow: inset 2px 0 0 var(--catalog-accent);
 }
 
 :deep(.n-tree-node-indent) {

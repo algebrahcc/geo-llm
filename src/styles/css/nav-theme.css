@@ -1,0 +1,108 @@
+/* ============================================================
+   Navigation Bar - Sci-Fi Dashboard Theme
+   Aligned with the "统计大屏" design tokens
+   ============================================================ */
+
+/* ---------- Header Bar ---------- */
+html.dark .header-bar {
+  position: relative;
+}
+
+/* Bottom gradient line - dark mode only */
+html.dark .header-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(41, 162, 255, 0.15) 15%,
+    rgba(41, 182, 255, 0.4) 50%,
+    rgba(41, 162, 255, 0.15) 85%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* ---------- Header Right Action Buttons ---------- */
+html.dark .header-actions .button-icon {
+  color: rgba(175, 208, 245, 0.5);
+  transition: all 0.25s ease;
+}
+html.dark .header-actions .button-icon:hover {
+  color: #29b6ff;
+  background: rgba(41, 182, 255, 0.1);
+}
+
+/* ---------- NaiveUI Horizontal Menu - Dark Theme Override ---------- */
+html.dark .n-menu--horizontal {
+  --n-item-text-color-hover: rgba(175, 208, 245, 0.9) !important;
+  --n-item-text-color-active: #29b6ff !important;
+  --n-item-text-color-active-hover: #29b6ff !important;
+  --n-item-color-hover: rgba(41, 182, 255, 0.08) !important;
+  --n-item-color-active: rgba(41, 182, 255, 0.1) !important;
+  --n-item-color-active-hover: rgba(41, 182, 255, 0.14) !important;
+  --n-item-icon-color-hover: rgba(175, 208, 245, 0.85) !important;
+  --n-item-icon-color-active: #29b6ff !important;
+  --n-item-icon-color-active-hover: #29b6ff !important;
+  --n-arrow-color-hover: rgba(175, 208, 245, 0.7) !important;
+  --n-arrow-color-active: #29b6ff !important;
+}
+
+/* Menu item base */
+html.dark .n-menu--horizontal .n-menu-item {
+  position: relative;
+  transition: all 0.25s ease;
+}
+
+/* Menu item - bottom indicator on hover */
+html.dark .n-menu--horizontal .n-menu-item::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #29b6ff, transparent);
+  transform: translateX(-50%);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+html.dark .n-menu--horizontal .n-menu-item:hover::after {
+  width: 60%;
+}
+
+/* Active menu item - full bottom indicator */
+html.dark .n-menu--horizontal .n-menu-item--selected::after {
+  width: 80%;
+  background: linear-gradient(90deg, rgba(41, 182, 255, 0.3), #29b6ff, rgba(41, 182, 255, 0.3));
+  box-shadow: 0 0 8px rgba(41, 182, 255, 0.4);
+}
+
+/* ---------- Sub-menu / Dropdown ---------- */
+html.dark .n-menu--horizontal .n-submenu .n-menu-item-content::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #29b6ff, transparent);
+  transform: translateX(-50%);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 1px;
+  pointer-events: none;
+}
+html.dark .n-menu--horizontal .n-submenu:hover .n-menu-item-content::after {
+  width: 60%;
+}
+html.dark .n-menu--horizontal .n-submenu--active .n-menu-item-content::after {
+  width: 80%;
+  background: linear-gradient(90deg, rgba(41, 182, 255, 0.3), #29b6ff, rgba(41, 182, 255, 0.3));
+  box-shadow: 0 0 8px rgba(41, 182, 255, 0.4);
+}
