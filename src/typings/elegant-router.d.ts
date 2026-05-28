@@ -22,7 +22,11 @@ declare module "@elegant-router/types" {
     "planning-fullscreen": "/planning-fullscreen";
     "river-fullscreen": "/river-fullscreen";
     "building-fullscreen": "/building-fullscreen";
+    "building_overview": "/building/overview";
     "building_workspace": "/building/workspace";
+    "building_structure": "/building/structure";
+    "building_material": "/building/material";
+    "building_task_detail": "/building/task-detail";
     "agent_workbench": "/agent/workbench";
     "agent_config": "/agent/config";
     "agent_test": "/agent/test";
@@ -68,7 +72,11 @@ declare module "@elegant-router/types" {
     | "planning-fullscreen"
     | "river-fullscreen"
     | "building-fullscreen"
+    | "building_overview"
     | "building_workspace"
+    | "building_structure"
+    | "building_material"
+    | "building_task_detail"
     | "agent_workbench"
     | "agent_config"
     | "agent_test"
@@ -116,7 +124,11 @@ declare module "@elegant-router/types" {
     | "planning-fullscreen"
     | "river-fullscreen"
     | "building-fullscreen"
+    | "building_overview"
     | "building_workspace"
+    | "building_structure"
+    | "building_material"
+    | "building_task_detail"
     | "agent_workbench"
     | "agent_config"
     | "agent_test"
@@ -159,7 +171,11 @@ declare module "@elegant-router/types" {
     | "planning-fullscreen"
     | "river-fullscreen"
     | "building-fullscreen"
+    | "building_overview"
     | "building_workspace"
+    | "building_structure"
+    | "building_material"
+    | "building_task_detail"
     | "agent_workbench"
     | "agent_config"
     | "agent_test"
