@@ -21,6 +21,8 @@ const themeStore = useThemeStore();
 const darkMode = computed(() => themeStore.darkMode);
 const currentPage = ref(1);
 const pageSize = ref(10);
+const detailVisible = ref(false);
+const detailItem = ref<CatalogItem | null>(null);
 
 const categoryCountMap = computed<Record<string, number>>(() => {
   return dataList.value.reduce<Record<string, number>>((acc, item) => {
@@ -195,6 +197,20 @@ function getTypeTagClass(type: string) {
   return typeClassMap[type] || 'type-chip--default';
 }
 
+function getStatusConfig(status: string) {
+  const map: Record<string, { label: string; type: 'success' | 'warning' | 'default' }> = {
+    published: { label: '已发布', type: 'success' },
+    draft: { label: '草稿', type: 'warning' },
+    offline: { label: '已下线', type: 'default' }
+  };
+  return map[status] || { label: status, type: 'default' as const };
+}
+
+function formatBbox(bbox?: [number, number, number, number]) {
+  if (!bbox) return '—';
+  return `${bbox[0].toFixed(2)}°E, ${bbox[1].toFixed(2)}°N → ${bbox[2].toFixed(2)}°E, ${bbox[3].toFixed(2)}°N`;
+}
+
 function handleCategorySelect(keys: string[]) {
   selectedCategory.value = keys.length > 0 ? keys[0] : null;
   currentPage.value = 1;
@@ -260,7 +276,8 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
       window.$message?.info(`已触发更新：${item.name}`);
       break;
     case 'detail':
-      window.$message?.info(`查看详情：${item.name}`);
+      detailItem.value = item;
+      detailVisible.value = true;
       break;
     default:
       break;
@@ -491,6 +508,122 @@ function changePage(page: number) {
         </div>
       </section>
     </div>
+
+    <!-- 详情弹窗 -->
+    <NModal v-model:show="detailVisible" :mask-closable="true" :close-on-esc="true" class="catalog-detail-modal">
+      <div v-if="detailItem" class="detail-card">
+        <!-- 标题区 -->
+        <div class="detail-header">
+          <div class="detail-header__left">
+            <SvgIcon :icon="getDataTypeIcon(detailItem.type)" class="detail-header__icon" />
+            <div class="detail-header__text">
+              <h3 class="detail-header__title">{{ detailItem.name }}</h3>
+              <div class="detail-header__badges">
+                <span class="type-chip" :class="getTypeTagClass(detailItem.type)">
+                  {{ detailItem.type }}
+                </span>
+                <NTag
+                  :type="getStatusConfig(detailItem.status).type"
+                  size="small"
+                  :bordered="false"
+                  class="detail-status-tag"
+                >
+                  {{ getStatusConfig(detailItem.status).label }}
+                </NTag>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="detail-close-btn" @click="detailVisible = false">
+            <SvgIcon icon="mdi:close" />
+          </button>
+        </div>
+
+        <!-- 信息区 -->
+        <div class="detail-body">
+          <!-- 基本信息区 -->
+          <div class="detail-section">
+            <div class="detail-section__title">
+              <SvgIcon icon="mdi:information-outline" class="detail-section__icon" />
+              基本信息
+            </div>
+            <div class="detail-grid">
+              <div class="detail-field">
+                <span class="detail-field__label">数据来源</span>
+                <span class="detail-field__value">{{ detailItem.source }}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">数据格式</span>
+                <span class="detail-field__value">{{ detailItem.format || '—' }}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">分辨率</span>
+                <span class="detail-field__value">{{ detailItem.resolution || '—' }}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">坐标系</span>
+                <span class="detail-field__value detail-field__value--small">
+                  {{ detailItem.coordinateSystem || '—' }}
+                </span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">数据大小</span>
+                <span class="detail-field__value">{{ detailItem.size }}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">时相</span>
+                <span class="detail-field__value">{{ detailItem.timePhase }}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">入库时间</span>
+                <span class="detail-field__value">{{ detailItem.ingestTime }}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">更新时间</span>
+                <span class="detail-field__value">{{ detailItem.updateTime || '—' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 空间范围区 -->
+          <div class="detail-section">
+            <div class="detail-section__title">
+              <SvgIcon icon="mdi:map-marker-outline" class="detail-section__icon" />
+              空间范围
+            </div>
+            <div class="detail-grid">
+              <div class="detail-field detail-field--full">
+                <span class="detail-field__label">空间范围</span>
+                <span class="detail-field__value">{{ detailItem.range }}</span>
+              </div>
+              <div class="detail-field detail-field--full">
+                <span class="detail-field__label">坐标范围 (BBox)</span>
+                <span class="detail-field__value detail-field__value--mono">{{ formatBbox(detailItem.bbox) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 描述区 -->
+          <div v-if="detailItem.description" class="detail-section">
+            <div class="detail-section__title">
+              <SvgIcon icon="mdi:text-box-outline" class="detail-section__icon" />
+              数据描述
+            </div>
+            <p class="detail-desc">{{ detailItem.description }}</p>
+          </div>
+
+          <!-- 标签区 -->
+          <div v-if="detailItem.tags?.length" class="detail-section">
+            <div class="detail-section__title">
+              <SvgIcon icon="mdi:tag-outline" class="detail-section__icon" />
+              标签
+            </div>
+            <div class="detail-tags">
+              <span v-for="tag in detailItem.tags" :key="tag" class="detail-tag">{{ tag }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </NModal>
   </div>
 </template>
 
@@ -1204,6 +1337,236 @@ function changePage(page: number) {
 
 .catalog-mobile-list {
   display: none;
+}
+
+/* ========== Detail Modal ========== */
+.catalog-detail-modal {
+  --n-border-radius: 8px;
+}
+
+.detail-card {
+  width: 680px;
+  max-width: 92vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(4, 22, 46, 0.98) 0%, rgba(3, 16, 35, 0.99) 100%);
+  border: 1px solid rgba(43, 131, 255, 0.32);
+  box-shadow:
+    0 0 0 1px rgba(32, 111, 202, 0.18),
+    0 24px 64px rgba(1, 6, 16, 0.7),
+    0 0 80px rgba(41, 163, 255, 0.06);
+}
+
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--catalog-line);
+  background: linear-gradient(180deg, rgba(8, 36, 68, 0.96) 0%, rgba(4, 22, 46, 0.96) 100%);
+  position: relative;
+}
+
+.detail-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 16%;
+  bottom: 16%;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, transparent, var(--catalog-accent), transparent);
+  opacity: 0.6;
+}
+
+.detail-header__left {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.detail-header__icon {
+  flex-shrink: 0;
+  font-size: 28px;
+  color: #62c4ff;
+  filter: drop-shadow(0 0 8px rgba(98, 196, 255, 0.3));
+  margin-top: 2px;
+}
+
+.detail-header__text {
+  min-width: 0;
+}
+
+.detail-header__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--catalog-text-primary);
+  line-height: 1.4;
+  text-shadow: 0 0 10px rgba(41, 163, 255, 0.12);
+}
+
+.detail-header__badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.detail-status-tag {
+  font-size: 11px !important;
+  padding: 0 8px !important;
+  height: 22px !important;
+  line-height: 22px !important;
+}
+
+.detail-close-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(45, 111, 183, 0.28);
+  border-radius: 6px;
+  background: rgba(6, 25, 50, 0.6);
+  color: var(--catalog-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 18px;
+}
+
+.detail-close-btn:hover {
+  color: var(--catalog-accent);
+  border-color: rgba(70, 176, 255, 0.4);
+  background: rgba(41, 163, 255, 0.08);
+}
+
+.detail-body {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 24px 24px;
+  overflow-y: auto;
+}
+
+.detail-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.detail-body::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(48, 127, 212, 0.45);
+}
+
+.detail-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.detail-section__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--catalog-accent);
+  letter-spacing: 0.3px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(25, 95, 176, 0.22);
+}
+
+.detail-section__icon {
+  font-size: 16px;
+  opacity: 0.85;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 24px;
+}
+
+.detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.detail-field--full {
+  grid-column: 1 / -1;
+}
+
+.detail-field__label {
+  font-size: 11px;
+  color: var(--catalog-text-tertiary);
+  letter-spacing: 0.2px;
+}
+
+.detail-field__value {
+  font-size: 13px;
+  color: var(--catalog-text-primary);
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.detail-field__value--small {
+  font-size: 12px;
+}
+
+.detail-field__value--mono {
+  font-family: 'DIN', 'Consolas', monospace;
+  font-size: 12px;
+  color: rgba(234, 245, 255, 0.88);
+  letter-spacing: 0.4px;
+}
+
+.detail-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--catalog-text-secondary);
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: rgba(2, 14, 30, 0.6);
+  border: 1px solid rgba(25, 95, 176, 0.18);
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detail-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: rgba(41, 163, 255, 0.1);
+  border: 1px solid rgba(41, 163, 255, 0.22);
+  color: rgba(203, 227, 255, 0.82);
+  transition: all 0.2s ease;
+}
+
+.detail-tag:hover {
+  background: rgba(41, 163, 255, 0.16);
+  border-color: rgba(41, 163, 255, 0.36);
+  color: #eaf5ff;
 }
 
 :deep(.n-tree-node-content) {

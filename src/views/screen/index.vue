@@ -453,9 +453,7 @@ const { domRef: bottomRadarDomRef } = useEcharts(() => ({
         lineStyle: { color: i === 0 ? CHART_COLORS.primary : CHART_COLORS.secondary },
         itemStyle: { color: i === 0 ? CHART_COLORS.primary : CHART_COLORS.secondary },
         areaStyle: {
-          color: i === 0
-            ? 'rgba(41, 182, 255, 0.18)'
-            : 'rgba(0, 212, 170, 0.15)'
+          color: i === 0 ? 'rgba(41, 182, 255, 0.18)' : 'rgba(0, 212, 170, 0.15)'
         }
       }))
     }
@@ -747,7 +745,7 @@ function getKpiIcon(key: string): string {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 300px 1fr 280px;
+  grid-template-columns: 1fr minmax(auto, 960px) 1fr;
   gap: 12px;
   height: 100%;
   min-height: 0;
@@ -761,6 +759,11 @@ function getKpiIcon(key: string): string {
   min-width: 0;
   min-height: 0;
   gap: 12px;
+}
+
+.screen-center {
+  width: 100%;
+  justify-self: center;
 }
 
 /* Equal-height chart group container */
@@ -786,7 +789,9 @@ function getKpiIcon(key: string): string {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 .screen-panel:hover {
   border-color: var(--sd-border-glow);
@@ -982,7 +987,9 @@ function getKpiIcon(key: string): string {
 }
 .kpi-item:hover {
   border-color: var(--sd-border-glow);
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2), 0 0 8px rgba(41, 162, 255, 0.08);
+  box-shadow:
+    0 2px 16px rgba(0, 0, 0, 0.2),
+    0 0 8px rgba(41, 162, 255, 0.08);
   transform: translateY(-1px);
 }
 
@@ -1175,7 +1182,9 @@ function getKpiIcon(key: string): string {
   gap: 10px;
   padding: 8px 6px;
   border-bottom: 1px solid rgba(36, 112, 196, 0.08);
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
   border-radius: 3px;
 }
 .notice-item:last-child {
@@ -1272,12 +1281,7 @@ function getKpiIcon(key: string): string {
 }
 
 .kpi-item:hover .kpi-item__value {
-  background: linear-gradient(
-    90deg,
-    var(--sd-text-primary) 40%,
-    var(--sd-accent-blue) 50%,
-    var(--sd-text-primary) 60%
-  );
+  background: linear-gradient(90deg, var(--sd-text-primary) 40%, var(--sd-accent-blue) 50%, var(--sd-text-primary) 60%);
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
@@ -1309,7 +1313,7 @@ function getKpiIcon(key: string): string {
 
 @media (max-width: 1440px) {
   .screen-grid {
-    grid-template-columns: 260px 1fr 250px;
+    grid-template-columns: 1fr minmax(auto, 860px) 1fr;
     gap: 10px;
   }
   .kpi-bar {

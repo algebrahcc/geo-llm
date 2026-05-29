@@ -72,7 +72,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       title: 'Web球',
       order: 2,
-      icon: 'mdi:earth'
+      icon: 'mdi:earth',
+      hideInMenu: true
     }
   },
   {
