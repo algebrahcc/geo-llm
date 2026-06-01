@@ -19,6 +19,7 @@ import {
   UrlTemplateImageryProvider,
   Viewer
 } from 'cesium';
+import { getGlobalImageryUrl, getRegionImageryUrl, getLocalImageryConfig, isOnlineImagery, getOnlineImageryProviderOptions } from '@/utils/imagery';
 import type {
   BuildingFloor,
   BuildingRoamPoint,
@@ -49,9 +50,9 @@ export function useBuildingTileset(options: UseBuildingTilesetOptions = {}) {
   const containerRef = shallowRef<HTMLDivElement | null>(null);
   const viewerRef = shallowRef<Viewer | null>(null);
   const tilesetRef = shallowRef<Cesium3DTileset | null>(null);
-  const globalImageryUrl = `${import.meta.env.BASE_URL}google satellite-z0-8.yocMFTJvR/{z}/{x}/{y}.jpg`;
-  const taiwanImageryUrl = `${import.meta.env.BASE_URL}taiwan/{z}/{x}/{y}.jpg`;
-  const taiwanImageryRectangle = Rectangle.fromDegrees(119.9, 21.8, 122.2, 25.5);
+  const globalImageryUrl = getGlobalImageryUrl();
+  const regionImageryUrl = getRegionImageryUrl();
+  const localConfig = getLocalImageryConfig();
   const imageryLayers = shallowRef<ImageryLayer[]>([]);
   const roomMarkerEntities = shallowRef<string[]>([]);
   const routePointEntities = shallowRef<string[]>([]);
@@ -219,24 +220,26 @@ export function useBuildingTileset(options: UseBuildingTilesetOptions = {}) {
 
     imageryLayers.value.push(
       viewer.imageryLayers.addImageryProvider(
-        new UrlTemplateImageryProvider({
-          url: globalImageryUrl,
-          minimumLevel: 0,
-          maximumLevel: 8
-        })
+        new UrlTemplateImageryProvider(
+          isOnlineImagery()
+            ? getOnlineImageryProviderOptions()
+            : { url: globalImageryUrl, minimumLevel: 0, maximumLevel: localConfig.globalMaxLevel }
+        )
       )
     );
 
-    imageryLayers.value.push(
-      viewer.imageryLayers.addImageryProvider(
-        new UrlTemplateImageryProvider({
-          url: taiwanImageryUrl,
-          minimumLevel: 0,
-          maximumLevel: 14,
-          rectangle: taiwanImageryRectangle
-        })
-      )
-    );
+    if (regionImageryUrl) {
+      imageryLayers.value.push(
+        viewer.imageryLayers.addImageryProvider(
+          new UrlTemplateImageryProvider({
+            url: regionImageryUrl,
+            minimumLevel: 0,
+            maximumLevel: localConfig.regionMaxLevel,
+            rectangle: Rectangle.fromDegrees(...localConfig.regionRectangle)
+          })
+        )
+      );
+    }
 
     eventHandler = new ScreenSpaceEventHandler(viewer.scene.canvas);
     eventHandler.setInputAction((movement: { endPosition: Cartesian2 }) => {

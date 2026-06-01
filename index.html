@@ -8,6 +8,23 @@
     <title>%VITE_APP_TITLE%</title>
   </head>
   <body>
+    <script>
+      // 运行时配置：部署到服务器后可直接修改 dist/config.json，无需重新打包
+      // 如果 config.json 加载失败，使用构建时的环境变量作为后备
+      (function() {
+        try {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', '/config.json', false);
+          xhr.send();
+          if (xhr.status === 200) {
+            window.__APP_CONFIG__ = JSON.parse(xhr.responseText);
+          }
+        } catch (e) {
+          console.warn('[AppConfig] 加载 config.json 失败，将使用构建默认值:', e);
+          window.__APP_CONFIG__ = null;
+        }
+      })();
+    </script>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

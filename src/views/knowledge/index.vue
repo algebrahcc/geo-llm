@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, h } from 'vue';
+import { computed, h, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import type { DataTableColumns } from 'naive-ui';
-import { NButton, NTag } from 'naive-ui';
+import { NDataTable, NPagination, NTag, type DataTableColumns } from 'naive-ui';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import {
@@ -28,6 +27,7 @@ defineOptions({
 const router = useRouter();
 const themeStore = useThemeStore();
 const darkMode = computed(() => themeStore.darkMode);
+
 const {
   selectedCategory,
   selectedCollection,
@@ -91,7 +91,7 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
 function handleDelete(document: KnowledgeDocument) {
   window.$dialog?.warning({
     title: '删除文档',
-    content: `确认删除“${document.name}”吗？该操作仅影响当前前端演示数据。`,
+    content: `确认删除"${document.name}"吗？该操作仅影响当前前端演示数据。`,
     positiveText: '删除',
     negativeText: '取消',
     onPositiveClick: () => {
@@ -103,27 +103,46 @@ function handleDelete(document: KnowledgeDocument) {
   });
 }
 
-type RowData = KnowledgeDocument;
+// ====== Pagination ======
+const currentPage = ref(1);
+const pageSize = ref(10);
 
-const columns: DataTableColumns<RowData> = [
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredDocuments.value.length / pageSize.value)));
+
+watch([filteredDocuments, pageSize], () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value;
+  }
+});
+
+function getCategoryLabel(key: string) {
+  return knowledgeCategories.find(item => item.key === key)?.label || key;
+}
+
+function getCollectionLabel(key: string) {
+  return knowledgeCollections.find(item => item.key === key)?.label || key;
+}
+
+// ====== NDataTable columns ======
+const columns = computed<DataTableColumns<KnowledgeDocument>>(() => [
   {
     title: '文档名称',
     key: 'name',
-    minWidth: 280,
+    width: 280,
     render(row) {
-      return h('div', { class: 'doc-entry' }, [
-        h('div', { class: 'doc-icon-shell' }, [h(SvgIcon, { icon: 'mdi:file-document-outline', class: 'doc-icon' })]),
-        h('div', { class: 'doc-cell' }, [
-          h('div', { class: 'doc-title' }, row.name),
-          h('div', { class: 'doc-subtitle' }, row.summary),
-          h('div', { class: 'doc-meta-row' }, [
-            h('span', { class: 'doc-meta-item' }, row.format),
-            h('span', { class: 'doc-meta-dot' }, '•'),
-            h('span', { class: 'doc-meta-item' }, row.size),
-            h('span', { class: 'doc-meta-dot' }, '•'),
-            h('span', { class: 'doc-meta-item' }, `${row.chunkCount} 个分块`),
-            h('span', { class: 'doc-meta-dot' }, '•'),
-            h('span', { class: 'doc-meta-item' }, row.indexMode)
+      return h('div', { class: 'doc-cell' }, [
+        h(SvgIcon, { icon: 'mdi:file-document-outline', class: 'doc-cell__bullet' }),
+        h('div', { class: 'doc-cell__content' }, [
+          h('div', { class: 'doc-cell__title' }, row.name),
+          h('div', { class: 'doc-cell__sub' }, row.summary),
+          h('div', { class: 'doc-cell__meta' }, [
+            h('span', row.format),
+            h('span', { class: 'meta-dot' }),
+            h('span', row.size),
+            h('span', { class: 'meta-dot' }),
+            h('span', `${row.chunkCount} 个分块`),
+            h('span', { class: 'meta-dot' }),
+            h('span', row.indexMode)
           ])
         ])
       ]);
@@ -132,144 +151,143 @@ const columns: DataTableColumns<RowData> = [
   {
     title: '分类',
     key: 'category',
-    width: 120,
+    width: 100,
     render(row) {
-      const mutedClass = darkMode.value ? 'muted-text muted-text--dark' : 'muted-text';
-      const category = knowledgeCategories.find(item => item.key === row.category);
-      return h('span', { class: mutedClass }, category?.label || row.category);
+      return h('span', { class: 'row-text' }, getCategoryLabel(row.category));
     }
   },
   {
     title: '集合',
     key: 'collection',
-    width: 140,
+    width: 100,
     render(row) {
-      const mutedClass = darkMode.value ? 'muted-text muted-text--dark' : 'muted-text';
-      const collection = knowledgeCollections.find(item => item.key === row.collection);
-      return h('span', { class: mutedClass }, collection?.label || row.collection);
-    }
-  },
-  {
-    title: '标签',
-    key: 'tags',
-    minWidth: 180,
-    render(row) {
-      return h(
-        'div',
-        { class: 'tag-group' },
-        row.tags.map(tag =>
-          h(
-            NTag,
-            {
-              size: 'small',
-              bordered: false,
-              round: true,
-              class: 'doc-tag'
-            },
-            { default: () => tag }
-          )
-        )
-      );
+      return h('span', { class: 'row-text' }, getCollectionLabel(row.collection));
     }
   },
   {
     title: '来源',
     key: 'source',
-    width: 140
+    width: 100,
+    render(row) {
+      return h('span', { class: 'row-text' }, row.source);
+    }
   },
   {
     title: '处理状态',
     key: 'status',
-    width: 110,
+    width: 100,
     render(row) {
       const meta = getKnowledgeStatusMeta(row.status);
-      return h(
-        NTag,
-        {
-          size: 'small',
-          round: true,
-          type: meta.type,
-          bordered: false
-        },
-        { default: () => meta.label }
-      );
+      return h(NTag, { size: 'small', round: true, type: meta.type, bordered: false }, () => meta.label);
     }
   },
   {
     title: '更新时间',
     key: 'updatedAt',
-    width: 160
+    width: 140,
+    render(row) {
+      return h('span', { class: 'row-text row-text--muted' }, row.updatedAt);
+    }
   },
   {
     title: '审核人',
     key: 'reviewer',
-    width: 100
+    width: 80,
+    render(row) {
+      return h('span', { class: 'row-text' }, row.reviewer);
+    }
   },
   {
     title: '操作',
     key: 'actions',
-    width: 190,
+    width: 120,
     fixed: 'right',
     render(row) {
       return h('div', { class: 'action-group' }, [
         h(
-          NButton,
+          'button',
           {
-            size: 'small',
-            quaternary: true,
-            circle: true,
-            title: '查看详情',
+            type: 'button',
+            class: 'action-icon-btn',
+            'data-tooltip': '详情',
             onClick: () => goDetail(row.id)
           },
-          {
-            icon: () => h(SvgIcon, { icon: 'mdi:eye-outline', class: 'action-icon' })
-          }
+          [h(SvgIcon, { icon: 'mdi:eye-outline', class: 'action-icon-btn__svg' })]
         ),
         h(
-          NButton,
+          'button',
           {
-            size: 'small',
-            quaternary: true,
-            circle: true,
-            title: '编辑文档',
+            type: 'button',
+            class: 'action-icon-btn',
+            'data-tooltip': '编辑',
             onClick: () => handleEdit(row)
           },
-          {
-            icon: () => h(SvgIcon, { icon: 'mdi:pencil-outline', class: 'action-icon' })
-          }
+          [h(SvgIcon, { icon: 'mdi:pencil-outline', class: 'action-icon-btn__svg' })]
         ),
         h(
-          NButton,
+          'button',
           {
-            size: 'small',
-            quaternary: true,
-            type: 'error',
-            circle: true,
-            title: '删除文档',
+            type: 'button',
+            class: 'action-icon-btn action-icon-btn--danger',
+            'data-tooltip': '删除',
             onClick: () => handleDelete(row)
           },
-          {
-            icon: () => h(SvgIcon, { icon: 'mdi:delete-outline', class: 'action-icon' })
-          }
+          [h(SvgIcon, { icon: 'mdi:delete-outline', class: 'action-icon-btn__svg' })]
         )
       ]);
     }
   }
-];
+]);
+
+// ====== NDataTable theme overrides ======
+const dataTableThemeOverrides = {
+  thColor: 'rgba(6, 29, 56, 0.94)',
+  thColorHover: 'rgba(10, 38, 72, 0.96)',
+  tdColor: 'transparent',
+  tdColorHover: 'rgba(33, 116, 212, 0.14)',
+  borderColor: 'rgba(25, 95, 176, 0.35)',
+  thTextColor: 'rgba(203, 227, 255, 0.72)',
+  tdTextColor: 'rgba(203, 227, 255, 0.72)',
+  borderRadius: '4px',
+  fontSize: '12px',
+  thFontWeight: '600'
+};
 </script>
 
 <template>
   <div class="knowledge-page" :class="{ 'knowledge-page--dark': darkMode }">
-    <div class="content-layout">
-      <KnowledgeCollectionNav
-        class="collection-nav"
-        :groups="collectionGroups"
-        :active-key="selectedCollection"
-        @select="handleCollectionSelect"
-      />
+    <div class="knowledge-shell">
+      <aside class="knowledge-sidebar">
+        <KnowledgeCollectionNav
+          :groups="collectionGroups"
+          :active-key="selectedCollection"
+          @select="handleCollectionSelect"
+        />
+      </aside>
 
-      <div class="main-content">
-        <div class="grid grid-cols-1 gap-16px xl:grid-cols-5">
+      <section class="knowledge-main">
+        <div class="knowledge-topbar">
+          <div class="knowledge-topbar__left">
+            <KnowledgeToolbar
+              :keyword="searchKeyword"
+              :source="sourceFilter"
+              :status="statusFilter"
+              :sort="sortBy"
+              :source-options="sourceOptions"
+              :status-options="statusOptions"
+              :sort-options="sortOptions"
+              @update:keyword="searchKeyword = $event"
+              @update:source="sourceFilter = $event"
+              @update:status="statusFilter = $event as typeof statusFilter"
+              @update:sort="sortBy = $event as typeof sortBy"
+              @import="openImport"
+              @reset="resetFilters"
+            />
+          </div>
+        </div>
+
+        <!-- Category cards row -->
+        <div class="category-strip">
           <KnowledgeCategoryCard
             v-for="item in categorySummary"
             :key="item.key"
@@ -281,46 +299,49 @@ const columns: DataTableColumns<RowData> = [
           />
         </div>
 
-        <KnowledgeToolbar
-          :keyword="searchKeyword"
-          :source="sourceFilter"
-          :status="statusFilter"
-          :sort="sortBy"
-          :source-options="sourceOptions"
-          :status-options="statusOptions"
-          :sort-options="sortOptions"
-          @update:keyword="searchKeyword = $event"
-          @update:source="sourceFilter = $event"
-          @update:status="statusFilter = $event as typeof statusFilter"
-          @update:sort="sortBy = $event as typeof sortBy"
-          @import="openImport"
-          @reset="resetFilters"
-        />
-
-        <NCard :bordered="false" class="table-card">
-          <template #header>
-            <div class="flex items-center justify-between gap-12px">
-              <div>
-                <div class="text-16px font-600 text-[#f8fafc]">文档列表</div>
-                <div class="mt-4px text-12px text-[#94a3b8]">
-                  当前集合：{{ activeCollectionLabel }}，支持继续按分类、来源、状态快速过滤。
-                </div>
-              </div>
-              <NTag size="small" round type="primary" :bordered="false">共 {{ filteredDocuments.length }} 条</NTag>
+        <!-- Main table card -->
+        <div class="knowledge-main__card">
+          <div class="card-head">
+            <div class="card-head__title">文档列表</div>
+            <div class="card-head__meta">
+              <span>当前集合：{{ activeCollectionLabel }}</span>
+              <span>共 {{ filteredDocuments.length }} 条结果</span>
             </div>
-          </template>
+          </div>
 
-          <NDataTable
-            :columns="columns"
-            :data="filteredDocuments"
-            size="small"
-            :single-line="false"
-            :pagination="{ pageSize: 6 }"
-            :scroll-x="1420"
-            :row-class-name="() => 'knowledge-row'"
-          />
-        </NCard>
-      </div>
+          <div class="table-wrap">
+            <NDataTable
+              :columns="columns"
+              :data="filteredDocuments"
+              :pagination="false"
+              :row-key="(row: KnowledgeDocument) => row.id"
+              :theme-overrides="dataTableThemeOverrides"
+              :bordered="false"
+              single-line
+              flex-height
+              class="knowledge-table"
+            />
+
+            <div class="table-footer">
+              <div class="table-footer__summary">
+                共 {{ filteredDocuments.length }} 条
+                <span class="table-footer__divider" />
+                已完成 {{ filteredDocuments.filter(d => d.status === 'completed').length }} 条
+                <span class="table-footer__divider" />
+                处理中 {{ filteredDocuments.filter(d => d.status === 'processing').length }} 条
+              </div>
+
+              <NPagination
+                v-model:page="currentPage"
+                v-model:page-size="pageSize"
+                :item-count="filteredDocuments.length"
+                :page-sizes="[10, 20, 50]"
+                show-size-picker
+              />
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <KnowledgeImportDrawer
@@ -340,235 +361,472 @@ const columns: DataTableColumns<RowData> = [
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .knowledge-page {
-  --knowledge-title: #0f172a;
-  --knowledge-subtitle: #64748b;
-  --knowledge-card-bg:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.98));
-  --knowledge-card-border: rgba(148, 163, 184, 0.16);
-  --knowledge-card-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
-  --knowledge-head-bg: linear-gradient(180deg, rgba(59, 130, 246, 0.04), rgba(255, 255, 255, 0));
-  --knowledge-table-head-bg: rgba(241, 245, 249, 0.92);
-  --knowledge-table-head-text: #3b82f6;
-  --knowledge-row-hover: rgba(59, 130, 246, 0.05);
-  --knowledge-row-border: rgba(226, 232, 240, 0.95);
-  --knowledge-page-bg: transparent;
-  --knowledge-doc-icon-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(96, 165, 250, 0.05));
-  --knowledge-doc-icon-border: rgba(96, 165, 250, 0.18);
-  --knowledge-doc-icon-color: #3b82f6;
-  --knowledge-doc-title: #0f172a;
-  --knowledge-doc-summary: #64748b;
-  --knowledge-doc-meta: #64748b;
-  --knowledge-muted-text: #334155;
-  --knowledge-tag-bg: rgba(59, 130, 246, 0.1);
-  --knowledge-tag-color: #2563eb;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  --knowledge-page-bg:
+    radial-gradient(circle at top, rgba(0, 153, 255, 0.14) 0%, rgba(0, 0, 0, 0) 36%),
+    linear-gradient(180deg, #041528 0%, #041120 38%, #03101b 100%);
+  --knowledge-surface-bg: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
+  --knowledge-surface-border: rgba(43, 131, 255, 0.28);
+  --knowledge-strong-border: rgba(38, 142, 255, 0.4);
+  --knowledge-line: rgba(25, 95, 176, 0.35);
+  --knowledge-text-primary: #eaf5ff;
+  --knowledge-text-secondary: rgba(203, 227, 255, 0.72);
+  --knowledge-text-tertiary: rgba(147, 196, 255, 0.62);
+  --knowledge-input-bg: rgba(2, 18, 36, 0.92);
+  --knowledge-input-border: rgba(35, 111, 196, 0.4);
+  --knowledge-glow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 18px 40px rgba(1, 8, 18, 0.45);
+  --knowledge-accent: #29a3ff;
+  --knowledge-danger: #ff6b6b;
+
+  height: 100%;
   background: var(--knowledge-page-bg);
+  color: var(--knowledge-text-primary);
+  overflow: auto;
 }
 
 .knowledge-page--dark {
-  --knowledge-title: #f8fafc;
-  --knowledge-subtitle: #94a3b8;
-  --knowledge-card-bg:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
-    linear-gradient(135deg, rgba(15, 23, 42, 0.86), rgba(30, 41, 59, 0.8));
-  --knowledge-card-border: rgba(148, 163, 184, 0.16);
-  --knowledge-card-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
-  --knowledge-head-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
-  --knowledge-table-head-bg: rgba(15, 23, 42, 0.35);
-  --knowledge-table-head-text: #8fb5ff;
-  --knowledge-row-hover: rgba(59, 130, 246, 0.06);
-  --knowledge-row-border: rgba(148, 163, 184, 0.08);
-  --knowledge-doc-icon-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(96, 165, 250, 0.05));
-  --knowledge-doc-icon-border: rgba(96, 165, 250, 0.18);
-  --knowledge-doc-icon-color: #8fb5ff;
-  --knowledge-doc-title: #f8fafc;
-  --knowledge-doc-summary: #8ea3bd;
-  --knowledge-doc-meta: #7890ad;
-  --knowledge-muted-text: #d5deea;
-  --knowledge-tag-bg: rgba(59, 130, 246, 0.14);
-  --knowledge-tag-color: #c9defd;
+  color-scheme: dark;
 }
 
-.content-layout {
+.knowledge-shell {
+  height: 100%;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
+  grid-template-columns: 248px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px 14px;
+  box-sizing: border-box;
 }
 
-.main-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.knowledge-sidebar,
+.knowledge-main__card,
+.knowledge-topbar {
+  background: var(--knowledge-surface-bg);
+  border: 1px solid var(--knowledge-surface-border);
+  box-shadow: var(--knowledge-glow);
+  position: relative;
+}
+
+/* Sidebar corner accents */
+.knowledge-sidebar::before,
+.knowledge-sidebar::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.35;
+}
+.knowledge-sidebar::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--knowledge-accent);
+  border-left: 2px solid var(--knowledge-accent);
+  border-radius: 4px 0 0 0;
+}
+.knowledge-sidebar::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--knowledge-accent);
+  border-right: 2px solid var(--knowledge-accent);
+  border-radius: 0 0 4px 0;
+}
+
+/* Main card corner accents */
+.knowledge-main__card::before,
+.knowledge-main__card::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.35;
+}
+.knowledge-main__card::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--knowledge-accent);
+  border-left: 2px solid var(--knowledge-accent);
+  border-radius: 4px 0 0 0;
+}
+.knowledge-main__card::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--knowledge-accent);
+  border-right: 2px solid var(--knowledge-accent);
+  border-radius: 0 0 4px 0;
+}
+
+.knowledge-sidebar {
   min-width: 0;
-}
-
-.table-card {
-  border-radius: 20px;
-  background: var(--knowledge-card-bg);
-  border: 1px solid var(--knowledge-card-border);
-  box-shadow: var(--knowledge-card-shadow);
+  border-radius: 4px;
   overflow: hidden;
 }
 
-.table-card :deep(.n-card-header) {
-  padding: 18px 20px 16px;
-  border-bottom: 1px solid var(--knowledge-card-border);
-  background: var(--knowledge-head-bg);
-}
-
-.table-card :deep(.n-card__content) {
-  padding: 0;
-}
-
-.table-card :deep(.n-data-table) {
-  .n-data-table-wrapper {
-    background: transparent;
-  }
-
-  .n-data-table-thead {
-    background: var(--knowledge-table-head-bg);
-
-    .n-data-table-th {
-      padding: 13px 16px;
-      border-bottom: 1px solid var(--knowledge-card-border);
-      color: var(--knowledge-table-head-text);
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-    }
-
-    .n-data-table-th__title {
-      opacity: 0.92;
-    }
-  }
-
-  .n-data-table-tbody {
-    .n-data-table-tr {
-      transition:
-        background 0.2s ease,
-        box-shadow 0.2s ease;
-
-      &:hover {
-        background: var(--knowledge-row-hover);
-      }
-
-      &.knowledge-row {
-        .n-data-table-td {
-          padding: 15px 16px;
-          border-bottom: 1px solid var(--knowledge-row-border);
-          background: transparent;
-        }
-
-        &:last-child {
-          .n-data-table-td {
-            border-bottom: none;
-          }
-        }
-      }
-    }
-  }
-
-  .n-pagination {
-    padding: 14px 16px 16px;
-    background: rgba(15, 23, 42, 0.22);
-    border-top: 1px solid rgba(148, 163, 184, 0.08);
-  }
-}
-
-.doc-entry {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.doc-icon-shell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(96, 165, 250, 0.05));
-  border: 1px solid var(--knowledge-doc-icon-border);
-  background: var(--knowledge-doc-icon-bg);
-}
-
-.doc-icon {
-  font-size: 18px;
-  color: var(--knowledge-doc-icon-color);
-}
-
-.doc-cell {
+.knowledge-main {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 10px;
   min-width: 0;
 }
 
-.doc-title {
-  color: var(--knowledge-doc-title);
-  font-weight: 600;
-  line-height: 1.45;
+.knowledge-topbar {
+  border-radius: 4px;
+  padding: 0;
+  overflow: hidden;
 }
 
-.doc-subtitle {
-  color: var(--knowledge-doc-summary);
-  font-size: 12px;
-  line-height: 1.6;
+.knowledge-topbar__left {
+  width: 100%;
 }
 
-.doc-meta-row {
+/* Category strip */
+.category-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+/* Main card */
+.knowledge-main__card {
+  flex: 1;
+  min-height: 0;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.card-head {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  color: var(--knowledge-doc-meta);
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--knowledge-line);
+  background: linear-gradient(180deg, rgba(7, 27, 51, 0.94) 0%, rgba(4, 20, 40, 0.96) 100%);
+  position: relative;
+}
+
+/* Card head left accent bar */
+.card-head::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 2px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, transparent, var(--knowledge-accent), transparent);
+  opacity: 0.5;
+}
+
+.card-head__title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-shadow: 0 0 8px rgba(41, 163, 255, 0.1);
+}
+
+.card-head__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--knowledge-text-tertiary);
   font-size: 12px;
+}
+
+.table-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ====== NDataTable deep overrides ====== */
+.knowledge-table {
+  flex: 1;
+  --n-th-color: rgba(6, 29, 56, 0.94) !important;
+  --n-td-color: transparent !important;
+  --n-td-color-hover: rgba(33, 116, 212, 0.14) !important;
+  --n-border-color: rgba(25, 95, 176, 0.35) !important;
+  --n-th-text-color: rgba(203, 227, 255, 0.72) !important;
+  --n-td-text-color: rgba(203, 227, 255, 0.72) !important;
+  --n-th-font-weight: 600 !important;
+  --n-font-size: 12px !important;
+}
+
+.knowledge-table :deep(.n-data-table-th) {
+  background: linear-gradient(180deg, rgba(6, 29, 56, 0.94) 0%, rgba(4, 22, 43, 0.94) 100%) !important;
+  font-size: 12px;
+  padding: 10px 12px;
+}
+
+.knowledge-table :deep(.n-data-table-td) {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(18, 73, 135, 0.32) !important;
+}
+
+.knowledge-table :deep(.n-data-table-tr:hover .n-data-table-td) {
+  background: rgba(33, 116, 212, 0.14) !important;
+}
+
+.knowledge-table :deep(.n-data-table-table) {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Document cell */
+.doc-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.doc-cell__bullet {
+  flex-shrink: 0;
+  font-size: 18px;
+  color: #62c4ff;
+  filter: drop-shadow(0 0 4px rgba(98, 196, 255, 0.25));
+}
+
+.doc-cell__content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.doc-cell__title {
+  color: var(--knowledge-text-primary);
+  font-size: 13px;
   line-height: 1.4;
-}
-
-.doc-meta-item {
+  font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.doc-meta-dot {
-  color: rgba(148, 163, 184, 0.55);
+.doc-cell__sub {
+  color: var(--knowledge-text-tertiary);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.muted-text {
-  color: var(--knowledge-muted-text);
-}
-
-.tag-group {
+.doc-cell__meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.doc-tag {
-  background: var(--knowledge-tag-bg);
-  color: var(--knowledge-tag-color);
-}
-
-.action-group {
-  display: flex;
+  align-items: center;
   gap: 4px;
+  color: rgba(135, 178, 230, 0.5);
+  font-size: 10px;
 }
 
-.action-icon {
-  font-size: 16px;
+.meta-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(36, 112, 196, 0.4);
+  flex-shrink: 0;
+}
+
+.row-text {
+  color: var(--knowledge-text-secondary);
+  font-size: 12px;
+}
+
+.row-text--muted {
+  color: rgba(160, 198, 241, 0.74);
+}
+
+/* Actions — icon-only circle buttons (inside NDataTable, use :deep) */
+.knowledge-table :deep(.action-group) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.knowledge-table :deep(.action-icon-btn) {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(41, 163, 255, 0.06);
+  border: 1px solid rgba(41, 163, 255, 0.12);
+  color: rgba(203, 227, 255, 0.65);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  outline: none;
+}
+
+.knowledge-table :deep(.action-icon-btn:hover) {
+  color: #fff;
+  background: rgba(41, 163, 255, 0.18);
+  border-color: rgba(41, 163, 255, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(41, 163, 255, 0.2);
+}
+
+/* tooltip on hover */
+.knowledge-table :deep(.action-icon-btn::after) {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(6, 29, 56, 0.95);
+  border: 1px solid rgba(41, 163, 255, 0.25);
+  color: rgba(203, 227, 255, 0.9);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 10;
+}
+
+.knowledge-table :deep(.action-icon-btn:hover::after) {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.knowledge-table :deep(.action-icon-btn__svg) {
+  font-size: 15px;
+  transition: transform 0.25s ease;
+}
+
+.knowledge-table :deep(.action-icon-btn:hover .action-icon-btn__svg) {
+  transform: scale(1.18);
+}
+
+/* Danger variant */
+.knowledge-table :deep(.action-icon-btn--danger) {
+  background: rgba(255, 107, 107, 0.05);
+  border-color: rgba(255, 107, 107, 0.12);
+  color: rgba(255, 141, 141, 0.7);
+}
+
+.knowledge-table :deep(.action-icon-btn--danger:hover) {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.15);
+  border-color: rgba(255, 107, 107, 0.35);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.18);
+}
+
+.knowledge-table :deep(.action-icon-btn--danger:hover::after) {
+  border-color: rgba(255, 107, 107, 0.25);
+}
+
+/* ====== Table Footer ====== */
+.table-footer {
+  min-height: 48px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--knowledge-line);
+  background: linear-gradient(180deg, rgba(4, 21, 41, 0.98) 0%, rgba(4, 18, 34, 0.98) 100%);
+}
+
+.table-footer__summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--knowledge-text-secondary);
+  font-size: 12px;
+}
+
+.table-footer__divider {
+  width: 1px;
+  height: 10px;
+  background: linear-gradient(180deg, transparent, rgba(70, 122, 190, 0.45), transparent);
+}
+
+/* NPagination deep overrides */
+.table-footer :deep(.n-pagination) {
+  --n-item-text-color: rgba(203, 227, 255, 0.72) !important;
+  --n-item-text-color-hover: #fff !important;
+  --n-item-text-color-active: #fff !important;
+  --n-item-color-active: linear-gradient(180deg, rgba(17, 100, 206, 0.64) 0%, rgba(8, 66, 138, 0.64) 100%) !important;
+  --n-item-border-active: 1px solid rgba(70, 176, 255, 0.5) !important;
+  --n-item-color: rgba(6, 25, 50, 0.82) !important;
+  --n-item-border: 1px solid rgba(45, 111, 183, 0.34) !important;
+  --n-item-border-hover: 1px solid rgba(70, 176, 255, 0.4) !important;
+  --n-item-color-hover: rgba(10, 40, 80, 0.9) !important;
+  --n-item-border-radius: 3px !important;
+  font-size: 12px;
+}
+
+.table-footer :deep(.n-pagination .n-pagination-item) {
+  min-width: 28px;
+  height: 28px;
+  border-radius: 3px;
+}
+
+.table-footer :deep(.n-pagination .n-pagination-item--active) {
+  box-shadow: 0 0 6px rgba(41, 163, 255, 0.2);
+}
+
+.table-footer :deep(.n-pagination-size-picker .n-base-selection) {
+  --n-border: 1px solid rgba(45, 111, 183, 0.34) !important;
+  --n-border-hover: 1px solid rgba(70, 176, 255, 0.4) !important;
+  --n-border-active: 1px solid rgba(70, 176, 255, 0.5) !important;
+  --n-color: rgba(6, 25, 50, 0.82) !important;
+  --n-color-active: rgba(6, 25, 50, 0.82) !important;
+  --n-text-color: rgba(203, 227, 255, 0.72) !important;
+  height: 28px;
+  border-radius: 3px;
+}
+
+/* ====== Scrollbar ====== */
+.knowledge-table :deep(.n-data-table-base-table-body::-webkit-scrollbar) {
+  width: 8px;
+  height: 8px;
+}
+
+.knowledge-table :deep(.n-data-table-base-table-body::-webkit-scrollbar-thumb) {
+  border-radius: 999px;
+  background: rgba(48, 127, 212, 0.58);
+}
+
+.knowledge-table :deep(.n-data-table-base-table-body::-webkit-scrollbar-track) {
+  background: rgba(4, 20, 40, 0.45);
+}
+
+.knowledge-page::-webkit-scrollbar {
+  width: 8px;
+}
+
+.knowledge-page::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(48, 127, 212, 0.45);
+}
+
+.knowledge-page::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 @media (max-width: 1200px) {
-  .content-layout {
+  .knowledge-shell {
     grid-template-columns: 1fr;
+  }
+
+  .knowledge-sidebar {
+    max-height: 280px;
   }
 }
 </style>

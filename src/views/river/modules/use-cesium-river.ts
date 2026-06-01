@@ -19,6 +19,7 @@ import {
   VerticalOrigin,
   Viewer
 } from 'cesium';
+import { getGlobalImageryUrl, getRegionImageryUrl, getLocalImageryConfig, isOnlineImagery, getOnlineImageryProviderOptions } from '@/utils/imagery';
 import {
   riverFlowTemplate,
   riverPlanScenes,
@@ -54,9 +55,9 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
   const containerRef = shallowRef<HTMLDivElement | null>(null);
   const viewerRef = shallowRef<Viewer | null>(null);
 
-  const globalImageryUrl = `${import.meta.env.BASE_URL}google satellite-z0-8.yocMFTJvR/{z}/{x}/{y}.jpg`;
-  const taiwanImageryUrl = `${import.meta.env.BASE_URL}taiwan/{z}/{x}/{y}.jpg`;
-  const taiwanImageryRectangle = Rectangle.fromDegrees(119.9, 21.8, 122.2, 25.5);
+  const globalImageryUrl = getGlobalImageryUrl();
+  const regionImageryUrl = getRegionImageryUrl();
+  const localConfig = getLocalImageryConfig();
 
   const imageryLayers: ImageryLayer[] = [];
   const staticEntities: Record<'channel' | 'assembly', Entity[]> = {
@@ -483,24 +484,26 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
 
     imageryLayers.push(
       viewer.imageryLayers.addImageryProvider(
-        new UrlTemplateImageryProvider({
-          url: globalImageryUrl,
-          minimumLevel: 0,
-          maximumLevel: 8
-        })
+        new UrlTemplateImageryProvider(
+          isOnlineImagery()
+            ? getOnlineImageryProviderOptions()
+            : { url: globalImageryUrl, minimumLevel: 0, maximumLevel: localConfig.globalMaxLevel }
+        )
       )
     );
 
-    imageryLayers.push(
-      viewer.imageryLayers.addImageryProvider(
-        new UrlTemplateImageryProvider({
-          url: taiwanImageryUrl,
-          minimumLevel: 0,
-          maximumLevel: 14,
-          rectangle: taiwanImageryRectangle
-        })
-      )
-    );
+    if (regionImageryUrl) {
+      imageryLayers.push(
+        viewer.imageryLayers.addImageryProvider(
+          new UrlTemplateImageryProvider({
+            url: regionImageryUrl,
+            minimumLevel: 0,
+            maximumLevel: localConfig.regionMaxLevel,
+            rectangle: Rectangle.fromDegrees(...localConfig.regionRectangle)
+          })
+        )
+      );
+    }
 
     addStaticEntities();
     showPlan(activePlan);

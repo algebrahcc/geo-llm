@@ -1,0 +1,26 @@
+{
+  "VITE_SERVICE_BASE_URL": "https://mock.apifox.cn/m1/3109515-0-default",
+  "VITE_OTHER_SERVICE_BASE_URL": {
+    "demo": "http://localhost:9529"
+  },
+  "VITE_BUILDING_TILESET_URL": "",
+  "IMAGERY": {
+    "mode": "local",
+    "local": {
+      "globalUrl": "google satellite-z0-8.yocMFTJvR/{z}/{x}/{y}.jpg",
+      "regionUrl": "taiwan/{z}/{x}/{y}.jpg",
+      "regionRectangle": [119.9, 21.8, 122.2, 25.5],
+      "globalMaxLevel": 8,
+      "regionMaxLevel": 14
+    },
+    "online": {
+      "url": "https://tms.example.com/{z}/{x}/{-y}.png",
+      "tilingScheme": "WebMercator",
+      "minimumLevel": 0,
+      "maximumLevel": 18,
+      "rectangle": null
+    }
+  }
+}
+
+

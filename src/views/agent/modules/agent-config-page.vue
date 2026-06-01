@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useThemeStore } from '@/store/modules/theme';
+import SvgIcon from '@/components/custom/svg-icon.vue';
 import { updateAgentConfig } from '@/mock/agent';
 import AgentConfigForm from './agent-config-form.vue';
 import AgentSidebar from './agent-sidebar.vue';
@@ -14,8 +15,8 @@ defineOptions({
 const route = useRoute();
 const router = useRouter();
 const themeStore = useThemeStore();
-const { agentKey, selectedAgent, updateAgentQuery } = useAgentSelection(route, router);
 const darkMode = computed(() => themeStore.darkMode);
+const { agentKey, selectedAgent, updateAgentQuery } = useAgentSelection(route, router);
 
 function handleSelect(key: typeof agentKey.value) {
   updateAgentQuery(key);
@@ -29,92 +30,161 @@ function handleSubmit(config: Parameters<typeof updateAgentConfig>[0]) {
 
 <template>
   <div class="agent-domain-page" :class="{ 'agent-domain-page--dark': darkMode }">
-    <div class="agent-grid">
-      <div class="agent-left">
+    <div class="agent-shell">
+      <aside class="agent-sidebar">
         <AgentSidebar :active-key="agentKey" @select="handleSelect" />
-      </div>
+      </aside>
 
-      <div class="agent-main">
-        <NCard :bordered="false" class="page-hero">
-          <div class="text-22px font-700 text-[#f8fafc]">{{ selectedAgent.name }}配置中心</div>
-          <div class="mt-8px text-13px text-[#94a3b8]">
-            维护模型、提示词、工具开关和发布状态，支撑工作台和测试页的运行表现。
+      <section class="agent-main">
+        <div class="panel-surface">
+          <div class="panel-head">
+            <SvgIcon :icon="selectedAgent.icon" class="panel-head__icon" />
+            <span class="panel-head__title">{{ selectedAgent.name }}配置中心</span>
           </div>
-        </NCard>
+          <div class="panel-body">
+            <div class="section-desc">维护模型、提示词、工具开关和发布状态，支撑工作台和测试页的运行表现。</div>
+          </div>
+        </div>
 
         <AgentConfigForm :agent-key="agentKey" @submit="handleSubmit" />
-      </div>
+      </section>
     </div>
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .agent-domain-page {
-  --agent-card-bg:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.98));
-  --agent-card-border: rgba(148, 163, 184, 0.14);
-  --agent-card-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-  --agent-title: #0f172a;
-  --agent-subtitle: #64748b;
-  --agent-panel-bg: rgba(255, 255, 255, 0.78);
-  --agent-tag-bg: rgba(59, 130, 246, 0.1);
-  --agent-tag-color: #1d4ed8;
-  --agent-interactive-bg: rgba(59, 130, 246, 0.08);
-  --agent-interactive-border: rgba(59, 130, 246, 0.28);
-  --agent-interactive-shadow: 0 10px 22px rgba(59, 130, 246, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  --page-bg:
+    radial-gradient(circle at top, rgba(0, 153, 255, 0.14) 0%, rgba(0, 0, 0, 0) 36%),
+    linear-gradient(180deg, #041528 0%, #041120 38%, #03101b 100%);
+  --surface-bg: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
+  --surface-border: rgba(43, 131, 255, 0.28);
+  --line: rgba(25, 95, 176, 0.35);
+  --accent: #29a3ff;
+
+  height: 100%;
+  background: var(--page-bg);
+  color: #eaf5ff;
+  overflow: auto;
 }
 
 .agent-domain-page--dark {
-  --agent-card-bg:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 28%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.84));
-  --agent-card-border: rgba(148, 163, 184, 0.12);
-  --agent-card-shadow: none;
-  --agent-title: #f8fafc;
-  --agent-subtitle: #94a3b8;
-  --agent-panel-bg: rgba(15, 23, 42, 0.42);
-  --agent-tag-bg: rgba(59, 130, 246, 0.14);
-  --agent-tag-color: #dbeafe;
-  --agent-interactive-bg: rgba(30, 41, 59, 0.86);
-  --agent-interactive-border: rgba(96, 165, 250, 0.38);
-  --agent-interactive-shadow: none;
+  color-scheme: dark;
 }
 
-.agent-grid {
+.agent-shell {
+  height: 100%;
   display: grid;
-  gap: 16px;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px 14px;
+  box-sizing: border-box;
+}
+
+.agent-sidebar,
+.panel-surface {
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 18px 40px rgba(1, 8, 18, 0.45);
+  position: relative;
+  border-radius: 4px;
+}
+
+.agent-sidebar::before,
+.agent-sidebar::after,
+.panel-surface::before,
+.panel-surface::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.35;
+}
+
+.agent-sidebar::before,
+.panel-surface::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: 4px 0 0 0;
+}
+
+.agent-sidebar::after,
+.panel-surface::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--accent);
+  border-right: 2px solid var(--accent);
+  border-radius: 0 0 4px 0;
+}
+
+.agent-sidebar {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .agent-main {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
-.page-hero {
-  border-radius: 20px;
-  background: var(--agent-card-bg);
-  border: 1px solid var(--agent-card-border);
-  box-shadow: var(--agent-card-shadow);
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(10, 38, 72, 0.96) 0%, rgba(5, 25, 47, 0.96) 100%);
+  position: relative;
 }
 
-.agent-domain-page :deep(.text-\[\#f8fafc\]) {
-  color: var(--agent-title) !important;
+.panel-head::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 2px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
 }
 
-.agent-domain-page :deep(.text-\[\#94a3b8\]) {
-  color: var(--agent-subtitle) !important;
+.panel-head__icon {
+  font-size: 16px;
+  color: var(--accent);
+  filter: drop-shadow(0 0 4px rgba(41, 163, 255, 0.25));
+}
+
+.panel-head__title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 8px rgba(41, 163, 255, 0.12);
+}
+
+.panel-body {
+  padding: 14px;
+}
+
+.section-desc {
+  font-size: 12px;
+  color: rgba(203, 227, 255, 0.65);
 }
 
 @media (max-width: 1199px) {
-  .agent-grid {
+  .agent-shell {
     grid-template-columns: 1fr;
+  }
+
+  .agent-sidebar {
+    max-height: 280px;
   }
 }
 </style>

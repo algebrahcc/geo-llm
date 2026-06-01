@@ -106,3 +106,130 @@ html.dark .n-menu--horizontal .n-submenu--active .n-menu-item-content::after {
   background: linear-gradient(90deg, rgba(41, 182, 255, 0.3), #29b6ff, rgba(41, 182, 255, 0.3));
   box-shadow: 0 0 8px rgba(41, 182, 255, 0.4);
 }
+
+/* ---------- Submenu Dropdown Panel (Sci-Fi Dark Theme) ---------- */
+html.dark .n-dropdown-menu {
+  background: linear-gradient(180deg, rgba(6, 29, 56, 0.98) 0%, rgba(4, 20, 40, 0.98) 100%) !important;
+  border: 1px solid rgba(41, 163, 255, 0.22) !important;
+  border-radius: 6px !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(41, 163, 255, 0.08),
+    inset 0 1px 0 rgba(136, 214, 255, 0.04) !important;
+  padding: 6px !important;
+  backdrop-filter: blur(12px);
+}
+
+/* Dropdown menu items */
+html.dark .n-dropdown-option-body {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border-radius: 4px !important;
+  padding: 8px 12px !important;
+  margin: 2px 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+html.dark .n-dropdown-option-body:hover {
+  background: rgba(41, 163, 255, 0.1) !important;
+}
+
+html.dark .n-dropdown-option-body--active {
+  background: linear-gradient(90deg, rgba(41, 163, 255, 0.18) 0%, rgba(41, 163, 255, 0.06) 100%) !important;
+  box-shadow: inset 2px 0 0 #29b6ff !important;
+}
+
+/* Dropdown item text */
+html.dark .n-dropdown-option-body__label {
+  color: rgba(203, 227, 255, 0.82) !important;
+  font-size: 13px !important;
+}
+
+html.dark .n-dropdown-option-body:hover .n-dropdown-option-body__label {
+  color: #fff !important;
+}
+
+html.dark .n-dropdown-option-body--active .n-dropdown-option-body__label {
+  color: #29b6ff !important;
+  font-weight: 600 !important;
+}
+
+/* Dropdown item icon */
+html.dark .n-dropdown-option-body__icon {
+  color: rgba(203, 227, 255, 0.6) !important;
+}
+
+html.dark .n-dropdown-option-body:hover .n-dropdown-option-body__icon {
+  color: rgba(175, 208, 245, 0.85) !important;
+}
+
+html.dark .n-dropdown-option-body--active .n-dropdown-option-body__icon {
+  color: #29b6ff !important;
+}
+
+/* Also target menu-item-group for nested menus */
+html.dark .n-menu-item-group .n-menu-item-group {
+  background: linear-gradient(180deg, rgba(6, 29, 56, 0.98) 0%, rgba(4, 20, 40, 0.98) 100%) !important;
+  border: 1px solid rgba(41, 163, 255, 0.22) !important;
+  border-radius: 6px !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(41, 163, 255, 0.08),
+    inset 0 1px 0 rgba(136, 214, 255, 0.04) !important;
+  padding: 6px !important;
+}
+
+html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border-radius: 4px !important;
+  padding: 8px 12px !important;
+  margin: 2px 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content:hover {
+  background: rgba(41, 163, 255, 0.1) !important;
+}
+
+html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content--selected {
+  background: linear-gradient(90deg, rgba(41, 163, 255, 0.18) 0%, rgba(41, 163, 255, 0.06) 100%) !important;
+  box-shadow: inset 2px 0 0 #29b6ff !important;
+}
+
+html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content .n-menu-item-content__text {
+  color: rgba(203, 227, 255, 0.82) !important;
+  font-size: 13px !important;
+}
+
+html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content:hover .n-menu-item-content__text {
+  color: #fff !important;
+}
+
+html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content--selected .n-menu-item-content__text {
+  color: #29b6ff !important;
+  font-weight: 600 !important;
+}
+
+html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content .n-menu-item-content__icon {
+  color: rgba(203, 227, 255, 0.6) !important;
+}
+
+html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content:hover .n-menu-item-content__icon {
+  color: rgba(175, 208, 245, 0.85) !important;
+}
+
+html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content--selected .n-menu-item-content__icon {
+  color: #29b6ff !important;
+}
+
+/* Submenu trigger item - active state */
+html.dark .n-menu--horizontal .n-submenu--active .n-menu-item-content {
+  color: #29b6ff !important;
+}
+
+html.dark .n-menu--horizontal .n-submenu--active .n-menu-item-content .n-menu-item-content__icon {
+  color: #29b6ff !important;
+}

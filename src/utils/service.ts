@@ -3,21 +3,33 @@ import json5 from 'json5';
 /**
  * Create service config by current env
  *
+ * 部署后可直接修改 public/config.json，无需重新构建。
+ * 运行时配置优先于构建时 env 变量。
+ *
  * @param env The current env
  */
 export function createServiceConfig(env: Env.ImportMeta) {
   const { VITE_SERVICE_BASE_URL, VITE_OTHER_SERVICE_BASE_URL } = env;
 
+  // 优先读取运行时配置，不可用则回退 env
+  const runtime = typeof window !== 'undefined' ? window.__APP_CONFIG__ : undefined;
+  const serviceBaseUrl = runtime?.VITE_SERVICE_BASE_URL || VITE_SERVICE_BASE_URL;
+
   let other = {} as Record<App.Service.OtherBaseURLKey, string>;
-  try {
-    other = json5.parse(VITE_OTHER_SERVICE_BASE_URL);
-  } catch {
-    // eslint-disable-next-line no-console
-    console.error('VITE_OTHER_SERVICE_BASE_URL is not a valid json5 string');
+  // 运行时配置的 OTHER_SERVICE 已是对象，env 中则是 json5 字符串
+  if (runtime?.VITE_OTHER_SERVICE_BASE_URL) {
+    other = runtime.VITE_OTHER_SERVICE_BASE_URL as Record<App.Service.OtherBaseURLKey, string>;
+  } else {
+    try {
+      other = json5.parse(VITE_OTHER_SERVICE_BASE_URL);
+    } catch {
+      // eslint-disable-next-line no-console
+      console.error('VITE_OTHER_SERVICE_BASE_URL is not a valid json5 string');
+    }
   }
 
   const httpConfig: App.Service.SimpleServiceConfig = {
-    baseURL: VITE_SERVICE_BASE_URL,
+    baseURL: serviceBaseUrl,
     other
   };
 

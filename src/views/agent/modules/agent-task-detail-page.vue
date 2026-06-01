@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useThemeStore } from '@/store/modules/theme';
+import SvgIcon from '@/components/custom/svg-icon.vue';
 import { getAgentByKey, getTaskById, rerunAgentTask } from '@/mock/agent';
 import AgentTaskTimeline from './agent-task-timeline.vue';
 
@@ -46,143 +47,280 @@ function handleRerun() {
 
 <template>
   <div class="task-detail-page" :class="{ 'task-detail-page--dark': darkMode }">
-    <template v-if="detail">
-      <NCard :bordered="false" class="detail-hero">
-        <div class="flex flex-wrap items-start justify-between gap-16px">
-          <div>
-            <div class="flex flex-wrap items-center gap-10px">
-              <NButton quaternary @click="goBack">返回工作台</NButton>
-              <NTag size="small" round :bordered="false">{{ agent.name }}</NTag>
-              <NTag
-                size="small"
-                round
-                :type="detail.status === 'success' ? 'success' : detail.status === 'running' ? 'warning' : 'error'"
-                :bordered="false"
-              >
-                {{ detail.status === 'success' ? '已完成' : detail.status === 'running' ? '运行中' : '失败' }}
-              </NTag>
-            </div>
-            <div class="mt-16px text-28px font-700 text-[#f8fafc]">{{ detail.title }}</div>
-            <div class="mt-8px text-13px text-[#94a3b8]">{{ detail.createdAt }} · {{ detail.operator }}</div>
-            <div class="mt-14px max-w-920px text-14px leading-24px text-[#cbd5e1]">{{ detail.summary }}</div>
+    <div class="detail-shell">
+      <template v-if="detail">
+        <div class="panel-surface detail-hero">
+          <div class="panel-head">
+            <SvgIcon icon="mdi:clipboard-text-clock-outline" class="panel-head__icon" />
+            <span class="panel-head__title">任务详情</span>
           </div>
-          <div class="flex gap-8px">
-            <NButton secondary @click="goBack">返回</NButton>
-            <NButton type="primary" @click="handleRerun">重新运行</NButton>
+          <div class="panel-body">
+            <div class="flex flex-wrap items-start justify-between gap-14px">
+              <div>
+                <div class="flex flex-wrap items-center gap-8px">
+                  <NButton quaternary @click="goBack">返回工作台</NButton>
+                  <NTag size="small" round :bordered="false">{{ agent.name }}</NTag>
+                  <NTag
+                    size="small"
+                    round
+                    :type="detail.status === 'success' ? 'success' : detail.status === 'running' ? 'warning' : 'error'"
+                    :bordered="false"
+                  >
+                    {{ detail.status === 'success' ? '已完成' : detail.status === 'running' ? '运行中' : '失败' }}
+                  </NTag>
+                </div>
+                <div class="doc-title">{{ detail.title }}</div>
+                <div class="doc-meta">{{ detail.createdAt }} · {{ detail.operator }}</div>
+                <div class="doc-summary">{{ detail.summary }}</div>
+              </div>
+              <div class="flex gap-6px">
+                <NButton secondary @click="goBack">返回</NButton>
+                <NButton type="primary" @click="handleRerun">重新运行</NButton>
+              </div>
+            </div>
           </div>
         </div>
-      </NCard>
 
-      <div class="grid gap-16px xl:grid-cols-[1.1fr_0.9fr]">
-        <NCard :bordered="false" class="detail-card" title="执行步骤">
-          <AgentTaskTimeline :task="detail" />
-        </NCard>
+        <div class="grid gap-10px xl:grid-cols-[1.1fr_0.9fr]">
+          <div class="panel-surface">
+            <div class="panel-head">
+              <SvgIcon icon="mdi:format-list-checks" class="panel-head__icon" />
+              <span class="panel-head__title">执行步骤</span>
+            </div>
+            <div class="panel-body">
+              <AgentTaskTimeline :task="detail" />
+            </div>
+          </div>
 
-        <div class="flex flex-col gap-16px">
-          <NCard :bordered="false" class="detail-card" title="任务输入">
-            <div class="text-13px leading-24px text-[#cbd5e1]">{{ detail.input }}</div>
-          </NCard>
-          <NCard :bordered="false" class="detail-card" title="结果输出">
-            <div class="text-13px leading-24px text-[#dbeafe]">{{ detail.result }}</div>
-          </NCard>
-          <NCard :bordered="false" class="detail-card" title="运行指标">
-            <div class="grid gap-10px">
-              <div class="metric-row">
-                <span>耗时</span>
-                <span>{{ detail.metrics.duration }}</span>
+          <div class="flex flex-col gap-10px">
+            <div class="panel-surface">
+              <div class="panel-head">
+                <SvgIcon icon="mdi:text-box-outline" class="panel-head__icon" />
+                <span class="panel-head__title">任务输入</span>
               </div>
-              <div class="metric-row">
-                <span>Tokens</span>
-                <span>{{ detail.metrics.tokens }}</span>
-              </div>
-              <div class="metric-row">
-                <span>置信度</span>
-                <span>{{ detail.metrics.confidence }}%</span>
+              <div class="panel-body">
+                <div class="text-block">{{ detail.input }}</div>
               </div>
             </div>
-          </NCard>
-          <NCard :bordered="false" class="detail-card" title="引用来源">
-            <div class="flex flex-wrap gap-8px">
-              <NTag v-for="item in detail.references" :key="item" size="small" round :bordered="false">{{ item }}</NTag>
+
+            <div class="panel-surface">
+              <div class="panel-head">
+                <SvgIcon icon="mdi:text-box-check-outline" class="panel-head__icon" />
+                <span class="panel-head__title">结果输出</span>
+              </div>
+              <div class="panel-body">
+                <div class="result-text">{{ detail.result }}</div>
+              </div>
             </div>
-          </NCard>
+
+            <div class="panel-surface">
+              <div class="panel-head">
+                <SvgIcon icon="mdi:chart-box-outline" class="panel-head__icon" />
+                <span class="panel-head__title">运行指标</span>
+              </div>
+              <div class="panel-body">
+                <div class="grid gap-8px">
+                  <div class="metric-row">
+                    <span>耗时</span>
+                    <span>{{ detail.metrics.duration }}</span>
+                  </div>
+                  <div class="metric-row">
+                    <span>Tokens</span>
+                    <span>{{ detail.metrics.tokens }}</span>
+                  </div>
+                  <div class="metric-row">
+                    <span>置信度</span>
+                    <span>{{ detail.metrics.confidence }}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-surface">
+              <div class="panel-head">
+                <SvgIcon icon="mdi:link-variant" class="panel-head__icon" />
+                <span class="panel-head__title">引用来源</span>
+              </div>
+              <div class="panel-body">
+                <div class="flex flex-wrap gap-4px">
+                  <NTag v-for="item in detail.references" :key="item" size="small" round :bordered="false">{{ item }}</NTag>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <div v-else class="panel-surface">
+        <div class="panel-body">
+          <NEmpty description="任务不存在或已被清空">
+            <template #extra>
+              <NButton secondary @click="goBack">返回工作台</NButton>
+            </template>
+          </NEmpty>
         </div>
       </div>
-    </template>
-
-    <NCard v-else :bordered="false" class="detail-card">
-      <NEmpty description="任务不存在或已被清空">
-        <template #extra>
-          <NButton secondary @click="goBack">返回工作台</NButton>
-        </template>
-      </NEmpty>
-    </NCard>
+    </div>
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .task-detail-page {
-  --agent-card-bg:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.98));
-  --agent-card-border: rgba(148, 163, 184, 0.14);
-  --agent-card-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-  --agent-panel-bg: rgba(255, 255, 255, 0.78);
-  --agent-title: #0f172a;
-  --agent-subtitle: #64748b;
-  --agent-body: #334155;
-  --agent-interactive-bg: rgba(59, 130, 246, 0.08);
-  --agent-interactive-border: rgba(59, 130, 246, 0.28);
-  --agent-interactive-shadow: 0 10px 22px rgba(59, 130, 246, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  --page-bg:
+    radial-gradient(circle at top, rgba(0, 153, 255, 0.14) 0%, rgba(0, 0, 0, 0) 36%),
+    linear-gradient(180deg, #041528 0%, #041120 38%, #03101b 100%);
+  --surface-bg: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
+  --surface-border: rgba(43, 131, 255, 0.28);
+  --line: rgba(25, 95, 176, 0.35);
+  --accent: #29a3ff;
+
+  height: 100%;
+  background: var(--page-bg);
+  color: #eaf5ff;
+  overflow: auto;
 }
 
 .task-detail-page--dark {
-  --agent-card-bg:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.84));
-  --agent-card-border: rgba(148, 163, 184, 0.12);
-  --agent-card-shadow: none;
-  --agent-panel-bg: rgba(15, 23, 42, 0.42);
-  --agent-title: #f8fafc;
-  --agent-subtitle: #94a3b8;
-  --agent-body: #cbd5e1;
-  --agent-interactive-bg: rgba(30, 41, 59, 0.86);
-  --agent-interactive-border: rgba(96, 165, 250, 0.38);
-  --agent-interactive-shadow: none;
+  color-scheme: dark;
 }
 
-.detail-hero,
-.detail-card {
-  border-radius: 20px;
-  background: var(--agent-card-bg);
-  border: 1px solid var(--agent-card-border);
-  box-shadow: var(--agent-card-shadow);
+.detail-shell {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-surface {
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 18px 40px rgba(1, 8, 18, 0.45);
+  border-radius: 4px;
+  position: relative;
+}
+
+.panel-surface::before,
+.panel-surface::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.35;
+}
+
+.panel-surface::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: 4px 0 0 0;
+}
+
+.panel-surface::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--accent);
+  border-right: 2px solid var(--accent);
+  border-radius: 0 0 4px 0;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(10, 38, 72, 0.96) 0%, rgba(5, 25, 47, 0.96) 100%);
+  position: relative;
+}
+
+.panel-head::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 2px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
+}
+
+.panel-head__icon {
+  font-size: 16px;
+  color: var(--accent);
+  filter: drop-shadow(0 0 4px rgba(41, 163, 255, 0.25));
+}
+
+.panel-head__title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 8px rgba(41, 163, 255, 0.12);
+}
+
+.panel-body {
+  padding: 14px;
+}
+
+.doc-title {
+  margin-top: 14px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #eaf5ff;
+}
+
+.doc-meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(147, 196, 255, 0.5);
+}
+
+.doc-summary {
+  margin-top: 12px;
+  max-width: 860px;
+  font-size: 13px;
+  line-height: 22px;
+  color: rgba(203, 227, 255, 0.65);
+}
+
+.text-block {
+  font-size: 12px;
+  line-height: 20px;
+  color: rgba(203, 227, 255, 0.65);
+}
+
+.result-text {
+  font-size: 12px;
+  line-height: 20px;
+  color: rgba(41, 163, 255, 0.85);
 }
 
 .metric-row {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: var(--agent-panel-bg);
-  color: var(--agent-body);
-  font-size: 13px;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: rgba(6, 20, 38, 0.5);
+  color: rgba(203, 227, 255, 0.65);
+  font-size: 12px;
 }
 
-.task-detail-page :deep(.text-\[\#f8fafc\]) {
-  color: var(--agent-title) !important;
+/* Scrollbar */
+.task-detail-page::-webkit-scrollbar {
+  width: 8px;
 }
 
-.task-detail-page :deep(.text-\[\#94a3b8\]) {
-  color: var(--agent-subtitle) !important;
+.task-detail-page::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(48, 127, 212, 0.45);
 }
 
-.task-detail-page :deep(.text-\[\#cbd5e1\]),
-.task-detail-page :deep(.text-\[\#dbeafe\]) {
-  color: var(--agent-body) !important;
+.task-detail-page::-webkit-scrollbar-track {
+  background: transparent;
 }
 </style>

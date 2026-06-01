@@ -16,6 +16,7 @@ coverage
 .trae
 .codebuddy
 .pnpm-store
+.playwright-cli
 
 /cypress/videos/
 /cypress/screenshots/

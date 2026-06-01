@@ -14,6 +14,7 @@ import {
   Viewer
 } from 'cesium';
 import { screenGlobePoints } from '@/mock/screen';
+import { getGlobalImageryUrl, getRegionImageryUrl, getLocalImageryConfig, isOnlineImagery, getOnlineImageryProviderOptions } from '@/utils/imagery';
 
 export type SceneModeKey = '3d' | '2d';
 
@@ -27,9 +28,9 @@ export function useScreenGlobe() {
   const viewerRef = shallowRef<Viewer | null>(null);
   const currentMode = shallowRef<SceneModeKey>('3d');
 
-  const globalImageryUrl = `${import.meta.env.BASE_URL}google satellite-z0-8.yocMFTJvR/{z}/{x}/{y}.jpg`;
-  const taiwanImageryUrl = `${import.meta.env.BASE_URL}taiwan/{z}/{x}/{y}.jpg`;
-  const taiwanImageryRectangle = Rectangle.fromDegrees(119.9, 21.8, 122.2, 25.5);
+  const globalImageryUrl = getGlobalImageryUrl();
+  const regionImageryUrl = getRegionImageryUrl();
+  const localConfig = getLocalImageryConfig();
 
   const imageryLayers: ImageryLayer[] = [];
   const pointEntities: any[] = [];
@@ -258,24 +259,26 @@ export function useScreenGlobe() {
     // Add imagery layers
     imageryLayers.push(
       viewer.imageryLayers.addImageryProvider(
-        new UrlTemplateImageryProvider({
-          url: globalImageryUrl,
-          minimumLevel: 0,
-          maximumLevel: 8
-        })
+        new UrlTemplateImageryProvider(
+          isOnlineImagery()
+            ? getOnlineImageryProviderOptions()
+            : { url: globalImageryUrl, minimumLevel: 0, maximumLevel: localConfig.globalMaxLevel }
+        )
       )
     );
 
-    imageryLayers.push(
-      viewer.imageryLayers.addImageryProvider(
-        new UrlTemplateImageryProvider({
-          url: taiwanImageryUrl,
-          minimumLevel: 9,
-          maximumLevel: 14,
-          rectangle: taiwanImageryRectangle
-        })
-      )
-    );
+    if (regionImageryUrl) {
+      imageryLayers.push(
+        viewer.imageryLayers.addImageryProvider(
+          new UrlTemplateImageryProvider({
+            url: regionImageryUrl,
+            minimumLevel: 9,
+            maximumLevel: localConfig.regionMaxLevel,
+            rectangle: Rectangle.fromDegrees(...localConfig.regionRectangle)
+          })
+        )
+      );
+    }
 
     // Set initial camera - China southeast coast, top-down view
     viewer.camera.setView({
