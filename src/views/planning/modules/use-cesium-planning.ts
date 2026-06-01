@@ -31,7 +31,8 @@ import type {
   PlanningPolygonOverlay,
   PlanningRouteKey,
   PlanningStatusInfo,
-  PlanningLineOverlay
+  PlanningLineOverlay,
+  PlanningWaypoint
 } from './types';
 
 interface UseCesiumPlanningOptions {
@@ -57,6 +58,7 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
   const routeEntities: Partial<Record<PlanningRouteKey, Entity>> = {};
   const selectedRiskEntities: Entity[] = [];
   const selectedObstacleEntities: Entity[] = [];
+  const waypointMarkerEntities: Entity[] = [];
 
   let startMarkerEntity: Entity | null = null;
   let endMarkerEntity: Entity | null = null;
@@ -71,7 +73,8 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     'candidate-route': true,
     risk: true,
     obstacle: true,
-    markers: true
+    markers: true,
+    waypoints: true
   };
 
   function requestRender() {
@@ -189,6 +192,59 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     selectedObstacleEntities.splice(0, selectedObstacleEntities.length);
   }
 
+  function clearWaypointMarkers() {
+    const viewer = viewerRef.value;
+
+    if (!viewer) return;
+
+    waypointMarkerEntities.forEach(entity => viewer.entities.remove(entity));
+    waypointMarkerEntities.splice(0, waypointMarkerEntities.length);
+  }
+
+  function showWaypoints(waypoints: PlanningWaypoint[]) {
+    const viewer = viewerRef.value;
+
+    if (!viewer) return;
+
+    clearWaypointMarkers();
+
+    waypoints.forEach((wp, index) => {
+      if (wp.longitude == null || wp.latitude == null) return;
+
+      const entity = viewer.entities.add({
+        id: `planning-waypoint-${wp.id}`,
+        name: wp.name,
+        position: Cartesian3.fromDegrees(wp.longitude, wp.latitude),
+        point: {
+          pixelSize: 10,
+          color: getColor('#5ea4ff'),
+          outlineColor: Color.WHITE,
+          outlineWidth: 2,
+          heightReference: HeightReference.CLAMP_TO_GROUND
+        },
+        label: {
+          text: `${index + 1}. ${wp.name}`,
+          font: '12px Microsoft YaHei',
+          fillColor: Color.WHITE,
+          showBackground: true,
+          backgroundColor: getColor('#0f172a', 0.82),
+          pixelOffset: new Cartesian2(0, -20),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          style: LabelStyle.FILL,
+          verticalOrigin: VerticalOrigin.BOTTOM,
+          horizontalOrigin: HorizontalOrigin.CENTER
+        }
+      });
+
+      if (entity) {
+        entity.show = layerVisibility.waypoints;
+        waypointMarkerEntities.push(entity);
+      }
+    });
+
+    requestRender();
+  }
+
   function updateRouteStyles() {
     (Object.keys(planningRouteScenes) as PlanningRouteKey[]).forEach(key => {
       const entity = routeEntities[key];
@@ -225,6 +281,10 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     if (endMarkerEntity) {
       endMarkerEntity.show = layerVisibility.markers;
     }
+
+    waypointMarkerEntities.forEach(entity => {
+      entity.show = layerVisibility.waypoints;
+    });
 
     requestRender();
   }
@@ -358,6 +418,7 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     if (!viewer) return;
 
     viewer.camera.zoomIn(1200);
+    requestRender();
     emitStatus();
   }
 
@@ -367,6 +428,7 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     if (!viewer) return;
 
     viewer.camera.zoomOut(1200);
+    requestRender();
     emitStatus();
   }
 
@@ -527,6 +589,7 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     setActiveTool,
     setLayerVisible,
     showRoute,
+    showWaypoints,
     setStartPoint,
     setEndPoint,
     resetView,

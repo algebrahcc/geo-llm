@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, h, ref, watch } from 'vue';
 import type { SelectOption } from 'naive-ui';
-import { NSelect, NTree } from 'naive-ui';
+import { NButton, NDataTable, NInput, NPagination, NSelect, NTree, type DataTableColumns } from 'naive-ui';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { catalogCategories, catalogData, type CatalogItem } from '@/mock/catalog';
@@ -122,15 +122,6 @@ const pageItems = computed(() => {
   return filteredData.value.slice(start, start + pageSize.value);
 });
 
-const pageNumberList = computed<(number | string)[]>(() => {
-  const total = totalPages.value;
-  const page = currentPage.value;
-  if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1);
-  if (page <= 4) return [1, 2, 3, 4, 5, '...', total];
-  if (page >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
-  return [1, '...', page - 1, page, page + 1, '...', total];
-});
-
 const summaryMetrics = computed(() => {
   const total = dataList.value.length;
   const published = dataList.value.filter(item => item.status === 'published').length;
@@ -166,6 +157,138 @@ const actionGroups: CatalogActionItem[] = [
   { key: 'refresh', label: '更新', icon: 'mdi:refresh' },
   { key: 'detail', label: '详情', icon: 'mdi:information-outline' }
 ];
+
+// ====== NDataTable columns ======
+const columns = computed<DataTableColumns<CatalogItem>>(() => [
+  {
+    title: '数据名称',
+    key: 'name',
+    width: 260,
+    render(row) {
+      return h('div', { class: 'dataset-cell' }, [
+        h(SvgIcon, { icon: 'mdi:database', class: 'dataset-cell__bullet' }),
+        h('div', { class: 'dataset-cell__content' }, [
+          h('div', { class: 'dataset-cell__title' }, row.name),
+          h('div', { class: 'dataset-cell__sub' }, row.timePhase)
+        ])
+      ]);
+    }
+  },
+  {
+    title: '数据时间',
+    key: 'ingestTime',
+    width: 120,
+    render(row) {
+      return h('span', { class: 'row-text row-text--muted' }, row.ingestTime);
+    }
+  },
+  {
+    title: '数据类型',
+    key: 'type',
+    width: 100,
+    render(row) {
+      return h('span', { class: `type-chip ${getTypeTagClass(row.type)}` }, row.type);
+    }
+  },
+  {
+    title: '空间范围',
+    key: 'range',
+    width: 120,
+    render(row) {
+      return h('span', { class: 'row-text' }, row.range);
+    }
+  },
+  {
+    title: '数据来源',
+    key: 'source',
+    width: 100,
+    render(row) {
+      return h('span', { class: 'row-text' }, row.source);
+    }
+  },
+  {
+    title: '数据大小',
+    key: 'size',
+    width: 90,
+    render(row) {
+      return h('span', { class: 'row-text row-text--mono' }, row.size);
+    }
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 180,
+    fixed: 'right',
+    render(row) {
+      return h('div', { class: 'action-group' }, [
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'action-icon-btn',
+            'data-tooltip': '发布',
+            onClick: () => handleAction('publish', row)
+          },
+          [h(SvgIcon, { icon: 'mdi:send-outline', class: 'action-icon-btn__svg' })]
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'action-icon-btn',
+            'data-tooltip': '下载',
+            onClick: () => handleAction('download', row)
+          },
+          [h(SvgIcon, { icon: 'mdi:download-outline', class: 'action-icon-btn__svg' })]
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'action-icon-btn action-icon-btn--danger',
+            'data-tooltip': '删除',
+            onClick: () => handleAction('delete', row)
+          },
+          [h(SvgIcon, { icon: 'mdi:trash-can-outline', class: 'action-icon-btn__svg' })]
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'action-icon-btn',
+            'data-tooltip': '更新',
+            onClick: () => handleAction('refresh', row)
+          },
+          [h(SvgIcon, { icon: 'mdi:refresh', class: 'action-icon-btn__svg' })]
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'action-icon-btn',
+            'data-tooltip': '详情',
+            onClick: () => handleAction('detail', row)
+          },
+          [h(SvgIcon, { icon: 'mdi:information-outline', class: 'action-icon-btn__svg' })]
+        )
+      ]);
+    }
+  }
+]);
+
+// ====== NDataTable theme overrides ======
+const dataTableThemeOverrides = {
+  thColor: 'rgba(6, 29, 56, 0.94)',
+  thColorHover: 'rgba(10, 38, 72, 0.96)',
+  tdColor: 'transparent',
+  tdColorHover: 'rgba(33, 116, 212, 0.14)',
+  borderColor: 'rgba(25, 95, 176, 0.35)',
+  thTextColor: 'rgba(203, 227, 255, 0.72)',
+  tdTextColor: 'rgba(203, 227, 255, 0.72)',
+  borderRadius: '4px',
+  fontSize: '12px',
+  thFontWeight: '600'
+};
 
 function normalizeSize(size: string) {
   const value = parseFloat(size);
@@ -284,10 +407,6 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
   }
 }
 
-function changePage(page: number) {
-  if (page < 1 || page > totalPages.value) return;
-  currentPage.value = page;
-}
 </script>
 
 <template>
@@ -313,20 +432,27 @@ function changePage(page: number) {
         <div class="catalog-topbar">
           <div class="catalog-topbar__left">
             <div class="catalog-search-panel">
-              <div class="catalog-search-panel__label">目录检索</div>
-              <div class="catalog-search">
-                <SvgIcon icon="mdi:magnify" class="catalog-search__icon" />
-                <input
-                  v-model="searchKeyword"
-                  type="text"
-                  class="catalog-search__input"
-                  placeholder="请输入关键词搜索数据名称"
-                  @keyup.enter="handleSearch"
-                />
-                <button type="button" class="catalog-primary-btn catalog-primary-btn--inline" @click="handleSearch">
-                  搜索
-                </button>
+              <div class="catalog-search-panel__label">
+                <SvgIcon icon="mdi:magnify" class="catalog-search-panel__label-icon" />
+                目录检索
               </div>
+              <NInput
+                v-model:value="searchKeyword"
+                class="catalog-search-input"
+                placeholder="输入关键词搜索数据名称、来源、范围…"
+                clearable
+                @keyup.enter="handleSearch"
+              >
+                <template #prefix>
+                  <SvgIcon icon="mdi:magnify" class="catalog-search-input__icon" />
+                </template>
+                <template #suffix>
+                  <NButton type="primary" size="small" class="catalog-search-btn" @click="handleSearch">
+                    <SvgIcon icon="mdi:magnify" class="catalog-search-btn__icon" />
+                    搜索
+                  </NButton>
+                </template>
+              </NInput>
             </div>
           </div>
           <div class="catalog-topbar__right">
@@ -337,11 +463,11 @@ function changePage(page: number) {
                 <NSelect v-model:value="selectedType" class="catalog-filter__select" :options="typeOptions" />
               </div>
             </div>
-            <button type="button" class="catalog-primary-btn catalog-primary-btn--upload" @click="showImport">
+            <NButton type="primary" class="catalog-primary-btn catalog-primary-btn--upload" @click="showImport">
               <SvgIcon icon="mdi:upload-outline" />
               <span>上传</span>
-            </button>
-            <button type="button" class="catalog-ghost-btn" @click="handleReset">重置</button>
+            </NButton>
+            <NButton class="catalog-ghost-btn" @click="handleReset">重置</NButton>
           </div>
         </div>
 
@@ -358,57 +484,17 @@ function changePage(page: number) {
             <div v-if="isLoading" class="catalog-loading">数据加载中...</div>
 
             <template v-else>
-              <div class="catalog-table">
-                <div class="catalog-table__head">
-                  <div class="col-name">数据名称</div>
-                  <div class="col-time">数据时间</div>
-                  <div class="col-type">数据类型</div>
-                  <div class="col-range">空间范围</div>
-                  <div class="col-source">数据来源</div>
-                  <div class="col-size">数据大小</div>
-                  <div class="col-actions">管理操作</div>
-                </div>
-
-                <div class="catalog-table__body">
-                  <div v-for="item in pageItems" :key="item.id" class="catalog-row">
-                    <div class="col-name">
-                      <div class="dataset-cell">
-                        <SvgIcon icon="mdi:database" class="dataset-cell__bullet" />
-                        <div class="dataset-cell__content">
-                          <div class="dataset-cell__title">{{ item.name }}</div>
-                          <div class="dataset-cell__sub">{{ item.timePhase }}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="col-time row-text row-text--muted">{{ item.ingestTime }}</div>
-
-                    <div class="col-type">
-                      <span class="type-chip" :class="getTypeTagClass(item.type)">
-                        {{ item.type }}
-                      </span>
-                    </div>
-
-                    <div class="col-range row-text">{{ item.range }}</div>
-                    <div class="col-source row-text">{{ item.source }}</div>
-                    <div class="col-size row-text row-text--mono">{{ item.size }}</div>
-
-                    <div class="col-actions">
-                      <button
-                        v-for="action in actionGroups"
-                        :key="action.key"
-                        type="button"
-                        class="action-item"
-                        :class="{ 'action-item--danger': action.danger }"
-                        @click="handleAction(action.key, item)"
-                      >
-                        <SvgIcon :icon="action.icon" class="action-item__icon" />
-                        <span class="action-item__text">{{ action.label }}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <NDataTable
+                :columns="columns"
+                :data="filteredData"
+                :pagination="false"
+                :row-key="(row: CatalogItem) => row.id"
+                :theme-overrides="dataTableThemeOverrides"
+                :bordered="false"
+                single-line
+                flex-height
+                class="catalog-data-table"
+              />
 
               <div class="catalog-mobile-list">
                 <div v-for="item in pageItems" :key="`mobile-${item.id}`" class="catalog-mobile-card">
@@ -447,12 +533,12 @@ function changePage(page: number) {
                       v-for="action in actionGroups"
                       :key="`${item.id}-${action.key}`"
                       type="button"
-                      class="action-item"
-                      :class="{ 'action-item--danger': action.danger }"
+                      class="action-icon-btn"
+                      :class="{ 'action-icon-btn--danger': action.danger }"
+                      :data-tooltip="action.label"
                       @click="handleAction(action.key, item)"
                     >
-                      <SvgIcon :icon="action.icon" class="action-item__icon" />
-                      <span class="action-item__text">{{ action.label }}</span>
+                      <SvgIcon :icon="action.icon" class="action-icon-btn__svg" />
                     </button>
                   </div>
                 </div>
@@ -469,39 +555,13 @@ function changePage(page: number) {
                   总容量 {{ summaryMetrics.totalSize }}
                 </div>
 
-                <div class="catalog-pagination">
-                  <button type="button" class="pager-btn" @click="changePage(currentPage - 1)">
-                    <SvgIcon icon="mdi:chevron-left" />
-                  </button>
-                  <button
-                    v-for="page in pageNumberList"
-                    :key="`page-${page}`"
-                    type="button"
-                    class="pager-btn"
-                    :class="{ 'pager-btn--active': page === currentPage, 'pager-btn--ghost': page === '...' }"
-                    :disabled="page === '...'"
-                    @click="typeof page === 'number' && changePage(page)"
-                  >
-                    {{ page }}
-                  </button>
-                  <button type="button" class="pager-btn" @click="changePage(currentPage + 1)">
-                    <SvgIcon icon="mdi:chevron-right" />
-                  </button>
-                  <div class="page-size-box">
-                    <span>{{ pageSize }}条/页</span>
-                  </div>
-                  <div class="page-jumper">
-                    <span>跳至</span>
-                    <input
-                      :value="currentPage"
-                      type="number"
-                      min="1"
-                      :max="totalPages"
-                      @change="changePage(Number(($event.target as any).value || 1))"
-                    />
-                    <span>页</span>
-                  </div>
-                </div>
+                <NPagination
+                  v-model:page="currentPage"
+                  v-model:page-size="pageSize"
+                  :item-count="filteredData.length"
+                  :page-sizes="[10, 20, 50]"
+                  show-size-picker
+                />
               </div>
             </template>
           </div>
@@ -533,9 +593,9 @@ function changePage(page: number) {
               </div>
             </div>
           </div>
-          <button type="button" class="detail-close-btn" @click="detailVisible = false">
+          <NButton class="detail-close-btn" @click="detailVisible = false">
             <SvgIcon icon="mdi:close" />
-          </button>
+          </NButton>
         </div>
 
         <!-- 信息区 -->
@@ -641,8 +701,6 @@ function changePage(page: number) {
   --catalog-text-tertiary: rgba(147, 196, 255, 0.62);
   --catalog-input-bg: rgba(2, 18, 36, 0.92);
   --catalog-input-border: rgba(35, 111, 196, 0.4);
-  --catalog-table-head-bg: linear-gradient(180deg, rgba(6, 29, 56, 0.94) 0%, rgba(4, 22, 43, 0.94) 100%);
-  --catalog-table-row-hover: rgba(33, 116, 212, 0.14);
   --catalog-glow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 18px 40px rgba(1, 8, 18, 0.45);
   --catalog-button-bg: linear-gradient(180deg, #0d5fc8 0%, #093f8a 100%);
   --catalog-button-border: rgba(96, 191, 255, 0.32);
@@ -821,162 +879,287 @@ function changePage(page: number) {
 }
 
 .catalog-search-panel__label {
-  height: 36px;
+  height: 38px;
   padding: 0 14px;
   border-radius: 8px;
   border: 1px solid rgba(58, 145, 231, 0.18);
   background: linear-gradient(180deg, rgba(8, 42, 82, 0.82) 0%, rgba(5, 24, 48, 0.88) 100%);
   color: rgba(203, 227, 255, 0.76);
   font-size: 12px;
-  letter-spacing: 0.4px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   white-space: nowrap;
   box-shadow: inset 0 1px 0 rgba(129, 211, 255, 0.08);
+  user-select: none;
 }
 
-.catalog-search {
-  position: relative;
-  width: min(380px, 100%);
-  min-width: 280px;
-  display: flex;
-  align-items: center;
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(2, 16, 31, 0.98) 0%, rgba(4, 23, 44, 0.98) 100%),
-    linear-gradient(90deg, rgba(37, 122, 211, 0.06) 0%, rgba(0, 0, 0, 0) 50%);
-  border: 1px solid rgba(43, 118, 197, 0.38);
-  box-shadow:
-    inset 0 1px 0 rgba(136, 214, 255, 0.04),
-    0 1px 3px rgba(0, 0, 0, 0.25);
-  transition:
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
-}
-
-.catalog-search:focus-within {
-  border-color: rgba(58, 160, 255, 0.56);
-  box-shadow:
-    inset 0 1px 0 rgba(136, 214, 255, 0.06),
-    0 0 0 2px rgba(41, 163, 255, 0.12),
-    0 1px 4px rgba(0, 0, 0, 0.3);
-}
-
-.catalog-search__icon {
-  position: absolute;
-  left: 12px;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  display: grid;
-  place-items: center;
-  font-size: 14px;
+.catalog-search-panel__label-icon {
+  font-size: 15px;
   color: #7cc4f0;
+  opacity: 0.8;
 }
 
-.catalog-search__input,
-.catalog-ghost-btn,
-.catalog-primary-btn,
-.page-jumper input {
+/* ──── Search Input (NInput override) ──── */
+.catalog-search-input {
+  width: min(400px, 100%);
+  min-width: 280px;
+}
+
+.catalog-search-input :deep(.n-input) {
+  --n-border: 1px solid rgba(43, 118, 197, 0.38) !important;
+  --n-border-hover: 1px solid rgba(58, 160, 255, 0.5) !important;
+  --n-border-focus: 1px solid rgba(58, 160, 255, 0.65) !important;
+  --n-color: rgba(2, 16, 31, 0.98) !important;
+  --n-color-focus: rgba(2, 16, 31, 0.98) !important;
+  --n-text-color: #eaf5ff !important;
+  --n-placeholder-color: rgba(132, 177, 233, 0.45) !important;
+  --n-caret-color: #5ea4ff !important;
+  --n-font-size: 13px !important;
+  --n-height: 38px !important;
+  --n-border-radius: 8px !important;
+  --n-box-shadow-focus: 0 0 0 2px rgba(41, 163, 255, 0.12), 0 2px 8px rgba(0, 0, 0, 0.25) !important;
   font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
-}
-
-.catalog-search__input {
-  width: 100%;
-  height: 38px;
-  padding: 0 96px 0 40px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--catalog-text-primary);
-  font-size: 13px;
-  outline: none;
   letter-spacing: 0.2px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(180deg, rgba(2, 16, 31, 0.98) 0%, rgba(1, 12, 24, 0.98) 100%);
+  position: relative;
 }
 
-.catalog-search__input::placeholder {
-  color: rgba(132, 177, 233, 0.5);
+.catalog-search-input :deep(.n-input:hover) {
+  box-shadow: inset 0 1px 0 rgba(136, 214, 255, 0.04), 0 2px 8px rgba(0, 0, 0, 0.25);
+  border-color: rgba(58, 160, 255, 0.5) !important;
 }
 
-.catalog-search__input:focus {
-  + .catalog-primary-btn--inline {
-    filter: brightness(1.08);
-    box-shadow:
-      inset 0 1px 0 rgba(181, 233, 255, 0.22),
-      0 0 12px rgba(12, 110, 206, 0.3);
+.catalog-search-input :deep(.n-input--focus) {
+  box-shadow: 0 0 0 2px rgba(41, 163, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(180deg, rgba(3, 20, 38, 0.98) 0%, rgba(2, 16, 31, 0.98) 100%);
+}
+
+/* Hide default NInput border/state-border for cleaner look */
+.catalog-search-input :deep(.n-input__border),
+.catalog-search-input :deep(.n-input__state-border) {
+  display: none;
+}
+
+/* Enhanced placeholder animation */
+.catalog-search-input :deep(.n-input__placeholder) {
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.catalog-search-input :deep(.n-input--focus .n-input__placeholder) {
+  color: rgba(132, 177, 233, 0.6) !important;
+  transform: translateX(2px);
+}
+
+.catalog-search-input__icon {
+  font-size: 18px;
+  color: #7cc4f0;
+  opacity: 0.7;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.catalog-search-input :deep(.n-input--focus) .catalog-search-input__icon {
+  opacity: 1;
+  color: #5ea4ff;
+  transform: scale(1.1);
+}
+
+/* Subtle glow effect on focus */
+.catalog-search-input :deep(.n-input--focus)::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, rgba(41, 163, 255, 0.1) 0%, rgba(41, 163, 255, 0.05) 100%);
+  pointer-events: none;
+  z-index: -1;
+  animation: inputGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes inputGlow {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.02);
   }
 }
 
-.catalog-primary-btn--inline {
-  position: absolute;
-  right: 4px;
-  height: 30px;
-  padding: 0 18px;
-  font-size: 12px;
-  border-radius: 6px;
-  background: linear-gradient(180deg, rgba(23, 131, 240, 0.96) 0%, rgba(8, 83, 171, 0.96) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(181, 233, 255, 0.18),
-    0 0 10px rgba(12, 110, 206, 0.2);
-}
-
-.catalog-primary-btn,
-.catalog-ghost-btn,
-.action-item,
-.pager-btn {
-  cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease;
-}
-
-.catalog-primary-btn,
-.catalog-ghost-btn {
-  height: 38px;
-  padding: 0 18px;
-  border-radius: 8px;
-  border: 1px solid var(--catalog-button-border);
-  font-size: 13px;
-  color: #e9f5ff;
+/* ──── Search Button (inside NInput suffix) ──── */
+.catalog-search-btn {
+  --n-color: linear-gradient(180deg, #1783f0 0%, #0853ab 100%) !important;
+  --n-color-hover: linear-gradient(180deg, #2b93ff 0%, #0d6ad6 100%) !important;
+  --n-color-pressed: linear-gradient(180deg, #0d6ad6 0%, #064a94 100%) !important;
+  --n-text-color: #fff !important;
+  --n-border: none !important;
+  --n-border-radius: 6px !important;
+  --n-font-size: 12px !important;
+  --n-height: 28px !important;
+  --n-padding: 0 14px !important;
+  --n-icon-size: 14px !important;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  gap: 4px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  box-shadow: inset 0 1px 0 rgba(181, 233, 255, 0.18), 0 2px 8px rgba(12, 110, 206, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.catalog-search-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transition: left 0.5s ease;
+}
+
+.catalog-search-btn:hover {
+  box-shadow: inset 0 1px 0 rgba(181, 233, 255, 0.25), 0 4px 16px rgba(12, 110, 206, 0.35);
+  transform: translateY(-2px);
+}
+
+.catalog-search-btn:hover::before {
+  left: 100%;
+}
+
+.catalog-search-btn:active {
+  transform: translateY(0);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 4px rgba(12, 110, 206, 0.2);
+  transition: all 0.1s ease;
+}
+
+.catalog-search-btn__icon {
+  font-size: 14px;
+  opacity: 0.9;
+  transition: transform 0.3s ease;
+}
+
+.catalog-search-btn:hover .catalog-search-btn__icon {
+  transform: scale(1.1);
+}
+
+/* ──── Primary / Ghost Buttons ──── */
+.catalog-primary-btn :deep(.n-button),
+.catalog-ghost-btn :deep(.n-button) {
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
 }
 
 .catalog-primary-btn {
-  background: linear-gradient(180deg, rgba(23, 131, 240, 0.96) 0%, rgba(8, 83, 171, 0.96) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(181, 233, 255, 0.14),
-    0 8px 20px rgba(4, 79, 162, 0.22);
+  --n-color: linear-gradient(180deg, rgba(23, 131, 240, 0.96) 0%, rgba(8, 83, 171, 0.96) 100%) !important;
+  --n-color-hover: linear-gradient(180deg, rgba(43, 151, 255, 0.98) 0%, rgba(13, 93, 186, 0.98) 100%) !important;
+  --n-color-pressed: linear-gradient(180deg, rgba(8, 83, 171, 0.96) 0%, rgba(5, 63, 141, 0.96) 100%) !important;
+  --n-text-color: #e9f5ff !important;
+  --n-border: 1px solid rgba(96, 191, 255, 0.32) !important;
+  --n-border-hover: 1px solid rgba(96, 191, 255, 0.5) !important;
+  --n-border-radius: 8px !important;
+  --n-font-size: 13px !important;
+  --n-height: 38px !important;
+  --n-padding: 0 18px !important;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  box-shadow: inset 0 1px 0 rgba(181, 233, 255, 0.14), 0 4px 16px rgba(4, 79, 162, 0.22);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.catalog-primary-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.6s ease;
+}
+
+.catalog-primary-btn:hover {
+  box-shadow: inset 0 1px 0 rgba(181, 233, 255, 0.22), 0 6px 24px rgba(4, 79, 162, 0.35);
+  transform: translateY(-2px);
+}
+
+.catalog-primary-btn:hover::before {
+  left: 100%;
+}
+
+.catalog-primary-btn:active {
+  transform: translateY(0);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(4, 79, 162, 0.2);
+  transition: all 0.1s ease;
+}
+
+/* Focus state for accessibility */
+.catalog-primary-btn:focus-visible {
+  outline: 2px solid rgba(41, 163, 255, 0.6);
+  outline-offset: 2px;
 }
 
 .catalog-ghost-btn {
-  background: linear-gradient(180deg, rgba(9, 43, 82, 0.94) 0%, rgba(5, 23, 46, 0.96) 100%);
+  --n-color: linear-gradient(180deg, rgba(9, 43, 82, 0.94) 0%, rgba(5, 23, 46, 0.96) 100%) !important;
+  --n-color-hover: linear-gradient(180deg, rgba(14, 53, 102, 0.96) 0%, rgba(8, 33, 66, 0.96) 100%) !important;
+  --n-color-pressed: linear-gradient(180deg, rgba(5, 23, 46, 0.96) 0%, rgba(3, 16, 35, 0.96) 100%) !important;
+  --n-text-color: rgba(203, 227, 255, 0.85) !important;
+  --n-text-color-hover: #e9f5ff !important;
+  --n-border: 1px solid rgba(43, 118, 197, 0.35) !important;
+  --n-border-hover: 1px solid rgba(58, 160, 255, 0.5) !important;
+  --n-border-radius: 8px !important;
+  --n-font-size: 13px !important;
+  --n-height: 38px !important;
+  --n-padding: 0 18px !important;
+  letter-spacing: 0.3px;
+  box-shadow: inset 0 1px 0 rgba(129, 211, 255, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.catalog-primary-btn:hover,
-.catalog-ghost-btn:hover,
-.pager-btn:hover,
-.action-item:hover {
-  transform: translateY(-1px);
+.catalog-ghost-btn:hover {
+  box-shadow: inset 0 1px 0 rgba(129, 211, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+  border-color: rgba(58, 160, 255, 0.5) !important;
+}
+
+.catalog-ghost-btn:active {
+  transform: translateY(0);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition: all 0.1s ease;
+}
+
+/* Focus state for accessibility */
+.catalog-ghost-btn:focus-visible {
+  outline: 2px solid rgba(41, 163, 255, 0.6);
+  outline-offset: 2px;
 }
 
 .catalog-primary-btn--upload {
   min-width: 88px;
 }
 
+/* ──── Filter Card ──── */
 .catalog-filter-card {
   position: relative;
   padding: 2px;
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(9, 43, 82, 0.96) 0%, rgba(4, 22, 43, 0.96) 100%);
   border: 1px solid rgba(46, 130, 223, 0.24);
-  box-shadow:
-    inset 0 1px 0 rgba(152, 219, 255, 0.06),
-    0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 1px 0 rgba(152, 219, 255, 0.06), 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.catalog-filter-card:hover {
+  border-color: rgba(58, 160, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(152, 219, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
 }
 
 .catalog-filter-card__glow {
@@ -1000,8 +1183,10 @@ function changePage(page: number) {
 
 .catalog-filter__label {
   font-size: 12px;
+  font-weight: 600;
   color: rgba(205, 229, 255, 0.72);
   white-space: nowrap;
+  letter-spacing: 0.3px;
 }
 
 .catalog-filter__select {
@@ -1071,41 +1256,37 @@ function changePage(page: number) {
   color: var(--catalog-text-secondary);
 }
 
-.catalog-table {
-  display: block;
-  min-width: 1120px;
-}
-
-.catalog-table__head,
-.catalog-row {
-  display: grid;
-  grid-template-columns: 2.4fr 1.35fr 1.1fr 1.05fr 1.05fr 0.8fr 1.9fr;
-  align-items: center;
-}
-
-.catalog-table__head {
-  min-height: 44px;
-  padding: 0 12px;
-  background: var(--catalog-table-head-bg);
-  border-bottom: 1px solid var(--catalog-line);
-  color: var(--catalog-text-secondary);
-  font-size: 12px;
-}
-
-.catalog-table__body {
-  overflow: auto;
+/* ====== NDataTable deep overrides ====== */
+.catalog-data-table {
   flex: 1;
+  --n-th-color: rgba(6, 29, 56, 0.94) !important;
+  --n-td-color: transparent !important;
+  --n-td-color-hover: rgba(33, 116, 212, 0.14) !important;
+  --n-border-color: rgba(25, 95, 176, 0.35) !important;
+  --n-th-text-color: rgba(203, 227, 255, 0.72) !important;
+  --n-td-text-color: rgba(203, 227, 255, 0.72) !important;
+  --n-th-font-weight: 600 !important;
+  --n-font-size: 12px !important;
 }
 
-.catalog-row {
-  min-height: 66px;
-  padding: 0 12px;
-  border-bottom: 1px solid rgba(18, 73, 135, 0.32);
-  transition: background 0.2s ease;
+.catalog-data-table :deep(.n-data-table-th) {
+  background: linear-gradient(180deg, rgba(6, 29, 56, 0.94) 0%, rgba(4, 22, 43, 0.94) 100%) !important;
+  font-size: 12px;
+  padding: 10px 12px;
 }
 
-.catalog-row:hover {
-  background: var(--catalog-table-row-hover);
+.catalog-data-table :deep(.n-data-table-td) {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(18, 73, 135, 0.32) !important;
+}
+
+.catalog-data-table :deep(.n-data-table-tr:hover .n-data-table-td) {
+  background: rgba(33, 116, 212, 0.14) !important;
+}
+
+.catalog-data-table :deep(.n-data-table-table) {
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .dataset-cell {
@@ -1126,13 +1307,14 @@ function changePage(page: number) {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .dataset-cell__title {
   color: var(--catalog-text-primary);
   font-size: 13px;
   line-height: 1.4;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1168,10 +1350,6 @@ function changePage(page: number) {
   font-size: 11px;
   line-height: 1;
   transition: all 0.2s ease;
-}
-
-.catalog-row:hover .type-chip {
-  box-shadow: 0 0 6px rgba(41, 163, 255, 0.12);
 }
 
 .type-chip--image {
@@ -1211,53 +1389,89 @@ function changePage(page: number) {
   color: #ffb087;
 }
 
-.col-actions {
+/* Actions — icon-only circle buttons (inside NDataTable, use :deep) */
+.catalog-data-table :deep(.action-group) {
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
-.action-item {
-  min-width: 34px;
-  padding: 0 2px;
+.catalog-data-table :deep(.action-icon-btn) {
+  position: relative;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  color: var(--catalog-text-secondary);
-  background: transparent;
-  border: none;
+  border-radius: 50%;
+  background: rgba(41, 163, 255, 0.06);
+  border: 1px solid rgba(41, 163, 255, 0.12);
+  color: rgba(203, 227, 255, 0.65);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  outline: none;
+}
+
+.catalog-data-table :deep(.action-icon-btn:hover) {
+  color: #fff;
+  background: rgba(41, 163, 255, 0.18);
+  border-color: rgba(41, 163, 255, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(41, 163, 255, 0.2);
+}
+
+/* tooltip on hover */
+.catalog-data-table :deep(.action-icon-btn::after) {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 3px 8px;
   border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.action-item:hover {
-  color: var(--catalog-accent);
-  background: rgba(41, 163, 255, 0.08);
-}
-
-.action-item__icon {
-  font-size: 16px;
-  transition: transform 0.2s ease;
-}
-
-.action-item:hover .action-item__icon {
-  transform: scale(1.15);
-}
-
-.action-item__text {
+  background: rgba(6, 29, 56, 0.95);
+  border: 1px solid rgba(41, 163, 255, 0.25);
+  color: rgba(203, 227, 255, 0.9);
   font-size: 11px;
-  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 10;
 }
 
-.action-item--danger {
-  color: #ff8d8d;
+.catalog-data-table :deep(.action-icon-btn:hover::after) {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
-.action-item--danger:hover {
+
+.catalog-data-table :deep(.action-icon-btn__svg) {
+  font-size: 15px;
+  transition: transform 0.25s ease;
+}
+
+.catalog-data-table :deep(.action-icon-btn:hover .action-icon-btn__svg) {
+  transform: scale(1.18);
+}
+
+/* Danger variant */
+.catalog-data-table :deep(.action-icon-btn--danger) {
+  background: rgba(255, 107, 107, 0.05);
+  border-color: rgba(255, 107, 107, 0.12);
+  color: rgba(255, 141, 141, 0.7);
+}
+
+.catalog-data-table :deep(.action-icon-btn--danger:hover) {
   color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.08);
+  background: rgba(255, 107, 107, 0.15);
+  border-color: rgba(255, 107, 107, 0.35);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.18);
+}
+
+.catalog-data-table :deep(.action-icon-btn--danger:hover::after) {
+  border-color: rgba(255, 107, 107, 0.25);
 }
 
 .catalog-footer {
@@ -1285,54 +1499,40 @@ function changePage(page: number) {
   background: linear-gradient(180deg, transparent, rgba(70, 122, 190, 0.45), transparent);
 }
 
-.catalog-pagination {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pager-btn,
-.page-size-box,
-.page-jumper {
-  height: 28px;
-  border: 1px solid rgba(45, 111, 183, 0.34);
-  background: rgba(6, 25, 50, 0.82);
-  color: var(--catalog-text-secondary);
-  border-radius: 3px;
-}
-
-.pager-btn {
-  min-width: 28px;
-  padding: 0 8px;
-}
-
-.pager-btn--active {
-  color: #fff;
-  border-color: rgba(70, 176, 255, 0.5);
-  background: linear-gradient(180deg, rgba(17, 100, 206, 0.64) 0%, rgba(8, 66, 138, 0.64) 100%);
-  box-shadow: 0 0 6px rgba(41, 163, 255, 0.2);
-}
-
-.pager-btn--ghost {
-  cursor: default;
-}
-
-.page-size-box,
-.page-jumper {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px;
+/* NPagination deep overrides */
+.catalog-footer :deep(.n-pagination) {
+  --n-item-text-color: rgba(203, 227, 255, 0.72) !important;
+  --n-item-text-color-hover: #fff !important;
+  --n-item-text-color-active: #fff !important;
+  --n-item-color-active: linear-gradient(180deg, rgba(17, 100, 206, 0.64) 0%, rgba(8, 66, 138, 0.64) 100%) !important;
+  --n-item-border-active: 1px solid rgba(70, 176, 255, 0.5) !important;
+  --n-item-color: rgba(6, 25, 50, 0.82) !important;
+  --n-item-border: 1px solid rgba(45, 111, 183, 0.34) !important;
+  --n-item-border-hover: 1px solid rgba(70, 176, 255, 0.4) !important;
+  --n-item-color-hover: rgba(10, 40, 80, 0.9) !important;
+  --n-item-border-radius: 3px !important;
   font-size: 12px;
 }
 
-.page-jumper input {
-  width: 36px;
-  height: 20px;
-  background: rgba(2, 18, 36, 0.88);
-  border: 1px solid rgba(45, 111, 183, 0.34);
-  color: #fff;
-  text-align: center;
+.catalog-footer :deep(.n-pagination .n-pagination-item) {
+  min-width: 28px;
+  height: 28px;
+  border-radius: 3px;
+}
+
+.catalog-footer :deep(.n-pagination .n-pagination-item--active) {
+  box-shadow: 0 0 6px rgba(41, 163, 255, 0.2);
+}
+
+.catalog-footer :deep(.n-pagination-size-picker .n-base-selection) {
+  --n-border: 1px solid rgba(45, 111, 183, 0.34) !important;
+  --n-border-hover: 1px solid rgba(70, 176, 255, 0.4) !important;
+  --n-border-active: 1px solid rgba(70, 176, 255, 0.5) !important;
+  --n-color: rgba(6, 25, 50, 0.82) !important;
+  --n-color-active: rgba(6, 25, 50, 0.82) !important;
+  --n-text-color: rgba(203, 227, 255, 0.72) !important;
+  height: 28px;
+  border-radius: 3px;
 }
 
 .catalog-mobile-list {
@@ -1627,20 +1827,22 @@ function changePage(page: number) {
   padding-left: 6px;
 }
 
+
+
 .catalog-sidebar__panel::-webkit-scrollbar,
-.catalog-table__body::-webkit-scrollbar {
+.catalog-data-table :deep(.n-data-table-base-table-body::-webkit-scrollbar) {
   width: 8px;
   height: 8px;
 }
 
 .catalog-sidebar__panel::-webkit-scrollbar-thumb,
-.catalog-table__body::-webkit-scrollbar-thumb {
+.catalog-data-table :deep(.n-data-table-base-table-body::-webkit-scrollbar-thumb) {
   border-radius: 999px;
   background: rgba(48, 127, 212, 0.58);
 }
 
 .catalog-sidebar__panel::-webkit-scrollbar-track,
-.catalog-table__body::-webkit-scrollbar-track {
+.catalog-data-table :deep(.n-data-table-base-table-body::-webkit-scrollbar-track) {
   background: rgba(4, 20, 40, 0.45);
 }
 
@@ -1651,6 +1853,11 @@ function changePage(page: number) {
 
   .catalog-search-panel {
     width: 100%;
+  }
+
+  .catalog-search-input {
+    flex: 1;
+    min-width: 200px;
   }
 
   .catalog-topbar__right {
@@ -1769,13 +1976,85 @@ function changePage(page: number) {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    justify-content: center;
+  }
+
+  .action-icon-btn {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(41, 163, 255, 0.06);
+    border: 1px solid rgba(41, 163, 255, 0.12);
+    color: rgba(203, 227, 255, 0.65);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+    outline: none;
+  }
+
+  .action-icon-btn:hover {
+    color: #fff;
+    background: rgba(41, 163, 255, 0.18);
+    border-color: rgba(41, 163, 255, 0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(41, 163, 255, 0.2);
+  }
+
+  .action-icon-btn::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(6, 29, 56, 0.95);
+    border: 1px solid rgba(41, 163, 255, 0.25);
+    color: rgba(203, 227, 255, 0.9);
+    font-size: 11px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 10;
+  }
+
+  .action-icon-btn:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .action-icon-btn__svg {
+    font-size: 15px;
+    transition: transform 0.25s ease;
+  }
+
+  .action-icon-btn:hover .action-icon-btn__svg {
+    transform: scale(1.18);
+  }
+
+  .action-icon-btn--danger {
+    background: rgba(255, 107, 107, 0.05);
+    border-color: rgba(255, 107, 107, 0.12);
+    color: rgba(255, 141, 141, 0.7);
+  }
+
+  .action-icon-btn--danger:hover {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.15);
+    border-color: rgba(255, 107, 107, 0.35);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.18);
+  }
+
+  .action-icon-btn--danger:hover::after {
+    border-color: rgba(255, 107, 107, 0.25);
   }
 
   .catalog-footer__summary {
-    flex-wrap: wrap;
-  }
-
-  .catalog-pagination {
     flex-wrap: wrap;
   }
 }

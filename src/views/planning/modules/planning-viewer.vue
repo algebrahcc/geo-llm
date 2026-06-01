@@ -7,7 +7,8 @@ import type {
   PlanningLayerKey,
   PlanningPickedPoint,
   PlanningRouteKey,
-  PlanningStatusInfo
+  PlanningStatusInfo,
+  PlanningWaypoint
 } from './types';
 
 defineOptions({
@@ -26,6 +27,7 @@ const {
   setActiveTool,
   setLayerVisible,
   showRoute,
+  showWaypoints,
   setStartPoint,
   setEndPoint,
   resetView,
@@ -50,6 +52,7 @@ defineExpose({
   setActiveTool: (tool: PlanningInteractiveTool) => setActiveTool(tool),
   setLayerVisible: (key: PlanningLayerKey, visible: boolean) => setLayerVisible(key, visible),
   showRoute: (routeKey: PlanningRouteKey) => showRoute(routeKey),
+  showWaypoints: (waypoints: PlanningWaypoint[]) => showWaypoints(waypoints),
   setStartPoint: (longitude: number | null, latitude: number | null, name?: string) =>
     setStartPoint(longitude, latitude, name),
   setEndPoint: (longitude: number | null, latitude: number | null, name?: string) =>
