@@ -1,49 +1,53 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import BuildingGlobeViewer from './modules/building-globe-viewer.vue';
-import BuildingLayerStagePanel from './modules/building-layer-stage-panel.vue';
-import BuildingStatusBar from './modules/building-status-bar.vue';
-import BuildingTaskStagePanel from './modules/building-task-stage-panel.vue';
+import BuildingSceneViewer from './modules/building-scene-viewer.vue';
 import BuildingToolbar from './modules/building-toolbar.vue';
+import BuildingTaskStagePanel from './modules/building-task-stage-panel.vue';
+import BuildingInfoPanel from './modules/building-info-panel.vue';
+import BuildingAiAssistantPanel from './modules/building-ai-assistant-panel.vue';
+import BuildingRoamBar from './modules/building-roam-bar.vue';
 import { useBuilding } from './modules/use-building';
-import type { BuildingTilesetLoadState } from './modules/types';
+import { useDraggable } from './modules/use-draggable';
+import type { BuildingModelLoadState, BuildingRoamPoint } from './modules/types';
 import type {
-  BuildingInteractiveTool,
-  BuildingLayerItem,
-  BuildingStageLayerKey,
-  BuildingStageStatusInfo,
   BuildingStageToolKey,
-  BuildingToolbarItem
+  BuildingStageStatusInfo
 } from './modules/types-stage';
 
 defineOptions({
   name: 'BuildingPage'
 });
 
-interface BuildingViewerExposed {
-  setActiveTool: (tool: BuildingInteractiveTool) => void;
-  setLayerVisible: (key: BuildingStageLayerKey, visible: boolean) => void;
-  flyToBuilding: () => void;
-  zoomToTileset: () => void;
+interface ViewerExposed {
+  initViewer: () => Promise<void>;
+  loadModel: (source: any) => void;
+  zoomToModel: () => void;
   resetView: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
   rotate: () => void;
   pitch: () => void;
-  captureView: () => string;
+  setActiveTool: (tool: any) => void;
+  setLayerVisible: (key: any, visible: boolean) => void;
+  flyToBuilding: () => void;
   focusFloor: (floorId: string) => void;
-  focusRoom: (roomId: string) => void;
+  showRooms: (rooms: any[], floors: any[], points: any[]) => void;
+  addRoamPoints: (points: Array<{ id: string; title: string; longitude: number; latitude: number }>) => void;
 }
 
-const viewerRef = ref<BuildingViewerExposed | null>(null);
+const viewerRef = ref<ViewerExposed | null>(null);
 const router = useRouter();
-const activeLeftTool = ref<BuildingStageToolKey | null>(null);
-const activeRightTool = ref<BuildingStageToolKey | null>(null);
+
+// ──── 面板状态 ────
 const taskPanelVisible = ref(true);
 const taskPanelCollapsed = ref(false);
-const layerPanelVisible = ref(true);
-const layerPanelCollapsed = ref(false);
+const infoPanelVisible = ref(true);
+const infoPanelCollapsed = ref(false);
+const aiPanelVisible = ref(true);
+const aiPanelCollapsed = ref(false);
+
+// ──── 状态 ────
 const status = ref<BuildingStageStatusInfo>({
   longitude: '--',
   latitude: '--',
@@ -53,207 +57,128 @@ const status = ref<BuildingStageStatusInfo>({
   sourceLabel: '--',
   loadStatus: '待命'
 });
-
-const tilesetLoadState = reactive<BuildingTilesetLoadState>({
+const modelLoadState = reactive<BuildingModelLoadState>({
   sourceKey: '',
   sourceLabel: '',
   loading: false,
   loaded: false,
   error: ''
 });
+const aiRunning = ref(false);
+const primaryEntranceId = ref<string>('entrance-main');
 
-const leftTools: readonly BuildingToolbarItem[] = [
-  { key: 'task', label: '任务总控', icon: 'mdi:shield-outline' },
-  { key: 'focus-building', label: '定位楼宇', icon: 'mdi:crosshairs-gps' }
-];
+// ──── 面板拖拽 ────
+const taskDrag = useDraggable({ anchor: 'left', initialX: 72, initialY: 72 });
+const infoDrag = useDraggable({ anchor: 'right', initialX: 18, initialY: 72 });
+const aiDrag = useDraggable({ anchor: 'bottom', initialX: 420, initialY: 24 });
 
-const rightTools: readonly BuildingToolbarItem[] = [
-  { key: 'layers', label: '图层结构', icon: 'mdi:layers-triple-outline' },
-  { key: 'reset', label: '重置视角', icon: 'mdi:target-variant' },
-  { key: 'zoom-in', label: '放大', icon: 'mdi:magnify-plus-outline' },
-  { key: 'zoom-out', label: '缩小', icon: 'mdi:magnify-minus-outline' }
-];
-
-const layerItems = ref<BuildingLayerItem[]>([
-  { key: 'imagery', label: '全球底图', description: '显示离线影像底图。', visible: true },
-  { key: 'tileset', label: '楼宇模型', description: '显示目标建筑的 3D Tiles 模型。', visible: true },
-  { key: 'rooms', label: '房间标注', description: '显示楼层与房间风险标注。', visible: true },
-  { key: 'route-points', label: '路线点位', description: '显示当前路线的关键点位。', visible: true }
-]);
-
+// ──── 业务数据 ────
 const {
   buildingTask,
   buildingForceCards,
   buildingEnvironmentItems,
-  buildingTilesetSources,
+  buildingModelSources,
+  buildingDetail,
+  buildingBIMFloors,
+  buildingEntrances,
+  buildingRoamPoints,
   buildingFloors,
-  buildingMaterials,
-  selectedSourceKey,
-  selectedFloorId,
-  selectedRoomId,
-  activeSource,
-  activeRoom,
-  activeRoutePoints,
   roomsOfActiveFloor,
-  roomMaterials,
-  selectSource,
-  selectFloor,
-  selectRoom
+  selectedSourceKey,
+  activeSource
 } = useBuilding();
 
-const headlineCards = computed(() => [
-  {
-    label: '目标建筑',
-    value: buildingTask.buildingName,
-    meta: `楼层 ${buildingTask.floorCount} / 风险 ${buildingTask.riskCount}`,
-    accent: 'building'
-  },
-  {
-    label: '当前房间',
-    value: activeRoom.value?.name || '未选中',
-    meta: activeRoom.value?.useType || '等待点选房间',
-    accent: 'room'
-  },
-  {
-    label: '数据状态',
-    value: status.value.sourceLabel === '--' ? '等待加载' : status.value.sourceLabel,
-    meta: `模型 ${status.value.loadStatus}`,
-    accent: 'source'
-  }
-]);
+// ──── 工具栏配置 ────
+const leftTools: readonly { key: BuildingStageToolKey; label: string; icon: string }[] = [
+  { key: 'task', label: '任务信息', icon: 'mdi:clipboard-text-outline' },
+  { key: 'focus-building', label: '定位楼宇', icon: 'mdi:crosshairs-gps' }
+];
 
+// ──── 事件处理 ────
 function handleLeftToolSelect(key: BuildingStageToolKey) {
   switch (key) {
     case 'task':
       taskPanelVisible.value = !taskPanelVisible.value;
-      if (taskPanelVisible.value) {
-        taskPanelCollapsed.value = false;
-        activeLeftTool.value = key;
-      } else {
-        activeLeftTool.value = null;
-      }
+      if (taskPanelVisible.value) taskPanelCollapsed.value = false;
       viewerRef.value?.setActiveTool('browse');
       return;
     case 'focus-building':
       viewerRef.value?.setActiveTool('focus-building');
       viewerRef.value?.flyToBuilding();
-      activeLeftTool.value = key;
       return;
     default:
       return;
   }
 }
 
-function handleRightToolSelect(key: BuildingStageToolKey) {
-  switch (key) {
-    case 'layers':
-      layerPanelVisible.value = !layerPanelVisible.value;
-      if (layerPanelVisible.value) {
-        layerPanelCollapsed.value = false;
-        activeRightTool.value = key;
-      } else {
-        activeRightTool.value = null;
-      }
-      return;
-    case 'reset':
-      viewerRef.value?.setActiveTool('browse');
-      viewerRef.value?.resetView();
-      activeLeftTool.value = null;
-      activeRightTool.value = key;
-      return;
-    case 'zoom-in':
-      viewerRef.value?.zoomIn();
-      activeRightTool.value = key;
-      return;
-    case 'zoom-out':
-      viewerRef.value?.zoomOut();
-      activeRightTool.value = key;
-      return;
-    default:
-      return;
+function handleTaskToggle() { taskPanelCollapsed.value = !taskPanelCollapsed.value; taskPanelVisible.value = true; }
+function handleInfoToggle() { infoPanelCollapsed.value = !infoPanelCollapsed.value; infoPanelVisible.value = true; }
+function handleAiToggle() { aiPanelCollapsed.value = !aiPanelCollapsed.value; aiPanelVisible.value = true; }
+
+function handleLoadStateChange(next: BuildingModelLoadState) { Object.assign(modelLoadState, next); }
+function handleStatusChange(next: BuildingStageStatusInfo) { status.value = next; }
+
+function handleSetPrimaryEntrance(id: string) { primaryEntranceId.value = id; }
+
+function handleAiSend(message: string) {
+  aiRunning.value = true;
+  // 模拟 AI 响应
+  setTimeout(() => { aiRunning.value = false; }, 3000);
+}
+
+function handleRoamPointSelect(point: BuildingRoamPoint) {
+  // 飞到街景点位
+  console.log('Selected roam point:', point.title, point.longitude, point.latitude);
+}
+
+function handleBackToMain() { void router.push({ name: 'screen' }); }
+
+// 模型加载完成后添加街景点位
+watch(() => modelLoadState.loaded, loaded => {
+  if (loaded && viewerRef.value) {
+    const points = buildingRoamPoints.map(p => ({
+      id: p.id, title: p.title, longitude: p.longitude, latitude: p.latitude
+    }));
+    viewerRef.value.addRoamPoints(points);
   }
-}
-
-function handleTaskPanelCollapse() {
-  taskPanelCollapsed.value = !taskPanelCollapsed.value;
-  taskPanelVisible.value = true;
-  activeLeftTool.value = 'task';
-}
-
-function handleLayerPanelCollapse() {
-  layerPanelCollapsed.value = !layerPanelCollapsed.value;
-  layerPanelVisible.value = true;
-  activeRightTool.value = 'layers';
-}
-
-function handleLayerChange(payload: { key: BuildingStageLayerKey; visible: boolean }) {
-  const layer = layerItems.value.find(item => item.key === payload.key);
-
-  if (layer) {
-    layer.visible = payload.visible;
-    viewerRef.value?.setLayerVisible(payload.key, payload.visible);
-  }
-}
-
-function handleLoadStateChange(nextState: BuildingTilesetLoadState) {
-  Object.assign(tilesetLoadState, nextState);
-}
-
-function handleStatusChange(nextStatus: BuildingStageStatusInfo) {
-  status.value = nextStatus;
-}
-
-function handleSelectSource(key: string) {
-  selectSource(key);
-}
-
-function handleSelectFloor(floorId: string) {
-  selectFloor(floorId);
-  viewerRef.value?.focusFloor(floorId);
-}
-
-function handleSelectRoom(roomId: string) {
-  selectRoom(roomId);
-  viewerRef.value?.setActiveTool('pick-room');
-  viewerRef.value?.focusRoom(roomId);
-}
-
-function handleRoomPicked(roomId: string) {
-  selectRoom(roomId);
-}
-
-function handleBackToMain() {
-  void router.push({ name: 'screen' });
-}
+}, { once: true });
 </script>
 
 <template>
   <div class="building-page">
     <div class="building-stage">
-      <BuildingGlobeViewer
+      <!-- ═══ Cesium 场景查看器 ═══ -->
+      <BuildingSceneViewer
         ref="viewerRef"
         :source="activeSource"
         :floors="buildingFloors"
-        :rooms="roomsOfActiveFloor"
-        :points="activeRoutePoints"
-        @room-picked="handleRoomPicked"
+        :rooms="buildingRooms"
+        :points="buildingRoamPoints"
         @load-state-change="handleLoadStateChange"
         @status-change="handleStatusChange"
       />
 
-      <BuildingToolbar
-        placement="left"
-        :items="leftTools"
-        :active-key="activeLeftTool"
-        @select="handleLeftToolSelect"
-      />
-      <BuildingToolbar
-        placement="right"
-        :items="rightTools"
-        :active-key="activeRightTool"
-        @select="handleRightToolSelect"
-      />
+      <!-- ═══ 左侧工具栏 ═══ -->
+      <BuildingToolbar placement="left" :items="leftTools" @select="handleLeftToolSelect" />
 
+      <!-- ═══ 右侧 AI 机器人按钮 ═══ -->
+      <div class="ai-float-btn-wrap">
+        <NTooltip placement="left">
+          <template #trigger>
+            <button
+              type="button"
+              class="ai-float-btn"
+              :class="{ 'ai-float-btn--active': aiPanelVisible }"
+              @click="aiPanelVisible = !aiPanelVisible; if (aiPanelVisible) aiPanelCollapsed = false"
+            >
+              <SvgIcon icon="mdi:robot-outline" class="ai-float-icon" />
+            </button>
+          </template>
+          <span>{{ aiPanelVisible ? '关闭 AI 对话' : '打开 AI 对话' }}</span>
+        </NTooltip>
+      </div>
+
+      <!-- ═══ 返回按钮 ═══ -->
       <div class="stage-actions-wrap">
         <NTooltip placement="right">
           <template #trigger>
@@ -265,240 +190,167 @@ function handleBackToMain() {
         </NTooltip>
       </div>
 
-      <div v-if="taskPanelVisible" class="task-panel-wrap">
-        <BuildingTaskStagePanel
-          :collapsed="taskPanelCollapsed"
-          :task="buildingTask"
-          :forces="buildingForceCards"
-          :environments="buildingEnvironmentItems"
-          @toggle-collapse="handleTaskPanelCollapse"
-        />
-      </div>
-
-      <div v-if="layerPanelVisible" class="layer-panel-wrap">
-        <BuildingLayerStagePanel
-          :collapsed="layerPanelCollapsed"
-          :layers="layerItems"
-          :sources="buildingTilesetSources"
-          :active-source-key="selectedSourceKey"
-          :active-source="activeSource"
-          :load-state="tilesetLoadState"
-          :floors="buildingFloors"
-          :active-floor-id="selectedFloorId"
-          :rooms="roomsOfActiveFloor"
-          :active-room-id="selectedRoomId"
-          :active-room="activeRoom"
-          @toggle-collapse="handleLayerPanelCollapse"
-          @change-layer="handleLayerChange"
-          @select-source="handleSelectSource"
-          @select-floor="handleSelectFloor"
-          @select-room="handleSelectRoom"
-          @zoom-to-tileset="viewerRef?.zoomToTileset()"
-        />
-      </div>
-
-      <div class="hero-strip">
-        <div v-for="card in headlineCards" :key="card.label" class="hero-card" :class="[`hero-card--${card.accent}`]">
-          <div class="hero-label">{{ card.label }}</div>
-          <div class="hero-value">{{ card.value }}</div>
-          <div class="hero-meta">{{ card.meta }}</div>
+      <!-- ═══ 左侧：任务面板（可拖拽） ═══ -->
+      <Transition name="panel-slide">
+        <div v-if="taskPanelVisible" class="side-panel left-panel" :style="taskDrag.style.value">
+          <div class="panel-drag-handle" @mousedown="taskDrag.onDragStart">
+            <span class="drag-dots">⋮⋮</span>
+            <span>任务面板</span>
+          </div>
+          <BuildingTaskStagePanel
+            :collapsed="taskPanelCollapsed"
+            :task="buildingTask"
+            :environments="buildingEnvironmentItems"
+            @toggle-collapse="handleTaskToggle"
+          />
         </div>
-      </div>
+      </Transition>
 
-      <div class="quick-stats">
-        <div class="quick-stat">
-          <span class="quick-stat__label">房间材料</span>
-          <span class="quick-stat__value">{{ roomMaterials.length }}</span>
+      <!-- ═══ 右侧：建筑信息面板（可拖拽） ═══ -->
+      <Transition name="panel-slide">
+        <div v-if="infoPanelVisible" class="side-panel right-panel" :style="infoDrag.style.value">
+          <div class="panel-drag-handle" @mousedown="infoDrag.onDragStart">
+            <span class="drag-dots">⋮⋮</span>
+            <span>建筑信息</span>
+          </div>
+          <BuildingInfoPanel
+            :collapsed="infoPanelCollapsed"
+            :detail="buildingDetail"
+            :bim-floors="buildingBIMFloors"
+            :entrances="buildingEntrances"
+            :primary-entrance-id="primaryEntranceId"
+            @toggle-collapse="handleInfoToggle"
+            @set-primary-entrance="handleSetPrimaryEntrance"
+          />
         </div>
-        <div class="quick-stat">
-          <span class="quick-stat__label">总材料</span>
-          <span class="quick-stat__value">{{ buildingMaterials.length }}</span>
-        </div>
-      </div>
+      </Transition>
 
-      <div class="status-bar-wrap">
-        <BuildingStatusBar :status="status" />
-      </div>
+      <!-- ═══ 底部：AI 对话（可拖拽） ═══ -->
+      <Transition name="panel-slide">
+        <div v-if="aiPanelVisible" class="side-panel bottom-panel" :style="aiDrag.style.value">
+          <div class="panel-drag-handle horizontal" @mousedown="aiDrag.onDragStart">
+            <span class="drag-dots">⋯</span>
+            <span>AI 对手</span>
+          </div>
+          <BuildingAiAssistantPanel
+            :collapsed="aiPanelCollapsed"
+            :running="aiRunning"
+            @toggle-collapse="handleAiToggle"
+            @send="handleAiSend"
+          />
+        </div>
+      </Transition>
+
+      <!-- ═══ 底部：街景漫游点 ═══ -->
+      <BuildingRoamBar :points="buildingRoamPoints" @select-point="handleRoamPointSelect" />
+
     </div>
   </div>
 </template>
 
 <style scoped>
-.building-page {
-  height: 100%;
-  background: rgb(11, 18, 32);
-}
+.building-page { height: 100%; background: rgb(11,18,32); }
+.building-stage { position: relative; height: 100%; overflow: hidden; }
 
-.building-stage {
-  position: relative;
-  height: 100%;
-  overflow: hidden;
+/* ─── 返回按钮 ─── */
+.stage-actions-wrap {
+  position: absolute; top: 18px; left: 16px; z-index: 23;
 }
-
-.task-panel-wrap {
-  position: absolute;
-  left: 72px;
-  top: 110px;
-  z-index: 20;
+.stage-back-button {
+  display: flex; height: 44px; width: 44px; align-items: center; justify-content: center;
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+  background: rgba(9,14,28,0.78); color: rgba(255,255,255,0.88);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.18); backdrop-filter: blur(14px);
+  transition: all 0.18s ease;
 }
-
-.layer-panel-wrap {
-  position: absolute;
-  right: 72px;
-  top: 110px;
-  z-index: 20;
+.stage-back-button:hover {
+  border-color: rgba(43,107,255,0.45); background: rgba(19,31,54,0.88);
 }
+.stage-back-button:active { transform: translateY(-1px); }
+.stage-back-icon { font-size: 18px; }
 
-.hero-strip {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  z-index: 15;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  width: min(510px, calc(100% - 420px));
-  transform: translateX(-50%);
+/* ─── 右侧 AI 机器人按钮 ─── */
+.ai-float-btn-wrap {
+  position: absolute; right: 16px; top: 18px; z-index: 23;
 }
-
-.hero-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 9px 11px;
-  background: rgba(10, 16, 30, 0.78);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
-  backdrop-filter: blur(12px);
+.ai-float-btn {
+  display: flex; height: 44px; width: 44px; align-items: center; justify-content: center;
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+  background: rgba(9,14,28,0.78); color: rgba(255,255,255,0.88);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.18); backdrop-filter: blur(14px);
+  cursor: pointer; transition: all 0.18s ease;
 }
+.ai-float-btn:hover { border-color: rgba(43,107,255,0.45); background: rgba(19,31,54,0.88); }
+.ai-float-btn--active { border-color: rgba(43,107,255,0.55); background: rgba(43,107,255,0.15); }
+.ai-float-icon { font-size: 20px; }
 
-.hero-card--building {
-  border-color: rgba(94, 164, 255, 0.2);
-}
-
-.hero-card--room {
-  border-color: rgba(58, 211, 167, 0.18);
-}
-
-.hero-card--source {
-  border-color: rgba(255, 198, 92, 0.18);
-}
-
-.hero-label {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.54);
-}
-
-.hero-value {
-  margin-top: 2px;
-  font-size: 15px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.94);
-}
-
-.hero-meta {
-  margin-top: 4px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.56);
-}
-
-.quick-stats {
-  position: absolute;
-  right: 72px;
-  bottom: 84px;
-  z-index: 18;
+/* ──── 可拖拽面板通用 ──── */
+.side-panel {
+  position: fixed;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.quick-stat {
-  display: flex;
-  min-width: 112px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  background: rgba(10, 16, 30, 0.76);
-  backdrop-filter: blur(12px);
-}
-
-.quick-stat__label {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.54);
-}
-
-.quick-stat__value {
-  font-size: 16px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.94);
-}
-
-.status-bar-wrap {
-  position: absolute;
-  left: 50%;
-  bottom: 16px;
-  z-index: 20;
-  transform: translateX(-50%);
-}
-
-.stage-actions-wrap {
-  position: absolute;
-  top: 18px;
-  left: 16px;
-  z-index: 23;
-}
-
-.stage-back-button {
-  display: flex;
-  height: 44px;
-  width: 44px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  z-index: 21;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.28);
   border-radius: 14px;
-  background: rgba(9, 14, 28, 0.78);
-  color: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
-  backdrop-filter: blur(14px);
-  transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.18s ease;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.left-panel {
+  width: 340px;
+  max-height: calc(100vh - 120px);
+}
+.right-panel {
+  width: 310px;
+  max-height: calc(100vh - 120px);
+}
+.bottom-panel {
+  width: 420px;
+  max-height: 360px;
 }
 
-.stage-back-button:hover {
-  border-color: rgba(43, 107, 255, 0.45);
-  background: rgba(19, 31, 54, 0.88);
+/* ──── 拖拽手柄 ──── */
+.panel-drag-handle {
+  display: flex; align-items: center; justify-content: center;
+  gap: 4px; height: 24px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  color: rgba(255,255,255,0.28); font-size: 11px; font-weight: 500;
+  cursor: grab; user-select: none; flex-shrink: 0; letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: all 0.18s ease;
 }
+.panel-drag-handle:hover { color: rgba(255,255,255,0.55); background: linear-gradient(180deg, rgba(99,102,241,0.06), rgba(99,102,241,0.02)); }
+.panel-drag-handle:active { cursor: grabbing; }
+.drag-dots { font-size: 14px; line-height: 1; letter-spacing: 2px; }
+.panel-drag-handle.horizontal .drag-dots { letter-spacing: 4px; }
 
-.stage-back-button:active {
+/* ──── 过渡动画 ──── */
+.panel-slide-enter-active { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.panel-slide-leave-active { transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
+.panel-slide-enter-from { opacity: 0; transform: scale(0.93) translateY(4px); }
+.panel-slide-leave-to { opacity: 0; transform: scale(0.95) translateY(2px); }
+
+/* ──── 浮动按钮升级 ──── */
+.stage-back-button, .ai-float-btn {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.stage-back-button:hover, .ai-float-btn:hover {
   transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.25);
 }
 
-.stage-back-icon {
-  font-size: 18px;
+/* ──── 面板内组件覆盖 ──── */
+.left-panel :deep(.task-panel),
+.right-panel :deep(.info-panel),
+.bottom-panel :deep(.ai-panel) {
+  width: 100% !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
-@media (max-width: 1280px) {
-  .hero-strip {
-    width: min(460px, calc(100% - 360px));
-  }
-
-  .task-panel-wrap,
-  .layer-panel-wrap {
-    top: 102px;
-  }
-}
-
-@media (max-width: 1100px) {
-  .hero-strip {
-    grid-template-columns: 1fr;
-    width: min(220px, calc(100% - 340px));
-  }
-
-  .quick-stats {
-    right: 20px;
-  }
+@media (max-width: 900px) {
+  .left-panel { width: 300px; }
+  .right-panel { width: 280px; }
+  .bottom-panel { width: 380px; }
 }
 </style>

@@ -11,6 +11,7 @@ import {
   ImageryLayer,
   LabelStyle,
   Math as CesiumMath,
+  NearFarScalar,
   PolygonHierarchy,
   Rectangle,
   ScreenSpaceEventHandler,
@@ -131,9 +132,10 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
       name: item.name,
       polyline: {
         positions: item.positions.map(position => Cartesian3.fromDegrees(position[0], position[1])),
-        width: item.width ?? 4,
+        width: item.width ?? 5,
         material: getColor(item.color, 0.94),
-        clampToGround: true
+        clampToGround: true,
+        depthFail: getColor(item.color, 0.4)
       }
     });
 
@@ -154,10 +156,12 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
         hierarchy: new PolygonHierarchy(
           item.positions.map(position => Cartesian3.fromDegrees(position[0], position[1]))
         ),
-        material: getColor(item.color, 0.18),
+        material: getColor(item.color, 0.2),
         outline: true,
-        outlineColor: getColor(item.color, 0.9),
-        heightReference: HeightReference.CLAMP_TO_GROUND
+        outlineColor: getColor(item.color, 0.95),
+        outlineWidth: 2,
+        heightReference: HeightReference.CLAMP_TO_GROUND,
+        depthFail: getColor(item.color, 0.1)
       }
     });
 
@@ -176,21 +180,26 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
       name: item.name,
       position: Cartesian3.fromDegrees(item.longitude, item.latitude),
       point: {
-        pixelSize: 11,
+        pixelSize: 14,
         color: getColor(item.color),
         outlineColor: Color.WHITE,
-        outlineWidth: 2,
-        heightReference: HeightReference.CLAMP_TO_GROUND
+        outlineWidth: 3,
+        heightReference: HeightReference.CLAMP_TO_GROUND,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        scaleByDistance: new NearFarScalar(500, 1.8, 50000, 0.4)
       },
       label: {
         text: item.name,
-        font: '12px Microsoft YaHei',
+        font: 'bold 13px Microsoft YaHei',
         fillColor: Color.WHITE,
         showBackground: true,
-        backgroundColor: getColor('#0f172a', 0.78),
-        pixelOffset: new Cartesian2(0, -22),
+        backgroundColor: getColor('#0a1628', 0.85),
+        backgroundPadding: new Cartesian2(6, 4),
+        pixelOffset: new Cartesian2(0, -24),
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        style: LabelStyle.FILL,
+        style: LabelStyle.FILL_AND_OUTLINE,
+        outlineColor: getColor(item.color, 0.9),
+        outlineWidth: 2,
         verticalOrigin: VerticalOrigin.BOTTOM,
         horizontalOrigin: HorizontalOrigin.CENTER
       }

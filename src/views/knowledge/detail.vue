@@ -11,6 +11,7 @@ import {
   updateKnowledgeDocument,
   type KnowledgeEditFormModel
 } from '@/mock/knowledge';
+import { calculateCoverage, type EnvironmentParameter } from '@/mock/knowledge-parameters';
 import KnowledgeEditDrawer from './modules/knowledge-edit-drawer.vue';
 
 defineOptions({
@@ -30,6 +31,32 @@ const categoryLabel = computed(
 );
 const statusMeta = computed(() => getKnowledgeStatusMeta(detail.value?.status || 'draft'));
 const isImageDoc = computed(() => detail.value?.format === 'IMAGE');
+
+const parameters = computed<EnvironmentParameter[]>(() => detail.value?.parameters || []);
+
+const paramCoverage = computed(() => calculateCoverage(parameters.value));
+
+const groupedParams = computed(() => {
+  const groups: Record<string, EnvironmentParameter[]> = { 水文: [], 地形: [], 情报: [], 工程: [] };
+  for (const p of parameters.value) {
+    groups[p.category].push(p);
+  }
+  return groups;
+});
+
+const categoryLabelMap: Record<string, string> = { 水文: '水文', 地形: '地形', 情报: '情报', 工程: '工程' };
+
+function paramConfColor(c: number): string {
+  if (c >= 0.75) return '#5ee8a0';
+  if (c >= 0.5) return '#f1c40f';
+  return '#ff6b6b';
+}
+
+function paramConfBg(c: number): string {
+  if (c >= 0.75) return 'rgba(46,204,113,0.12)';
+  if (c >= 0.5) return 'rgba(241,196,15,0.12)';
+  return 'rgba(255,107,107,0.12)';
+}
 
 const editModel = computed<KnowledgeEditFormModel | null>(() => {
   if (!detail.value) return null;
@@ -206,6 +233,57 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="parameters.length > 0" class="panel-surface">
+          <div class="panel-head">
+            <SvgIcon icon="mdi:chart-scatter-plot" class="panel-head__icon" />
+            <span class="panel-head__title">结构化参数</span>
+            <span class="param-coverage-badge">{{ paramCoverage.covered }}/{{ paramCoverage.total }} ({{ paramCoverage.rate }}%)</span>
+          </div>
+          <div class="panel-body">
+            <template v-for="(items, cat) in groupedParams" :key="cat">
+              <div v-if="items.length > 0" class="param-category">
+                <div class="param-category__title">
+                  <span class="param-category__dot" :class="`param-category__dot--${cat}`"></span>
+                  {{ categoryLabelMap[cat as string] || cat }}
+                  <span class="param-category__count">({{ items.length }} 项)</span>
+                </div>
+                <div class="param-table">
+                  <div class="param-table__header">
+                    <span class="param-table__col param-table__col--name">参数名</span>
+                    <span class="param-table__col param-table__col--value">参数值</span>
+                    <span class="param-table__col param-table__col--conf">置信度</span>
+                    <span class="param-table__col param-table__col--source">来源</span>
+                  </div>
+                  <div
+                    v-for="p in items"
+                    :key="p.key"
+                    class="param-table__row"
+                    :class="{ 'param-table__row--low': p.confidence < 0.75 }"
+                  >
+                    <span class="param-table__col param-table__col--name">{{ p.label }}</span>
+                    <span class="param-table__col param-table__col--value">
+                      <span class="param-value">{{ p.value }}{{ p.value != null ? ' ' : '' }}{{ p.unit }}</span>
+                    </span>
+                    <span class="param-table__col param-table__col--conf">
+                      <span class="param-conf" :style="{ '--conf-color': paramConfColor(p.confidence), '--conf-bg': paramConfBg(p.confidence), '--conf-w': (p.confidence * 100).toFixed(0) + '%' }">
+                        {{ (p.confidence * 100).toFixed(0) }}%
+                      </span>
+                    </span>
+                    <span class="param-table__col param-table__col--source">
+                      <span :class="`param-source-tag param-source-tag--${p.source}`">
+                        {{ p.source === 'image-extract' ? '图像提取' : '文本提取' }}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <div v-if="parameters.length === 0" class="param-empty">
+              暂无结构化参数数据
             </div>
           </div>
         </div>
@@ -519,6 +597,160 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
   border-radius: 4px;
   background: rgba(6, 20, 38, 0.5);
   border: 1px solid rgba(25, 95, 176, 0.18);
+}
+
+/* ── Parameter Table ── */
+.param-coverage-badge {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(41, 163, 255, 0.1);
+  border: 1px solid rgba(41, 163, 255, 0.2);
+}
+
+.param-category {
+  & + & { margin-top: 16px; }
+}
+
+.param-category__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.param-category__count {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.param-category__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+
+  &--水文 { background: #29a3ff; box-shadow: 0 0 6px rgba(41, 163, 255, 0.4); }
+  &--地形 { background: #5ee8a0; box-shadow: 0 0 6px rgba(94, 232, 160, 0.4); }
+  &--情报 { background: #f1c40f; box-shadow: 0 0 6px rgba(241, 196, 15, 0.4); }
+  &--工程 { background: #a78bfa; box-shadow: 0 0 6px rgba(167, 139, 250, 0.4); }
+}
+
+.param-empty {
+  padding: 28px 0;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.param-table {
+  border: 1px solid rgba(25, 95, 176, 0.18);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.param-table__header,
+.param-table__row {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 10px;
+}
+
+.param-table__header {
+  background: rgba(10, 38, 72, 0.7);
+  border-bottom: 1px solid rgba(25, 95, 176, 0.25);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.2px;
+}
+
+.param-table__row {
+  background: rgba(6, 20, 38, 0.3);
+  border-bottom: 1px solid rgba(25, 95, 176, 0.08);
+  font-size: 12px;
+  transition: background 0.2s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: rgba(10, 45, 80, 0.5); }
+
+  &--low {
+    background: rgba(241, 196, 15, 0.06);
+    &:hover { background: rgba(241, 196, 15, 0.1); }
+  }
+}
+
+.param-table__col {
+  &--name { flex: 0 0 110px; color: var(--text-primary); }
+  &--value { flex: 0 0 120px; }
+  &--conf { flex: 0 0 100px; }
+  &--source { flex: 1; display: flex; justify-content: flex-end; }
+}
+
+.param-value {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.param-conf {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--conf-color);
+  background: var(--conf-bg);
+  position: relative;
+
+  &::before {
+    content: '';
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.08);
+    position: relative;
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    height: 4px;
+    border-radius: 2px;
+    width: var(--conf-w);
+    max-width: calc(100% - 20px);
+    background: var(--conf-color);
+    opacity: 0.6;
+  }
+}
+
+.param-source-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+
+  &--text-extract {
+    color: #62c4ff;
+    background: rgba(98, 196, 255, 0.1);
+    border: 1px solid rgba(98, 196, 255, 0.2);
+  }
+  &--image-extract {
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.1);
+    border: 1px solid rgba(167, 139, 250, 0.2);
+  }
 }
 
 /* Scrollbar */

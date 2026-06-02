@@ -14,13 +14,11 @@
       "regionMaxLevel": 14
     },
     "online": {
-      "url": "https://tms.example.com/{z}/{x}/{-y}.png",
-      "tilingScheme": "WebMercator",
+      "url": "http://192.168.12.211:19091/geoimage/GlabalMap/{z}/{x}/{reverseY}.png",
+      "tilingScheme": "Geographic",
       "minimumLevel": 0,
       "maximumLevel": 18,
       "rectangle": null
     }
   }
 }
-
-

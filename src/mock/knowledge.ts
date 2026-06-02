@@ -1,4 +1,5 @@
 import { reactive } from 'vue';
+import { extractTextParameters, extractImageParameters, type EnvironmentParameter } from './knowledge-parameters';
 
 export type KnowledgeDocumentStatus = 'ready' | 'indexing' | 'draft' | 'failed';
 
@@ -70,6 +71,7 @@ export interface KnowledgeDocumentDetail extends KnowledgeDocument {
   processLogs: string[];
   chunks: KnowledgeChunk[];
   references: KnowledgeReference[];
+  parameters?: EnvironmentParameter[];
   imageSource?: string;
   segmentModel?: string;
   extractModel?: string;
@@ -431,6 +433,11 @@ function createChunks(document: KnowledgeDocument) {
 }
 
 function createDetailRecord(document: KnowledgeDocument): KnowledgeDocumentDetail {
+  const parameters = extractTextParameters(document);
+  const paramLog = parameters.length > 0
+    ? `已提取 ${parameters.length} 项结构化环境参数`
+    : '未提取到结构化参数';
+
   return {
     ...document,
     version: 'v1.0',
@@ -439,6 +446,7 @@ function createDetailRecord(document: KnowledgeDocument): KnowledgeDocumentDetai
     notes: '当前为前端演示数据，用于模拟文档详情、分块与引用关系。',
     processLogs: [
       '已完成基础元数据抽取',
+      paramLog,
       `采用${document.indexMode}生成分块`,
       document.status === 'failed' ? '最近一次索引执行中断，等待重试' : '索引任务已同步到知识工作台'
     ],
@@ -456,7 +464,8 @@ function createDetailRecord(document: KnowledgeDocument): KnowledgeDocumentDetai
         type: '分析模板',
         description: '用于生成专题问答时的上下文补充。'
       }
-    ]
+    ],
+    parameters
   };
 }
 
@@ -537,20 +546,28 @@ export function createImageKnowledgeDocument(
     };
   });
 
+  // 从图片区域 chunk 提取结构化参数
+  const imageParams = extractImageParameters(document, chunks);
+  const paramLog = imageParams.length > 0
+    ? `已从图像区域提取 ${imageParams.length} 项结构化环境参数`
+    : '未从图像中提取到结构化参数';
+
   const detail: KnowledgeDocumentDetail = {
     ...document,
     version: 'v1.0',
     language: '中文',
     createdAt: now,
-    notes: `图片导入，共 ${payload.imageFiles.length} 张图片，分割模型 ${payload.segmentModel}，提取模型 ${payload.extractModel}。`,
+    notes: `图片导入，共 ${payload.imageFiles.length} 张图片，分割模型 ${payload.segmentModel}，提取模型 ${payload.extractModel}。${paramLog}。`,
     processLogs: [
       '已完成图片文件接收',
       `采用${payload.segmentModel}执行区域分割，检测到 ${regionCount} 个区域`,
       `采用${payload.extractModel}提取区域要素描述`,
+      paramLog,
       '索引任务已同步到知识工作台'
     ],
     chunks,
     references: [],
+    parameters: imageParams,
     imageSource: payload.imageFiles.map(f => f.name).join(', '),
     segmentModel: payload.segmentModel,
     extractModel: payload.extractModel,

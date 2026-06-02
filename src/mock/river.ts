@@ -1,8 +1,12 @@
 import type {
+  AiAnalysisStep,
+  CrossingPlanCard,
+  CrossingSettingForm,
   EngineeringPlan,
   EvaluateForm,
   FilterForm,
   FusionDataSummary,
+  KnowledgeHitDisplay,
   PortAssessment,
   PortFilterResult,
   ResourceStatItem
@@ -18,7 +22,7 @@ export const riverLeftTools = [
 ] as const;
 
 export const riverRightTools = [
-  { key: 'layers', label: '结果面板', icon: 'mdi:layers-outline' },
+  { key: 'layers', label: '图层面板', icon: 'mdi:layers-outline' },
   { key: 'reset', label: '复位', icon: 'mdi:home-outline' },
   { key: 'pitch', label: '俯仰', icon: 'mdi:axis-arrow' },
   { key: 'rotate', label: '旋转', icon: 'mdi:rotate-orbit' },
@@ -36,9 +40,9 @@ export const riverDefaultLayers = [
 ] as const;
 
 export const riverDefaultTaskForm = {
-  taskName: '台北河北岸快速渡河保障推演',
+  taskName: '淡水河北岸快速渡河保障推演',
   taskType: '渡河保障',
-  taskRange: '淡水河东南岸至北岸桥位群',
+  taskRange: '淡水河关渡段南岸至北岸桥位群',
   troopScale: '1 个合成营',
   vehicleCount: '28 辆',
   mainEquipment: '机械化步战车、浮桥分队、工兵保障车',
@@ -63,8 +67,8 @@ export const riverFlowTemplate = [
 
 export const riverPresets = {
   task: {
-    longitude: 121.454,
-    latitude: 25.058,
+    longitude: 121.48,
+    latitude: 25.12,
     height: 18000
   }
 } as const;
@@ -75,11 +79,15 @@ export const riverStaticChannels = [
     name: '主渡河通道',
     color: '#5ea4ff',
     positions: [
-      [121.418, 25.045],
-      [121.434, 25.051],
-      [121.448, 25.057],
-      [121.465, 25.062],
-      [121.484, 25.066]
+      [121.465, 25.085],
+      [121.467, 25.090],
+      [121.469, 25.095],
+      [121.470, 25.100],
+      [121.473, 25.105],
+      [121.476, 25.110],
+      [121.478, 25.115],
+      [121.482, 25.122],
+      [121.485, 25.130]
     ]
   },
   {
@@ -87,10 +95,14 @@ export const riverStaticChannels = [
     name: '备用浮渡通道',
     color: '#8de1ff',
     positions: [
-      [121.408, 25.031],
-      [121.425, 25.038],
-      [121.442, 25.044],
-      [121.458, 25.049]
+      [121.455, 25.088],
+      [121.457, 25.092],
+      [121.462, 25.100],
+      [121.465, 25.105],
+      [121.468, 25.110],
+      [121.470, 25.115],
+      [121.474, 25.121],
+      [121.478, 25.128]
     ]
   }
 ] as const;
@@ -101,10 +113,10 @@ export const riverStaticAssemblyZones = [
     name: '南岸主集结区',
     color: '#2ee59d',
     positions: [
-      [121.394, 25.018],
-      [121.438, 25.018],
-      [121.441, 25.042],
-      [121.396, 25.043]
+      [121.460, 25.086],
+      [121.482, 25.086],
+      [121.486, 25.100],
+      [121.462, 25.100]
     ]
   },
   {
@@ -112,10 +124,10 @@ export const riverStaticAssemblyZones = [
     name: '保障器材展开区',
     color: '#ffcf5c',
     positions: [
-      [121.447, 25.022],
-      [121.474, 25.022],
-      [121.476, 25.039],
-      [121.45, 25.04]
+      [121.454, 25.086],
+      [121.462, 25.084],
+      [121.467, 25.098],
+      [121.458, 25.100]
     ]
   }
 ] as const;
@@ -211,11 +223,14 @@ export const riverPlanScenes = {
       name: '方案一路线',
       color: '#63e6be',
       positions: [
-        [121.401, 25.026],
-        [121.421, 25.038],
-        [121.444, 25.048],
-        [121.463, 25.059],
-        [121.49, 25.071]
+        [121.461, 25.090],
+        [121.467, 25.098],
+        [121.471, 25.105],
+        [121.474, 25.109],
+        [121.476, 25.112],
+        [121.478, 25.118],
+        [121.481, 25.125],
+        [121.485, 25.135]
       ]
     },
     riskZones: [
@@ -224,16 +239,16 @@ export const riverPlanScenes = {
         name: '桥位火力风险区',
         color: '#fb7185',
         positions: [
-          [121.455, 25.05],
-          [121.477, 25.05],
-          [121.48, 25.072],
-          [121.458, 25.071]
+          [121.473, 25.110],
+          [121.483, 25.110],
+          [121.486, 25.118],
+          [121.474, 25.118]
         ]
       }
     ],
     marks: [
-      { id: 'plan-a-mark-1', name: '推荐桥位', longitude: 121.45, latitude: 25.055, color: '#63e6be' },
-      { id: 'plan-a-mark-2', name: '观察哨位', longitude: 121.476, latitude: 25.067, color: '#ffd166' }
+      { id: 'plan-a-mark-1', name: '推荐桥位', longitude: 121.476, latitude: 25.112, color: '#63e6be' },
+      { id: 'plan-a-mark-2', name: '观察哨位', longitude: 121.483, latitude: 25.108, color: '#ffd166' }
     ]
   },
   'plan-b': {
@@ -242,11 +257,14 @@ export const riverPlanScenes = {
       name: '方案二主路线',
       color: '#5ea4ff',
       positions: [
-        [121.398, 25.022],
-        [121.417, 25.031],
-        [121.437, 25.041],
-        [121.458, 25.052],
-        [121.482, 25.061]
+        [121.455, 25.088],
+        [121.460, 25.097],
+        [121.464, 25.102],
+        [121.468, 25.108],
+        [121.472, 25.114],
+        [121.476, 25.120],
+        [121.481, 25.128],
+        [121.488, 25.138]
       ]
     },
     riskZones: [
@@ -255,10 +273,10 @@ export const riverPlanScenes = {
         name: '备用通道暴露区',
         color: '#fb7185',
         positions: [
-          [121.421, 25.032],
-          [121.44, 25.033],
-          [121.445, 25.05],
-          [121.423, 25.049]
+          [121.456, 25.098],
+          [121.472, 25.098],
+          [121.476, 25.110],
+          [121.460, 25.110]
         ]
       },
       {
@@ -266,16 +284,16 @@ export const riverPlanScenes = {
         name: '双线汇聚风险区',
         color: '#ff9f43',
         positions: [
-          [121.455, 25.047],
-          [121.472, 25.047],
-          [121.474, 25.061],
-          [121.457, 25.061]
+          [121.478, 25.120],
+          [121.494, 25.120],
+          [121.498, 25.134],
+          [121.482, 25.134]
         ]
       }
     ],
     marks: [
-      { id: 'plan-b-mark-1', name: '备用浮渡点', longitude: 121.428, latitude: 25.041, color: '#8de1ff' },
-      { id: 'plan-b-mark-2', name: '北岸引导点', longitude: 121.482, latitude: 25.062, color: '#63e6be' }
+      { id: 'plan-b-mark-1', name: '备用浮渡点', longitude: 121.464, latitude: 25.102, color: '#8de1ff' },
+      { id: 'plan-b-mark-2', name: '北岸引导点', longitude: 121.475, latitude: 25.122, color: '#63e6be' }
     ]
   },
   'plan-c': {
@@ -284,11 +302,14 @@ export const riverPlanScenes = {
       name: '方案三路线',
       color: '#f7b267',
       positions: [
-        [121.404, 25.024],
-        [121.425, 25.034],
-        [121.445, 25.044],
-        [121.46, 25.056],
-        [121.476, 25.074]
+        [121.460, 25.092],
+        [121.466, 25.100],
+        [121.471, 25.107],
+        [121.474, 25.112],
+        [121.477, 25.118],
+        [121.480, 25.124],
+        [121.483, 25.130],
+        [121.488, 25.140]
       ]
     },
     riskZones: [
@@ -297,16 +318,16 @@ export const riverPlanScenes = {
         name: '北岸接应迟滞区',
         color: '#fbbf24',
         positions: [
-          [121.463, 25.062],
-          [121.485, 25.062],
-          [121.487, 25.081],
-          [121.466, 25.08]
+          [121.482, 25.128],
+          [121.498, 25.128],
+          [121.502, 25.142],
+          [121.486, 25.142]
         ]
       }
     ],
     marks: [
-      { id: 'plan-c-mark-1', name: '北岸接应区', longitude: 121.474, latitude: 25.074, color: '#2ee59d' },
-      { id: 'plan-c-mark-2', name: '抢修保障点', longitude: 121.446, latitude: 25.05, color: '#ffcf5c' }
+      { id: 'plan-c-mark-1', name: '北岸接应区', longitude: 121.482, latitude: 25.125, color: '#2ee59d' },
+      { id: 'plan-c-mark-2', name: '抢修保障点', longitude: 121.473, latitude: 25.112, color: '#ffcf5c' }
     ]
   }
 } as const;
@@ -326,8 +347,8 @@ export const portAssessments: PortAssessment[] = [
     protection: 90,
     terrain: 85,
     logistics: 92,
-    longitude: 121.418,
-    latitude: 25.045
+    longitude: 121.465,
+    latitude: 25.088
   },
   {
     id: 'port-b',
@@ -340,8 +361,8 @@ export const portAssessments: PortAssessment[] = [
     protection: 88,
     terrain: 82,
     logistics: 90,
-    longitude: 121.434,
-    latitude: 25.051
+    longitude: 121.472,
+    latitude: 25.10
   },
   {
     id: 'port-c',
@@ -354,8 +375,8 @@ export const portAssessments: PortAssessment[] = [
     protection: 82,
     terrain: 75,
     logistics: 84,
-    longitude: 121.448,
-    latitude: 25.057
+    longitude: 121.478,
+    latitude: 25.112
   },
   {
     id: 'port-d',
@@ -368,8 +389,8 @@ export const portAssessments: PortAssessment[] = [
     protection: 79,
     terrain: 72,
     logistics: 80,
-    longitude: 121.465,
-    latitude: 25.062
+    longitude: 121.485,
+    latitude: 25.12
   },
   {
     id: 'port-e',
@@ -382,8 +403,8 @@ export const portAssessments: PortAssessment[] = [
     protection: 66,
     terrain: 58,
     logistics: 68,
-    longitude: 121.478,
-    latitude: 25.06
+    longitude: 121.492,
+    latitude: 25.125
   },
   {
     id: 'port-f',
@@ -396,8 +417,8 @@ export const portAssessments: PortAssessment[] = [
     protection: 42,
     terrain: 35,
     logistics: 44,
-    longitude: 121.49,
-    latitude: 25.066
+    longitude: 121.50,
+    latitude: 25.13
   }
 ];
 
@@ -410,9 +431,9 @@ export const regionOptions = [
 
 /** 评估河段选项 */
 export const riverSectionOptions = [
-  { label: '浮河(上游段)', value: '浮河(上游段)' },
-  { label: '浮河(中游段)', value: '浮河(中游段)' },
-  { label: '浮河(下游段)', value: '浮河(下游段)' }
+  { label: '淡水河(上游段)', value: '淡水河(上游段)' },
+  { label: '淡水河(中游段)', value: '淡水河(中游段)' },
+  { label: '淡水河(下游段)', value: '淡水河(下游段)' }
 ];
 
 /** 任务能力需求选项 */
@@ -425,7 +446,7 @@ export const taskCapacityOptions = [
 /** 评估条件默认值 */
 export const defaultEvaluateForm: EvaluateForm = {
   region: '基础区域',
-  riverSection: '浮河(上游段)',
+  riverSection: '淡水河(中游段)',
   evaluateTime: Date.now(),
   taskCapacity: '快速渡河',
   taskDays: 3,
@@ -454,7 +475,7 @@ export const resourceStatItems: ResourceStatItem[] = [
 
 /** 筛选条件默认值 */
 export const defaultFilterForm: FilterForm = {
-  taskName: '浮河渡河工程保障任务',
+  taskName: '淡水河渡河工程保障任务',
   taskType: '架设浮桥',
   expectedTime: '2026-06-01 08:00',
   duration: '4h',
@@ -463,8 +484,8 @@ export const defaultFilterForm: FilterForm = {
   priority: '高',
   depthRadius: 30,
   velocityRange: 2.0,
-  widthMin: 50,
-  widthMax: 300,
+  widthMin: 80,
+  widthMax: 500,
   bankSlope: 2.5,
   bankGeomorphology: ['平坦', '缓坡'],
   availableResource: '浮桥器材',
@@ -504,8 +525,8 @@ export const portFilterResults: PortFilterResult[] = [
     width: 180,
     velocity: 1.2,
     feasibility: '可行',
-    longitude: 121.418,
-    latitude: 25.045
+    longitude: 121.465,
+    latitude: 25.088
   },
   {
     id: 'fp-b',
@@ -515,8 +536,8 @@ export const portFilterResults: PortFilterResult[] = [
     width: 220,
     velocity: 1.5,
     feasibility: '较优',
-    longitude: 121.434,
-    latitude: 25.051
+    longitude: 121.472,
+    latitude: 25.10
   },
   {
     id: 'fp-c',
@@ -526,8 +547,8 @@ export const portFilterResults: PortFilterResult[] = [
     width: 150,
     velocity: 1.8,
     feasibility: '较优',
-    longitude: 121.448,
-    latitude: 25.057
+    longitude: 121.478,
+    latitude: 25.112
   },
   {
     id: 'fp-d',
@@ -537,8 +558,8 @@ export const portFilterResults: PortFilterResult[] = [
     width: 260,
     velocity: 0.9,
     feasibility: '一般',
-    longitude: 121.465,
-    latitude: 25.062
+    longitude: 121.485,
+    latitude: 25.12
   },
   {
     id: 'fp-e',
@@ -548,8 +569,8 @@ export const portFilterResults: PortFilterResult[] = [
     width: 310,
     velocity: 2.1,
     feasibility: '一般',
-    longitude: 121.478,
-    latitude: 25.06
+    longitude: 121.492,
+    latitude: 25.125
   },
   {
     id: 'fp-f',
@@ -559,8 +580,8 @@ export const portFilterResults: PortFilterResult[] = [
     width: 380,
     velocity: 2.8,
     feasibility: '不可行',
-    longitude: 121.49,
-    latitude: 25.066
+    longitude: 121.50,
+    latitude: 25.13
   }
 ];
 
@@ -661,4 +682,112 @@ export const pontoonResourceDetails = [
   { name: '特种舟桥', count: 24, unit: '套', location: 'C号渡口', status: '可用' },
   { name: '锚定门桥', count: 18, unit: '套', location: 'D号渡口', status: '部分可用' },
   { name: '闭塞门桥', count: 30, unit: '套', location: '集结区', status: '待命' }
+];
+
+// ─────────────────── 新版渡河保障方案 Mock ───────────────────
+
+/** 设置表单默认值 */
+export const defaultCrossingSettingForm: CrossingSettingForm = {
+  taskName: '淡水河北岸快速渡河保障',
+  location: '淡水河关渡段南岸至北岸',
+  taskType: '渡河保障',
+  actionTime: '2026-06-15 06:00',
+  forceScale: '1个合成营',
+  riverWidth: 400,
+  waterDepthRange: '3~7m',
+  flowVelocity: '1.0~2.0 m/s',
+  riverbedTerrain: '泥沙质为主',
+  weatherCondition: '晴 28°C 南风3级',
+  visibilityKm: 15,
+  strategicIntent: '无明确敌情',
+  availableResources: ['登陆艇', '冲锋舟', '浮桥', '无人机'],
+  timeConstraint: '3小时内完成渡河',
+  otherRequirements: '人员装备安全优先'
+};
+
+/** 任务类型选项 */
+export const crossingTaskTypeOptions = [
+  { label: '渡河保障', value: '渡河保障' },
+  { label: '伴随保障', value: '伴随保障' },
+  { label: '桥位抢修', value: '桥位抢修' },
+  { label: '门桥渡河', value: '门桥渡河' }
+];
+
+/** 兵力规模选项 */
+export const forceScaleOptions = [
+  { label: '1个连', value: '1个连' },
+  { label: '1个营', value: '1个营' },
+  { label: '1个合成营', value: '1个合成营' },
+  { label: '1个团', value: '1个团' }
+];
+
+/** 可用资源选项 */
+export const resourceOptions = [
+  { label: '登陆艇', value: '登陆艇' },
+  { label: '冲锋舟', value: '冲锋舟' },
+  { label: '浮桥', value: '浮桥' },
+  { label: '无人机', value: '无人机' },
+  { label: '工兵作业车', value: '工兵作业车' },
+  { label: '架桥坦克', value: '架桥坦克' }
+];
+
+/** AI 分析步骤模板 */
+export const aiAnalysisStepTemplate: AiAnalysisStep[] = [
+  { key: 'env', label: '环境与水文条件分析', status: 'waiting', description: '分析河宽、水深、流速、地形等环境参数' },
+  { key: 'retrieve', label: '知识库检索与匹配', status: 'waiting', description: '', tool: '知识库检索' },
+  { key: 'crossing', label: '渡场点选择与路线分析', status: 'waiting', description: '基于知识库匹配结果选择最优渡场' },
+  { key: 'risk', label: '风险评估与综合分析', status: 'waiting', description: '评估水文风险、装备适配性、时间约束' },
+  { key: 'recommend', label: '首选方案推荐', status: 'waiting', description: '综合评分推荐最优方案' }
+];
+
+/** 底部方案卡片数据 */
+export const crossingPlanCards: CrossingPlanCard[] = [
+  {
+    rank: 1,
+    label: '方案一',
+    title: '两栖快速渡河方案',
+    isRecommended: true,
+    stars: 5,
+    duration: '~2h46min',
+    capacity: '1个营/h',
+    safety: '优',
+    scenario: '冲锋舟+浮桥混合编组，适合快速突渡',
+    routeDesc: '从A方案出发点沿主渡河通道前进，经浮桥段抵达北岸集结区',
+    keyEquipment: ['冲锋舟×8', '重型浮桥1套', '工兵作业车×4'],
+    advantages: ['渡河速度最快，可在3小时内完成', '混合编组灵活性强', '适应多种水文条件'],
+    risks: ['流速偏高时冲锋舟操控难度增大', '浮桥架设需要稳定水文窗口'],
+    conditions: ['流速<3.5m/s', '能见度>5km', '风力<4级']
+  },
+  {
+    rank: 2,
+    label: '方案二',
+    title: '浮桥分段渡河方案',
+    isRecommended: false,
+    stars: 4,
+    duration: '~3h20min',
+    capacity: '2个营/h',
+    safety: '良',
+    scenario: '重型浮桥分段架设，适合大规模装备渡河',
+    routeDesc: '从B号渡口沿备用浮渡通道，分段架设浮桥过河',
+    keyEquipment: ['重型浮桥2套', '舟桥器材32套', '架桥坦克×2'],
+    advantages: ['通行能力最强，适合重装部队', '浮桥稳定性好', '可多段并行'],
+    risks: ['架设时间较长', '对岸滩承载力要求高', '河道宽度大增加工程量'],
+    conditions: ['河宽<1500m', '水深<12m', '岸滩坡度<8°']
+  },
+  {
+    rank: 3,
+    label: '方案三',
+    title: '冲锋舟突击渡河方案',
+    isRecommended: false,
+    stars: 3,
+    duration: '~1h50min',
+    capacity: '0.5个营/h',
+    safety: '中',
+    scenario: '纯冲锋舟突击，适合轻装先遣队快速过河',
+    routeDesc: '从C号渡口使用冲锋舟直渡，多点同时登陆',
+    keyEquipment: ['冲锋舟×16', '无人机×4', '登陆艇×3'],
+    advantages: ['部署最快，机动灵活', '对岸滩要求低', '隐蔽性好'],
+    risks: ['单次运力有限', '重装备无法渡河', '高流速下安全风险大'],
+    conditions: ['流速<2.5m/s', '人员轻装', '天气良好']
+  }
 ];

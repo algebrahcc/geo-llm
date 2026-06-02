@@ -55,31 +55,22 @@ const emit = defineEmits<{
 }
 
 .toolbar-button {
-  display: flex;
-  height: 44px;
-  width: 44px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.74);
-  color: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(12px);
-  transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.18s ease;
+  display: flex; height: 42px; width: 42px;
+  align-items: center; justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(12, 18, 30, 0.9);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
 }
-
 .toolbar-button:hover {
-  border-color: rgba(43, 107, 255, 0.48);
-  background: rgba(19, 31, 54, 0.88);
+  border-color: rgba(94, 164, 255, 0.3);
+  background: rgba(20, 30, 50, 0.95);
 }
-
 .toolbar-button--active {
-  border-color: rgba(43, 107, 255, 0.78);
-  background: rgba(43, 107, 255, 0.18);
-  transform: translateY(-1px);
+  border-color: rgba(94, 164, 255, 0.5);
+  background: rgba(59, 130, 246, 0.1);
 }
 
 .toolbar-icon {

@@ -1,91 +1,80 @@
-import { reactive } from 'vue';
+import { computed, reactive } from 'vue';
 import type {
+  BuildingDetailInfo,
+  BuildingEntrance,
+  BuildingBIMFloor,
   BuildingEnvironmentItem,
+  BuildingRoamPoint,
+  BuildingRoamRoute,
+  BuildingModelSource,
   BuildingFeatureBinding,
   BuildingFloor,
   BuildingForceCard,
   BuildingMaterial,
-  BuildingRoamPoint,
-  BuildingRoamRoute,
   BuildingRoom,
-  BuildingTask,
-  BuildingTilesetSource
+  BuildingTask
 } from '@/views/building/modules/types';
 
-const localTilesetUrl = `${import.meta.env.BASE_URL}3dtiles/building-demo/tileset.json`;
-const remoteTilesetUrl = window.__APP_CONFIG__?.VITE_BUILDING_TILESET_URL || import.meta.env.VITE_BUILDING_TILESET_URL || '';
+// ═══════════════════════════════════════════════
+// GLB 模型数据源（替代3D Tiles）
+// ═══════════════════════════════════════════════
 
-export const buildingTilesetSources = reactive<BuildingTilesetSource[]>([
+const glbModelUrl = `${import.meta.env.BASE_URL}low_poly_-_soviet__apartment_building_8k.glb`;
+
+export const buildingModelSources = reactive<BuildingModelSource[]>([
   {
-    key: 'local-demo',
-    label: '本地样例',
-    sourceType: 'local',
-    tilesetUrl: localTilesetUrl,
-    description: '从 public/3dtiles/building-demo 目录加载 tileset.json。',
-    location: '园区北侧指挥楼',
-    statusText: '待放置本地 tileset 样例',
+    key: 'glb-apartment',
+    label: '苏联公寓楼',
+    modelUrl: glbModelUrl,
+    description: '典型苏式预制板公寓楼，5层，多单元居民住宅。',
+    location: '第聂伯大街与共青团员路交汇处',
     transform: {
       longitude: 121.5082,
       latitude: 25.0376,
-      height: 8,
+      height: 0,
       heading: 0,
       pitch: 0,
       roll: 0,
-      scale: 1
-    },
-    maximumScreenSpaceError: 12
-  },
-  {
-    key: 'remote-live',
-    label: '远程数据源',
-    sourceType: 'remote',
-    tilesetUrl: remoteTilesetUrl,
-    description: '通过运行时配置的远程 3D Tiles 地址接入真实 BIM 数据。',
-    location: '远程 BIM 服务',
-    statusText: remoteTilesetUrl ? '已配置远程地址' : '未配置 VITE_BUILDING_TILESET_URL',
-    transform: {
-      longitude: 121.5082,
-      latitude: 25.0376,
-      height: 8,
-      heading: 0,
-      pitch: 0,
-      roll: 0,
-      scale: 1
-    },
-    maximumScreenSpaceError: 10
+      scale: 4
+    }
   }
 ]);
 
+// ═══════════════════════════════════════════════
+// 任务模拟信息
+// ═══════════════════════════════════════════════
+
 export const buildingTask = reactive<BuildingTask>({
   id: 'building-task-01',
-  code: 'BD-2026-051',
-  title: '楼宇夺控推演任务',
+  code: 'MZ0240520001',
+  title: '居民楼夺控推演任务',
   status: '进行中',
-  buildingName: '北侧指挥楼',
-  operator: '联合作战组',
-  updatedAt: '2026-05-24 16:20',
-  objective: '完成目标楼体外立面侦察、出入口分析、楼层控制点识别与情景漫游演示。',
-  summary: '当前阶段优先验证真实 3D Tiles 模型加载、定位与任务面板联动。',
-  floorCount: 4,
+  buildingName: '第聂伯公寓',
+  operator: '陈卓',
+  updatedAt: '2024-05-20 14:30:00',
+  objective: '完成目标楼体"第聂伯公寓"的全面侦察分析，识别敌方据点分布、制定逐层清剿方案并评估平民风险。',
+  summary:
+    '模拟在城区环境中，对"第聂伯公寓"进行楼宇夺控。该建筑为典型苏式预制板住宅楼，共5层，3个单元6个入口，楼内结构规整但通道狭窄，需逐层逐户清剿。',
+  floorCount: 5,
   riskCount: 3,
   materialCount: 2,
-  sourceKey: 'local-demo'
+  sourceKey: 'glb-apartment'
 });
 
 export const buildingForceCards = reactive<BuildingForceCard[]>([
   {
     id: 'force-1',
-    label: '突入单元',
-    value: '2 组',
-    description: '负责一层大厅和北侧楼梯间快速控制。',
+    label: '清剿单元',
+    value: '3 组',
+    description: '各负责一个单元，自下而上逐层搜索控制。',
     icon: 'mdi:shield-account-outline',
     tone: 'info'
   },
   {
     id: 'force-2',
-    label: '侦察支援',
-    value: '3 点位',
-    description: '覆盖楼体西侧、屋顶与主入口区域。',
+    label: '外围封控',
+    value: '4 点位',
+    description: '封锁所有出入口，阻止目标逃脱与外援介入。',
     icon: 'mdi:radar',
     tone: 'success'
   },
@@ -93,222 +82,282 @@ export const buildingForceCards = reactive<BuildingForceCard[]>([
     id: 'force-3',
     label: '重点风险',
     value: '3 项',
-    description: '南侧玻璃幕墙、地下入口、屋顶天井需要重点关注。',
+    description: '楼内通道狭窄、住户情况不明、可能有简易爆炸装置。',
     icon: 'mdi:alert-outline',
     tone: 'warning'
   }
 ]);
 
+// ═══════════════════════════════════════════════
+// 环境信息（12项）
+// ═══════════════════════════════════════════════
+
 export const buildingEnvironmentItems = reactive<BuildingEnvironmentItem[]>([
+  { id: 'env-weather', label: '天气状况', value: '阴', icon: 'mdi:weather-cloudy', level: 'low' },
+  { id: 'env-temp', label: '温度', value: '12°C', icon: 'mdi:thermometer' },
+  { id: 'env-wind', label: '风向风速', value: '北风 2级', icon: 'mdi:weather-windy' },
+  { id: 'env-visibility', label: '能见度', value: '18 km', icon: 'mdi:eye' },
+  { id: 'env-noise', label: '噪声条件', value: '夜间', icon: 'mdi:weather-night', level: 'medium' },
+  { id: 'env-sound-db', label: '环境噪声', value: '42 dB', icon: 'mdi:waveform' },
+  { id: 'env-terrain', label: '地形地貌', value: '老旧城区', icon: 'mdi:city-variant' },
+  { id: 'env-buildings', label: '周边建筑', value: '同类型住宅楼密集', icon: 'mdi:domain' },
+  { id: 'env-roads', label: '道路类型', value: '双车道、巷弄', icon: 'mdi:road-variant' },
+  { id: 'env-media', label: '可利用掩体', value: '车辆、围墙、绿化带', icon: 'mdi:map-marker-path' },
+  { id: 'env-comm', label: '通信条件', value: '良好', icon: 'mdi:signal-cellular-3', level: 'low' },
+  { id: 'env-power', label: '电力供应', value: '局部断电', icon: 'mdi:power-plug-off', level: 'high' }
+]);
+
+// ═══════════════════════════════════════════════
+// 建筑详细信息
+// ═══════════════════════════════════════════════
+
+export const buildingDetail = reactive<BuildingDetailInfo>({
+  name: '第聂伯公寓',
+  buildingType: '居民住宅楼',
+  area: 420,
+  aboveGroundFloors: 5,
+  belowGroundFloors: 1,
+  totalArea: 2100,
+  structureType: '预制板装配式结构',
+  builtYear: 1972,
+  usageStatus: '居民居住中（30户）',
+  remarks: '敌占据3-5层，可能挟持有居民，需优先疏散后再强攻'
+});
+
+// ═══════════════════════════════════════════════
+// BIM 楼层结构
+// ═══════════════════════════════════════════════
+
+export const buildingBIMFloors = reactive<BuildingBIMFloor[]>([
+  { id: 'f5', label: '5F', floorNumber: 5, color: '#fb7185' },
+  { id: 'f4', label: '4F', floorNumber: 4, color: '#fb7185' },
+  { id: 'f3', label: '3F', floorNumber: 3, color: '#ffcf5c' },
+  { id: 'f2', label: '2F', floorNumber: 2, color: '#e8e8e8' },
+  { id: 'f1', label: '1F', floorNumber: 1, color: '#e8e8e8' },
+  { id: 'f-1', label: 'B1', floorNumber: -1, color: '#5ea4ff' }
+]);
+
+// ═══════════════════════════════════════════════
+// 主要入口信息
+// ═══════════════════════════════════════════════
+
+export const buildingEntrances = reactive<BuildingEntrance[]>([
   {
-    id: 'env-1',
-    label: '主入口视野开阔',
-    description: '东侧主入口无遮挡，但暴露风险较高，建议以烟幕配合突入。',
-    level: 'medium',
-    icon: 'mdi:door-open'
+    id: 'entrance-main',
+    name: '一单元入口',
+    type: '主入口',
+    orientation: '南',
+    width: 2.2,
+    height: 2.6,
+    doorType: '金属防盗门',
+    protectionLevel: '中等',
+    suspiciousFeatures: '门上贴有告示，疑似布设报警装置',
+    isPrimary: true,
+    imageUrl: ''
   },
   {
-    id: 'env-2',
-    label: '北侧后勤通道',
-    description: '可作为次要进入路径，适合配合侧后方绕行。',
-    level: 'low',
-    icon: 'mdi:road-variant'
+    id: 'entrance-side-east',
+    name: '二单元入口',
+    type: '次入口',
+    orientation: '东',
+    width: 2.2,
+    height: 2.6,
+    doorType: '木制门',
+    protectionLevel: '低',
+    suspiciousFeatures: '门锁已损坏，可直接进入',
+    isPrimary: false
   },
   {
-    id: 'env-3',
-    label: '屋顶观察位',
-    description: '屋顶天井附近存在制高点，适合布设侦察观察位。',
-    level: 'high',
-    icon: 'mdi:binoculars'
+    id: 'entrance-back',
+    name: '后侧消防通道',
+    type: '应急出口',
+    orientation: '北',
+    width: 1.8,
+    height: 2.4,
+    doorType: '铁栅栏门',
+    protectionLevel: '高',
+    suspiciousFeatures: '内部挂有铁链加固',
+    isPrimary: false
   }
 ]);
 
-export const buildingFloors = reactive<BuildingFloor[]>([
-  {
-    id: 'f1',
-    label: '一层',
-    summary: '大厅、值守室、北侧楼梯间',
-    roomIds: ['r1', 'r2', 'r3']
-  },
-  {
-    id: 'f2',
-    label: '二层',
-    summary: '指挥席位、会议室、东侧连廊',
-    roomIds: ['r4', 'r5']
-  },
-  {
-    id: 'f3',
-    label: '三层',
-    summary: '设备间、观察位、备用通道',
-    roomIds: ['r6', 'r7']
-  },
-  {
-    id: 'roof',
-    label: '屋顶',
-    summary: '天井、屋面设备、观察平台',
-    roomIds: ['r8']
-  }
-]);
+export const activePrimaryEntrance = computed(() => buildingEntrances.find(e => e.isPrimary) ?? buildingEntrances[0]);
 
-export const buildingRooms = reactive<BuildingRoom[]>([
-  {
-    id: 'r1',
-    floorId: 'f1',
-    name: '主入口大厅',
-    useType: '入口控制',
-    summary: '首层主要暴露区，适合作为态势观察与初始突入点。',
-    riskLevel: 'high',
-    featureId: 'hall-main'
-  },
-  {
-    id: 'r2',
-    floorId: 'f1',
-    name: '值守室',
-    useType: '安保值守',
-    summary: '靠近门禁系统，适合作为第一控制节点。',
-    riskLevel: 'medium',
-    featureId: 'guard-room'
-  },
-  {
-    id: 'r3',
-    floorId: 'f1',
-    name: '北侧楼梯间',
-    useType: '垂直通行',
-    summary: '连接所有楼层，控制后可显著降低上行风险。',
-    riskLevel: 'medium',
-    featureId: 'north-stair'
-  },
-  {
-    id: 'r4',
-    floorId: 'f2',
-    name: '主会议室',
-    useType: '核心目标',
-    summary: '任务核心控制区域，建议优先完成封控。',
-    riskLevel: 'high',
-    featureId: 'meeting-room'
-  },
-  {
-    id: 'r5',
-    floorId: 'f2',
-    name: '东侧连廊',
-    useType: '机动通道',
-    summary: '便于串联会议区与楼梯间，适合作为快速转场通道。',
-    riskLevel: 'low',
-    featureId: 'east-corridor'
-  },
-  {
-    id: 'r6',
-    floorId: 'f3',
-    name: '设备间',
-    useType: '后勤设备',
-    summary: '可能影响楼宇断电和门禁控制，需提前识别。',
-    riskLevel: 'medium',
-    featureId: 'equipment-room'
-  },
-  {
-    id: 'r7',
-    floorId: 'f3',
-    name: '观察位',
-    useType: '制高点',
-    summary: '可作为楼外观察位，覆盖主入口和道路区域。',
-    riskLevel: 'high',
-    featureId: 'observation-room'
-  },
-  {
-    id: 'r8',
-    floorId: 'roof',
-    name: '屋顶平台',
-    useType: '屋面控制',
-    summary: '适合部署侦察设备与进行楼外视野确认。',
-    riskLevel: 'medium',
-    featureId: 'roof-platform'
-  }
-]);
-
-export const buildingFeatureBindings = reactive<BuildingFeatureBinding[]>([
-  { featureId: 'hall-main', floorId: 'f1', roomId: 'r1', label: '主入口大厅' },
-  { featureId: 'guard-room', floorId: 'f1', roomId: 'r2', label: '值守室' },
-  { featureId: 'north-stair', floorId: 'f1', roomId: 'r3', label: '北侧楼梯间' },
-  { featureId: 'meeting-room', floorId: 'f2', roomId: 'r4', label: '主会议室' },
-  { featureId: 'east-corridor', floorId: 'f2', roomId: 'r5', label: '东侧连廊' },
-  { featureId: 'equipment-room', floorId: 'f3', roomId: 'r6', label: '设备间' },
-  { featureId: 'observation-room', floorId: 'f3', roomId: 'r7', label: '观察位' },
-  { featureId: 'roof-platform', floorId: 'roof', roomId: 'r8', label: '屋顶平台' }
-]);
-
-export const buildingRoamRoutes = reactive<BuildingRoamRoute[]>([
-  {
-    id: 'route-main',
-    name: '主入口突入路线',
-    summary: '从主入口大厅切入，经北侧楼梯间控制二层目标区。',
-    pointIds: ['p1', 'p2', 'p3']
-  },
-  {
-    id: 'route-side',
-    name: '北侧侧后进入路线',
-    summary: '利用后勤通道与侧后方机动，降低正面暴露。',
-    pointIds: ['p4', 'p5']
-  }
-]);
+// ═══════════════════════════════════════════════
+// 街景漫游点
+// ═══════════════════════════════════════════════
 
 export const buildingRoamPoints = reactive<BuildingRoamPoint[]>([
   {
-    id: 'p1',
-    routeId: 'route-main',
-    title: '锁定主入口大厅',
-    description: '确认主入口大厅视野、门禁位置与掩体分布。',
-    roomId: 'r1',
-    duration: '18s'
+    id: 'roam-01',
+    title: '南侧观察位',
+    entranceInfo: '正对一单元入口\n距离：25m',
+    distance: '25m',
+    imageUrl: '',
+    longitude: 121.5082,
+    latitude: 25.0372,
+    routeId: '',
+    description: '',
+    duration: ''
   },
   {
-    id: 'p2',
-    routeId: 'route-main',
-    title: '接管北侧楼梯间',
-    description: '完成垂直交通要点控制，保障二层快速推进。',
-    roomId: 'r3',
-    duration: '12s'
+    id: 'roam-02',
+    title: '东侧巷口',
+    entranceInfo: '二单元侧翼\n距离：35m',
+    distance: '35m',
+    imageUrl: '',
+    longitude: 121.5088,
+    latitude: 25.0376,
+    routeId: '',
+    description: '',
+    duration: ''
   },
   {
-    id: 'p3',
-    routeId: 'route-main',
-    title: '封控主会议室',
-    description: '抵达二层核心目标区并展开封控。',
-    roomId: 'r4',
-    duration: '16s'
+    id: 'roam-03',
+    title: '北侧围墙',
+    entranceInfo: '消防通道外\n距离：40m',
+    distance: '40m',
+    imageUrl: '',
+    longitude: 121.5082,
+    latitude: 25.0382,
+    routeId: '',
+    description: '',
+    duration: ''
   },
   {
-    id: 'p4',
-    routeId: 'route-side',
-    title: '利用北侧后勤通道靠近',
-    description: '避开主入口视线，从北侧接近楼体。',
-    roomId: 'r3',
-    duration: '20s'
+    id: 'roam-04',
+    title: '西侧路口',
+    entranceInfo: '可观察全楼西立面\n距离：50m',
+    distance: '50m',
+    imageUrl: '',
+    longitude: 121.5076,
+    latitude: 25.0376,
+    routeId: '',
+    description: '',
+    duration: ''
   },
   {
-    id: 'p5',
-    routeId: 'route-side',
-    title: '转入东侧连廊',
-    description: '进入二层后，经东侧连廊进入目标区域外围。',
-    roomId: 'r5',
-    duration: '15s'
+    id: 'roam-05',
+    title: '对面楼顶',
+    entranceInfo: '制高点俯瞰\n距离：60m',
+    distance: '60m',
+    imageUrl: '',
+    longitude: 121.5082,
+    latitude: 25.0368,
+    routeId: '',
+    description: '',
+    duration: ''
+  },
+  {
+    id: 'roam-06',
+    title: '小区入口',
+    entranceInfo: '车辆可接近区域\n距离：80m',
+    distance: '80m',
+    imageUrl: '',
+    longitude: 121.5074,
+    latitude: 25.0374,
+    routeId: '',
+    description: '',
+    duration: ''
   }
+]);
+
+// ═══════════════════════════════════════════════
+// 漫游路线
+// ═══════════════════════════════════════════════
+
+export const buildingRoamRoutes = reactive<BuildingRoamRoute[]>([
+  {
+    id: 'route-default',
+    name: '外围侦察路线',
+    summary: '沿公寓楼四周观察，获取全楼外部态势',
+    pointIds: ['roam-01', 'roam-02', 'roam-03', 'roam-04', 'roam-05', 'roam-06']
+  }
+]);
+
+// ═══════════════════════════════════════════════
+// 保留原有数据结构（兼容）
+// ═══════════════════════════════════════════════
+
+const localTilesetUrl = `${import.meta.env.BASE_URL}3dtiles/building-demo/tileset.json`;
+const remoteTilesetUrl =
+  window.__APP_CONFIG__?.VITE_BUILDING_TILESET_URL || import.meta.env.VITE_BUILDING_TILESET_URL || '';
+
+export const buildingTilesetSources = [
+  {
+    key: 'local-demo',
+    label: '本地样例',
+    sourceType: 'local' as const,
+    tilesetUrl: localTilesetUrl,
+    description: '从 public/3dtiles/building-demo 目录加载 tileset.json。',
+    location: '园区北侧指挥楼',
+    statusText: '待放置本地 tileset 样例',
+    transform: { longitude: 121.5082, latitude: 25.0376, height: 8, heading: 0, pitch: 0, roll: 0, scale: 1 },
+    maximumScreenSpaceError: 12
+  },
+  {
+    key: 'remote-live',
+    label: '远程数据源',
+    sourceType: 'remote' as const,
+    tilesetUrl: remoteTilesetUrl,
+    description: '通过运行时配置的远程 3D Tiles 地址接入真实 BIM 数据。',
+    location: '远程 BIM 服务',
+    statusText: remoteTilesetUrl ? '已配置远程地址' : '未配置 VITE_BUILDING_TILESET_URL',
+    transform: { longitude: 121.5082, latitude: 25.0376, height: 8, heading: 0, pitch: 0, roll: 0, scale: 1 },
+    maximumScreenSpaceError: 10
+  }
+];
+
+export const buildingFloors = reactive<BuildingFloor[]>([
+  { id: 'f1', label: '一层', summary: '单元门厅、楼梯间、底商杂物间', roomIds: ['r1', 'r2', 'r3'] },
+  { id: 'f2', label: '二层', summary: '居民住房，走廊通道狭窄', roomIds: ['r4', 'r5'] },
+  { id: 'f3', label: '三层', summary: '敌占层始，可能有简易哨位', roomIds: ['r6', 'r7'] },
+  { id: 'f4', label: '四层', summary: '敌核心据守层，窗口设火力位', roomIds: ['r8'] },
+  { id: 'f5', label: '五层', summary: '顶层据点，可控制屋顶通道', roomIds: ['r9'] },
+  { id: 'roof', label: '屋顶', summary: '通风井、屋面设备、制高点观察', roomIds: ['r10'] }
+]);
+
+export const buildingRooms = reactive<BuildingRoom[]>([
+  { id: 'r1', floorId: 'f1', name: '一单元门厅', useType: '入口通道', summary: '入口狭窄约2m，电表箱可作掩体，楼梯入口在右侧。', riskLevel: 'medium', featureId: 'unit1-hall' },
+  { id: 'r2', floorId: 'f1', name: '楼梯间', useType: '垂直通道', summary: '预制板楼梯，控制后可切断楼上退路。', riskLevel: 'high', featureId: 'stairwell' },
+  { id: 'r3', floorId: 'f1', name: '底商杂物间', useType: '储藏空间', summary: '堆放旧家具杂物，需仔细搜索。', riskLevel: 'low', featureId: 'storage' },
+  { id: 'r4', floorId: 'f2', name: '201住户', useType: '居民住所', summary: '两室一厅布局，需逐屋检查是否有滞留居民。', riskLevel: 'low', featureId: 'apt201' },
+  { id: 'r5', floorId: 'f2', name: '202住户', useType: '居民住所', summary: '门已敞开，内部有翻动痕迹，疑似已被搜查。', riskLevel: 'medium', featureId: 'apt202' },
+  { id: 'r6', floorId: 'f3', name: '301住户', useType: '敌占区域', summary: '窗口有沙袋加固，可能设为前哨观察点。', riskLevel: 'high', featureId: 'apt301' },
+  { id: 'r7', floorId: 'f3', name: '302住户', useType: '敌占区域', summary: '房门加固，需破门进入，对抗强度高。', riskLevel: 'high', featureId: 'apt302' },
+  { id: 'r8', floorId: 'f4', name: '4F-全层', useType: '核心据守层', summary: '敌主要火力配置区，窗台有机枪射击孔。', riskLevel: 'high', featureId: 'apt4th' },
+  { id: 'r9', floorId: 'f5', name: '5F-阁楼', useType: '顶层据点', summary: '可通往屋顶，预估有狙击位和通讯设备。', riskLevel: 'high', featureId: 'apt5th' },
+  { id: 'r10', floorId: 'roof', name: '屋顶平台', useType: '制高控制', summary: '开阔屋顶，需警惕对面建筑威胁。', riskLevel: 'medium', featureId: 'roof' }
+]);
+
+export const buildingFeatureBindings = reactive<BuildingFeatureBinding[]>([
+  { featureId: 'unit1-hall', floorId: 'f1', roomId: 'r1', label: '一单元门厅' },
+  { featureId: 'stairwell', floorId: 'f1', roomId: 'r2', label: '楼梯间' },
+  { featureId: 'storage', floorId: 'f1', roomId: 'r3', label: '杂物间' },
+  { featureId: 'apt201', floorId: 'f2', roomId: 'r4', label: '201住户' },
+  { featureId: 'apt202', floorId: 'f2', roomId: 'r5', label: '202住户' },
+  { featureId: 'apt301', floorId: 'f3', roomId: 'r6', label: '301住户' },
+  { featureId: 'apt302', floorId: 'f3', roomId: 'r7', label: '302住户' },
+  { featureId: 'apt4th', floorId: 'f4', roomId: 'r8', label: '四层区域' },
+  { featureId: 'apt5th', floorId: 'f5', roomId: 'r9', label: '五层阁楼' },
+  { featureId: 'roof', floorId: 'roof', roomId: 'r10', label: '屋顶平台' }
 ]);
 
 export const buildingMaterials = reactive<BuildingMaterial[]>([
   {
     id: 'm1',
-    title: '主入口大厅观察截图',
+    title: '一单元门厅侦察截图',
     roomId: 'r1',
     pointId: 'p1',
-    summary: '记录主入口大厅门禁、柱体掩护和窗口暴露情况。',
+    summary: '门厅宽约2m，电表箱可作掩护，楼梯入口在右侧。',
     createdAt: '2026-05-24 15:40'
   },
   {
     id: 'm2',
-    title: '主会议室封控要点',
-    roomId: 'r4',
+    title: '301窗口火力点记录',
+    roomId: 'r6',
     pointId: 'p3',
-    summary: '提炼会议室入口、出风井与东侧连廊交汇位置的控制建议。',
+    summary: '三层窗口沙袋加固，向东覆盖小区道路，需从西侧盲区接近。',
     createdAt: '2026-05-24 15:58'
   }
 ]);

@@ -1,17 +1,20 @@
 import { computed, ref } from 'vue';
 import {
+  buildingDetail,
   buildingEnvironmentItems,
   buildingFeatureBindings,
+  buildingBIMFloors,
+  buildingEntrances,
   buildingFloors,
   buildingForceCards,
   buildingMaterials,
-  buildingRoamPoints,
+  buildingModelSources,
+  buildingRoamPoints as buildingRoamPointList,
   buildingRoamRoutes,
   buildingRooms,
-  buildingTask,
-  buildingTilesetSources
+  buildingTask
 } from '@/mock/building';
-import type { BuildingMaterial } from './types';
+import type { BuildingMaterial, BuildingRoamPoint } from './types';
 
 export function useBuilding() {
   const selectedSourceKey = ref(buildingTask.sourceKey);
@@ -19,14 +22,26 @@ export function useBuilding() {
   const selectedRoomId = ref(buildingFloors[0]?.roomIds[0] ?? '');
   const selectedRouteId = ref(buildingRoamRoutes[0]?.id ?? '');
 
+  // 使用 GLB 模型源（替代3D Tiles）
   const activeSource = computed(
-    () => buildingTilesetSources.find(item => item.key === selectedSourceKey.value) ?? null
+    () => buildingModelSources.find(item => item.key === selectedSourceKey.value) ?? null
   );
   const activeFloor = computed(() => buildingFloors.find(item => item.id === selectedFloorId.value) ?? null);
   const roomsOfActiveFloor = computed(() => buildingRooms.filter(item => item.floorId === selectedFloorId.value));
   const activeRoom = computed(() => buildingRooms.find(item => item.id === selectedRoomId.value) ?? null);
   const activeRoute = computed(() => buildingRoamRoutes.find(item => item.id === selectedRouteId.value) ?? null);
-  const activeRoutePoints = computed(() => buildingRoamPoints.filter(item => item.routeId === selectedRouteId.value));
+
+  // 街景点位直接返回完整列表（不再按routeId过滤）
+  const buildingRoamPoints = computed<BuildingRoamPoint[]>(() => buildingRoamPointList.map(p => ({
+    id: p.id,
+    title: p.title,
+    entranceInfo: p.entranceInfo.replace(/\n/g, ' '),
+    distance: p.distance,
+    imageUrl: p.imageUrl || '',
+    longitude: p.longitude,
+    latitude: p.latitude
+  })));
+
   const roomMaterials = computed(() =>
     buildingMaterials.filter(item => !selectedRoomId.value || item.roomId === selectedRoomId.value)
   );
@@ -41,9 +56,7 @@ export function useBuilding() {
 
   function selectFloor(floorId: string) {
     selectedFloorId.value = floorId;
-
     const firstRoomId = buildingFloors.find(item => item.id === floorId)?.roomIds[0];
-
     if (firstRoomId) {
       selectedRoomId.value = firstRoomId;
     }
@@ -51,9 +64,7 @@ export function useBuilding() {
 
   function selectRoom(roomId: string) {
     selectedRoomId.value = roomId;
-
     const nextRoom = buildingRooms.find(item => item.id === roomId);
-
     if (nextRoom) {
       selectedFloorId.value = nextRoom.floorId;
     }
@@ -61,12 +72,6 @@ export function useBuilding() {
 
   function selectRoute(routeId: string) {
     selectedRouteId.value = routeId;
-
-    const firstPointRoomId = buildingRoamPoints.find(item => item.routeId === routeId)?.roomId;
-
-    if (firstPointRoomId) {
-      selectRoom(firstPointRoomId);
-    }
   }
 
   function appendMaterial(payload: Omit<BuildingMaterial, 'id' | 'createdAt'>) {
@@ -82,7 +87,10 @@ export function useBuilding() {
     buildingTask,
     buildingForceCards,
     buildingEnvironmentItems,
-    buildingTilesetSources,
+    buildingModelSources,
+    buildingDetail,
+    buildingBIMFloors,
+    buildingEntrances,
     buildingFloors,
     buildingRooms,
     buildingRoamRoutes,
@@ -96,7 +104,6 @@ export function useBuilding() {
     activeFloor,
     activeRoom,
     activeRoute,
-    activeRoutePoints,
     roomsOfActiveFloor,
     roomMaterials,
     currentBinding,

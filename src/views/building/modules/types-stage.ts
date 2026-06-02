@@ -1,8 +1,19 @@
-export type BuildingStageLayerKey = 'imagery' | 'tileset' | 'rooms' | 'route-points';
+export type BuildingStageLayerKey = 'imagery' | 'model' | 'rooms' | 'route-points';
 
-export type BuildingStageToolKey = 'task' | 'focus-building' | 'layers' | 'reset' | 'zoom-in' | 'zoom-out';
+export type BuildingStageToolKey =
+  | 'task'
+  | 'focus-building'
+  | 'layers'
+  | 'reset'
+  | 'zoom-in'
+  | 'zoom-out'
+  | 'pitch'
+  | 'rotate'
+  | 'measure-distance'
+  | 'measure-area'
+  | 'clear-markers';
 
-export type BuildingInteractiveTool = 'browse' | 'focus-building' | 'pick-room';
+export type BuildingInteractiveTool = 'browse' | 'focus-building' | 'pick-room' | 'measure-distance' | 'measure-area';
 
 export interface BuildingToolbarItem {
   key: BuildingStageToolKey;
