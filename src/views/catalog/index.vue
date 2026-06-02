@@ -4,7 +4,7 @@ import type { SelectOption } from 'naive-ui';
 import { NButton, NDataTable, NInput, NPagination, NSelect, NTree, type DataTableColumns } from 'naive-ui';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import { catalogCategories, catalogData, type CatalogItem } from '@/mock/catalog';
+import { agentLabelMap, catalogCategories, catalogData, type AgentKey, type CatalogItem } from '@/mock/catalog';
 
 defineOptions({
   name: 'CatalogPage'
@@ -15,7 +15,7 @@ const selectedCategory = ref<string | null>(null);
 const searchKeyword = ref('');
 const selectedType = ref('');
 const isLoading = ref(false);
-const expandedKeys = ref<string[]>(['img', 'dem', 'oblique', 'hydro', 'pipe']);
+const expandedKeys = ref<string[]>([]);
 const dataList = ref<CatalogItem[]>([...catalogData]);
 const themeStore = useThemeStore();
 const darkMode = computed(() => themeStore.darkMode);
@@ -26,23 +26,24 @@ const detailItem = ref<CatalogItem | null>(null);
 
 const categoryCountMap = computed<Record<string, number>>(() => {
   return dataList.value.reduce<Record<string, number>>((acc, item) => {
-    if (item.type === '影像') {
-      acc.img = (acc.img || 0) + 1;
-      acc['img-global'] = (acc['img-global'] || 0) + 1;
-    } else if (item.type === '高程') {
-      acc.dem = (acc.dem || 0) + 1;
-      acc['dem-30'] = (acc['dem-30'] || 0) + 1;
-    } else if (item.type === '倾斜摄影') {
-      acc.oblique = (acc.oblique || 0) + 1;
-      acc['oblique-city'] = (acc['oblique-city'] || 0) + 1;
-    } else if (item.type === '气象水文') {
-      acc.hydro = (acc.hydro || 0) + 1;
-      acc['hydro-rain'] = (acc['hydro-rain'] || 0) + 1;
-    } else if (item.type === '矢量管网') {
-      acc.pipe = (acc.pipe || 0) + 1;
-      acc['pipe-vector'] = (acc['pipe-vector'] || 0) + 1;
-    } else {
-      acc.topic = (acc.topic || 0) + 1;
+    const typeToKeys: Record<string, string[]> = {
+      '遥感影像': ['img', 'img-optical', 'img-sar', 'img-aerial', 'img-multi'],
+      '数字高程': ['dem', 'dem-dem', 'dem-dsm', 'dem-derived'],
+      '倾斜摄影': ['oblique', 'oblique-city', 'oblique-single', 'oblique-3dtiles'],
+      '气象水文': ['hydro', 'hydro-rain', 'hydro-river', 'hydro-lake', 'hydro-station'],
+      '地下管网': ['pipe', 'pipe-water', 'pipe-other', 'pipe-elec'],
+      '矢量基础': ['vec', 'vec-dlg', 'vec-building', 'vec-traffic', 'vec-admin', 'vec-landuse'],
+      '地名地址': ['poi', 'poi-strategic', 'poi-target', 'poi-facility'],
+      '战场专题': ['battlefield', 'bf-climate', 'bf-geology', 'bf-em', 'bf-pop'],
+      '障碍物与目标': ['obstacle', 'obs-urban', 'obs-traffic', 'obs-defense'],
+      '多模态语料': ['corpus', 'corpus-text', 'corpus-image', 'corpus-media'],
+      '历史方案': ['plan', 'plan-river', 'plan-route', 'plan-building']
+    };
+    const keys = typeToKeys[item.type];
+    if (keys) {
+      for (const k of keys) {
+        acc[k] = (acc[k] || 0) + 1;
+      }
     }
     return acc;
   }, {});
@@ -61,43 +62,91 @@ const treeOptions = computed(() =>
 
 const typeOptions = computed<SelectOption[]>(() => [
   { label: '全部', value: '' },
-  { label: '影像数据', value: '影像' },
-  { label: '高程数据', value: '高程' },
+  { label: '遥感影像', value: '遥感影像' },
+  { label: '数字高程', value: '数字高程' },
   { label: '倾斜摄影', value: '倾斜摄影' },
   { label: '气象水文', value: '气象水文' },
-  { label: '矢量管网', value: '矢量管网' },
-  { label: '专题数据', value: '专题数据' }
+  { label: '地下管网', value: '地下管网' },
+  { label: '矢量基础', value: '矢量基础' },
+  { label: '地名地址', value: '地名地址' },
+  { label: '战场专题', value: '战场专题' },
+  { label: '障碍物与目标', value: '障碍物与目标' },
+  { label: '多模态语料', value: '多模态语料' },
+  { label: '历史方案', value: '历史方案' }
+]);
+
+const selectedAgent = ref('');
+const selectedScenario = ref('');
+
+const agentOptions = computed<SelectOption[]>(() => [
+  { label: '全部智能体', value: '' },
+  ...Object.entries(agentLabelMap).map(([k, v]) => ({ label: v, value: k }))
+]);
+
+const scenarioOptions = computed<SelectOption[]>(() => [
+  { label: '全部场景', value: '' },
+  { label: '渡河保障', value: '渡河保障' },
+  { label: '机动路线规划', value: '机动路线规划' },
+  { label: '楼宇夺控', value: '楼宇夺控' },
+  { label: '城市攻防', value: '城市攻防' },
+  { label: '交通研判', value: '交通研判' },
+  { label: '地形分析', value: '地形分析' },
+  { label: '目标识别', value: '目标识别' },
+  { label: '态势感知', value: '态势感知' },
+  { label: '预案生成', value: '预案生成' }
 ]);
 
 const filteredData = computed(() => {
   let filtered = [...dataList.value];
 
+  // Tab 过滤 — 新 11 类映射
+  const TAB_TO_TYPE: Record<string, string[]> = {
+    '遥感影像': ['遥感影像'],
+    '数字高程': ['数字高程'],
+    '倾斜摄影': ['倾斜摄影'],
+    '气象水文': ['气象水文'],
+    '地下管网': ['地下管网'],
+    '矢量基础': ['矢量基础'],
+    '地名地址': ['地名地址'],
+    '战场专题': ['战场专题'],
+    '障碍物与目标': ['障碍物与目标'],
+    '多模态语料': ['多模态语料'],
+    '历史方案': ['历史方案']
+  };
+
   if (activeTab.value && activeTab.value !== '总览') {
-    filtered = filtered.filter(item => {
-      switch (activeTab.value) {
-        case '影像数据':
-          return item.type === '影像' || item.type === '倾斜摄影';
-        case '数字高程':
-          return item.type === '高程';
-        case '地下管网':
-          return item.type === '矢量管网';
-        case '专题数据':
-          return item.type === '专题数据';
-        default:
-          return true;
-      }
-    });
+    const types = TAB_TO_TYPE[activeTab.value];
+    if (types) {
+      filtered = filtered.filter(item => types.includes(item.type));
+    }
   }
 
   if (selectedCategory.value) {
+    const TYPE_TO_CATEGORY: Record<string, string[]> = {
+      '遥感影像': ['img', 'img-optical', 'img-sar', 'img-aerial', 'img-multi'],
+      '数字高程': ['dem', 'dem-dem', 'dem-dsm', 'dem-derived'],
+      '倾斜摄影': ['oblique', 'oblique-city', 'oblique-single', 'oblique-3dtiles'],
+      '气象水文': ['hydro', 'hydro-rain', 'hydro-river', 'hydro-lake', 'hydro-station'],
+      '地下管网': ['pipe', 'pipe-water', 'pipe-other', 'pipe-elec'],
+      '矢量基础': ['vec', 'vec-dlg', 'vec-building', 'vec-traffic', 'vec-admin', 'vec-landuse'],
+      '地名地址': ['poi', 'poi-strategic', 'poi-target', 'poi-facility'],
+      '战场专题': ['battlefield', 'bf-climate', 'bf-geology', 'bf-em', 'bf-pop'],
+      '障碍物与目标': ['obstacle', 'obs-urban', 'obs-traffic', 'obs-defense'],
+      '多模态语料': ['corpus', 'corpus-text', 'corpus-image', 'corpus-media'],
+      '历史方案': ['plan', 'plan-river', 'plan-route', 'plan-building']
+    };
     filtered = filtered.filter(item => {
-      if (selectedCategory.value?.includes('img')) return item.type === '影像' || item.type === '倾斜摄影';
-      if (selectedCategory.value?.includes('dem')) return item.type === '高程';
-      if (selectedCategory.value?.includes('oblique')) return item.type === '倾斜摄影';
-      if (selectedCategory.value?.includes('hydro')) return item.type === '气象水文';
-      if (selectedCategory.value?.includes('pipe')) return item.type === '矢量管网';
-      return false;
+      const cats = TYPE_TO_CATEGORY[item.type];
+      return cats ? cats.includes(selectedCategory.value!) : false;
     });
+  }
+
+  if (selectedAgent.value) {
+    filtered = filtered.filter(item => item.agentBinding?.includes(selectedAgent.value as AgentKey));
+  }
+
+  if (selectedScenario.value) {
+    filtered = filtered.filter(item => item.scenarioTags?.includes(selectedScenario.value as any));
   }
 
   if (searchKeyword.value) {
@@ -106,7 +155,10 @@ const filteredData = computed(() => {
       item =>
         item.name.toLowerCase().includes(keyword) ||
         item.range.toLowerCase().includes(keyword) ||
-        item.source.toLowerCase().includes(keyword)
+        item.source.toLowerCase().includes(keyword) ||
+        item.tags?.some(t => t.toLowerCase().includes(keyword)) ||
+        item.agentBinding?.some(a => agentLabelMap[a]?.toLowerCase().includes(keyword)) ||
+        item.scenarioTags?.some(s => s.toLowerCase().includes(keyword))
     );
   }
 
@@ -298,24 +350,34 @@ function normalizeSize(size: string) {
 
 function getDataTypeIcon(type: string): string {
   const iconMap: Record<string, string> = {
-    影像: 'mdi:database',
-    倾斜摄影: 'mdi:layers-triple',
-    高程: 'mdi:terrain',
-    气象水文: 'mdi:weather-rainy',
-    矢量管网: 'mdi:transit-connection-horizontal',
-    专题数据: 'mdi:folder-star-outline'
+    '遥感影像': 'mdi:database',
+    '数字高程': 'mdi:terrain',
+    '倾斜摄影': 'mdi:layers-triple',
+    '气象水文': 'mdi:weather-rainy',
+    '地下管网': 'mdi:transit-connection-horizontal',
+    '矢量基础': 'mdi:vector-polyline',
+    '地名地址': 'mdi:map-marker-outline',
+    '战场专题': 'mdi:shield-outline',
+    '障碍物与目标': 'mdi:alert-octagon-outline',
+    '多模态语料': 'mdi:file-document-multiple-outline',
+    '历史方案': 'mdi:history'
   };
   return iconMap[type] || 'mdi:file-document-outline';
 }
 
 function getTypeTagClass(type: string) {
   const typeClassMap: Record<string, string> = {
-    影像: 'type-chip--image',
-    倾斜摄影: 'type-chip--oblique',
-    高程: 'type-chip--elevation',
-    气象水文: 'type-chip--hydro',
-    矢量管网: 'type-chip--pipe',
-    专题数据: 'type-chip--topic'
+    '遥感影像': 'type-chip--image',
+    '数字高程': 'type-chip--elevation',
+    '倾斜摄影': 'type-chip--oblique',
+    '气象水文': 'type-chip--hydro',
+    '地下管网': 'type-chip--pipe',
+    '矢量基础': 'type-chip--vector',
+    '地名地址': 'type-chip--poi',
+    '战场专题': 'type-chip--battlefield',
+    '障碍物与目标': 'type-chip--obstacle',
+    '多模态语料': 'type-chip--corpus',
+    '历史方案': 'type-chip--plan'
   };
   return typeClassMap[type] || 'type-chip--default';
 }
@@ -381,6 +443,8 @@ function handleReset() {
   selectedCategory.value = null;
   searchKeyword.value = '';
   selectedType.value = '';
+  selectedAgent.value = '';
+  selectedScenario.value = '';
   currentPage.value = 1;
 }
 
@@ -439,7 +503,7 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
               <NInput
                 v-model:value="searchKeyword"
                 class="catalog-search-input"
-                placeholder="输入关键词搜索数据名称、来源、范围…"
+                placeholder="输入关键词搜索数据名称、来源、范围、Agent、场景标签…"
                 clearable
                 @keyup.enter="handleSearch"
               >
@@ -461,6 +525,14 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
               <div class="catalog-filter">
                 <span class="catalog-filter__label">数据类型</span>
                 <NSelect v-model:value="selectedType" class="catalog-filter__select" :options="typeOptions" />
+              </div>
+              <div class="catalog-filter">
+                <span class="catalog-filter__label">智能体</span>
+                <NSelect v-model:value="selectedAgent" class="catalog-filter__select" :options="agentOptions" />
+              </div>
+              <div class="catalog-filter">
+                <span class="catalog-filter__label">场景</span>
+                <NSelect v-model:value="selectedScenario" class="catalog-filter__select" :options="scenarioOptions" />
               </div>
             </div>
             <NButton type="primary" class="catalog-primary-btn catalog-primary-btn--upload" @click="showImport">
@@ -486,7 +558,7 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
             <template v-else>
               <NDataTable
                 :columns="columns"
-                :data="filteredData"
+                :data="pageItems"
                 :pagination="false"
                 :row-key="(row: CatalogItem) => row.id"
                 :theme-overrides="dataTableThemeOverrides"
@@ -679,6 +751,163 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
             </div>
             <div class="detail-tags">
               <span v-for="tag in detailItem.tags" :key="tag" class="detail-tag">{{ tag }}</span>
+            </div>
+          </div>
+
+          <!-- 数据质量 -->
+          <div v-if="detailItem.quality" class="detail-section">
+            <div class="detail-section__title">
+              <SvgIcon icon="mdi:shield-check-outline" class="detail-section__icon" />
+              数据质量
+            </div>
+            <div class="detail-grid">
+              <div class="detail-field">
+                <span class="detail-field__label">综合评分</span>
+                <span class="detail-field__value">
+                  {{ detailItem.quality.score }} 分
+                  <span class="detail-grade" :class="`detail-grade--${detailItem.quality.grade}`">{{ detailItem.quality.grade }}</span>
+                </span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">完整性</span>
+                <span class="detail-field__value">{{ detailItem.quality.completeness }}%</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">时效性</span>
+                <span class="detail-field__value">{{ detailItem.quality.timeliness }}%</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">精度</span>
+                <span class="detail-field__value">{{ detailItem.quality.accuracy }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 智能体关联 & 场景标签 -->
+          <div v-if="detailItem.agentBinding?.length || detailItem.scenarioTags?.length" class="detail-section">
+            <div class="detail-section__title">
+              <SvgIcon icon="mdi:robot-outline" class="detail-section__icon" />
+              智能体与场景
+            </div>
+            <div class="detail-grid">
+              <div v-if="detailItem.agentBinding?.length" class="detail-field detail-field--full">
+                <span class="detail-field__label">可调用智能体</span>
+                <div class="detail-tags">
+                  <span v-for="a in detailItem.agentBinding" :key="a" class="detail-tag detail-tag--agent">{{ agentLabelMap[a] || a }}</span>
+                </div>
+              </div>
+              <div v-if="detailItem.scenarioTags?.length" class="detail-field detail-field--full">
+                <span class="detail-field__label">任务场景</span>
+                <div class="detail-tags">
+                  <span v-for="s in detailItem.scenarioTags" :key="s" class="detail-tag detail-tag--scenario">{{ s }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 瓦片/服务状态 -->
+          <div v-if="detailItem.tileStatus" class="detail-section">
+            <div class="detail-section__title">
+              <SvgIcon icon="mdi:server-network-outline" class="detail-section__icon" />
+              瓦片与服务
+            </div>
+            <div class="detail-grid">
+              <div class="detail-field">
+                <span class="detail-field__label">已切片</span>
+                <span class="detail-field__value">{{ detailItem.tileStatus.tiled ? '是' : '否' }}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">支持协议</span>
+                <span class="detail-field__value">{{ detailItem.tileStatus.protocols.join(', ') || '—' }}</span>
+              </div>
+              <div v-if="detailItem.tileStatus.serviceUrl" class="detail-field detail-field--full">
+                <span class="detail-field__label">服务地址</span>
+                <span class="detail-field__value detail-field__value--mono">{{ detailItem.tileStatus.serviceUrl }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 数据血缘 -->
+          <div v-if="detailItem.lineage" class="detail-section">
+            <div class="detail-section__title">
+              <SvgIcon icon="mdi:source-branch" class="detail-section__icon" />
+              数据血缘
+            </div>
+            <div class="detail-grid">
+              <div class="detail-field">
+                <span class="detail-field__label">数据源</span>
+                <span class="detail-field__value">{{ detailItem.lineage.source }}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">版本</span>
+                <span class="detail-field__value detail-field__value--mono">{{ detailItem.lineage.version }}</span>
+              </div>
+              <div v-if="detailItem.lineage.processedSteps?.length" class="detail-field detail-field--full">
+                <span class="detail-field__label">整编步骤</span>
+                <div class="detail-steps">
+                  <span v-for="(step, idx) in detailItem.lineage.processedSteps" :key="idx" class="detail-step">
+                    <span class="detail-step__num">{{ idx + 1 }}</span>{{ step }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 审核状态 -->
+          <div v-if="detailItem.audit" class="detail-section">
+            <div class="detail-section__title">
+              <SvgIcon icon="mdi:check-decagram-outline" class="detail-section__icon" />
+              审核状态
+            </div>
+            <div class="detail-grid">
+              <div class="detail-field">
+                <span class="detail-field__label">审核人</span>
+                <span class="detail-field__value">{{ detailItem.audit.auditor }}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">审核时间</span>
+                <span class="detail-field__value">{{ detailItem.audit.auditTime }}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">审核结果</span>
+                <span class="detail-field__value">
+                  <span class="detail-audit-badge" :class="`detail-audit-badge--${detailItem.audit.status}`">
+                    {{ detailItem.audit.status === 'approved' ? '已通过' : detailItem.audit.status === 'pending' ? '待审核' : '已驳回' }}
+                  </span>
+                </span>
+              </div>
+              <div v-if="detailItem.audit.comments" class="detail-field detail-field--full">
+                <span class="detail-field__label">审核意见</span>
+                <span class="detail-field__value">{{ detailItem.audit.comments }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 微调状态 -->
+          <div v-if="detailItem.finetuneStatus?.used" class="detail-section">
+            <div class="detail-section__title">
+              <SvgIcon icon="mdi:brain" class="detail-section__icon" />
+              模型微调
+            </div>
+            <div class="detail-grid">
+              <div class="detail-field">
+                <span class="detail-field__label">标注样本数</span>
+                <span class="detail-field__value detail-field__value--mono">{{ detailItem.finetuneStatus.sampleCount?.toLocaleString() || '—' }}</span>
+              </div>
+              <div class="detail-field">
+                <span class="detail-field__label">标注完成度</span>
+                <span class="detail-field__value">{{ detailItem.finetuneStatus.annotationComplete ?? '—' }}%</span>
+              </div>
+              <div v-if="detailItem.finetuneStatus.taskTypes?.length" class="detail-field detail-field--full">
+                <span class="detail-field__label">适用任务</span>
+                <div class="detail-tags">
+                  <span v-for="t in detailItem.finetuneStatus.taskTypes" :key="t" class="detail-tag detail-tag--finetune">{{ t }}</span>
+                </div>
+              </div>
+              <div v-if="detailItem.finetuneStatus.modelVersion" class="detail-field detail-field--full">
+                <span class="detail-field__label">模型版本</span>
+                <span class="detail-field__value detail-field__value--mono">{{ detailItem.finetuneStatus.modelVersion }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1152,6 +1381,10 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
 /* ──── Filter Card ──── */
 .catalog-filter-card {
   position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
   padding: 2px;
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(9, 43, 82, 0.96) 0%, rgba(4, 22, 43, 0.96) 100%);
@@ -1178,10 +1411,10 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 214px;
+  gap: 8px;
+  min-width: 168px;
   height: 34px;
-  padding: 0 12px;
+  padding: 0 10px;
   border-radius: 6px;
 }
 
@@ -1194,7 +1427,9 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
 }
 
 .catalog-filter__select {
-  width: 136px;
+  flex: 1;
+  min-width: 0;
+  width: auto;
 }
 
 .catalog-main__card {
@@ -1772,6 +2007,97 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
   border-color: rgba(41, 163, 255, 0.36);
   color: #eaf5ff;
 }
+
+.detail-tag--agent {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.28);
+  color: rgba(196, 181, 253, 0.9);
+}
+
+.detail-tag--scenario {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: rgba(167, 243, 208, 0.9);
+}
+
+.detail-tag--finetune {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.25);
+  color: rgba(253, 230, 138, 0.9);
+}
+
+.detail-grade {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.detail-grade--A { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+.detail-grade--B { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.detail-grade--C { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+.detail-grade--D { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+.detail-audit-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.detail-audit-badge--approved { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.detail-audit-badge--pending { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.detail-audit-badge--rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+.detail-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.detail-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  background: rgba(41, 163, 255, 0.08);
+  border: 1px solid rgba(41, 163, 255, 0.15);
+  color: rgba(203, 227, 255, 0.8);
+}
+
+.detail-step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(41, 163, 255, 0.2);
+  color: #60a5fa;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* New type-chip variants */
+.type-chip--vector { background: rgba(99, 102, 241, 0.12); border-color: rgba(99, 102, 241, 0.3); color: rgba(165, 180, 252, 0.9); }
+.type-chip--poi { background: rgba(236, 72, 153, 0.12); border-color: rgba(236, 72, 153, 0.3); color: rgba(244, 114, 182, 0.9); }
+.type-chip--battlefield { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.3); color: rgba(248, 113, 113, 0.9); }
+.type-chip--obstacle { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3); color: rgba(251, 191, 36, 0.9); }
+.type-chip--corpus { background: rgba(20, 184, 166, 0.12); border-color: rgba(20, 184, 166, 0.3); color: rgba(94, 234, 212, 0.9); }
+.type-chip--plan { background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3); color: rgba(192, 132, 252, 0.9); }
 
 :deep(.n-tree-node-content) {
   height: 36px;
