@@ -28,6 +28,8 @@ export function useScreenGlobe() {
   const viewerRef = shallowRef<Viewer | null>(null);
   const currentMode = shallowRef<SceneModeKey>('3d');
 
+  let resizeObserver: ResizeObserver | null = null;
+
   const globalImageryUrl = getGlobalImageryUrl();
   const regionImageryUrl = getRegionImageryUrl();
   const localConfig = getLocalImageryConfig();
@@ -306,10 +308,24 @@ export function useScreenGlobe() {
 
     // Start auto rotation
     startAutoRotate();
+
+    // Observe container size changes and resize Cesium canvas
+    if (containerRef.value) {
+      resizeObserver = new ResizeObserver(() => {
+        const viewer = viewerRef.value;
+        if (viewer && !viewer.isDestroyed()) {
+          viewer.resize();
+        }
+      });
+      resizeObserver.observe(containerRef.value);
+    }
   }
 
   // ---- Cleanup ----
   onBeforeUnmount(() => {
+    resizeObserver?.disconnect();
+    resizeObserver = null;
+
     if (onTickListener && viewerRef.value) {
       viewerRef.value.clock.onTick.removeEventListener(onTickListener);
     }

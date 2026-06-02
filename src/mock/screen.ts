@@ -15,12 +15,12 @@ export interface ScreenNoticeItem {
 }
 
 export const screenKpis: ScreenKpiItem[] = [
-  { key: 'taskTotal', label: '任务总数', value: 128, delta: 8 },
-  { key: 'taskOnline', label: '在线任务', value: 12, delta: -1 },
-  { key: 'taskDone', label: '已完成', value: 86, delta: 5 },
-  { key: 'aiCalls', label: 'AI 分析次数', value: 342, delta: 21 },
-  { key: 'users', label: '用户数', value: 24, delta: 2 },
-  { key: 'dataVolume', label: '数据总量', value: '56', unit: 'TB', delta: 3 }
+  { key: 'taskTotal', label: '方案生成总数', value: 128, delta: 8 },
+  { key: 'taskOnline', label: '在研任务', value: 12, delta: -1 },
+  { key: 'taskDone', label: '已交付方案', value: 86, delta: 5 },
+  { key: 'aiCalls', label: '智能体调用次数', value: 342, delta: 21 },
+  { key: 'users', label: '研判席位数', value: 24, delta: 2 },
+  { key: 'dataVolume', label: '地理要素总量', value: '56', unit: 'TB', delta: 3 }
 ];
 
 export const screenTaskTrend = {
@@ -30,16 +30,27 @@ export const screenTaskTrend = {
 };
 
 export const screenTaskDistribution = [
-  { name: '侦察监视', value: 28 },
-  { name: '应急处置', value: 22 },
-  { name: '保障规划', value: 34 },
-  { name: '态势研判', value: 26 },
-  { name: '其它', value: 18 }
+  { name: '渡河保障', value: 28 },
+  { name: '机动路线', value: 22 },
+  { name: '楼宇夺控', value: 34 },
+  { name: '城市攻防', value: 26 },
+  { name: '态势研判', value: 18 }
+];
+
+export const screenDataTypeDistribution = [
+  { name: '遥感影像', value: 18.6 },
+  { name: '数字高程', value: 12.4 },
+  { name: '矢量基础', value: 9.8 },
+  { name: '倾斜摄影', value: 6.5 },
+  { name: '气象水文', value: 4.2 },
+  { name: '地下管网', value: 3.1 },
+  { name: 'POI地名', value: 1.6 }
 ];
 
 export const screenSpatialCoverage = [
-  { name: '影像数据', value: [85, 90, 70, 80, 95] },
-  { name: '矢量数据', value: [70, 65, 85, 90, 75] }
+  { name: '影像保障', value: [85, 90, 70, 80, 95] },
+  { name: '高程保障', value: [78, 72, 82, 88, 76] },
+  { name: '矢量保障', value: [70, 65, 85, 90, 75] }
 ];
 
 export const screenDataUpdateTrend = {
@@ -55,29 +66,29 @@ export const screenSystemStatus = {
 };
 
 export const screenHotKeywords = [
-  { name: '河道通行', value: 820 },
-  { name: '桥梁承载', value: 710 },
-  { name: '道路拥堵', value: 660 },
-  { name: '气象影响', value: 580 },
-  { name: '补给点位', value: 510 },
-  { name: '水文气象', value: 450 },
-  { name: '地理空间', value: 420 },
-  { name: '智能决策', value: 380 },
-  { name: '辅助规划', value: 350 },
-  { name: '楼宇识别', value: 320 },
-  { name: '路径算法', value: 300 },
-  { name: '离线地图', value: 280 },
-  { name: '瓦片加载', value: 250 },
-  { name: '知识图谱', value: 220 },
-  { name: '语义搜索', value: 200 }
+  { name: '水文要素', value: 820 },
+  { name: '岸滩坡度', value: 710 },
+  { name: '交通路网', value: 660 },
+  { name: '桥梁承载', value: 580 },
+  { name: '防御工事', value: 510 },
+  { name: '道路阻断', value: 450 },
+  { name: '障碍物类型', value: 420 },
+  { name: '浮桥跨度', value: 380 },
+  { name: '地质条件', value: 350 },
+  { name: '目标坐标', value: 320 },
+  { name: '楼宇识别', value: 300 },
+  { name: '交通节点', value: 280 },
+  { name: '战场环境', value: 250 },
+  { name: '意图分类', value: 220 },
+  { name: '路径算法', value: 200 }
 ];
 
 export const screenAiRank = [
-  { name: '机动路线规划', value: 64 },
-  { name: '渡河保障方案', value: 52 },
-  { name: '楼宇夺控', value: 41 },
-  { name: '数据目录检索', value: 35 },
-  { name: '态势问答', value: 29 }
+  { name: '机动路线规划智能体', value: 64 },
+  { name: '渡河保障方案智能体', value: 52 },
+  { name: '楼宇夺控智能体', value: 41 },
+  { name: '障碍物识别智能体', value: 35 },
+  { name: '态势研判智能体', value: 29 }
 ];
 
 export interface ScreenGlobePoint {
@@ -121,11 +132,11 @@ export const screenNotices: ScreenNoticeItem[] = [
   {
     id: 'n1',
     level: 'warning',
-    title: '离线瓦片缺失：z=12 片区存在空洞',
+    title: 'IMG 影像瓦片缺失：z=12 片区存在空洞',
     time: '10:12',
-    detail: '建议补齐 tiles/12/* 区域或降低默认缩放级别'
+    detail: '建议补齐 GRST/TIFF 切片或降低默认缩放级别'
   },
-  { id: 'n2', level: 'info', title: 'AI 方案生成完成：渡河保障方案（3 版对比）', time: '09:47' },
-  { id: 'n3', level: 'error', title: '路径规划约束冲突：限高与限宽无法同时满足', time: '09:03' },
-  { id: 'n4', level: 'info', title: '数据目录新增：道路网（离线）更新至 2026-05', time: '08:32' }
+  { id: 'n2', level: 'info', title: '智能体方案生成完成：渡河保障（3 版对比）', time: '09:47' },
+  { id: 'n3', level: 'error', title: '机动路线约束冲突：限高与限宽无法同时满足', time: '09:03' },
+  { id: 'n4', level: 'info', title: '数据目录新增：交通路网（离线）更新至 2026-05', time: '08:32' }
 ];

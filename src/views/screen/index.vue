@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import 'echarts-wordcloud';
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useWindowSize } from '@vueuse/core';
 import { useEcharts } from '@/hooks/common/echarts';
 import {
   screenAiRank,
+  screenDataTypeDistribution,
   screenDataUpdateTrend,
   screenHotKeywords,
   screenKpis,
@@ -33,6 +35,45 @@ function handleSceneModeSwitch(mode: SceneModeKey) {
   globeRef.value?.switchSceneMode(mode);
 }
 
+// ---- Responsive chart sizing ----
+const { width: windowWidth } = useWindowSize();
+const r = computed(() => {
+  const w = windowWidth.value;
+  if (w >= 1920) {
+    return {
+      axis: 12, legend: 12, label: 11, markLabel: 10,
+      barW: 30, barMax: 40, wcMin: 13, wcMax: 32, donutNum: 28, radarR: '70%',
+      aiLabel: 13, aiLabelOffset: [6, 0], wordFontWeight: 'bold'
+    };
+  }
+  if (w >= 1440) {
+    return {
+      axis: 10, legend: 11, label: 10, markLabel: 9,
+      barW: 22, barMax: 32, wcMin: 11, wcMax: 26, donutNum: 22, radarR: '66%',
+      aiLabel: 12, aiLabelOffset: [4, 0], wordFontWeight: 'bold'
+    };
+  }
+  if (w >= 1280) {
+    return {
+      axis: 10, legend: 10, label: 9, markLabel: 9,
+      barW: 20, barMax: 28, wcMin: 10, wcMax: 22, donutNum: 20, radarR: '64%',
+      aiLabel: 11, aiLabelOffset: [3, 0], wordFontWeight: 'bold'
+    };
+  }
+  if (w >= 1100) {
+    return {
+      axis: 9, legend: 9, label: 9, markLabel: 8,
+      barW: 18, barMax: 24, wcMin: 9, wcMax: 20, donutNum: 18, radarR: '60%',
+      aiLabel: 10, aiLabelOffset: [2, 0], wordFontWeight: 'normal'
+    };
+  }
+  return {
+    axis: 9, legend: 9, label: 8, markLabel: 8,
+    barW: 14, barMax: 20, wcMin: 8, wcMax: 18, donutNum: 16, radarR: '56%',
+    aiLabel: 10, aiLabelOffset: [2, 0], wordFontWeight: 'normal'
+  };
+});
+
 // ---- Color palette for charts (matching reference design) ----
 const CHART_COLORS = {
   primary: '#29b6ff',
@@ -47,12 +88,12 @@ const PIE_COLORS = ['#29b6ff', '#00d4aa', '#ffb020', '#7b8cff', '#ff7eb3'];
 
 // ---- Task Distribution Donut Chart (compact with center total) ----
 const taskTotal = screenTaskDistribution.reduce((sum, item) => sum + item.value, 0);
-const { domRef: taskDistributionDomRef } = useEcharts(() => ({
+const { domRef: taskDistributionDomRef, updateOptions: updateTaskDist } = useEcharts(() => ({
   tooltip: {
     trigger: 'item',
     backgroundColor: 'rgba(6, 20, 40, 0.92)',
     borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: 12 },
+    textStyle: { color: '#e0f0ff', fontSize: r.value.label },
     formatter: '{b}: {c} ({d}%)'
   },
   legend: {
@@ -61,11 +102,11 @@ const { domRef: taskDistributionDomRef } = useEcharts(() => ({
     itemWidth: 10,
     itemHeight: 10,
     itemGap: 14,
-    textStyle: { color: 'rgba(180, 210, 240, 0.72)', fontSize: 11 }
+    textStyle: { color: 'rgba(180, 210, 240, 0.72)', fontSize: r.value.legend }
   },
   series: [
     {
-      name: '任务分布',
+      name: '智能体任务分布',
       type: 'pie',
       radius: ['44%', '68%'],
       center: ['50%', '42%'],
@@ -92,7 +133,7 @@ const { domRef: taskDistributionDomRef } = useEcharts(() => ({
           text: String(taskTotal),
           textAlign: 'center',
           fill: '#e4f2ff',
-          fontSize: 22,
+          fontSize: r.value.donutNum,
           fontWeight: 800
         }
       }
@@ -101,19 +142,19 @@ const { domRef: taskDistributionDomRef } = useEcharts(() => ({
 }));
 
 // ---- Task Trend Line Chart ----
-const { domRef: taskTrendDomRef } = useEcharts(() => ({
+const { domRef: taskTrendDomRef, updateOptions: updateTaskTrend } = useEcharts(() => ({
   tooltip: {
     trigger: 'axis',
     backgroundColor: 'rgba(6, 20, 40, 0.92)',
     borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: 12 }
+    textStyle: { color: '#e0f0ff', fontSize: r.value.label }
   },
   legend: {
     top: 2,
     right: 8,
     itemWidth: 14,
     itemHeight: 2,
-    textStyle: { color: 'rgba(180, 210, 240, 0.65)', fontSize: 11 }
+    textStyle: { color: 'rgba(180, 210, 240, 0.65)', fontSize: r.value.legend }
   },
   grid: { left: 12, right: 18, top: 28, bottom: 22, containLabel: true },
   xAxis: {
@@ -121,17 +162,17 @@ const { domRef: taskTrendDomRef } = useEcharts(() => ({
     boundaryGap: false,
     data: screenTaskTrend.dates,
     axisLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.2)' } },
-    axisLabel: { color: 'rgba(160, 195, 235, 0.55)', fontSize: 10 },
+    axisLabel: { color: 'rgba(160, 195, 235, 0.55)', fontSize: r.value.axis },
     axisTick: { show: false }
   },
   yAxis: {
     type: 'value',
     splitLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.1)', type: 'dashed' } },
-    axisLabel: { color: 'rgba(160, 195, 235, 0.45)', fontSize: 10 }
+    axisLabel: { color: 'rgba(160, 195, 235, 0.45)', fontSize: r.value.axis }
   },
   series: [
     {
-      name: '新建',
+      name: '接收任务',
       type: 'line',
       smooth: true,
       symbol: 'circle',
@@ -154,7 +195,7 @@ const { domRef: taskTrendDomRef } = useEcharts(() => ({
       data: screenTaskTrend.created
     },
     {
-      name: '完成',
+      name: '交付方案',
       type: 'line',
       smooth: true,
       symbol: 'circle',
@@ -180,32 +221,32 @@ const { domRef: taskTrendDomRef } = useEcharts(() => ({
 }));
 
 // ---- System Status Gauge/Bar Chart ----
-const { domRef: systemStatusDomRef } = useEcharts(() => ({
+const { domRef: systemStatusDomRef, updateOptions: updateSystemStatus } = useEcharts(() => ({
   tooltip: {
     trigger: 'axis',
     backgroundColor: 'rgba(6, 20, 40, 0.92)',
     borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: 12 }
+    textStyle: { color: '#e0f0ff', fontSize: r.value.label }
   },
   grid: { left: 12, right: 18, top: 20, bottom: 12, containLabel: true },
   xAxis: {
     type: 'category',
-    data: ['健康度', 'CPU使用率', '内存占用', '存储空间'],
+    data: ['平台健康度', 'CPU使用率', '内存占用', '存储空间'],
     axisLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.2)' } },
-    axisLabel: { color: 'rgba(160, 195, 235, 0.55)', fontSize: 10 },
+    axisLabel: { color: 'rgba(160, 195, 235, 0.55)', fontSize: r.value.axis },
     axisTick: { show: false }
   },
   yAxis: {
     type: 'value',
     max: 100,
     splitLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.1)', type: 'dashed' } },
-    axisLabel: { color: 'rgba(160, 195, 235, 0.45)', fontSize: 10, formatter: '{value}%' }
+    axisLabel: { color: 'rgba(160, 195, 235, 0.45)', fontSize: r.value.axis, formatter: '{value}%' }
   },
   series: [
     {
       type: 'bar',
-      barWidth: 22,
-      barMaxWidth: 32,
+      barWidth: r.value.barW,
+      barMaxWidth: r.value.barMax,
       barBorderRadius: [4, 4, 0, 0],
       itemStyle: {
         color: {
@@ -231,25 +272,25 @@ const { domRef: systemStatusDomRef } = useEcharts(() => ({
 }));
 
 // ---- Hot Keywords Word Cloud ----
-const { domRef: hotKeywordsDomRef } = useEcharts(
+const { domRef: hotKeywordsDomRef, updateOptions: updateHotKeywords } = useEcharts(
   () =>
     ({
       tooltip: {
         trigger: 'item',
         backgroundColor: 'rgba(6, 20, 40, 0.92)',
         borderColor: 'rgba(41, 182, 255, 0.25)',
-        textStyle: { color: '#e0f0ff', fontSize: 12 }
+        textStyle: { color: '#e0f0ff', fontSize: r.value.label }
       },
       series: [
         {
           type: 'wordCloud',
-          sizeRange: [11, 26],
+          sizeRange: [r.value.wcMin, r.value.wcMax],
           rotationRange: [0, 0],
           gridSize: 5,
           drawOutOfBound: false,
           layoutAnimation: true,
           textStyle: {
-            fontWeight: 'bold',
+            fontWeight: r.value.wordFontWeight,
             fontFamily: "'Microsoft YaHei', 'PingFang SC', sans-serif"
           },
           emphasis: {
@@ -276,13 +317,13 @@ const { domRef: hotKeywordsDomRef } = useEcharts(
 
 // ---- AI Ranking Horizontal Bar Chart ----
 const aiRankColors = ['#ff5c5c', '#ffb020', '#29b6ff', '#7b8cff', '#a78bfa'];
-const { domRef: aiRankDomRef } = useEcharts(() => ({
+const { domRef: aiRankDomRef, updateOptions: updateAiRank } = useEcharts(() => ({
   tooltip: {
     trigger: 'axis',
     axisPointer: { type: 'shadow' },
     backgroundColor: 'rgba(6, 20, 40, 0.92)',
     borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: 12 }
+    textStyle: { color: '#e0f0ff', fontSize: r.value.label }
   },
   grid: { left: 14, right: 42, top: 10, bottom: 6, containLabel: true },
   xAxis: {
@@ -300,7 +341,7 @@ const { domRef: aiRankDomRef } = useEcharts(() => ({
     axisTick: { show: false },
     axisLabel: {
       color: 'rgba(180, 210, 240, 0.78)',
-      fontSize: 11,
+      fontSize: r.value.legend,
       width: 90,
       overflow: 'truncate',
       ellipsis: '...'
@@ -309,8 +350,8 @@ const { domRef: aiRankDomRef } = useEcharts(() => ({
   series: [
     {
       type: 'bar',
-      barWidth: 16,
-      barMaxWidth: 20,
+      barWidth: r.value.barW - 6,
+      barMaxWidth: r.value.barMax - 8,
       barGap: '30%',
       itemStyle: {
         borderRadius: [0, 10, 10, 0],
@@ -335,10 +376,10 @@ const { domRef: aiRankDomRef } = useEcharts(() => ({
         show: true,
         position: 'right',
         color: 'rgba(228, 242, 255, 0.85)',
-        fontSize: 12,
+        fontSize: r.value.aiLabel,
         fontWeight: 700,
         fontFamily: "'DIN', 'Consolas', monospace",
-        offset: [4, 0]
+        offset: r.value.aiLabelOffset
       },
       data: screenAiRank.map(i => i.value)
     }
@@ -346,12 +387,12 @@ const { domRef: aiRankDomRef } = useEcharts(() => ({
 }));
 
 // ---- Bottom: Data Type Distribution Pie ----
-const { domRef: bottomDistDomRef } = useEcharts(() => ({
+const { domRef: bottomDistDomRef, updateOptions: updateBottomDist } = useEcharts(() => ({
   tooltip: {
     trigger: 'item',
     backgroundColor: 'rgba(6, 20, 40, 0.92)',
     borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: 12 },
+    textStyle: { color: '#e0f0ff', fontSize: r.value.label },
     formatter: '{b}: {c}TB ({d}%)'
   },
   legend: {
@@ -361,12 +402,12 @@ const { domRef: bottomDistDomRef } = useEcharts(() => ({
     itemWidth: 9,
     itemHeight: 9,
     itemGap: 10,
-    textStyle: { color: 'rgba(170, 200, 240, 0.68)', fontSize: 10 },
+    textStyle: { color: 'rgba(170, 200, 240, 0.68)', fontSize: r.value.legend },
     formatter: name => `${name}  `
   },
   series: [
     {
-      name: '数据类型分布',
+      name: '基础地理要素类型分布',
       type: 'pie',
       radius: ['48%', '76%'],
       center: ['62%', '50%'],
@@ -385,7 +426,7 @@ const { domRef: bottomDistDomRef } = useEcharts(() => ({
         scaleSize: 6,
         itemStyle: { shadowBlur: 16, shadowColor: 'rgba(0, 0, 0, 0.35)' }
       },
-      data: screenTaskDistribution.map((item, i) => ({
+      data: screenDataTypeDistribution.map((item, i) => ({
         ...item,
         itemStyle: { color: PIE_COLORS[i % PIE_COLORS.length] }
       }))
@@ -394,12 +435,12 @@ const { domRef: bottomDistDomRef } = useEcharts(() => ({
 }));
 
 // ---- Bottom: Spatial Coverage Radar Chart ----
-const { domRef: bottomRadarDomRef } = useEcharts(() => ({
+const { domRef: bottomRadarDomRef, updateOptions: updateBottomRadar } = useEcharts(() => ({
   tooltip: {
     trigger: 'item',
     backgroundColor: 'rgba(6, 20, 40, 0.92)',
     borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: 12 }
+    textStyle: { color: '#e0f0ff', fontSize: r.value.label }
   },
   legend: {
     top: 4,
@@ -407,7 +448,7 @@ const { domRef: bottomRadarDomRef } = useEcharts(() => ({
     itemWidth: 12,
     itemHeight: 3,
     itemGap: 16,
-    textStyle: { color: 'rgba(170, 200, 240, 0.68)', fontSize: 10 }
+    textStyle: { color: 'rgba(170, 200, 240, 0.68)', fontSize: r.value.legend }
   },
   radar: {
     indicator: [
@@ -417,13 +458,13 @@ const { domRef: bottomRadarDomRef } = useEcharts(() => ({
       { name: '覆盖度', max: 100 },
       { name: '可用性', max: 100 }
     ],
-    radius: '66%',
+    radius: r.value.radarR,
     center: ['50%', '54%'],
     shape: 'polygon',
     splitNumber: 4,
     axisName: {
       color: 'rgba(165, 198, 240, 0.68)',
-      fontSize: 10,
+      fontSize: r.value.axis,
       padding: [2, 4]
     },
     splitArea: {
@@ -441,7 +482,7 @@ const { domRef: bottomRadarDomRef } = useEcharts(() => ({
   },
   series: [
     {
-      name: '空间数据覆盖',
+      name: '要素保障能力',
       type: 'radar',
       symbol: 'circle',
       symbolSize: 4,
@@ -461,20 +502,20 @@ const { domRef: bottomRadarDomRef } = useEcharts(() => ({
 }));
 
 // ---- Bottom: Data Update Trend Area Chart ----
-const { domRef: bottomTrendDomRef } = useEcharts(() => ({
+const { domRef: bottomTrendDomRef, updateOptions: updateBottomTrend } = useEcharts(() => ({
   tooltip: {
     trigger: 'axis',
     backgroundColor: 'rgba(6, 20, 40, 0.92)',
     borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: 12 }
+    textStyle: { color: '#e0f0ff', fontSize: r.value.label }
   },
   legend: {
     top: 2,
     right: 8,
     itemWidth: 14,
     itemHeight: 2,
-    textStyle: { color: 'rgba(180, 210, 240, 0.55)', fontSize: 10 },
-    data: ['总更新量']
+    textStyle: { color: 'rgba(180, 210, 240, 0.55)', fontSize: r.value.legend },
+    data: ['要素更新量']
   },
   grid: { left: 12, right: 18, top: 28, bottom: 22, containLabel: true },
   xAxis: {
@@ -482,17 +523,17 @@ const { domRef: bottomTrendDomRef } = useEcharts(() => ({
     boundaryGap: false,
     data: screenDataUpdateTrend.dates,
     axisLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.2)' } },
-    axisLabel: { color: 'rgba(160, 195, 235, 0.55)', fontSize: 10 },
+    axisLabel: { color: 'rgba(160, 195, 235, 0.55)', fontSize: r.value.axis },
     axisTick: { show: false }
   },
   yAxis: {
     type: 'value',
     splitLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.1)', type: 'dashed' } },
-    axisLabel: { color: 'rgba(160, 195, 235, 0.45)', fontSize: 10 }
+    axisLabel: { color: 'rgba(160, 195, 235, 0.45)', fontSize: r.value.axis }
   },
   series: [
     {
-      name: '总更新量',
+      name: '要素更新量',
       type: 'line',
       smooth: true,
       symbol: 'circle',
@@ -518,12 +559,31 @@ const { domRef: bottomTrendDomRef } = useEcharts(() => ({
         symbol: 'circle',
         symbolSize: 8,
         itemStyle: { color: CHART_COLORS.primary, borderColor: '#fff', borderWidth: 2 },
-        label: { color: '#fff', fontSize: 9, fontWeight: 600 }
+        label: { color: '#fff', fontSize: r.value.markLabel, fontWeight: 600 }
       },
       data: screenDataUpdateTrend.updates
     }
   ]
 }));
+
+// ---- Re-apply chart options when window width crosses a breakpoint ----
+const buckets = [0, 720, 1100, 1280, 1440, 1920, Infinity] as const;
+function widthBucket(w: number) {
+  return buckets.findIndex(b => w < b);
+}
+watch(
+  () => widthBucket(windowWidth.value),
+  () => {
+    updateTaskDist();
+    updateTaskTrend();
+    updateSystemStatus();
+    updateHotKeywords();
+    updateAiRank();
+    updateBottomDist();
+    updateBottomRadar();
+    updateBottomTrend();
+  }
+);
 </script>
 
 <script lang="ts">
@@ -555,7 +615,7 @@ function getKpiIcon(key: string): string {
           <div class="screen-panel">
             <div class="panel-header">
               <SvgIcon icon="mdi:chart-donut-variant" class="panel-header__icon" />
-              <span class="panel-header__title">任务概览</span>
+              <span class="panel-header__title">智能体任务分布</span>
             </div>
             <div ref="taskDistributionDomRef" class="chart-body"></div>
           </div>
@@ -564,7 +624,7 @@ function getKpiIcon(key: string): string {
           <div class="screen-panel">
             <div class="panel-header">
               <SvgIcon icon="mdi:chart-timeline-variant-shimmer" class="panel-header__icon" />
-              <span class="panel-header__title">任务趋势</span>
+              <span class="panel-header__title">方案生成时效趋势</span>
               <div class="panel-tabs">
                 <button type="button" class="tab-active">近7天</button>
                 <button type="button" class="tab-btn">近30天</button>
@@ -577,7 +637,7 @@ function getKpiIcon(key: string): string {
           <div class="screen-panel">
             <div class="panel-header">
               <SvgIcon icon="mdi:server-outline" class="panel-header__icon" />
-              <span class="panel-header__title">系统运行状态</span>
+              <span class="panel-header__title">平台运行健康度</span>
             </div>
             <div ref="systemStatusDomRef" class="chart-body chart-body--compact"></div>
           </div>
@@ -627,19 +687,19 @@ function getKpiIcon(key: string): string {
         <div class="bottom-charts">
           <div class="screen-panel">
             <div class="panel-header panel-header--sm">
-              <span class="panel-header__title">数据类型分布</span>
+              <span class="panel-header__title">基础地理要素类型分布</span>
             </div>
             <div ref="bottomDistDomRef" class="chart-body"></div>
           </div>
           <div class="screen-panel">
             <div class="panel-header panel-header--sm">
-              <span class="panel-header__title">空间数据覆盖评估图</span>
+              <span class="panel-header__title">要素保障能力雷达</span>
             </div>
             <div ref="bottomRadarDomRef" class="chart-body"></div>
           </div>
           <div class="screen-panel">
             <div class="panel-header panel-header--sm">
-              <span class="panel-header__title">数据更新趋势</span>
+              <span class="panel-header__title">地理要素更新频次</span>
             </div>
             <div ref="bottomTrendDomRef" class="chart-body"></div>
           </div>
@@ -653,7 +713,7 @@ function getKpiIcon(key: string): string {
           <div class="screen-panel">
             <div class="panel-header">
               <SvgIcon icon="mdi:cloud-outline" class="panel-header__icon" />
-              <span class="panel-header__title">热点词云</span>
+              <span class="panel-header__title">意图解析高频要素</span>
             </div>
             <div ref="hotKeywordsDomRef" class="chart-body"></div>
           </div>
@@ -662,7 +722,7 @@ function getKpiIcon(key: string): string {
           <div class="screen-panel">
             <div class="panel-header">
               <SvgIcon icon="mdi:format-list-numbered" class="panel-header__icon" />
-              <span class="panel-header__title">分析任务排名</span>
+              <span class="panel-header__title">智能体调用榜</span>
             </div>
             <div ref="aiRankDomRef" class="chart-body"></div>
           </div>
@@ -671,7 +731,7 @@ function getKpiIcon(key: string): string {
           <div class="screen-panel screen-panel--notice">
             <div class="panel-header">
               <SvgIcon icon="mdi:bell-ring-outline" class="panel-header__icon" />
-              <span class="panel-header__title">事件动态</span>
+              <span class="panel-header__title">情报与态势事件流</span>
             </div>
             <div class="notice-list">
               <div v-for="n in screenNotices" :key="n.id" class="notice-item">
@@ -745,11 +805,11 @@ function getKpiIcon(key: string): string {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1fr minmax(auto, 960px) 1fr;
-  gap: 12px;
+  grid-template-columns: minmax(220px, 0.6fr) minmax(0, 1.8fr) minmax(220px, 0.6fr);
+  gap: clamp(8px, 0.8vw, 14px);
   height: 100%;
   min-height: 0;
-  padding: 12px 14px;
+  padding: clamp(8px, 0.8vw, 14px);
   box-sizing: border-box;
 }
 
@@ -758,7 +818,7 @@ function getKpiIcon(key: string): string {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  gap: 12px;
+  gap: clamp(8px, 0.8vw, 14px);
 }
 
 .screen-center {
@@ -907,14 +967,14 @@ function getKpiIcon(key: string): string {
 }
 
 .panel-header__icon {
-  font-size: 16px;
+  font-size: clamp(14px, 0.5vw + 0.6rem, 17px);
   color: var(--sd-accent-blue);
   opacity: 0.85;
   filter: drop-shadow(0 0 4px rgba(41, 182, 255, 0.25));
 }
 
 .panel-header__title {
-  font-size: 13px;
+  font-size: clamp(12px, 0.55vw + 0.5rem, 15px);
   font-weight: 700;
   letter-spacing: 0.5px;
   color: var(--sd-text-primary);
@@ -950,11 +1010,12 @@ function getKpiIcon(key: string): string {
 
 .chart-body {
   flex: 1;
-  min-height: 0;
+  min-height: 140px;
   padding: 4px 4px 6px;
 }
 .chart-body--compact {
   padding: 2px 4px 4px;
+  min-height: 110px;
 }
 
 /* ============================================================
@@ -1027,7 +1088,7 @@ function getKpiIcon(key: string): string {
   min-width: 0;
 }
 .kpi-item__label {
-  font-size: 11px;
+  font-size: clamp(10px, 0.5vw + 0.45rem, 12px);
   color: var(--sd-text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -1040,7 +1101,7 @@ function getKpiIcon(key: string): string {
   margin-top: 2px;
 }
 .kpi-item__value {
-  font-size: 18px;
+  font-size: clamp(14px, 1vw + 0.55rem, 22px);
   font-weight: 700;
   color: var(--sd-text-primary);
   font-variant-numeric: tabular-nums;
@@ -1048,7 +1109,7 @@ function getKpiIcon(key: string): string {
   text-shadow: 0 0 6px rgba(41, 182, 255, 0.1);
 }
 .kpi-item__delta {
-  font-size: 10px;
+  font-size: clamp(9px, 0.4vw + 0.4rem, 11px);
   font-weight: 600;
   color: rgba(0, 212, 170, 0.7);
 }
@@ -1056,7 +1117,7 @@ function getKpiIcon(key: string): string {
   color: rgba(255, 92, 92, 0.7);
 }
 .kpi-item__unit {
-  font-size: 10px;
+  font-size: clamp(9px, 0.4vw + 0.4rem, 11px);
   color: var(--sd-text-muted);
   margin-top: 1px;
 }
@@ -1309,19 +1370,49 @@ function getKpiIcon(key: string): string {
 
 /* ============================================================
    RESPONSIVE BREAKPOINTS
+   ≥1920 4K boost, ≥1440 default, 1280 step-down,
+   1100 single-column, 720 phone-style
    ============================================================ */
+
+@media (min-width: 1920px) {
+  .screen-grid {
+    grid-template-columns: minmax(260px, 0.65fr) minmax(0, 1.9fr) minmax(260px, 0.65fr);
+  }
+  .kpi-item__value {
+    text-shadow: 0 0 8px rgba(41, 182, 255, 0.18);
+  }
+  .chart-body {
+    min-height: 180px;
+  }
+  .chart-body--compact {
+    min-height: 140px;
+  }
+}
 
 @media (max-width: 1440px) {
   .screen-grid {
-    grid-template-columns: 1fr minmax(auto, 860px) 1fr;
-    gap: 10px;
+    grid-template-columns: minmax(200px, 0.55fr) minmax(0, 1.7fr) minmax(200px, 0.55fr);
   }
-  .kpi-bar {
-    grid-template-columns: repeat(4, 1fr);
+  .kpi-item__icon-wrap {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .screen-grid {
+    grid-template-columns: minmax(180px, 0.5fr) minmax(0, 1.4fr) minmax(180px, 0.5fr);
   }
   .bottom-charts {
     grid-template-columns: 1fr;
-    min-height: 180px;
+    min-height: 200px;
+  }
+  .panel-header {
+    padding: 8px 10px;
+  }
+  .panel-header--sm {
+    padding: 6px 10px;
   }
 }
 
@@ -1339,18 +1430,21 @@ function getKpiIcon(key: string): string {
     min-width: 260px;
     flex: 1;
   }
-  .screen-row {
-    flex: 1;
-    min-width: 200px;
-  }
   .bottom-charts {
     grid-template-columns: repeat(3, 1fr);
+  }
+  .chart-body {
+    min-height: 180px;
   }
 }
 
 @media (max-width: 720px) {
   .kpi-bar {
-    grid-template-columns: repeat(2, 1fr);
+    flex-wrap: wrap;
+  }
+  .kpi-item {
+    min-width: calc(50% - 4px);
+    flex: 1 1 calc(50% - 4px);
   }
   .screen-left,
   .screen-right {
@@ -1358,6 +1452,15 @@ function getKpiIcon(key: string): string {
   }
   .bottom-charts {
     grid-template-columns: 1fr;
+  }
+  .kpi-item__value {
+    font-size: 16px;
+  }
+  .panel-header__title {
+    font-size: 12px;
+  }
+  .chart-body {
+    min-height: 160px;
   }
 }
 </style>
