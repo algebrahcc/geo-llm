@@ -19,7 +19,8 @@ const emit = defineEmits<{
   'update:source': [value: string];
   'update:status': [value: string];
   'update:sort': [value: string];
-  import: [];
+  importDoc: [];
+  importImage: [];
   reset: [];
 }>();
 </script>
@@ -52,11 +53,17 @@ const emit = defineEmits<{
         <NSelect :value="sort" class="filter-select" placeholder="默认" :options="sortOptions" @update:value="emit('update:sort', $event)" />
       </div>
       <NButton size="small" @click="emit('reset')">重置</NButton>
-      <NButton type="primary" size="small" @click="emit('import')">
+      <NButton type="primary" size="small" @click="emit('importDoc')">
         <template #icon>
-          <SvgIcon icon="mdi:upload-outline" />
+          <SvgIcon icon="mdi:file-upload-outline" />
         </template>
         导入文档
+      </NButton>
+      <NButton size="small" @click="emit('importImage')">
+        <template #icon>
+          <SvgIcon icon="mdi:image-plus-outline" />
+        </template>
+        导入图片
       </NButton>
     </div>
   </div>

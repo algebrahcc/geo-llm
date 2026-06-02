@@ -1,6 +1,7 @@
 import { reactive } from 'vue';
+import { runKnowledgeRetrieval } from './knowledge';
 
-export type AgentKey = 'geo-analysis' | 'route-planning' | 'river-support' | 'image-recognition';
+export type AgentKey = string;
 export type AgentRuntimeStatus = 'online' | 'busy' | 'draft';
 export type AgentTaskStatus = 'running' | 'success' | 'failed';
 export type AgentStepStatus = 'waiting' | 'running' | 'success' | 'failed';
@@ -15,7 +16,7 @@ export interface AgentDefinition {
   status: AgentRuntimeStatus;
   model: string;
   version: string;
-  successRate: number;
+  confidence: number;
   avgDuration: string;
   icon: string;
   capabilityTags: string[];
@@ -84,7 +85,7 @@ export interface AgentRunFormModel {
   input: string;
 }
 
-export const agentDefinitions: AgentDefinition[] = [
+export const agentDefinitions = reactive<AgentDefinition[]>([
   {
     key: 'geo-analysis',
     name: '地理分析助手',
@@ -94,7 +95,7 @@ export const agentDefinitions: AgentDefinition[] = [
     status: 'online',
     model: 'Qwen-3.6-Plus',
     version: 'v1.6',
-    successRate: 96,
+    confidence: 96,
     avgDuration: '48s',
     icon: 'mdi:earth-box',
     capabilityTags: ['地形判读', '重点区域提取', '风险摘要'],
@@ -111,7 +112,7 @@ export const agentDefinitions: AgentDefinition[] = [
     status: 'online',
     model: 'Deepseek-V3.2',
     version: 'v1.4',
-    successRate: 92,
+    confidence: 92,
     avgDuration: '63s',
     icon: 'mdi:routes',
     capabilityTags: ['多路线对比', '约束解释', '风险提示'],
@@ -128,7 +129,7 @@ export const agentDefinitions: AgentDefinition[] = [
     status: 'busy',
     model: 'Qwen3.6-Plus',
     version: 'v1.3',
-    successRate: 89,
+    confidence: 89,
     avgDuration: '71s',
     icon: 'mdi:ferry',
     capabilityTags: ['方案摘要', '风险缓解', '资源建议'],
@@ -145,7 +146,7 @@ export const agentDefinitions: AgentDefinition[] = [
     status: 'draft',
     model: 'InternVL',
     version: 'v0.9',
-    successRate: 84,
+    confidence: 84,
     avgDuration: '58s',
     icon: 'mdi:image-search',
     capabilityTags: ['目标识别', '区域判读', '专题摘要'],
@@ -153,6 +154,51 @@ export const agentDefinitions: AgentDefinition[] = [
     recommendedPrompts: ['识别影像中的关键设施', '输出目标识别摘要', '结合知识库说明目标价值'],
     defaultInput: '请对上传影像做目标识别和价值判断，并输出结构化摘要。'
   }
+]);
+
+/** 可选图标列表 */
+export const agentIconOptions = [
+  { label: '地球', value: 'mdi:earth-box' },
+  { label: '路线', value: 'mdi:routes' },
+  { label: '渡轮', value: 'mdi:ferry' },
+  { label: '图像搜索', value: 'mdi:image-search' },
+  { label: '机器人', value: 'mdi:robot' },
+  { label: '大脑', value: 'mdi:brain' },
+  { label: '卫星', value: 'mdi:satellite-variant' },
+  { label: '雷达', value: 'mdi:radar' },
+  { label: '地图', value: 'mdi:map-marker-radius' },
+  { label: '气象', value: 'mdi:weather-partly-cloudy' },
+  { label: '指南针', value: 'mdi:compass' },
+  { label: '图表', value: 'mdi:chart-areaspline' }
+];
+
+/** 可选分类 */
+export const agentCategoryOptions = [
+  { label: '地理环境', value: '地理环境' },
+  { label: '规划推演', value: '规划推演' },
+  { label: '方案生成', value: '方案生成' },
+  { label: '影像智能', value: '影像智能' },
+  { label: '其他', value: '其他' }
+];
+
+/** 可选模型 */
+export const agentModelOptions = [
+  { label: 'Qwen-3.6-Plus', value: 'Qwen-3.6-Plus' },
+  { label: 'Deepseek-V3.2', value: 'Deepseek-V3.2' },
+  { label: 'InternVL', value: 'InternVL' },
+  { label: 'Qwen3.6-Plus', value: 'Qwen3.6-Plus' }
+];
+
+/** 可选工具 */
+export const agentToolOptions = [
+  '知识库检索',
+  'Web球定位',
+  '截图导出',
+  '路线规划结果',
+  '方案材料导出',
+  '地图标注',
+  '影像结果解析',
+  '截图对比'
 ];
 
 export const agentConfigStore = reactive<Record<AgentKey, AgentConfigModel>>({
@@ -326,6 +372,27 @@ export function getTaskById(id: string) {
 export function createAgentRunTask(payload: AgentRunFormModel) {
   const agent = getAgentByKey(payload.agentKey);
   const timestamp = Date.now();
+
+  // 实际调用知识库检索
+  const retrievalResults = runKnowledgeRetrieval(payload.input.trim());
+  const totalHits = retrievalResults.reduce((sum, r) => sum + r.matches.length, 0);
+  const hitDocCount = retrievalResults.length;
+  const topDocNames = retrievalResults.slice(0, 3).map(r => r.document.name);
+  const topSnippet = retrievalResults[0]?.matches[0]?.snippet || '';
+
+  const retrieveDesc = totalHits > 0
+    ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk（${topDocNames.slice(0, 2).join('、')}）`
+    : '未命中相关文档，使用默认知识模板';
+
+  const references = totalHits > 0
+    ? [...topDocNames, '运行模板', '智能体默认配置']
+    : ['无相关命中文档', '运行模板', '智能体默认配置'];
+
+  const knowledgeSummary = totalHits > 0
+    ? `已从 ${hitDocCount} 篇知识库文档中召回 ${totalHits} 条相关片段`
+    : '未检索到匹配知识';
+  const enrichedSnippet = topSnippet ? `（示例片段：${topSnippet.slice(0, 60)}...）` : '';
+
   const task: AgentRunTask = {
     id: `task-${payload.agentKey}-${timestamp}`,
     agentKey: payload.agentKey,
@@ -335,15 +402,15 @@ export function createAgentRunTask(payload: AgentRunFormModel) {
     updatedAt: '2026-05-24 21:21',
     operator: '演示账号',
     input: payload.input.trim(),
-    summary: `已基于 ${agent.name} 完成一次前端模拟运行。`,
-    result: `结论：${agent.name} 已完成本次任务分析。依据要点：已联动知识检索、能力链路和结果压缩模块。建议动作：进入任务详情查看步骤、日志和引用来源。`,
-    references: ['知识库命中文档', '运行模板', '智能体默认配置'],
+    summary: `已基于 ${agent.name} 完成一次前端模拟运行。${knowledgeSummary}。`,
+    result: `结论：${agent.name} 已完成本次任务分析。${knowledgeSummary}${enrichedSnippet} 依据要点：已联动知识检索、能力链路和结果压缩模块。建议动作：进入任务详情查看步骤、日志和引用来源。`,
+    references,
     steps: [
       { key: 'intent', label: '输入理解', description: '解析任务输入与约束', status: 'success', duration: '5s' },
       {
         key: 'retrieve',
         label: '知识检索',
-        description: '召回知识与模板',
+        description: retrieveDesc,
         status: 'success',
         duration: '11s',
         tool: '知识库检索'
@@ -353,8 +420,8 @@ export function createAgentRunTask(payload: AgentRunFormModel) {
     ],
     metrics: {
       duration: '40s',
-      tokens: 2680,
-      confidence: 90
+      tokens: 2680 + totalHits * 120,
+      confidence: totalHits > 0 ? 90 : 80
     }
   };
 
@@ -375,14 +442,29 @@ export function rerunAgentTask(taskId: string) {
 
 export function runAgentTest(agentKey: AgentKey, prompt: string) {
   const agent = getAgentByKey(agentKey);
+
+  // 实际调用知识库检索
+  const retrievalResults = runKnowledgeRetrieval(prompt);
+  const totalHits = retrievalResults.reduce((sum, r) => sum + r.matches.length, 0);
+  const hitDocCount = retrievalResults.length;
+  const topDocNames = retrievalResults.slice(0, 3).map(r => r.document.name);
+
+  const retrievalDetail = totalHits > 0
+    ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk（${topDocNames[0] || ''}）`
+    : '未命中相关文档';
+
+  const references = totalHits > 0
+    ? [...topDocNames, '配置模板']
+    : ['配置模板'];
+
   const record: AgentTestRecord = {
     id: `test-${agentKey}-${Date.now()}`,
     agentKey,
     prompt: prompt.trim(),
-    response: `${agent.name} 已完成测试响应，当前返回结论、关键依据和建议动作三段结构，可用于工作台演示。`,
-    references: ['知识库命中文档', '配置模板'],
+    response: `${agent.name} 已完成测试响应，${totalHits > 0 ? `基于 ${hitDocCount} 篇知识文档和` : ''}能力链路输出结论、关键依据和建议动作三段结构，可用于工作台演示。`,
+    references,
     steps: [
-      { label: 'Prompt 解析', detail: '识别问题、范围和输出格式' },
+      { label: '知识召回', detail: retrievalDetail },
       { label: '工具调用', detail: `启用 ${getAgentConfigByKey(agentKey).enabledTools.join(' / ')}` },
       { label: '结果生成', detail: '返回结构化文本与引用来源' }
     ],
@@ -391,4 +473,60 @@ export function runAgentTest(agentKey: AgentKey, prompt: string) {
 
   agentTestRecords.unshift(record);
   return record;
+}
+
+/** 新建智能体表单数据 */
+export interface AgentCreateModel {
+  name: string;
+  slogan: string;
+  description: string;
+  category: string;
+  icon: string;
+  model: string;
+  temperature: number;
+  timeout: number;
+  retry: number;
+  tools: string[];
+  capabilityTags: string[];
+  recommendedPrompts: string[];
+  systemPrompt: string;
+  defaultInput: string;
+}
+
+/** 创建新智能体：向 agentDefinitions 和 agentConfigStore 中添加记录 */
+export function createAgentDefinition(payload: AgentCreateModel): AgentDefinition {
+  const key = `custom-${Date.now()}`;
+  const definition: AgentDefinition = {
+    key,
+    name: payload.name.trim(),
+    slogan: payload.slogan.trim(),
+    description: payload.description.trim(),
+    category: payload.category,
+    status: 'draft',
+    model: payload.model,
+    version: 'v0.1',
+    confidence: 0,
+    avgDuration: '--',
+    icon: payload.icon,
+    capabilityTags: [...payload.capabilityTags],
+    tools: [...payload.tools],
+    recommendedPrompts: [...payload.recommendedPrompts],
+    defaultInput: payload.defaultInput.trim()
+  };
+
+  agentDefinitions.push(definition);
+
+  agentConfigStore[key] = {
+    key,
+    systemPrompt: payload.systemPrompt.trim(),
+    model: payload.model,
+    temperature: payload.temperature,
+    timeout: payload.timeout,
+    retry: payload.retry,
+    enabledTools: [...payload.tools],
+    outputFormat: 'markdown',
+    publish: false
+  };
+
+  return definition;
 }

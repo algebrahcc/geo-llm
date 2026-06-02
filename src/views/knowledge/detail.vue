@@ -29,6 +29,7 @@ const categoryLabel = computed(
   () => knowledgeCategories.find(item => item.key === detail.value?.category)?.label || '--'
 );
 const statusMeta = computed(() => getKnowledgeStatusMeta(detail.value?.status || 'draft'));
+const isImageDoc = computed(() => detail.value?.format === 'IMAGE');
 
 const editModel = computed<KnowledgeEditFormModel | null>(() => {
   if (!detail.value) return null;
@@ -93,8 +94,8 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
       <template v-if="detail">
         <div class="panel-surface detail-hero">
           <div class="panel-head">
-            <SvgIcon icon="mdi:file-document-outline" class="panel-head__icon" />
-            <span class="panel-head__title">文档详情</span>
+            <SvgIcon :icon="isImageDoc ? 'mdi:image-outline' : 'mdi:file-document-outline'" class="panel-head__icon" />
+            <span class="panel-head__title">{{ isImageDoc ? '图片文档详情' : '文档详情' }}</span>
           </div>
           <div class="panel-body">
             <div class="flex flex-wrap items-start justify-between gap-14px">
@@ -134,7 +135,10 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
                 </div>
                 <div class="field">
                   <span class="field__label">文件格式</span>
-                  <span class="field__value">{{ detail.format }}</span>
+                  <span class="field__value">
+                    <NTag v-if="isImageDoc" size="small" round type="info" :bordered="false">图片</NTag>
+                    <template v-else>{{ detail.format }}</template>
+                  </span>
                 </div>
                 <div class="field">
                   <span class="field__label">文档大小</span>
@@ -176,8 +180,16 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
                   <span class="field__value">{{ detail.indexMode }}</span>
                 </div>
                 <div class="metric-row">
-                  <span class="field__label">分块数量</span>
-                  <span class="field__value">{{ detail.chunkCount }}</span>
+                  <span class="field__label">{{ isImageDoc ? '区域数量' : '分块数量' }}</span>
+                  <span class="field__value">{{ isImageDoc ? (detail.regionCount ?? detail.chunkCount) : detail.chunkCount }}</span>
+                </div>
+                <div v-if="isImageDoc && detail.segmentModel" class="metric-row">
+                  <span class="field__label">分割模型</span>
+                  <span class="field__value">{{ detail.segmentModel }}</span>
+                </div>
+                <div v-if="isImageDoc && detail.extractModel" class="metric-row">
+                  <span class="field__label">提取模型</span>
+                  <span class="field__value">{{ detail.extractModel }}</span>
                 </div>
                 <div class="metric-row">
                   <span class="field__label">命中次数</span>
@@ -200,21 +212,34 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
 
         <div class="panel-surface">
           <div class="panel-head">
-            <SvgIcon icon="mdi:view-grid-outline" class="panel-head__icon" />
-            <span class="panel-head__title">Chunk 预览</span>
+            <SvgIcon :icon="isImageDoc ? 'mdi:image-search-outline' : 'mdi:view-grid-outline'" class="panel-head__icon" />
+            <span class="panel-head__title">{{ isImageDoc ? '区域要素预览' : 'Chunk 预览' }}</span>
           </div>
           <div class="panel-body">
             <div class="grid gap-10px lg:grid-cols-2">
               <div v-for="chunk in detail.chunks" :key="chunk.id" class="chunk-card">
                 <div class="flex items-center justify-between gap-10px">
-                  <div class="card-title">{{ chunk.title }}</div>
-                  <NTag size="small" round :bordered="false" :type="chunk.status === 'ready' ? 'success' : 'warning'">
-                    {{ chunk.status === 'ready' ? '已审核' : '待复核' }}
-                  </NTag>
+                  <div class="flex items-center gap-6px">
+                    <NTag v-if="chunk.type === 'image-region'" size="small" round type="info" :bordered="false" class="region-tag">
+                      区域 {{ chunk.regionIndex }}
+                    </NTag>
+                    <div class="card-title">{{ chunk.title }}</div>
+                  </div>
+                  <div class="flex items-center gap-6px">
+                    <span v-if="chunk.confidence != null" class="confidence-tag" :class="`confidence-tag--${chunk.confidence >= 0.8 ? 'high' : chunk.confidence >= 0.5 ? 'mid' : 'low'}`">
+                      {{ (chunk.confidence * 100).toFixed(0) }}%
+                    </span>
+                    <NTag size="small" round :bordered="false" :type="chunk.status === 'ready' ? 'success' : 'warning'">
+                      {{ chunk.status === 'ready' ? '已审核' : '待复核' }}
+                    </NTag>
+                  </div>
                 </div>
                 <div class="card-desc">{{ chunk.content }}</div>
                 <div class="mt-10px flex flex-wrap items-center justify-between gap-8px">
                   <div class="flex flex-wrap gap-4px">
+                    <NTag v-if="chunk.type === 'image-region'" size="small" round :bordered="false" class="detail-tag detail-tag--image">
+                      图片要素
+                    </NTag>
                     <NTag v-for="tag in chunk.keywords" :key="tag" size="small" round :bordered="false" class="detail-tag">
                       {{ tag }}
                     </NTag>
@@ -429,6 +454,41 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
   background: rgba(41, 163, 255, 0.1);
   border: 1px solid rgba(41, 163, 255, 0.22);
   color: rgba(203, 227, 255, 0.82);
+}
+
+.detail-tag--image {
+  background: rgba(98, 228, 255, 0.1);
+  border: 1px solid rgba(98, 228, 255, 0.25);
+  color: rgba(180, 236, 255, 0.9);
+}
+
+.region-tag {
+  font-size: 11px;
+}
+
+.confidence-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.confidence-tag--high {
+  background: rgba(46, 204, 113, 0.15);
+  color: #5ee8a0;
+}
+
+.confidence-tag--mid {
+  background: rgba(241, 196, 15, 0.15);
+  color: #f1c40f;
+}
+
+.confidence-tag--low {
+  background: rgba(255, 107, 107, 0.15);
+  color: #ff6b6b;
 }
 
 .log-item {

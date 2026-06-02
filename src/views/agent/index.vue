@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import { agentDefinitions, createAgentRunTask, getTasksByAgentKey } from '@/mock/agent';
+import { agentDefinitions, createAgentDefinition, createAgentRunTask, getTasksByAgentKey, type AgentCreateModel } from '@/mock/agent';
 import AgentLogList from './modules/agent-log-list.vue';
 import AgentSidebar from './modules/agent-sidebar.vue';
 import AgentStageBoard from './modules/agent-stage-board.vue';
+import AgentCreateForm from './modules/agent-create-form.vue';
 import { useAgentSelection } from './modules/use-agent';
 
 defineOptions({
@@ -18,6 +19,9 @@ const router = useRouter();
 const themeStore = useThemeStore();
 const darkMode = computed(() => themeStore.darkMode);
 const { agentKey, selectedAgent, updateAgentQuery } = useAgentSelection(route, router);
+
+type PageMode = 'workbench' | 'create';
+const pageMode = ref<PageMode>('workbench');
 
 const runForm = reactive({
   title: '',
@@ -35,12 +39,31 @@ function syncInputWithAgent() {
 syncInputWithAgent();
 
 function handleAgentSelect(key: typeof agentKey.value) {
+  // If in create mode, selecting an agent switches back to workbench
+  if (pageMode.value === 'create') {
+    pageMode.value = 'workbench';
+  }
   updateAgentQuery(key);
   const nextAgent = agentDefinitions.find(item => item.key === key);
   if (!nextAgent) return;
 
   runForm.title = `${nextAgent.name}任务`;
   runForm.input = nextAgent.defaultInput;
+}
+
+function handleCreateClick() {
+  pageMode.value = 'create';
+}
+
+function handleCreateCancel() {
+  pageMode.value = 'workbench';
+}
+
+function handleCreateSubmit(payload: AgentCreateModel) {
+  const agent = createAgentDefinition(payload);
+  pageMode.value = 'workbench';
+  updateAgentQuery(agent.key);
+  window.$message?.success(`智能体「${agent.name}」创建成功`);
 }
 
 function navigateToSubPage(name: 'agent_config' | 'agent_test') {
@@ -90,10 +113,11 @@ function goTaskDetail(taskId: string) {
   <div class="agent-page" :class="{ 'agent-page--dark': darkMode }">
     <div class="agent-shell">
       <aside class="agent-sidebar">
-        <AgentSidebar :active-key="agentKey" @select="handleAgentSelect" />
+        <AgentSidebar :active-key="agentKey" @select="handleAgentSelect" @create="handleCreateClick" />
       </aside>
 
-      <section class="agent-main">
+      <!-- Workbench Mode -->
+      <section v-if="pageMode === 'workbench'" class="agent-main">
         <!-- Hero Panel -->
         <div class="panel-surface">
           <div class="panel-head">
@@ -118,8 +142,8 @@ function goTaskDetail(taskId: string) {
                 <span class="metric-value">{{ selectedAgent.model }}</span>
               </div>
               <div class="metric-item">
-                <span class="metric-label">成功率</span>
-                <span class="metric-value">{{ selectedAgent.successRate }}%</span>
+                <span class="metric-label">置信度</span>
+                <span class="metric-value">{{ selectedAgent.confidence }}%</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">平均耗时</span>
@@ -192,6 +216,27 @@ function goTaskDetail(taskId: string) {
 
         <AgentStageBoard :agent="selectedAgent" :task="latestTask" />
         <AgentLogList :tasks="currentTasks" @view="goTaskDetail" />
+      </section>
+
+      <!-- Create Mode -->
+      <section v-else class="agent-main agent-main--create">
+        <div class="panel-surface create-panel">
+          <div class="panel-head">
+            <SvgIcon icon="mdi:sparkles" class="panel-head__icon" />
+            <span class="panel-head__title">新建智能体</span>
+            <div class="ml-auto">
+              <NButton quaternary size="small" @click="handleCreateCancel">
+                <template #icon>
+                  <SvgIcon icon="mdi:close" />
+                </template>
+                返回工作台
+              </NButton>
+            </div>
+          </div>
+          <div class="panel-body create-panel__body">
+            <AgentCreateForm @submit="handleCreateSubmit" @cancel="handleCreateCancel" />
+          </div>
+        </div>
       </section>
     </div>
   </div>
@@ -304,6 +349,22 @@ function goTaskDetail(taskId: string) {
   flex-direction: column;
   gap: 10px;
   min-width: 0;
+}
+
+.agent-main--create {
+  overflow: auto;
+}
+
+.create-panel {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.create-panel__body {
+  flex: 1;
+  overflow: auto;
 }
 
 .panel-head {

@@ -1,14 +1,11 @@
 import { computed, ref } from 'vue';
 import {
-  createKnowledgeDocument,
   filterKnowledgeDocuments,
-  getCollectionByCategory,
   knowledgeCollections,
   knowledgeCategories,
   knowledgeDocuments,
   type KnowledgeDocument,
-  type KnowledgeEditFormModel,
-  type KnowledgeImportFormModel
+  type KnowledgeEditFormModel
 } from '@/mock/knowledge';
 
 export function useKnowledge() {
@@ -19,7 +16,6 @@ export function useKnowledge() {
   const statusFilter = ref<'' | KnowledgeDocument['status']>('');
   const sortBy = ref<'recent' | 'hits' | 'chunks'>('recent');
 
-  const importVisible = ref(false);
   const editVisible = ref(false);
   const editingDocument = ref<KnowledgeDocument | null>(null);
 
@@ -93,14 +89,6 @@ export function useKnowledge() {
     })
   );
 
-  function openImport() {
-    importVisible.value = true;
-  }
-
-  function closeImport() {
-    importVisible.value = false;
-  }
-
   function openEdit(document: KnowledgeDocument) {
     editingDocument.value = document;
     editVisible.value = true;
@@ -109,24 +97,6 @@ export function useKnowledge() {
   function closeEdit() {
     editVisible.value = false;
     editingDocument.value = null;
-  }
-
-  function submitImport(form: KnowledgeImportFormModel) {
-    const document = createKnowledgeDocument({
-      name: form.name,
-      collection: getCollectionByCategory(form.category),
-      category: form.category,
-      source: form.source,
-      reviewer: '当前用户',
-      tags: form.tags,
-      summary: form.note || `${form.name} 已进入知识库处理队列，等待后续分块与审核。`,
-      format: 'PDF',
-      size: '1.2 MB',
-      indexMode: form.indexMode
-    });
-
-    closeImport();
-    return document;
   }
 
   function resetFilters() {
@@ -157,7 +127,6 @@ export function useKnowledge() {
     sourceFilter,
     statusFilter,
     sortBy,
-    importVisible,
     editVisible,
     editingDocument,
     sourceOptions,
@@ -167,11 +136,8 @@ export function useKnowledge() {
     collectionSummary,
     collectionGroups,
     filteredDocuments,
-    openImport,
-    closeImport,
     openEdit,
     closeEdit,
-    submitImport,
     resetFilters,
     buildEditForm
   };

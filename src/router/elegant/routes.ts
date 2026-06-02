@@ -40,7 +40,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     path: '/agent',
     component: 'layout.base$view.agent',
     meta: {
-      title: 'AI Agent',
+      title: '智能体',
       order: 8,
       icon: 'mdi:robot'
     }
@@ -93,7 +93,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     path: '/knowledge',
     component: 'layout.base$view.knowledge',
     meta: {
-      title: '知识库',
+      title: '地理环境知识库',
       order: 7,
       icon: 'mdi:book-open-variant'
     }

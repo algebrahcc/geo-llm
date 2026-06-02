@@ -372,9 +372,10 @@ export const planningMissionResultSummary: PlanningMissionResultSummary = {
 
 // ──── 机动方案 - 分析步骤 ────
 export const planningAnalysisSteps: readonly PlanningAnalysisStep[] = [
-  { id: 'step-1', label: '路网数据加载', icon: 'mdi:database-check-outline', status: 'completed' },
-  { id: 'step-2', label: '路线可行性分析', icon: 'mdi:map-check-outline', status: 'completed' },
-  { id: 'step-3', label: '路况与障碍分析', icon: 'mdi:road-variant', status: 'running' },
+  { id: 'step-0', label: '知识库检索', icon: 'mdi:book-search-outline', status: 'pending' },
+  { id: 'step-1', label: '路网数据加载', icon: 'mdi:database-check-outline', status: 'pending' },
+  { id: 'step-2', label: '路线可行性分析', icon: 'mdi:map-check-outline', status: 'pending' },
+  { id: 'step-3', label: '路况与障碍分析', icon: 'mdi:road-variant', status: 'pending' },
   { id: 'step-4', label: '风险评估分析', icon: 'mdi:shield-check-outline', status: 'pending' },
   { id: 'step-5', label: '方案生成与优化', icon: 'mdi:file-cog-outline', status: 'pending' },
   { id: 'step-6', label: '结果输出', icon: 'mdi:export-variant', status: 'pending' }

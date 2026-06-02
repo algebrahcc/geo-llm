@@ -996,6 +996,8 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
   --n-color-hover: linear-gradient(180deg, #2b93ff 0%, #0d6ad6 100%) !important;
   --n-color-pressed: linear-gradient(180deg, #0d6ad6 0%, #064a94 100%) !important;
   --n-text-color: #fff !important;
+  --n-text-color-hover: #fff !important;
+  --n-text-color-pressed: rgba(255, 255, 255, 0.85) !important;
   --n-border: none !important;
   --n-border-radius: 6px !important;
   --n-font-size: 12px !important;
@@ -1060,6 +1062,8 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
   --n-color-hover: linear-gradient(180deg, rgba(43, 151, 255, 0.98) 0%, rgba(13, 93, 186, 0.98) 100%) !important;
   --n-color-pressed: linear-gradient(180deg, rgba(8, 83, 171, 0.96) 0%, rgba(5, 63, 141, 0.96) 100%) !important;
   --n-text-color: #e9f5ff !important;
+  --n-text-color-hover: #fff !important;
+  --n-text-color-pressed: rgba(255, 255, 255, 0.9) !important;
   --n-border: 1px solid rgba(96, 191, 255, 0.32) !important;
   --n-border-hover: 1px solid rgba(96, 191, 255, 0.5) !important;
   --n-border-radius: 8px !important;
@@ -1272,11 +1276,11 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
 .catalog-data-table :deep(.n-data-table-th) {
   background: linear-gradient(180deg, rgba(6, 29, 56, 0.94) 0%, rgba(4, 22, 43, 0.94) 100%) !important;
   font-size: 12px;
-  padding: 10px 12px;
+  padding: 14px 12px;
 }
 
 .catalog-data-table :deep(.n-data-table-td) {
-  padding: 10px 12px;
+  padding: 14px 12px;
   border-bottom: 1px solid rgba(18, 73, 135, 0.32) !important;
 }
 
@@ -1422,13 +1426,13 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
   box-shadow: 0 4px 12px rgba(41, 163, 255, 0.2);
 }
 
-/* tooltip on hover */
+/* tooltip on hover — 显示在按钮下方，避免首行被表头遮挡 */
 .catalog-data-table :deep(.action-icon-btn::after) {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: calc(100% + 6px);
+  top: calc(100% + 6px);
   left: 50%;
-  transform: translateX(-50%) translateY(4px);
+  transform: translateX(-50%) translateY(-4px);
   padding: 3px 8px;
   border-radius: 4px;
   background: rgba(6, 29, 56, 0.95);
@@ -2007,9 +2011,9 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
   .action-icon-btn::after {
     content: attr(data-tooltip);
     position: absolute;
-    bottom: calc(100% + 6px);
+    top: calc(100% + 6px);
     left: 50%;
-    transform: translateX(-50%) translateY(4px);
+    transform: translateX(-50%) translateY(-4px);
     padding: 3px 8px;
     border-radius: 4px;
     background: rgba(6, 29, 56, 0.95);

@@ -31,7 +31,7 @@ export interface KnowledgeDocument {
   reviewer: string;
   tags: string[];
   summary: string;
-  format: 'PDF' | 'DOCX' | 'MD' | 'TXT';
+  format: 'PDF' | 'DOCX' | 'MD' | 'TXT' | 'IMAGE';
   size: string;
   chunkCount: number;
   hits: number;
@@ -39,7 +39,7 @@ export interface KnowledgeDocument {
   updatedAt: string;
   lastUsedAt: string;
   status: KnowledgeDocumentStatus;
-  indexMode: '混合切分' | '语义分段' | '手动分块';
+  indexMode: '混合切分' | '语义分段' | '手动分块' | '图片分割';
 }
 
 export interface KnowledgeChunk {
@@ -50,6 +50,9 @@ export interface KnowledgeChunk {
   keywords: string[];
   length: number;
   status: 'ready' | 'reviewing';
+  type: 'text' | 'image-region';
+  regionIndex?: number;
+  confidence?: number;
 }
 
 export interface KnowledgeReference {
@@ -67,15 +70,23 @@ export interface KnowledgeDocumentDetail extends KnowledgeDocument {
   processLogs: string[];
   chunks: KnowledgeChunk[];
   references: KnowledgeReference[];
+  imageSource?: string;
+  segmentModel?: string;
+  extractModel?: string;
+  regionCount?: number;
 }
 
 export interface KnowledgeImportFormModel {
+  importType: 'document' | 'image';
   name: string;
   category: string;
   source: string;
   tags: string[];
   indexMode: KnowledgeDocument['indexMode'];
   note: string;
+  segmentModel: string;
+  extractModel: string;
+  imageFiles: { name: string; size: number }[];
 }
 
 export interface KnowledgeEditFormModel {
@@ -109,6 +120,26 @@ export interface KnowledgeRetrievalResult {
   document: KnowledgeDocument;
   matches: KnowledgeRetrievalMatch[];
 }
+
+export const segmentModelOptions = [
+  { label: 'SAM2 (Segment Anything 2)', value: 'SAM2' },
+  { label: 'InternVL-Seg', value: 'InternVL-Seg' },
+  { label: 'YOLO-World', value: 'YOLO-World' }
+];
+
+export const extractModelOptions = [
+  { label: 'InternVL', value: 'InternVL' },
+  { label: 'Qwen-VL-Max', value: 'Qwen-VL-Max' },
+  { label: 'GPT-4V', value: 'GPT-4V' }
+];
+
+const imageRegionTemplates = [
+  { title: '水域区域', content: '检测到水域区域，面积约 3.2km²，流向东南，水面宽度约 280m，水深平均 4.5m。该区域与周边支流形成汇水网络，丰水期水位上涨显著。' },
+  { title: '植被覆盖区', content: '检测到大面积植被覆盖区域，面积约 5.8km²，以阔叶林为主，覆盖密度约 78%。区域内分布有农田与林地过渡带，地形坡度 5°-15°。' },
+  { title: '建设用地', content: '检测到建设用地集中区域，面积约 1.4km²，包含居民点、道路和工业设施。建筑密度中等，主要交通干道呈南北走向，排水系统完善度约 65%。' },
+  { title: '裸地与沙洲', content: '检测到裸地与沙洲区域，面积约 0.9km²，位于河道转弯处东侧，地表覆盖度低于 15%。汛期可能被淹没，枯水期出露面积增大。' },
+  { title: '丘陵地貌', content: '检测到丘陵地貌区域，面积约 4.1km²，高程差约 120m，坡度 10°-25°。山脊线呈东北-西南走向，沟谷发育充分，汇水面积较大。' }
+];
 
 export const knowledgeCollections = reactive<KnowledgeCollection[]>([
   {
@@ -296,7 +327,8 @@ const detailRecords = knowledgeDocuments.reduce<Record<string, KnowledgeDocument
     content: `${document.summary} 第 ${index + 1} 段重点整理了与 ${document.tags[0]}、${document.tags[1]} 相关的关键描述，便于在问答与方案生成时快速召回。`,
     keywords: [document.tags[0], document.tags[1], document.category],
     length: 360 + index * 42,
-    status: index === 0 ? 'ready' : 'reviewing'
+    status: index === 0 ? 'ready' : 'reviewing',
+    type: 'text' as const
   }));
 
   acc[document.id] = {
@@ -393,7 +425,8 @@ function createChunks(document: KnowledgeDocument) {
     content: `${document.summary} 第 ${index + 1} 段重点整理了与 ${document.tags[0] || '专题'}、${document.tags[1] || '资料'} 相关的关键描述，便于在问答与方案生成时快速召回。`,
     keywords: [document.tags[0] || '专题', document.tags[1] || '资料', document.category],
     length: 360 + index * 42,
-    status: index === 0 ? 'ready' : 'reviewing'
+    status: index === 0 ? 'ready' : 'reviewing',
+    type: 'text' as const
   })) as KnowledgeChunk[];
 }
 
@@ -444,6 +477,88 @@ export function createKnowledgeDocument(
 
   knowledgeDocuments.unshift(document);
   knowledgeDocumentDetails[document.id] = createDetailRecord(document);
+
+  return document;
+}
+
+export function createImageKnowledgeDocument(
+  payload: {
+    name: string;
+    category: string;
+    source: string;
+    tags: string[];
+    summary: string;
+    segmentModel: string;
+    extractModel: string;
+    imageFiles: { name: string; size: number }[];
+  }
+) {
+  const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  const regionCount = 3 + Math.floor(Math.random() * 3); // 3-5 regions
+  const totalSize = payload.imageFiles.reduce((sum, f) => sum + f.size, 0);
+  const sizeMB = (totalSize / (1024 * 1024)).toFixed(1);
+
+  const document: KnowledgeDocument = {
+    id: `doc-${Date.now()}`,
+    name: payload.name,
+    collection: getCollectionByCategory(payload.category),
+    category: payload.category,
+    source: payload.source || '图片上传',
+    reviewer: '当前用户',
+    tags: [...payload.tags],
+    summary: payload.summary,
+    format: 'IMAGE',
+    size: `${sizeMB} MB`,
+    chunkCount: regionCount,
+    hits: 0,
+    indexedAt: now,
+    updatedAt: now,
+    lastUsedAt: now,
+    status: 'indexing',
+    indexMode: '图片分割'
+  };
+
+  // Generate image-region chunks
+  const shuffledTemplates = [...imageRegionTemplates].sort(() => Math.random() - 0.5);
+  const chunks: KnowledgeChunk[] = Array.from({ length: regionCount }).map((_, index) => {
+    const template = shuffledTemplates[index % shuffledTemplates.length];
+    const confidence = +(0.6 + Math.random() * 0.35).toFixed(2);
+    return {
+      id: `${document.id}-chunk-${index + 1}`,
+      order: index + 1,
+      title: template.title,
+      content: template.content,
+      keywords: [payload.tags[0] || '图片要素', payload.tags[1] || template.title, payload.category],
+      length: template.content.length,
+      status: confidence > 0.8 ? 'ready' : 'reviewing',
+      type: 'image-region' as const,
+      regionIndex: index + 1,
+      confidence
+    };
+  });
+
+  const detail: KnowledgeDocumentDetail = {
+    ...document,
+    version: 'v1.0',
+    language: '中文',
+    createdAt: now,
+    notes: `图片导入，共 ${payload.imageFiles.length} 张图片，分割模型 ${payload.segmentModel}，提取模型 ${payload.extractModel}。`,
+    processLogs: [
+      '已完成图片文件接收',
+      `采用${payload.segmentModel}执行区域分割，检测到 ${regionCount} 个区域`,
+      `采用${payload.extractModel}提取区域要素描述`,
+      '索引任务已同步到知识工作台'
+    ],
+    chunks,
+    references: [],
+    imageSource: payload.imageFiles.map(f => f.name).join(', '),
+    segmentModel: payload.segmentModel,
+    extractModel: payload.extractModel,
+    regionCount
+  };
+
+  knowledgeDocuments.unshift(document);
+  knowledgeDocumentDetails[document.id] = detail;
 
   return document;
 }

@@ -10,6 +10,7 @@ defineProps<{
 
 const emit = defineEmits<{
   select: [key: AgentKey];
+  create: [];
 }>();
 
 const runtimeMeta = {
@@ -31,6 +32,9 @@ const items = computed(() =>
     <div class="sidebar-panel__header">
       <SvgIcon icon="mdi:robot" class="sidebar-panel__header-icon" />
       <span class="sidebar-panel__header-title">智能体列表</span>
+      <button type="button" class="header-create-btn" title="新建智能体" @click="emit('create')">
+        <SvgIcon icon="mdi:plus" />
+      </button>
     </div>
     <div class="sidebar-panel__body">
       <div class="flex flex-col gap-8px">
@@ -108,6 +112,29 @@ const items = computed(() =>
   letter-spacing: 0.5px;
   color: #eaf5ff;
   text-shadow: 0 0 8px rgba(41, 163, 255, 0.12);
+}
+
+.header-create-btn {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid rgba(41, 163, 255, 0.3);
+  background: rgba(41, 163, 255, 0.08);
+  color: rgba(147, 196, 255, 0.6);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-create-btn:hover {
+  border-color: rgba(41, 163, 255, 0.6);
+  background: rgba(41, 163, 255, 0.15);
+  color: #29a3ff;
+  box-shadow: 0 0 10px rgba(41, 163, 255, 0.2);
 }
 
 .sidebar-panel__body {

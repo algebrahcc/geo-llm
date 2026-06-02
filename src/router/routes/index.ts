@@ -97,7 +97,7 @@ function createAgentElegantRoute() {
     name: 'agent',
     path: '/agent',
     meta: {
-      title: 'AI Agent',
+      title: '智能体',
       order: 8,
       icon: 'mdi:robot'
     },
@@ -203,7 +203,7 @@ function createKnowledgeElegantRoute() {
     name: 'knowledge',
     path: '/knowledge',
     meta: {
-      title: '知识库',
+      title: '地理环境知识库',
       order: 7,
       icon: 'mdi:book-open-variant'
     },
@@ -243,6 +243,15 @@ function createKnowledgeElegantRoute() {
           hideInMenu: true,
           activeMenu: 'knowledge_overview'
         }
+      },
+      {
+        name: 'knowledge_import',
+        path: '/knowledge/import',
+        meta: {
+          title: '导入知识',
+          hideInMenu: true,
+          activeMenu: 'knowledge_overview'
+        }
       }
     ]
   } satisfies ElegantConstRoute;
@@ -255,7 +264,7 @@ function createKnowledgeVueRoute(): RouteRecordRaw {
     component: BaseLayout,
     redirect: { name: 'knowledge_overview' },
     meta: {
-      title: '知识库',
+      title: '地理环境知识库',
       order: 7,
       icon: 'mdi:book-open-variant'
     },
@@ -296,6 +305,16 @@ function createKnowledgeVueRoute(): RouteRecordRaw {
         component: () => import('@/views/knowledge/detail.vue'),
         meta: {
           title: '文档详情',
+          hideInMenu: true,
+          activeMenu: 'knowledge_overview'
+        }
+      },
+      {
+        name: 'knowledge_import',
+        path: 'import',
+        component: () => import('@/views/knowledge/import.vue'),
+        meta: {
+          title: '导入知识',
           hideInMenu: true,
           activeMenu: 'knowledge_overview'
         }

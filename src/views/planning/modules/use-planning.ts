@@ -7,6 +7,7 @@ import {
   planningPlanResults,
   planningRouteSummaries
 } from '@/mock/planning';
+import { runKnowledgeRetrieval } from '@/mock/knowledge';
 import type {
   PlanningAnalysisStep,
   PlanningLayerItem,
@@ -51,6 +52,7 @@ export function usePlanning() {
   );
   const analysisProgress = ref(58);
   const analysisStatusText = ref('正在分析路况与障碍情况，请稍候...');
+  const knowledgeHits = ref<{ docCount: number; chunkCount: number; docNames: string[] } | null>(null);
 
   // ──── 通用状态 ────
   const layerItems = ref<PlanningLayerItem[]>(planningDefaultLayers.map(item => ({ ...item })));
@@ -89,6 +91,14 @@ export function usePlanning() {
 
   async function startPlanning() {
     setPlanningState('analyzing');
+
+    // 调用知识库检索以增强规划上下文
+    const routeQuery = `${taskForm.value.startName} ${taskForm.value.endName} ${taskForm.value.routePreference === 'safest' ? '风险安全' : taskForm.value.routePreference === 'shortest' ? '最短' : '快速'} 路线规划`;
+    const retrievalResults = runKnowledgeRetrieval(routeQuery);
+    const docCount = retrievalResults.length;
+    const topDocNames = retrievalResults.slice(0, 3).map(r => r.document.name);
+    knowledgeHits.value = { docCount, chunkCount: retrievalResults.reduce((s, r) => s + r.matches.length, 0), docNames: topDocNames };
+
     await sleep(960);
     setCurrentRoute(
       taskForm.value.routePreference === 'safest'
@@ -145,28 +155,48 @@ export function usePlanning() {
 
     missionRunning.value = true;
 
-    // 模拟6步分析过程
+    // 步骤0：实际调用知识库检索
+    const missionQuery = `${missionForm.value.startName} ${missionForm.value.endName} 机动方案 ${missionForm.value.waypoints.map(w => w.name).join(' ')}`;
+    const retrievalResults = runKnowledgeRetrieval(missionQuery);
+    const totalChunks = retrievalResults.reduce((sum, r) => sum + r.matches.length, 0);
+    const docCount = retrievalResults.length;
+    const docNames = retrievalResults.slice(0, 3).map(r => r.document.name);
+    knowledgeHits.value = { docCount, chunkCount: totalChunks, docNames };
+
+    // 模拟7步分析过程（含知识库检索）
     const steps = [...mockAnalysisSteps];
-    for (let i = 0; i < steps.length; i++) {
+    const totalSteps = steps.length;
+    for (let i = 0; i < totalSteps; i++) {
       analysisSteps.value = steps.map((step, index) => ({
         ...step,
         status: index < i ? 'completed' : index === i ? 'running' : 'pending'
       }));
-      analysisProgress.value = Math.min(95, Math.round(((i + 1) / steps.length) * 100));
-      analysisStatusText.value = getStepStatusText(steps[i].label);
+      analysisProgress.value = Math.min(95, Math.round(((i + 1) / totalSteps) * 100));
+
+      // 知识库检索步骤显示实际命中结果
+      if (steps[i].id === 'step-0' && knowledgeHits.value) {
+        analysisStatusText.value = docCount > 0
+          ? `正在检索知识库... 命中 ${docCount} 篇文档（${docNames.slice(0, 2).join('、')}），共 ${totalChunks} 条片段`
+          : '正在检索知识库... 未命中相关文档，使用默认模板';
+      } else {
+        analysisStatusText.value = getStepStatusText(steps[i].label);
+      }
       await sleep(800);
     }
 
     // 完成所有步骤
     analysisSteps.value = steps.map(step => ({ ...step, status: 'completed' }));
     analysisProgress.value = 100;
-    analysisStatusText.value = '分析完成，已生成3条推荐方案';
+    analysisStatusText.value = docCount > 0
+      ? `分析完成，已结合 ${docCount} 篇知识文档生成 3 条推荐方案`
+      : '分析完成，已生成3条推荐方案';
     selectedPlan.value = 'plan-a';
     missionRunning.value = false;
   }
 
   function getStepStatusText(stepLabel: string): string {
     const textMap: Record<string, string> = {
+      '知识库检索': '正在检索知识库，匹配相关文档...',
       '路网数据加载': '正在加载全国路网数据...',
       '路线可行性分析': '正在分析路线可行性...',
       '路况与障碍分析': '正在分析路况与障碍情况，请稍候...',
@@ -230,6 +260,7 @@ export function usePlanning() {
     analysisSteps.value = mockAnalysisSteps.map(step => ({ ...step }));
     analysisProgress.value = 0;
     analysisStatusText.value = '';
+    knowledgeHits.value = null;
   }
 
   function updateStatus(nextStatus: PlanningStatusInfo) {
@@ -256,6 +287,7 @@ export function usePlanning() {
     analysisProgress,
     analysisStatusText,
     missionResultSummary,
+    knowledgeHits,
     planResults: planningPlanResults,
     updateMissionForm,
     addWaypoint,

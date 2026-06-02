@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import type { SelectMixedOption } from 'naive-ui';
 import {
   planningAvoidanceOptions,
   planningFormationOptions,
@@ -184,7 +185,7 @@ const formationLabel = computed(() => {
             <label class="form-label">优先条件</label>
             <NSelect
               :value="form.priorityCondition"
-              :options="planningPriorityOptions"
+              :options="planningPriorityOptions as SelectMixedOption[]"
               size="small"
               class="form-select"
               @update:value="updateFormField('priorityCondition', $event)"
@@ -194,16 +195,16 @@ const formationLabel = computed(() => {
             <label class="form-label">道路类型偏好</label>
             <NCheckboxGroup
               :value="form.roadTypePreferences"
-              :options="planningRoadTypeOptions"
+              :options="planningRoadTypeOptions as SelectMixedOption[]"
               class="form-checkbox-group"
-              @update:value="updateFormField('roadTypePreferences', $event)"
+              @update:value="updateFormField('roadTypePreferences', $event as string[])"
             />
           </div>
           <div class="form-group">
             <label class="form-label">地形偏好</label>
             <NSelect
               :value="form.terrainPreference"
-              :options="planningTerrainOptions"
+              :options="planningTerrainOptions as SelectMixedOption[]"
               size="small"
               class="form-select"
               @update:value="updateFormField('terrainPreference', $event)"
@@ -216,9 +217,9 @@ const formationLabel = computed(() => {
           <div class="section-title">避让条件</div>
           <NCheckboxGroup
             :value="form.avoidanceConditions"
-            :options="planningAvoidanceOptions"
+            :options="planningAvoidanceOptions as SelectMixedOption[]"
             class="form-checkbox-group"
-            @update:value="updateFormField('avoidanceConditions', $event)"
+            @update:value="updateFormField('avoidanceConditions', $event as string[])"
           />
         </div>
 
@@ -230,7 +231,7 @@ const formationLabel = computed(() => {
               <label class="form-label">车辆类型</label>
               <NSelect
                 :value="form.vehicleType"
-                :options="planningVehicleTypeOptions"
+                :options="planningVehicleTypeOptions as SelectMixedOption[]"
                 size="small"
                 class="form-select"
                 @update:value="updateFormField('vehicleType', $event)"
@@ -245,7 +246,7 @@ const formationLabel = computed(() => {
                   :max="500"
                   size="small"
                   class="form-input-number"
-                  @update:value="updateFormField('vehicleCount', $event)"
+                  @update:value="updateFormField('vehicleCount', $event ?? 1)"
                 />
                 <span class="input-suffix">辆</span>
               </div>
@@ -255,7 +256,7 @@ const formationLabel = computed(() => {
             <label class="form-label">编组方式</label>
             <NSelect
               :value="form.formationType"
-              :options="planningFormationOptions"
+              :options="planningFormationOptions as SelectMixedOption[]"
               size="small"
               class="form-select"
               @update:value="updateFormField('formationType', $event)"

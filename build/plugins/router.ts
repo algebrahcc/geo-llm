@@ -56,8 +56,8 @@ export function setupElegantRouter() {
         building: { title: '楼宇夺控', order: 4, icon: 'mdi:office-building' },
         river: { title: '渡河保障方案', order: 5, icon: 'mdi:ferry' },
         planning: { title: '机动路线规划', order: 6, icon: 'mdi:routes' },
-        knowledge: { title: '知识库', order: 7, icon: 'mdi:book-open-variant' },
-        agent: { title: 'AI Agent', order: 8, icon: 'mdi:robot' }
+        knowledge: { title: '地理环境知识库', order: 7, icon: 'mdi:book-open-variant' },
+        agent: { title: '智能体', order: 8, icon: 'mdi:robot' }
       };
 
       if (routeMetaMap[key]) {

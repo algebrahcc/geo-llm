@@ -16,7 +16,6 @@ import {
 import KnowledgeCategoryCard from './modules/knowledge-category-card.vue';
 import KnowledgeCollectionNav from './modules/knowledge-collection-nav.vue';
 import KnowledgeEditDrawer from './modules/knowledge-edit-drawer.vue';
-import KnowledgeImportDrawer from './modules/knowledge-import-drawer.vue';
 import KnowledgeToolbar from './modules/knowledge-toolbar.vue';
 import { useKnowledge } from './modules/use-knowledge';
 
@@ -35,7 +34,6 @@ const {
   sourceFilter,
   statusFilter,
   sortBy,
-  importVisible,
   editVisible,
   editingDocument,
   sourceOptions,
@@ -44,10 +42,8 @@ const {
   categorySummary,
   collectionGroups,
   filteredDocuments,
-  openImport,
   openEdit,
   closeEdit,
-  submitImport,
   resetFilters,
   buildEditForm
 } = useKnowledge();
@@ -68,9 +64,12 @@ function goDetail(id: string) {
   });
 }
 
-function handleImportSubmit(form: Parameters<typeof submitImport>[0]) {
-  const document = submitImport(form);
-  window.$message?.success(`已提交导入：${document.name}`);
+function handleImportDoc() {
+  router.push({ name: 'knowledge_import' as never, query: { type: 'document' } });
+}
+
+function handleImportImage() {
+  router.push({ name: 'knowledge_import' as never, query: { type: 'image' } });
 }
 
 function handleEdit(document: KnowledgeDocument) {
@@ -130,17 +129,20 @@ const columns = computed<DataTableColumns<KnowledgeDocument>>(() => [
     key: 'name',
     width: 280,
     render(row) {
+      const isImage = row.format === 'IMAGE';
+      const icon = isImage ? 'mdi:image-outline' : 'mdi:file-document-outline';
+      const formatLabel = isImage ? '图片' : row.format;
       return h('div', { class: 'doc-cell' }, [
-        h(SvgIcon, { icon: 'mdi:file-document-outline', class: 'doc-cell__bullet' }),
+        h(SvgIcon, { icon, class: ['doc-cell__bullet', isImage ? 'doc-cell__bullet--image' : ''] }),
         h('div', { class: 'doc-cell__content' }, [
           h('div', { class: 'doc-cell__title' }, row.name),
           h('div', { class: 'doc-cell__sub' }, row.summary),
           h('div', { class: 'doc-cell__meta' }, [
-            h('span', row.format),
+            h('span', formatLabel),
             h('span', { class: 'meta-dot' }),
             h('span', row.size),
             h('span', { class: 'meta-dot' }),
-            h('span', `${row.chunkCount} 个分块`),
+            h('span', `${row.chunkCount} 个${isImage ? '区域' : '分块'}`),
             h('span', { class: 'meta-dot' }),
             h('span', row.indexMode)
           ])
@@ -280,7 +282,8 @@ const dataTableThemeOverrides = {
               @update:source="sourceFilter = $event"
               @update:status="statusFilter = $event as typeof statusFilter"
               @update:sort="sortBy = $event as typeof sortBy"
-              @import="openImport"
+              @import-doc="handleImportDoc"
+              @import-image="handleImportImage"
               @reset="resetFilters"
             />
           </div>
@@ -326,9 +329,9 @@ const dataTableThemeOverrides = {
               <div class="table-footer__summary">
                 共 {{ filteredDocuments.length }} 条
                 <span class="table-footer__divider" />
-                已完成 {{ filteredDocuments.filter(d => d.status === 'completed').length }} 条
+                已完成 {{ filteredDocuments.filter(d => d.status === 'ready').length }} 条
                 <span class="table-footer__divider" />
-                处理中 {{ filteredDocuments.filter(d => d.status === 'processing').length }} 条
+                处理中 {{ filteredDocuments.filter(d => d.status === 'indexing').length }} 条
               </div>
 
               <NPagination
@@ -343,13 +346,6 @@ const dataTableThemeOverrides = {
         </div>
       </section>
     </div>
-
-    <KnowledgeImportDrawer
-      :visible="importVisible"
-      :categories="knowledgeCategories"
-      @update:visible="importVisible = $event"
-      @submit="handleImportSubmit"
-    />
 
     <KnowledgeEditDrawer
       :visible="editVisible"
@@ -592,6 +588,11 @@ const dataTableThemeOverrides = {
   font-size: 18px;
   color: #62c4ff;
   filter: drop-shadow(0 0 4px rgba(98, 196, 255, 0.25));
+}
+
+.doc-cell__bullet--image {
+  color: #62e4ff;
+  filter: drop-shadow(0 0 4px rgba(98, 228, 255, 0.3));
 }
 
 .doc-cell__content {
