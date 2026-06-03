@@ -187,7 +187,13 @@ const summaryMetrics = computed(() => {
   };
 });
 
-watch([filteredData, pageSize], () => {
+watch(filteredData, () => {
+  if (currentPage.value !== 1) {
+    currentPage.value = 1;
+  }
+});
+
+watch(pageSize, () => {
   if (currentPage.value > totalPages.value) {
     currentPage.value = totalPages.value;
   }

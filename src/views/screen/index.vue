@@ -43,34 +43,34 @@ const r = computed(() => {
     return {
       axis: 12, legend: 12, label: 11, markLabel: 10,
       barW: 30, barMax: 40, wcMin: 13, wcMax: 32, donutNum: 28, radarR: '70%',
-      aiLabel: 13, aiLabelOffset: [6, 0], wordFontWeight: 'bold'
+      aiLabel: 13, aiLabelOffset: [6, 0]
     };
   }
   if (w >= 1440) {
     return {
       axis: 10, legend: 11, label: 10, markLabel: 9,
       barW: 22, barMax: 32, wcMin: 11, wcMax: 26, donutNum: 22, radarR: '66%',
-      aiLabel: 12, aiLabelOffset: [4, 0], wordFontWeight: 'bold'
+      aiLabel: 12, aiLabelOffset: [4, 0]
     };
   }
   if (w >= 1280) {
     return {
       axis: 10, legend: 10, label: 9, markLabel: 9,
       barW: 20, barMax: 28, wcMin: 10, wcMax: 22, donutNum: 20, radarR: '64%',
-      aiLabel: 11, aiLabelOffset: [3, 0], wordFontWeight: 'bold'
+      aiLabel: 11, aiLabelOffset: [3, 0]
     };
   }
   if (w >= 1100) {
     return {
       axis: 9, legend: 9, label: 9, markLabel: 8,
       barW: 18, barMax: 24, wcMin: 9, wcMax: 20, donutNum: 18, radarR: '60%',
-      aiLabel: 10, aiLabelOffset: [2, 0], wordFontWeight: 'normal'
+      aiLabel: 10, aiLabelOffset: [2, 0]
     };
   }
   return {
     axis: 9, legend: 9, label: 8, markLabel: 8,
     barW: 14, barMax: 20, wcMin: 8, wcMax: 18, donutNum: 16, radarR: '56%',
-    aiLabel: 10, aiLabelOffset: [2, 0], wordFontWeight: 'normal'
+    aiLabel: 10, aiLabelOffset: [2, 0]
   };
 });
 
@@ -290,7 +290,7 @@ const { domRef: hotKeywordsDomRef, updateOptions: updateHotKeywords } = useEchar
           drawOutOfBound: false,
           layoutAnimation: true,
           textStyle: {
-            fontWeight: r.value.wordFontWeight,
+            fontWeight: 'bold',
             fontFamily: "'Microsoft YaHei', 'PingFang SC', sans-serif"
           },
           emphasis: {
@@ -574,14 +574,14 @@ function widthBucket(w: number) {
 watch(
   () => widthBucket(windowWidth.value),
   () => {
-    updateTaskDist();
-    updateTaskTrend();
-    updateSystemStatus();
-    updateHotKeywords();
-    updateAiRank();
-    updateBottomDist();
-    updateBottomRadar();
-    updateBottomTrend();
+    updateTaskDist((_, factory) => factory());
+    updateTaskTrend((_, factory) => factory());
+    updateSystemStatus((_, factory) => factory());
+    updateHotKeywords((_, factory) => factory());
+    updateAiRank((_, factory) => factory());
+    updateBottomDist((_, factory) => factory());
+    updateBottomRadar((_, factory) => factory());
+    updateBottomTrend((_, factory) => factory());
   }
 );
 </script>

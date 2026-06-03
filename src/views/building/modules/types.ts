@@ -69,6 +69,7 @@ export interface BuildingRoamPoint {
   imageUrl: string;
   longitude: number;
   latitude: number;
+  roomId?: string;
   routeId?: string;
   description?: string;
   duration?: string;

@@ -1,5 +1,6 @@
 import { onBeforeUnmount, reactive, shallowRef } from 'vue';
 import {
+  Cartesian2,
   Cartesian3,
   Cartographic,
   Color,

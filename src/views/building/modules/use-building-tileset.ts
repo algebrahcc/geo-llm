@@ -76,7 +76,7 @@ export function useBuildingTileset(options: UseBuildingTilesetOptions = {}) {
 
   const layerVisibility: Record<BuildingStageLayerKey, boolean> = {
     imagery: true,
-    tileset: true,
+    model: true,
     rooms: true,
     'route-points': true
   };
@@ -94,7 +94,9 @@ export function useBuildingTileset(options: UseBuildingTilesetOptions = {}) {
   const toolNameMap: Record<BuildingInteractiveTool, string> = {
     browse: '浏览',
     'focus-building': '定位楼宇',
-    'pick-room': '房间点选'
+    'pick-room': '房间点选',
+    'measure-distance': '距离量算',
+    'measure-area': '面积量算'
   };
 
   function getLoadStatusText() {
@@ -345,7 +347,7 @@ export function useBuildingTileset(options: UseBuildingTilesetOptions = {}) {
 
       viewer.scene.primitives.add(tileset);
       tilesetRef.value = tileset;
-      tileset.show = layerVisibility.tileset;
+      tileset.show = layerVisibility.model;
       loadState.loaded = true;
       requestRender();
       void viewer.zoomTo(tileset);
@@ -436,7 +438,7 @@ export function useBuildingTileset(options: UseBuildingTilesetOptions = {}) {
       });
     }
 
-    if (layerKey === 'tileset' && tilesetRef.value) {
+    if (layerKey === 'model' && tilesetRef.value) {
       tilesetRef.value.show = visible;
     }
 

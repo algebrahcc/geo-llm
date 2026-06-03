@@ -6,7 +6,7 @@
  *
  * 部署后可直接修改 dist/config.json 切换本地/在线影像，无需重新打包。
  */
-import { GeographicTilingScheme, Rectangle, WebMercatorTilingScheme } from 'cesium';
+import { GeographicTilingScheme, Rectangle, UrlTemplateImageryProvider, WebMercatorTilingScheme } from 'cesium';
 import type { ImageryConfig, ImageryLocalConfig, ImageryOnlineConfig } from '@/typings/global';
 
 /** 默认本地影像配置（与原硬编码一致） */
@@ -100,9 +100,9 @@ export function getRegionImageryUrl(): string | null {
  * 处理 tilingScheme 和 rectangle 的映射，
  * 返回可直接传给 `new UrlTemplateImageryProvider()` 的选项对象。
  */
-export function getOnlineImageryProviderOptions(): Record<string, unknown> {
+export function getOnlineImageryProviderOptions(): UrlTemplateImageryProvider.ConstructorOptions {
   const online = getOnlineImageryConfig();
-  const options: Record<string, unknown> = {
+  const options: UrlTemplateImageryProvider.ConstructorOptions = {
     url: online.url,
     minimumLevel: online.minimumLevel,
     maximumLevel: online.maximumLevel

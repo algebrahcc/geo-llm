@@ -130,13 +130,13 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     const entity = viewer.entities.add({
       id: item.id,
       name: item.name,
-      polyline: {
+      polyline: ({
         positions: item.positions.map(position => Cartesian3.fromDegrees(position[0], position[1])),
         width: item.width ?? 5,
         material: getColor(item.color, 0.94),
         clampToGround: true,
         depthFail: getColor(item.color, 0.4)
-      }
+      } as any)
     });
 
     entity.show = layerVisibility[layerKey];
@@ -162,7 +162,7 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
         outlineWidth: 2,
         heightReference: HeightReference.CLAMP_TO_GROUND,
         depthFail: getColor(item.color, 0.1)
-      }
+      } as any
     });
 
     entity.show = layerVisibility[layerKey];

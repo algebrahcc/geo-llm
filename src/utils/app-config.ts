@@ -12,5 +12,5 @@ export function getAppConfig<K extends keyof AppRuntimeConfig>(key: K): AppRunti
     return runtimeValue;
   }
   // 回退到构建时环境变量
-  return (import.meta.env as Record<string, string>)[key] || '';
+  return (((import.meta.env as unknown) as Record<string, string>)[key] || '') as AppRuntimeConfig[K];
 }
