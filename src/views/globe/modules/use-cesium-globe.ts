@@ -268,6 +268,25 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
     }
   }
 
+  /**
+   * 计算两点间球面距离（米）
+   */
+  function calcDistance(p1: Cartesian3, p2: Cartesian3): number {
+    return Cartesian3.distance(p1, p2);
+  }
+
+  /**
+   * 计算三角形面积（球面近似，平方米）
+   * 使用海伦公式对三点间距离进行近似计算
+   */
+  function calcTriangleArea(p1: Cartesian3, p2: Cartesian3, p3: Cartesian3): number {
+    const a = Cartesian3.distance(p1, p2);
+    const b = Cartesian3.distance(p2, p3);
+    const c = Cartesian3.distance(p3, p1);
+    const s = (a + b + c) / 2;
+    return Math.sqrt(Math.max(s * (s - a) * (s - b) * (s - c), 0));
+  }
+
   function handleMeasureDistance(position: Cartesian3) {
     measurePositions.push(position);
 
@@ -295,7 +314,9 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
 
       if (polyline) dynamicMeasureEntities.push(polyline);
 
-      window.$message?.success('测距完成：12.5 km');
+      const distanceM = calcDistance(measurePositions[0], measurePositions[1]);
+      const distanceKm = (distanceM / 1000).toFixed(2);
+      window.$message?.success(`测距完成：${distanceKm} km`);
       measurePositions.length = 0;
       activeTool = 'browse';
       emitStatus();
@@ -333,7 +354,9 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
 
       if (polygon) dynamicMeasureEntities.push(polygon);
 
-      window.$message?.success('测面完成：3.6 km²');
+      const areaSqM = calcTriangleArea(measurePositions[0], measurePositions[1], measurePositions[2]);
+      const areaSqKm = (areaSqM / 1e6).toFixed(3);
+      window.$message?.success(`测面完成：${areaSqKm} km²`);
       measurePositions.length = 0;
       activeTool = 'browse';
       emitStatus();
@@ -493,27 +516,26 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
       imageryLayers.forEach(imageryLayer => {
         imageryLayer.show = visible;
       });
-    } else {
-      [...staticEntities[layerKey], ...dynamicMarkEntities, ...dynamicRouteEntities].forEach(entity => {
-        if (layerKey === 'mark' && dynamicMarkEntities.includes(entity)) entity.show = visible;
-        if (layerKey === 'route' && dynamicRouteEntities.includes(entity)) entity.show = visible;
-      });
+      requestRender();
+      return;
+    }
 
-      staticEntities[layerKey].forEach(entity => {
+    // 静态实体
+    staticEntities[layerKey].forEach(entity => {
+      entity.show = visible;
+    });
+
+    // 动态实体
+    if (layerKey === 'mark') {
+      dynamicMarkEntities.forEach(entity => {
         entity.show = visible;
       });
+    }
 
-      if (layerKey === 'mark') {
-        dynamicMarkEntities.forEach(entity => {
-          entity.show = visible;
-        });
-      }
-
-      if (layerKey === 'route') {
-        dynamicRouteEntities.forEach(entity => {
-          entity.show = visible;
-        });
-      }
+    if (layerKey === 'route') {
+      dynamicRouteEntities.forEach(entity => {
+        entity.show = visible;
+      });
     }
 
     requestRender();

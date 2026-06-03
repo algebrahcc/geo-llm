@@ -12,7 +12,10 @@ export const request = createFlatRequest(
   {
     baseURL,
     headers: {
-      apifoxToken: 'XL299LiMEDZ0H5h3A29PxwQXdMJqWyY2'
+      // Apifox mock token：仅在本地 mock 模式下注入，生产环境不携带
+      ...(import.meta.env.DEV && import.meta.env.VITE_HTTP_MOCK === 'Y'
+        ? { apifoxToken: import.meta.env.VITE_APIFOX_TOKEN ?? '' }
+        : {})
     }
   },
   {
@@ -21,7 +24,11 @@ export const request = createFlatRequest(
       refreshTokenPromise: null
     } as RequestInstanceState,
     transform(response: AxiosResponse<App.Service.Response<any>>) {
-      return response.data.data;
+      const responseData = response.data;
+      if (!responseData || typeof responseData !== 'object') {
+        return null;
+      }
+      return responseData.data ?? null;
     },
     async onRequest(config) {
       const Authorization = getAuthorization();

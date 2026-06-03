@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import {
   buildingDetail,
   buildingEnvironmentItems,
@@ -7,16 +7,21 @@ import {
   buildingEntrances,
   buildingFloors,
   buildingForceCards,
-  buildingMaterials,
+  buildingMaterials as mockBuildingMaterials,
   buildingModelSources,
   buildingRoamPoints as buildingRoamPointList,
   buildingRoamRoutes,
   buildingRooms,
-  buildingTask
+  buildingTask as mockBuildingTask
 } from '@/mock/building';
 import type { BuildingMaterial, BuildingRoamPoint } from './types';
 
 export function useBuilding() {
+  // 本地 task 副本，避免直接修改 mock 单例
+  const buildingTask = reactive({ ...mockBuildingTask });
+  // 本地 materials 副本（浅拷贝数组，元素为引用）
+  const buildingMaterials = reactive([...mockBuildingMaterials]);
+
   const selectedSourceKey = ref(buildingTask.sourceKey);
   const selectedFloorId = ref(buildingFloors[0]?.id ?? '');
   const selectedRoomId = ref(buildingFloors[0]?.roomIds[0] ?? '');
@@ -48,9 +53,14 @@ export function useBuilding() {
   const currentBinding = computed(
     () => buildingFeatureBindings.find(item => item.roomId === selectedRoomId.value) ?? null
   );
+  // 主入口计算属性（从 mock 文件中迁移过来，mock 只负责静态数据）
+  const activePrimaryEntrance = computed(
+    () => buildingEntrances.find(e => e.isPrimary) ?? buildingEntrances[0] ?? null
+  );
 
   function selectSource(key: string) {
     selectedSourceKey.value = key;
+    // 仅更新本地副本，不污染 mock 单例
     buildingTask.sourceKey = key;
   }
 
@@ -80,6 +90,7 @@ export function useBuilding() {
       id: `m-${Date.now()}`,
       createdAt: new Date().toLocaleString('zh-CN', { hour12: false })
     });
+    // 更新本地副本中的 materialCount，不直接写 mock 单例
     buildingTask.materialCount = buildingMaterials.length;
   }
 
@@ -107,6 +118,7 @@ export function useBuilding() {
     roomsOfActiveFloor,
     roomMaterials,
     currentBinding,
+    activePrimaryEntrance,
     selectSource,
     selectFloor,
     selectRoom,

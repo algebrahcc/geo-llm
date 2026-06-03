@@ -226,7 +226,7 @@ export const planningRouteScenes = {
       id: 'planning-route-a',
       name: '快速通达路线',
       color: '#63e6be',
-      positions: planningRouteACoords as unknown as readonly [number, number][]
+      positions: planningRouteACoords
     },
     risks: [
       {
@@ -238,7 +238,7 @@ export const planningRouteScenes = {
           [121.492, 25.119],
           [121.494, 25.138],
           [121.478, 25.138]
-        ] as unknown as readonly [number, number][]
+        ] as readonly [number, number][]
       }
     ],
     obstacles: [
@@ -251,7 +251,7 @@ export const planningRouteScenes = {
       id: 'planning-route-b',
       name: '均衡通行路线',
       color: '#5ea4ff',
-      positions: planningRouteBCoords as unknown as readonly [number, number][]
+      positions: planningRouteBCoords
     },
     risks: [
       {
@@ -263,7 +263,7 @@ export const planningRouteScenes = {
           [121.582, 25.098],
           [121.584, 25.112],
           [121.567, 25.112]
-        ] as unknown as readonly [number, number][]
+        ] as readonly [number, number][]
       }
     ],
     obstacles: [
@@ -276,7 +276,7 @@ export const planningRouteScenes = {
       id: 'planning-route-c',
       name: '低风险绕行路线',
       color: '#f7b267',
-      positions: planningRouteCCoords as unknown as readonly [number, number][]
+      positions: planningRouteCCoords
     },
     risks: [
       {
@@ -288,7 +288,7 @@ export const planningRouteScenes = {
           [121.548, 25.096],
           [121.550, 25.115],
           [121.530, 25.115]
-        ] as unknown as readonly [number, number][]
+        ] as readonly [number, number][]
       }
     ],
     obstacles: [

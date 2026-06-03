@@ -1,122 +1,34 @@
 import { reactive } from 'vue';
 import { extractTextParameters, extractImageParameters, type EnvironmentParameter } from './knowledge-parameters';
 
-export type KnowledgeDocumentStatus = 'ready' | 'indexing' | 'draft' | 'failed';
+// 类型定义已迁移至 src/views/knowledge/modules/types.ts，此处 re-export 保持向后兼容
+export type {
+  KnowledgeDocumentStatus,
+  KnowledgeCategory,
+  KnowledgeCollection,
+  KnowledgeCollectionFormModel,
+  KnowledgeDocument,
+  KnowledgeChunk,
+  KnowledgeReference,
+  KnowledgeDocumentDetail,
+  KnowledgeImportFormModel,
+  KnowledgeEditFormModel,
+  KnowledgeFilterParams,
+  KnowledgeRetrievalMatch
+} from '@/views/knowledge/modules/types';
 
-export interface KnowledgeCategory {
-  key: string;
-  label: string;
-  description: string;
-}
-
-export interface KnowledgeCollection {
-  key: string;
-  label: string;
-  description: string;
-  group: string;
-}
-
-export interface KnowledgeCollectionFormModel {
-  key?: string;
-  label: string;
-  description: string;
-  group: string;
-}
-
-export interface KnowledgeDocument {
-  id: string;
-  name: string;
-  collection: string;
-  category: string;
-  source: string;
-  reviewer: string;
-  tags: string[];
-  summary: string;
-  format: 'PDF' | 'DOCX' | 'MD' | 'TXT' | 'IMAGE';
-  size: string;
-  chunkCount: number;
-  hits: number;
-  indexedAt: string;
-  updatedAt: string;
-  lastUsedAt: string;
-  status: KnowledgeDocumentStatus;
-  indexMode: '混合切分' | '语义分段' | '手动分块' | '图片分割';
-}
-
-export interface KnowledgeChunk {
-  id: string;
-  order: number;
-  title: string;
-  content: string;
-  keywords: string[];
-  length: number;
-  status: 'ready' | 'reviewing';
-  type: 'text' | 'image-region';
-  regionIndex?: number;
-  confidence?: number;
-}
-
-export interface KnowledgeReference {
-  id: string;
-  name: string;
-  type: '任务' | '专题' | '分析模板';
-  description: string;
-}
-
-export interface KnowledgeDocumentDetail extends KnowledgeDocument {
-  version: string;
-  language: string;
-  createdAt: string;
-  notes: string;
-  processLogs: string[];
-  chunks: KnowledgeChunk[];
-  references: KnowledgeReference[];
-  parameters?: EnvironmentParameter[];
-  imageSource?: string;
-  segmentModel?: string;
-  extractModel?: string;
-  regionCount?: number;
-}
-
-export interface KnowledgeImportFormModel {
-  importType: 'document' | 'image';
-  name: string;
-  category: string;
-  source: string;
-  tags: string[];
-  indexMode: KnowledgeDocument['indexMode'];
-  note: string;
-  segmentModel: string;
-  extractModel: string;
-  imageFiles: { name: string; size: number }[];
-}
-
-export interface KnowledgeEditFormModel {
-  id: string;
-  name: string;
-  category: string;
-  source: string;
-  reviewer: string;
-  tags: string[];
-  summary: string;
-}
-
-export interface KnowledgeFilterParams {
-  collection: string;
-  category: string;
-  search: string;
-  source: string;
-  status: '' | KnowledgeDocumentStatus;
-  sort: 'recent' | 'hits' | 'chunks';
-}
-
-export interface KnowledgeRetrievalMatch {
-  documentId: string;
-  chunkId: string;
-  chunkTitle: string;
-  snippet: string;
-  score: number;
-}
+import type {
+  KnowledgeDocumentStatus,
+  KnowledgeCategory,
+  KnowledgeCollection,
+  KnowledgeCollectionFormModel,
+  KnowledgeDocument,
+  KnowledgeChunk,
+  KnowledgeDocumentDetail,
+  KnowledgeEditFormModel,
+  KnowledgeFilterParams,
+  KnowledgeRetrievalMatch
+} from '@/views/knowledge/modules/types';
 
 export interface KnowledgeRetrievalResult {
   document: KnowledgeDocument;

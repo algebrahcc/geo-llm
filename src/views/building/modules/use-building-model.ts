@@ -241,9 +241,13 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
 
     eventHandler.setInputAction((click: { position: Cartesian2 }) => {
       const picked = viewer.scene.pick(click.position);
-      const roomId = picked?.id?.properties?.roomId?.getValue?.();
+      const entityId: unknown = picked?.id?.id;
+      // 实体 id 格式为 "building-room-${roomId}"，从中解析 roomId
+      const roomId = typeof entityId === 'string' && entityId.startsWith('building-room-')
+        ? entityId.slice('building-room-'.length)
+        : null;
 
-      if (typeof roomId === 'string') {
+      if (roomId) {
         activeTool = 'pick-room';
         options.onRoomPicked?.(roomId);
         emitStatus(viewer.camera.pickEllipsoid(click.position, viewer.scene.globe.ellipsoid));
@@ -317,11 +321,11 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
         model: {
           uri: modelUrl,
           minimumPixelSize: 128,
-          maximumScale: scale ? scale : 1
+          maximumScale: source.transform.scale ?? 1
         }
-      } as any);
+      });
 
-      modelEntityRef.value = entity as Entity;
+      modelEntityRef.value = entity;
       entity.show = layerVisibility.model;
       loadState.loaded = true;
       modelPosition = position;
@@ -494,9 +498,9 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     const viewer = viewerRef.value;
     if (!viewer) return;
 
-    points.forEach((point, index) => {
+    points.forEach(point => {
       const id = `building-roam-${point.id}`;
-      const entity = viewer.entities.add({
+      viewer.entities.add({
         id,
         show: layerVisibility['route-points'],
         position: Cartesian3.fromDegrees(point.longitude, point.latitude, 30),
@@ -548,7 +552,7 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
         }
       });
 
-      entity.properties = { roomId: room.id } as never;
+      entity.description = undefined;
       roomMarkerEntities.value.push(id);
       roomCoordinateMap.set(room.id, coordinate);
     });

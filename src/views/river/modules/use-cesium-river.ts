@@ -12,6 +12,7 @@ import {
   LabelStyle,
   Math as CesiumMath,
   NearFarScalar,
+  PolylineDashMaterialProperty,
   PolygonHierarchy,
   Rectangle,
   ScreenSpaceEventHandler,
@@ -50,9 +51,7 @@ const toolNameMap: Record<RiverInteractiveTool | 'browse', string> = {
 
 function sleep(ms: number) {
   return new Promise(resolve => window.setTimeout(resolve, ms));
-}
-
-export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
+}export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
   const containerRef = shallowRef<HTMLDivElement | null>(null);
   const viewerRef = shallowRef<Viewer | null>(null);
 
@@ -130,13 +129,12 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     const entity = viewer.entities.add({
       id: item.id,
       name: item.name,
-      polyline: ({
+      polyline: {
         positions: item.positions.map(position => Cartesian3.fromDegrees(position[0], position[1])),
         width: item.width ?? 5,
-        material: getColor(item.color, 0.94),
-        clampToGround: true,
-        depthFail: getColor(item.color, 0.4)
-      } as any)
+        material: new PolylineDashMaterialProperty({ color: getColor(item.color, 0.94) }),
+        clampToGround: true
+      }
     });
 
     entity.show = layerVisibility[layerKey];
@@ -160,9 +158,8 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
         outline: true,
         outlineColor: getColor(item.color, 0.95),
         outlineWidth: 2,
-        heightReference: HeightReference.CLAMP_TO_GROUND,
-        depthFail: getColor(item.color, 0.1)
-      } as any
+        heightReference: HeightReference.CLAMP_TO_GROUND
+      }
     });
 
     entity.show = layerVisibility[layerKey];

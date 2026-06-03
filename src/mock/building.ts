@@ -1,4 +1,4 @@
-import { computed, reactive } from 'vue';
+import { reactive } from 'vue';
 import type {
   BuildingDetailInfo,
   BuildingEntrance,
@@ -181,7 +181,8 @@ export const buildingEntrances = reactive<BuildingEntrance[]>([
   }
 ]);
 
-export const activePrimaryEntrance = computed(() => buildingEntrances.find(e => e.isPrimary) ?? buildingEntrances[0]);
+// activePrimaryEntrance 已移至 src/views/building/modules/use-building.ts
+// mock 文件只负责提供静态数据，不混入响应式计算逻辑
 
 // ═══════════════════════════════════════════════
 // 街景漫游点

@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 import {
   planningAnalysisSteps as mockAnalysisSteps,
   planningDefaultLayers,
@@ -26,13 +26,42 @@ import type {
 
 type PlanningState = 'idle' | 'picking-start' | 'picking-end' | 'analyzing' | 'done';
 
-function sleep(ms: number) {
-  return new Promise(resolve => window.setTimeout(resolve, ms));
+/**
+ * 可取消的 sleep：返回 Promise 和取消函数
+ * 组件卸载时调用 cancel() 可提前 resolve，防止异步回调修改已卸载组件的状态
+ */
+function makeCancellableSleep(ms: number) {
+  let timerId: ReturnType<typeof setTimeout> | null = null;
+  let resolveRef: (() => void) | null = null;
+  const promise = new Promise<void>(resolve => {
+    resolveRef = resolve;
+    timerId = setTimeout(resolve, ms);
+  });
+  function cancel() {
+    if (timerId !== null) {
+      clearTimeout(timerId);
+      timerId = null;
+      resolveRef?.();
+    }
+  }
+  return { promise, cancel };
 }
 
-let waypointIdCounter = 100;
-
 export function usePlanning() {
+  // 途经点 ID 计数器：放在函数体内，每次调用 usePlanning() 独立初始化，避免多实例共享
+  let waypointIdCounter = 100;
+
+  // 收集所有活动的 sleep 取消器，组件卸载时统一取消，防止异步回调修改已卸载组件的状态
+  const sleepCancellers: Array<() => void> = [];
+
+  function sleep(ms: number): Promise<void> {
+    const { promise, cancel } = makeCancellableSleep(ms);
+    sleepCancellers.push(cancel);
+    return promise.then(() => {
+      const idx = sleepCancellers.indexOf(cancel);
+      if (idx !== -1) sleepCancellers.splice(idx, 1);
+    });
+  }
   // ──── 页面模式 ────
   const pageMode = ref<PlanningPageMode>('mission');
 
@@ -266,6 +295,13 @@ export function usePlanning() {
   function updateStatus(nextStatus: PlanningStatusInfo) {
     status.value = nextStatus;
   }
+
+  // 组件卸载时取消所有正在等待的 sleep，防止异步步骤动画继续修改已卸载组件的状态
+  onBeforeUnmount(() => {
+    sleepCancellers.forEach(cancel => cancel());
+    sleepCancellers.length = 0;
+    missionRunning.value = false;
+  });
 
   return {
     // 模式
