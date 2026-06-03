@@ -553,7 +553,6 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
           <div class="catalog-card-head">
             <div class="catalog-card-head__title">目录清单</div>
             <div class="catalog-card-head__meta">
-              <span v-if="selectedCategory">当前分类：{{ selectedCategory }}</span>
               <span>共 {{ filteredData.length }} 条结果</span>
             </div>
           </div>
