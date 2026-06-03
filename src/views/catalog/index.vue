@@ -1,10 +1,49 @@
 <script setup lang="ts">
-import { computed, h, ref, watch } from 'vue';
+import { computed, h, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import type { SelectOption } from 'naive-ui';
-import { NButton, NDataTable, NInput, NPagination, NSelect, NTree, type DataTableColumns } from 'naive-ui';
+import {
+  NButton,
+  NCollapse,
+  NCollapseItem,
+  NDataTable,
+  NInput,
+  NModal,
+  NPagination,
+  NSelect,
+  NTree,
+  type DataTableColumns
+} from 'naive-ui';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { agentLabelMap, catalogCategories, catalogData, type AgentKey, type CatalogItem } from '@/mock/catalog';
+import { getGlobalImageryUrl, getOnlineImageryConfig, isOnlineImagery } from '@/utils/imagery';
+import Map from 'ol/Map';
+import View from 'ol/View';
+import TileLayer from 'ol/layer/Tile';
+import VectorLayer from 'ol/layer/Vector';
+import XYZ from 'ol/source/XYZ';
+import VectorSource from 'ol/source/Vector';
+import GeoJSON from 'ol/format/GeoJSON';
+
+/** 简化 GeoJSON FeatureCollection 类型（避免依赖 @types/geojson） */
+interface SimpleGeometry {
+  type: string;
+  coordinates: unknown;
+}
+interface SimpleFeature {
+  type: 'Feature';
+  properties: Record<string, unknown> | null;
+  geometry: SimpleGeometry;
+}
+interface SimpleFeatureCollection {
+  type: 'FeatureCollection';
+  features: SimpleFeature[];
+}
+import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
+import { defaults as defaultControls } from 'ol/control';
+import { transformExtent, fromLonLat } from 'ol/proj';
+import { createXYZ } from 'ol/tilegrid';
+import 'ol/ol.css';
 
 defineOptions({
   name: 'CatalogPage'
@@ -23,6 +62,13 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 const detailVisible = ref(false);
 const detailItem = ref<CatalogItem | null>(null);
+const analysisVisible = ref(false);
+const analysisItem = ref<CatalogItem | null>(null);
+const selectedAnalysisType = ref<string>('');
+const isAnalysisLoading = ref(false);
+const analysisMapContainer = ref<HTMLElement | null>(null);
+const analysisMap = shallowRef<Map | null>(null);
+const analysisVectorLayer = shallowRef<VectorLayer<VectorSource> | null>(null);
 
 const categoryCountMap = computed<Record<string, number>>(() => {
   return dataList.value.reduce<Record<string, number>>((acc, item) => {
@@ -199,7 +245,7 @@ watch(pageSize, () => {
   }
 });
 
-type CatalogActionKey = 'publish' | 'download' | 'delete' | 'refresh' | 'detail';
+type CatalogActionKey = 'publish' | 'download' | 'delete' | 'refresh' | 'detail' | 'analysis';
 
 interface CatalogActionItem {
   key: CatalogActionKey;
@@ -212,8 +258,8 @@ const actionGroups: CatalogActionItem[] = [
   { key: 'publish', label: '发布', icon: 'mdi:send-outline' },
   { key: 'download', label: '下载', icon: 'mdi:download-outline' },
   { key: 'delete', label: '删除', icon: 'mdi:trash-can-outline', danger: true },
-  { key: 'refresh', label: '更新', icon: 'mdi:refresh' },
-  { key: 'detail', label: '详情', icon: 'mdi:information-outline' }
+  { key: 'detail', label: '详情', icon: 'mdi:information-outline' },
+  { key: 'analysis', label: '分析', icon: 'mdi:chart-box-outline' }
 ];
 
 // ====== NDataTable columns ======
@@ -221,7 +267,7 @@ const columns = computed<DataTableColumns<CatalogItem>>(() => [
   {
     title: '数据名称',
     key: 'name',
-    width: 260,
+    width: 220,
     render(row) {
       return h('div', { class: 'dataset-cell' }, [
         h(SvgIcon, { icon: 'mdi:database', class: 'dataset-cell__bullet' }),
@@ -235,7 +281,7 @@ const columns = computed<DataTableColumns<CatalogItem>>(() => [
   {
     title: '数据时间',
     key: 'ingestTime',
-    width: 120,
+    width: 110,
     render(row) {
       return h('span', { class: 'row-text row-text--muted' }, row.ingestTime);
     }
@@ -251,7 +297,7 @@ const columns = computed<DataTableColumns<CatalogItem>>(() => [
   {
     title: '空间范围',
     key: 'range',
-    width: 120,
+    width: 110,
     render(row) {
       return h('span', { class: 'row-text' }, row.range);
     }
@@ -273,10 +319,25 @@ const columns = computed<DataTableColumns<CatalogItem>>(() => [
     }
   },
   {
+    title: '状态',
+    key: 'status',
+    width: 80,
+    align: 'center',
+    render(row) {
+      const cfg = getStatusConfig(row.status);
+      return h(
+        'span',
+        { class: `status-tag status-tag--${cfg.type}` },
+        cfg.label
+      );
+    }
+  },
+  {
     title: '操作',
     key: 'actions',
-    width: 180,
+    width: 200,
     fixed: 'right',
+    align: 'center',
     render(row) {
       return h('div', { class: 'action-group' }, [
         h(
@@ -314,20 +375,20 @@ const columns = computed<DataTableColumns<CatalogItem>>(() => [
           {
             type: 'button',
             class: 'action-icon-btn',
-            'data-tooltip': '更新',
-            onClick: () => handleAction('refresh', row)
+            'data-tooltip': '详情',
+            onClick: () => handleAction('detail', row)
           },
-          [h(SvgIcon, { icon: 'mdi:refresh', class: 'action-icon-btn__svg' })]
+          [h(SvgIcon, { icon: 'mdi:information-outline', class: 'action-icon-btn__svg' })]
         ),
         h(
           'button',
           {
             type: 'button',
-            class: 'action-icon-btn',
-            'data-tooltip': '详情',
-            onClick: () => handleAction('detail', row)
+            class: 'action-icon-btn action-icon-btn--analysis',
+            'data-tooltip': '分析',
+            onClick: () => handleAction('analysis', row)
           },
-          [h(SvgIcon, { icon: 'mdi:information-outline', class: 'action-icon-btn__svg' })]
+          [h(SvgIcon, { icon: 'mdi:chart-box-outline', class: 'action-icon-btn__svg' })]
         )
       ]);
     }
@@ -465,17 +526,626 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
     case 'delete':
       handleDelete(item);
       break;
-    case 'refresh':
-      window.$message?.info(`已触发更新：${item.name}`);
-      break;
     case 'detail':
       detailItem.value = item;
       detailVisible.value = true;
+      break;
+    case 'analysis':
+      analysisItem.value = item;
+      selectedAnalysisType.value = '';
+      analysisVisible.value = true;
+      nextTick(() => initAnalysisMap());
       break;
     default:
       break;
   }
 }
+
+// ====== Analysis Modal - Analysis Types ======
+interface AnalysisSubItem {
+  key: string;
+  label: string;
+}
+
+interface AnalysisCategory {
+  key: string;
+  label: string;
+  icon: string;
+  items: AnalysisSubItem[];
+}
+
+const analysisCategories: AnalysisCategory[] = [
+  {
+    key: 'feature-extraction',
+    label: '要素提取',
+    icon: 'mdi:vector-polygon',
+    items: [
+      { key: 'road', label: '道路提取' },
+      { key: 'building', label: '建筑提取' },
+      { key: 'water', label: '水体提取' },
+      { key: 'vegetation', label: '植被提取' }
+    ]
+  },
+  {
+    key: 'target-detection',
+    label: '目标检测',
+    icon: 'mdi:target',
+    items: [
+      { key: 'vehicle', label: '车辆检测' },
+      { key: 'ship', label: '船舶检测' },
+      { key: 'aircraft', label: '飞机检测' }
+    ]
+  },
+  {
+    key: 'obstacle-recognition',
+    label: '障碍物识别',
+    icon: 'mdi:road-variant',
+    items: [
+      { key: 'road-damage', label: '道路损毁物' },
+      { key: 'barrier', label: '路障/拒马' },
+      { key: 'fortification', label: '防御工事' }
+    ]
+  }
+];
+
+// ====== Analysis Helpers ======
+function getSubItemIcon(key: string): string {
+  const iconMap: Record<string, string> = {
+    road: 'mdi:road-variant',
+    building: 'mdi:office-building',
+    water: 'mdi:water',
+    vegetation: 'mdi:pine-tree',
+    vehicle: 'mdi:car',
+    ship: 'mdi:ferry',
+    aircraft: 'mdi:airplane',
+    'road-damage': 'mdi:road-variant',
+    barrier: 'mdi:alert-octagon',
+    fortification: 'mdi:shield-outline'
+  };
+  return iconMap[key] ?? 'mdi:map-marker';
+}
+
+// ====== Mock Vector Data (GeoJSON Features) ======
+function getMockGeoJSON(type: string): SimpleFeatureCollection {
+  const bbox = analysisItem.value?.bbox ?? [116.0, 30.0, 117.0, 31.0];
+  const [minX, minY, maxX, maxY] = bbox;
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  const dx = (maxX - minX) * 0.15;
+  const dy = (maxY - minY) * 0.15;
+
+  const mockData: Record<string, SimpleFeatureCollection> = {
+    road: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { name: '主干道A', type: 'road' },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [cx - dx * 2, cy - dy * 0.3],
+              [cx - dx, cy + dy * 0.1],
+              [cx, cy - dy * 0.05],
+              [cx + dx * 0.8, cy + dy * 0.2],
+              [cx + dx * 1.5, cy - dy * 0.1]
+            ]
+          }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '支路B', type: 'road' },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [cx - dx * 0.5, cy - dy * 1.2],
+              [cx - dx * 0.2, cy - dy * 0.3],
+              [cx + dy * 0.3, cy + dy * 0.5],
+              [cx + dx * 0.6, cy + dy * 1.0]
+            ]
+          }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '环城路C', type: 'road' },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [cx - dx * 1.3, cy],
+              [cx - dx * 1.0, cy + dy * 0.8],
+              [cx, cy + dy * 1.1],
+              [cx + dx * 1.0, cy + dy * 0.6],
+              [cx + dx * 1.3, cy - dy * 0.2]
+            ]
+          }
+        }
+      ]
+    },
+    building: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { name: '建筑群1', type: 'building' },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [cx - dx * 0.6, cy - dy * 0.5],
+                [cx - dx * 0.2, cy - dy * 0.5],
+                [cx - dx * 0.2, cy - dy * 0.1],
+                [cx - dx * 0.6, cy - dy * 0.1],
+                [cx - dx * 0.6, cy - dy * 0.5]
+              ]
+            ]
+          }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '建筑群2', type: 'building' },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [cx + dx * 0.3, cy + dy * 0.2],
+                [cx + dx * 0.7, cy + dy * 0.2],
+                [cx + dx * 0.7, cy + dy * 0.7],
+                [cx + dx * 0.3, cy + dy * 0.7],
+                [cx + dx * 0.3, cy + dy * 0.2]
+              ]
+            ]
+          }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '独立建筑3', type: 'building' },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [cx - dx * 0.1, cy + dy * 0.4],
+                [cx + dx * 0.15, cy + dy * 0.4],
+                [cx + dx * 0.15, cy + dy * 0.75],
+                [cx - dx * 0.1, cy + dy * 0.75],
+                [cx - dx * 0.1, cy + dy * 0.4]
+              ]
+            ]
+          }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '大型建筑4', type: 'building' },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [cx - dx * 1.0, cy + dy * 0.5],
+                [cx - dx * 0.5, cy + dy * 0.5],
+                [cx - dx * 0.5, cy + dy * 1.0],
+                [cx - dx * 1.0, cy + dy * 1.0],
+                [cx - dx * 1.0, cy + dy * 0.5]
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    water: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { name: '湖泊', type: 'water' },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [cx + dx * 0.5, cy - dy * 0.8],
+                [cx + dx * 1.2, cy - dy * 0.6],
+                [cx + dx * 1.3, cy - dy * 0.1],
+                [cx + dx * 0.9, cy + dy * 0.1],
+                [cx + dx * 0.4, cy - dy * 0.1],
+                [cx + dx * 0.3, cy - dy * 0.5],
+                [cx + dx * 0.5, cy - dy * 0.8]
+              ]
+            ]
+          }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '河流', type: 'water' },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [cx - dx * 1.5, cy + dy * 0.3],
+              [cx - dx * 0.8, cy + dy * 0.5],
+              [cx - dx * 0.2, cy + dy * 0.15],
+              [cx + dx * 0.3, cy + dy * 0.4],
+              [cx + dx * 1.0, cy + dy * 0.2],
+              [cx + dx * 1.8, cy + dy * 0.5]
+            ]
+          }
+        }
+      ]
+    },
+    vegetation: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { name: '林区A', type: 'vegetation' },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [cx - dx * 1.2, cy - dy * 1.0],
+                [cx - dx * 0.4, cy - dy * 1.0],
+                [cx - dx * 0.3, cy - dy * 0.5],
+                [cx - dx * 0.8, cy - dy * 0.4],
+                [cx - dx * 1.2, cy - dy * 0.6],
+                [cx - dx * 1.2, cy - dy * 1.0]
+              ]
+            ]
+          }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '农田B', type: 'vegetation' },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [cx + dx * 0.1, cy - dy * 1.1],
+                [cx + dx * 0.8, cy - dy * 1.2],
+                [cx + dx * 1.0, cy - dy * 0.6],
+                [cx + dx * 0.3, cy - dy * 0.5],
+                [cx + dx * 0.1, cy - dy * 1.1]
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    vehicle: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { name: '车辆-1', type: 'vehicle' },
+          geometry: { type: 'Point', coordinates: [cx - dx * 0.3, cy - dy * 0.2] }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '车辆-2', type: 'vehicle' },
+          geometry: { type: 'Point', coordinates: [cx + dx * 0.1, cy + dy * 0.15] }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '车辆-3', type: 'vehicle' },
+          geometry: { type: 'Point', coordinates: [cx + dx * 0.5, cy - dy * 0.1] }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '车辆-4', type: 'vehicle' },
+          geometry: { type: 'Point', coordinates: [cx - dx * 0.7, cy + dy * 0.3] }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '车辆-5', type: 'vehicle' },
+          geometry: { type: 'Point', coordinates: [cx + dx * 0.8, cy + dy * 0.5] }
+        }
+      ]
+    },
+    ship: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { name: '船舶-1', type: 'ship' },
+          geometry: { type: 'Point', coordinates: [cx + dx * 0.8, cy - dy * 0.4] }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '船舶-2', type: 'ship' },
+          geometry: { type: 'Point', coordinates: [cx + dx * 1.0, cy - dy * 0.1] }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '船舶-3', type: 'ship' },
+          geometry: { type: 'Point', coordinates: [cx + dx * 0.6, cy + dy * 0.35] }
+        }
+      ]
+    },
+    aircraft: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { name: '飞机-1', type: 'aircraft' },
+          geometry: { type: 'Point', coordinates: [cx - dx * 0.9, cy + dy * 0.8] }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '飞机-2', type: 'aircraft' },
+          geometry: { type: 'Point', coordinates: [cx + dx * 0.4, cy + dy * 0.9] }
+        }
+      ]
+    },
+    'road-damage': {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { name: '路面损毁1', type: 'road-damage' },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [cx - dx * 0.4, cy - dy * 0.3],
+                [cx - dx * 0.1, cy - dy * 0.3],
+                [cx - dx * 0.1, cy - dy * 0.15],
+                [cx - dx * 0.4, cy - dy * 0.15],
+                [cx - dx * 0.4, cy - dy * 0.3]
+              ]
+            ]
+          }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '桥梁断裂2', type: 'road-damage' },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [cx + dx * 0.2, cy + dy * 0.1],
+                [cx + dx * 0.45, cy + dy * 0.1],
+                [cx + dx * 0.45, cy + dy * 0.25],
+                [cx + dx * 0.2, cy + dy * 0.25],
+                [cx + dx * 0.2, cy + dy * 0.1]
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    barrier: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { name: '路障-1', type: 'barrier' },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [cx - dx * 0.5, cy + dy * 0.3],
+              [cx - dx * 0.1, cy + dy * 0.5],
+              [cx + dx * 0.2, cy + dy * 0.35]
+            ]
+          }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '拒马-2', type: 'barrier' },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [cx + dx * 0.5, cy - dy * 0.4],
+              [cx + dx * 0.8, cy - dy * 0.2],
+              [cx + dx * 1.0, cy - dy * 0.35]
+            ]
+          }
+        }
+      ]
+    },
+    fortification: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { name: '碉堡', type: 'fortification' },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [cx - dx * 0.8, cy - dy * 0.7],
+                [cx - dx * 0.5, cy - dy * 0.7],
+                [cx - dx * 0.5, cy - dy * 0.45],
+                [cx - dx * 0.8, cy - dy * 0.45],
+                [cx - dx * 0.8, cy - dy * 0.7]
+              ]
+            ]
+          }
+        },
+        {
+          type: 'Feature',
+          properties: { name: '战壕', type: 'fortification' },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [cx - dx * 1.0, cy + dy * 0.6],
+              [cx - dx * 0.5, cy + dy * 0.7],
+              [cx, cy + dy * 0.6],
+              [cx + dx * 0.5, cy + dy * 0.8]
+            ]
+          }
+        }
+      ]
+    }
+  };
+
+  return (
+    mockData[type] ?? {
+      type: 'FeatureCollection',
+      features: []
+    }
+  );
+}
+
+// ====== Vector Style by type ======
+function getVectorStyle(featureType: string): Style {
+  const styles: Record<string, Style> = {
+    road: new Style({
+      stroke: new Stroke({ color: '#ffeb3b', width: 3 })
+    }),
+    building: new Style({
+      stroke: new Stroke({ color: '#ff9800', width: 2 }),
+      fill: new Fill({ color: 'rgba(255, 152, 0, 0.25)' })
+    }),
+    water: new Style({
+      stroke: new Stroke({ color: '#29b6f6', width: 2 }),
+      fill: new Fill({ color: 'rgba(41, 182, 246, 0.25)' })
+    }),
+    vegetation: new Style({
+      stroke: new Stroke({ color: '#66bb6a', width: 2 }),
+      fill: new Fill({ color: 'rgba(102, 187, 106, 0.25)' })
+    }),
+    vehicle: new Style({
+      image: new CircleStyle({ radius: 7, fill: new Fill({ color: '#f44336' }), stroke: new Stroke({ color: '#fff', width: 2 }) })
+    }),
+    ship: new Style({
+      image: new CircleStyle({ radius: 7, fill: new Fill({ color: '#2196f3' }), stroke: new Stroke({ color: '#fff', width: 2 }) })
+    }),
+    aircraft: new Style({
+      image: new CircleStyle({ radius: 8, fill: new Fill({ color: '#e91e63' }), stroke: new Stroke({ color: '#fff', width: 2 }) })
+    }),
+    'road-damage': new Style({
+      stroke: new Stroke({ color: '#ff1744', width: 2, lineDash: [8, 4] }),
+      fill: new Fill({ color: 'rgba(255, 23, 68, 0.3)' })
+    }),
+    barrier: new Style({
+      stroke: new Stroke({ color: '#ff6d00', width: 3, lineDash: [6, 3] })
+    }),
+    fortification: new Style({
+      stroke: new Stroke({ color: '#d500f9', width: 2 }),
+      fill: new Fill({ color: 'rgba(213, 0, 249, 0.2)' })
+    })
+  };
+  return styles[featureType] ?? new Style({});
+}
+
+function vectorStyleFunction(feature: import('ol/Feature').default): Style {
+  const ft = feature.get('type') ?? '';
+  return getVectorStyle(ft);
+}
+
+// ====== OL Map Lifecycle ======
+function createTileLayer(): TileLayer {
+  if (isOnlineImagery()) {
+    const onlineConfig = getOnlineImageryConfig();
+    const maxLevel = onlineConfig.maximumLevel ?? 18;
+
+    return new TileLayer({
+      source: new XYZ({
+        tileGrid: createXYZ({
+          maxZoom: maxLevel,
+          tileSize: 256
+        }),
+        tileUrlFunction(tileCoord) {
+          const [z, x, y] = tileCoord;
+          const reverseY = (1 << z!) - y! - 1;
+          const url = onlineConfig.url
+            .replace('{z}', String(z))
+            .replace('{x}', String(x))
+            .replace('{reverseY}', String(reverseY))
+            .replace('{-y}', String(reverseY));
+          return url;
+        },
+        crossOrigin: 'anonymous'
+      })
+    });
+  }
+  const url = getGlobalImageryUrl();
+  return new TileLayer({
+    source: new XYZ({ url, crossOrigin: 'anonymous' })
+  });
+}
+
+function initAnalysisMap() {
+  if (!analysisMapContainer.value) return;
+
+  const tileLayer = createTileLayer();
+  const vectorSource = new VectorSource();
+  const vLayer = new VectorLayer({
+    source: vectorSource,
+    style: vectorStyleFunction as any
+  });
+  analysisVectorLayer.value = vLayer;
+
+  const bbox = analysisItem.value?.bbox ?? [116.0, 30.0, 117.0, 31.0];
+  const extent = transformExtent(bbox, 'EPSG:4326', 'EPSG:3857');
+
+  const map = new Map({
+    target: analysisMapContainer.value,
+    controls: defaultControls({ attribution: false, rotate: false }),
+    layers: [tileLayer, vLayer],
+    view: new View({
+      projection: 'EPSG:3857',
+      extent,
+      center: fromLonLat([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2]),
+      zoom: 10,
+      minZoom: 1,
+      maxZoom: 18
+    })
+  });
+  analysisMap.value = map;
+
+  map.getView().fit(extent, { padding: [40, 40, 40, 40], maxZoom: 16 });
+}
+
+function destroyAnalysisMap() {
+  if (analysisMap.value) {
+    analysisMap.value.setTarget(undefined);
+    analysisMap.value = null;
+  }
+  analysisVectorLayer.value = null;
+  selectedAnalysisType.value = '';
+}
+
+function handleAnalysisTypeSelect(typeKey: string) {
+  selectedAnalysisType.value = typeKey;
+  isAnalysisLoading.value = true;
+  const vLayer = analysisVectorLayer.value;
+  if (!vLayer) {
+    isAnalysisLoading.value = false;
+    return;
+  }
+
+  const source = vLayer.getSource();
+  if (!source) {
+    isAnalysisLoading.value = false;
+    return;
+  }
+  source.clear();
+
+  // 模拟分析延迟，增强交互体感
+  setTimeout(() => {
+    const geojsonData = getMockGeoJSON(typeKey);
+    const format = new GeoJSON();
+    const features = format.readFeatures(geojsonData, {
+      dataProjection: 'EPSG:4326',
+      featureProjection: 'EPSG:3857'
+    });
+    source.addFeatures(features);
+    isAnalysisLoading.value = false;
+
+    if (features.length > 0 && analysisMap.value) {
+      const extent = source.getExtent();
+      if (extent) {
+        analysisMap.value.getView().fit(extent, { padding: [60, 60, 60, 60], maxZoom: 16, duration: 600 });
+      }
+    }
+  }, 300);
+}
+
+watch(analysisVisible, val => {
+  if (!val) {
+    destroyAnalysisMap();
+  }
+});
+
+onBeforeUnmount(() => {
+  destroyAnalysisMap();
+});
 
 </script>
 
@@ -568,6 +1238,7 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
                 :row-key="(row: CatalogItem) => row.id"
                 :theme-overrides="dataTableThemeOverrides"
                 :bordered="false"
+                :scroll-x="970"
                 single-line
                 flex-height
                 class="catalog-data-table"
@@ -759,135 +1430,6 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
             </div>
           </div>
 
-          <!-- 数据质量 -->
-          <div v-if="detailItem.quality" class="detail-section">
-            <div class="detail-section__title">
-              <SvgIcon icon="mdi:shield-check-outline" class="detail-section__icon" />
-              数据质量
-            </div>
-            <div class="detail-grid">
-              <div class="detail-field">
-                <span class="detail-field__label">综合评分</span>
-                <span class="detail-field__value">
-                  {{ detailItem.quality.score }} 分
-                  <span class="detail-grade" :class="`detail-grade--${detailItem.quality.grade}`">{{ detailItem.quality.grade }}</span>
-                </span>
-              </div>
-              <div class="detail-field">
-                <span class="detail-field__label">完整性</span>
-                <span class="detail-field__value">{{ detailItem.quality.completeness }}%</span>
-              </div>
-              <div class="detail-field">
-                <span class="detail-field__label">时效性</span>
-                <span class="detail-field__value">{{ detailItem.quality.timeliness }}%</span>
-              </div>
-              <div class="detail-field">
-                <span class="detail-field__label">精度</span>
-                <span class="detail-field__value">{{ detailItem.quality.accuracy }}%</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 智能体关联 & 场景标签 -->
-          <div v-if="detailItem.agentBinding?.length || detailItem.scenarioTags?.length" class="detail-section">
-            <div class="detail-section__title">
-              <SvgIcon icon="mdi:robot-outline" class="detail-section__icon" />
-              智能体与场景
-            </div>
-            <div class="detail-grid">
-              <div v-if="detailItem.agentBinding?.length" class="detail-field detail-field--full">
-                <span class="detail-field__label">可调用智能体</span>
-                <div class="detail-tags">
-                  <span v-for="a in detailItem.agentBinding" :key="a" class="detail-tag detail-tag--agent">{{ agentLabelMap[a] || a }}</span>
-                </div>
-              </div>
-              <div v-if="detailItem.scenarioTags?.length" class="detail-field detail-field--full">
-                <span class="detail-field__label">任务场景</span>
-                <div class="detail-tags">
-                  <span v-for="s in detailItem.scenarioTags" :key="s" class="detail-tag detail-tag--scenario">{{ s }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 瓦片/服务状态 -->
-          <div v-if="detailItem.tileStatus" class="detail-section">
-            <div class="detail-section__title">
-              <SvgIcon icon="mdi:server-network-outline" class="detail-section__icon" />
-              瓦片与服务
-            </div>
-            <div class="detail-grid">
-              <div class="detail-field">
-                <span class="detail-field__label">已切片</span>
-                <span class="detail-field__value">{{ detailItem.tileStatus.tiled ? '是' : '否' }}</span>
-              </div>
-              <div class="detail-field">
-                <span class="detail-field__label">支持协议</span>
-                <span class="detail-field__value">{{ detailItem.tileStatus.protocols.join(', ') || '—' }}</span>
-              </div>
-              <div v-if="detailItem.tileStatus.serviceUrl" class="detail-field detail-field--full">
-                <span class="detail-field__label">服务地址</span>
-                <span class="detail-field__value detail-field__value--mono">{{ detailItem.tileStatus.serviceUrl }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 数据血缘 -->
-          <div v-if="detailItem.lineage" class="detail-section">
-            <div class="detail-section__title">
-              <SvgIcon icon="mdi:source-branch" class="detail-section__icon" />
-              数据血缘
-            </div>
-            <div class="detail-grid">
-              <div class="detail-field">
-                <span class="detail-field__label">数据源</span>
-                <span class="detail-field__value">{{ detailItem.lineage.source }}</span>
-              </div>
-              <div class="detail-field">
-                <span class="detail-field__label">版本</span>
-                <span class="detail-field__value detail-field__value--mono">{{ detailItem.lineage.version }}</span>
-              </div>
-              <div v-if="detailItem.lineage.processedSteps?.length" class="detail-field detail-field--full">
-                <span class="detail-field__label">整编步骤</span>
-                <div class="detail-steps">
-                  <span v-for="(step, idx) in detailItem.lineage.processedSteps" :key="idx" class="detail-step">
-                    <span class="detail-step__num">{{ idx + 1 }}</span>{{ step }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 审核状态 -->
-          <div v-if="detailItem.audit" class="detail-section">
-            <div class="detail-section__title">
-              <SvgIcon icon="mdi:check-decagram-outline" class="detail-section__icon" />
-              审核状态
-            </div>
-            <div class="detail-grid">
-              <div class="detail-field">
-                <span class="detail-field__label">审核人</span>
-                <span class="detail-field__value">{{ detailItem.audit.auditor }}</span>
-              </div>
-              <div class="detail-field">
-                <span class="detail-field__label">审核时间</span>
-                <span class="detail-field__value">{{ detailItem.audit.auditTime }}</span>
-              </div>
-              <div class="detail-field">
-                <span class="detail-field__label">审核结果</span>
-                <span class="detail-field__value">
-                  <span class="detail-audit-badge" :class="`detail-audit-badge--${detailItem.audit.status}`">
-                    {{ detailItem.audit.status === 'approved' ? '已通过' : detailItem.audit.status === 'pending' ? '待审核' : '已驳回' }}
-                  </span>
-                </span>
-              </div>
-              <div v-if="detailItem.audit.comments" class="detail-field detail-field--full">
-                <span class="detail-field__label">审核意见</span>
-                <span class="detail-field__value">{{ detailItem.audit.comments }}</span>
-              </div>
-            </div>
-          </div>
-
           <!-- 微调状态 -->
           <div v-if="detailItem.finetuneStatus?.used" class="detail-section">
             <div class="detail-section__title">
@@ -914,6 +1456,81 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
                 <span class="detail-field__value detail-field__value--mono">{{ detailItem.finetuneStatus.modelVersion }}</span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </NModal>
+
+    <!-- 数据分析弹窗 -->
+    <NModal
+      v-model:show="analysisVisible"
+      :mask-closable="true"
+      :close-on-esc="true"
+      :transform-origin="'center'"
+      class="catalog-analysis-modal"
+    >
+      <div v-if="analysisItem" class="analysis-card">
+        <!-- 标题区 -->
+        <div class="analysis-header">
+          <div class="analysis-header__left">
+            <SvgIcon icon="mdi:target" class="analysis-header__icon" />
+            <h3 class="analysis-header__title">{{ analysisItem.name }}</h3>
+            <span class="analysis-header__badge">{{ analysisItem.type }}</span>
+            <span class="analysis-header__separator">·</span>
+            <SvgIcon icon="mdi:image-area" class="analysis-header__meta-icon" />
+            <span class="analysis-header__range">{{ analysisItem.range }}</span>
+          </div>
+          <button class="analysis-header__close" @click="analysisVisible = false">
+            <SvgIcon icon="mdi:close" class="analysis-header__close-icon" />
+          </button>
+        </div>
+
+        <!-- 主体区域 -->
+        <div class="analysis-body">
+          <!-- 左侧面板 -->
+          <div class="analysis-sidebar">
+            <div class="analysis-sidebar__title">
+              <SvgIcon icon="mdi:format-list-bulleted" class="analysis-sidebar__title-icon" />
+              分析类型
+            </div>
+            <NCollapse
+              :default-expanded-names="['feature-extraction', 'target-detection', 'obstacle-recognition']"
+              class="analysis-collapse"
+            >
+              <NCollapseItem
+                v-for="category in analysisCategories"
+                :key="category.key"
+                :title="category.label"
+                :name="category.key"
+              >
+                <template #header-extra>
+                  <SvgIcon :icon="category.icon" class="analysis-category-icon" />
+                </template>
+                <div class="analysis-sub-list">
+                  <div
+                    v-for="item in category.items"
+                    :key="item.key"
+                    class="analysis-sub-item"
+                    :class="{
+                      'analysis-sub-item--active': selectedAnalysisType === item.key,
+                      'analysis-sub-item--loading': isAnalysisLoading && selectedAnalysisType === item.key
+                    }"
+                    @click="handleAnalysisTypeSelect(item.key)"
+                  >
+                    <span class="analysis-sub-item__icon">
+                      <SvgIcon :icon="getSubItemIcon(item.key)" />
+                    </span>
+                    <span class="analysis-sub-item__label">{{ item.label }}</span>
+                    <SvgIcon v-if="isAnalysisLoading && selectedAnalysisType === item.key" icon="mdi:loading" class="analysis-sub-item__spinner" />
+                  </div>
+                </div>
+              </NCollapseItem>
+            </NCollapse>
+          </div>
+
+          <!-- 中间地图区域 -->
+          <div class="analysis-map-area" :class="{ 'analysis-map-area--active': selectedAnalysisType }">
+            <div ref="analysisMapContainer" class="analysis-map-container"></div>
           </div>
         </div>
       </div>
@@ -1596,6 +2213,37 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
   transition: all 0.2s ease;
 }
 
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.status-tag--success {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: rgba(74, 222, 128, 0.9);
+}
+
+.status-tag--warning {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: rgba(251, 191, 36, 0.9);
+}
+
+.status-tag--default {
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: rgba(203, 213, 225, 0.7);
+}
+
 .type-chip--image {
   background: rgba(73, 105, 255, 0.22);
   border-color: rgba(97, 127, 255, 0.32);
@@ -1637,7 +2285,7 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
 .catalog-data-table :deep(.action-group) {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   justify-content: center;
 }
 
@@ -2392,5 +3040,373 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
   .catalog-footer__summary {
     flex-wrap: wrap;
   }
+}
+
+/* ====== Analysis Modal ====== */
+
+/* Card container with subtle border glow */
+.analysis-card {
+  width: 1200px;
+  max-width: 95vw;
+  height: 88vh;
+  background: linear-gradient(180deg, rgba(4, 20, 44, 0.99) 0%, rgba(2, 14, 30, 0.99) 100%);
+  border: 1px solid var(--catalog-surface-border);
+  border-top: 2px solid rgba(41, 163, 255, 0.3);
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 1px rgba(32, 111, 202, 0.12),
+    0 4px 32px rgba(0, 10, 28, 0.6),
+    0 0 80px rgba(41, 163, 255, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+.analysis-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--catalog-line);
+  background: linear-gradient(90deg, rgba(0, 60, 140, 0.18) 0%, rgba(0, 20, 60, 0.06) 60%, rgba(0, 0, 0, 0) 100%);
+  flex-shrink: 0;
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  &__icon {
+    font-size: 24px;
+    color: var(--catalog-accent);
+    filter: drop-shadow(0 0 6px rgba(41, 163, 255, 0.4));
+  }
+
+  &__title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--catalog-text-primary);
+    margin: 0;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+  }
+
+  &__badge {
+    padding: 1px 8px;
+    border-radius: 3px;
+    background: rgba(41, 163, 255, 0.12);
+    border: 1px solid rgba(41, 163, 255, 0.2);
+    color: var(--catalog-accent);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  &__separator {
+    color: rgba(147, 196, 255, 0.25);
+    font-weight: 700;
+  }
+
+  &__meta-icon {
+    font-size: 13px;
+    opacity: 0.6;
+  }
+
+  &__range {
+    font-size: 12px;
+    color: var(--catalog-text-tertiary);
+    opacity: 0.8;
+  }
+
+  &__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(100, 160, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(2, 18, 36, 0.4);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      background: rgba(255, 107, 107, 0.12);
+      border-color: rgba(255, 107, 107, 0.3);
+      transform: scale(1.05);
+    }
+  }
+
+  &__close-icon {
+    font-size: 20px;
+    color: var(--catalog-text-secondary);
+  }
+}
+
+/* ── Body ── */
+.analysis-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Sidebar ── */
+.analysis-sidebar {
+  width: 280px;
+  min-width: 280px;
+  border-right: 1px solid var(--catalog-line);
+  overflow-y: auto;
+  background: linear-gradient(180deg, rgba(2, 10, 24, 0.7) 0%, rgba(2, 14, 28, 0.5) 100%);
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(41, 163, 255, 0.2);
+    border-radius: 2px;
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--catalog-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    border-bottom: 1px solid rgba(25, 95, 176, 0.15);
+  }
+
+  &__title-icon {
+    font-size: 15px;
+    color: var(--catalog-accent);
+    opacity: 0.6;
+  }
+}
+
+/* ── Collapse ── */
+.analysis-collapse {
+  :deep(.n-collapse-item) {
+    margin: 0 !important;
+    border-bottom: 1px solid rgba(25, 95, 176, 0.1);
+  }
+
+  :deep(.n-collapse-item__header) {
+    padding: 10px 18px !important;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: rgba(41, 163, 255, 0.04);
+    }
+  }
+
+  :deep(.n-collapse-item__header-main) {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--catalog-text-primary);
+    letter-spacing: 0.3px;
+  }
+
+  :deep(.n-collapse-item__content-wrapper) {
+    padding: 0 !important;
+    border-top: 1px solid rgba(25, 95, 176, 0.08);
+  }
+
+  :deep(.n-collapse-item__content-inner) {
+    padding: 6px 0 !important;
+    background: rgba(0, 0, 0, 0.12);
+  }
+
+  :deep(.n-collapse-item-arrow) {
+    color: var(--catalog-accent);
+    font-size: 14px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+.analysis-category-icon {
+  font-size: 17px;
+  color: var(--catalog-accent);
+  opacity: 0.55;
+}
+
+/* ── Sub Items ── */
+.analysis-sub-list {
+  padding: 4px 10px;
+}
+
+.analysis-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(41, 163, 255, 0.08), transparent);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  &__icon {
+    font-size: 15px;
+    color: var(--catalog-text-tertiary);
+    flex-shrink: 0;
+    transition: all 0.25s ease;
+  }
+
+  &__label {
+    font-size: 13px;
+    color: var(--catalog-text-secondary);
+    transition: color 0.2s ease;
+    flex: 1;
+  }
+
+  &__spinner {
+    font-size: 14px;
+    color: var(--catalog-accent);
+    animation: spin 0.8s linear infinite;
+  }
+
+  &:hover {
+    background: rgba(41, 163, 255, 0.06);
+
+    &::before {
+      opacity: 1;
+    }
+
+    .analysis-sub-item__icon {
+      color: var(--catalog-accent);
+      transform: translateX(2px);
+    }
+
+    .analysis-sub-item__label {
+      color: var(--catalog-text-primary);
+    }
+  }
+
+  &--active {
+    background: rgba(41, 163, 255, 0.1);
+    border-color: rgba(41, 163, 255, 0.2);
+    box-shadow: inset 0 0 0 1px rgba(41, 163, 255, 0.08);
+
+    .analysis-sub-item__icon {
+      color: var(--catalog-accent);
+    }
+
+    .analysis-sub-item__label {
+      color: var(--catalog-accent);
+      font-weight: 600;
+    }
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &--loading {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+}
+
+/* ── Map Area ── */
+.analysis-map-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(41, 163, 255, 0);
+    border-radius: 0;
+    pointer-events: none;
+    transition: border-color 0.6s ease;
+    z-index: 2;
+  }
+
+  &--active::after {
+    border-color: rgba(41, 163, 255, 0.15);
+  }
+}
+
+.analysis-map-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+
+  :deep(.ol-control button) {
+    background: rgba(4, 20, 44, 0.92);
+    color: var(--catalog-text-primary);
+    border: 1px solid rgba(43, 131, 255, 0.2);
+    border-radius: 6px;
+    font-size: 17px;
+    width: 30px;
+    height: 30px;
+    backdrop-filter: blur(6px);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(41, 163, 255, 0.2);
+      border-color: rgba(41, 163, 255, 0.4);
+    }
+  }
+
+  :deep(.ol-zoom) {
+    top: 14px;
+    right: 14px;
+    left: auto;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  :deep(.ol-zoom button:first-child) {
+    border-bottom: 1px solid rgba(43, 131, 255, 0.15);
+  }
+
+  :deep(.ol-viewport) {
+    background: #010c1a;
+  }
+}
+
+/* ── Button accent ── */
+.action-icon-btn--analysis {
+  background: rgba(41, 163, 255, 0.06);
+  border-color: rgba(41, 163, 255, 0.12);
+  color: rgba(41, 163, 255, 0.6);
+}
+
+.action-icon-btn--analysis:hover {
+  color: var(--catalog-accent);
+  background: rgba(41, 163, 255, 0.15);
+  border-color: rgba(41, 163, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(41, 163, 255, 0.15);
+}
+
+.action-icon-btn--analysis:hover::after {
+  border-color: rgba(41, 163, 255, 0.2);
+}
+
+/* ── Keyframes ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
