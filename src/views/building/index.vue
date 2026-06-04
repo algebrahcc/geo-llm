@@ -83,6 +83,7 @@ const {
   buildingEntrances,
   buildingRoamPoints,
   buildingFloors,
+  buildingRooms,
   roomsOfActiveFloor,
   selectedSourceKey,
   activeSource
@@ -136,7 +137,7 @@ function handleBackToMain() { void router.push({ name: 'screen' }); }
 // 模型加载完成后添加街景点位
 watch(() => modelLoadState.loaded, loaded => {
   if (loaded && viewerRef.value) {
-    const points = buildingRoamPoints.map(p => ({
+    const points = buildingRoamPoints.value.map(p => ({
       id: p.id, title: p.title, longitude: p.longitude, latitude: p.latitude
     }));
     viewerRef.value.addRoamPoints(points);

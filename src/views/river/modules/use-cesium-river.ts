@@ -511,9 +511,15 @@ function sleep(ms: number) {
       );
     }
 
+    bindSceneEvents();
+    flyToPreset();
+    emitStatus(Cartesian3.fromDegrees(riverPresets.task.longitude, riverPresets.task.latitude, 0));
+  }
+
+  /** 分析完成后调用：加载地图标绘并定位视角 */
+  function initMapOverlays() {
     addStaticEntities();
     showPlan(activePlan);
-    bindSceneEvents();
     flyToPreset();
     emitStatus(Cartesian3.fromDegrees(riverPresets.task.longitude, riverPresets.task.latitude, 0));
   }
@@ -536,6 +542,7 @@ function sleep(ms: number) {
   return {
     containerRef,
     initViewer,
+    initMapOverlays,
     setActiveTool,
     setLayerVisible,
     flyToPreset,

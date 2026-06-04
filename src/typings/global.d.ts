@@ -1,4 +1,4 @@
-export {};
+
 
 /** 影像配置 - 本地模式 */
 export interface ImageryLocalConfig {

@@ -15,31 +15,13 @@ import type {
   PlanningRouteSummary,
   PlanningSupportResultCard,
   PlanningSupportSettingsForm,
-  PlanningTaskForm,
-  PlanningToolbarItem
+  PlanningTaskForm
 } from '@/views/planning/modules/types';
 import {
   planningRouteACoords,
   planningRouteBCoords,
   planningRouteCCoords
 } from './planning-route-coords';
-
-// ──── 工具栏 ────
-export const planningLeftTools = [
-  { key: 'task', label: '任务', icon: 'mdi:file-document-edit-outline' },
-  { key: 'pick-start', label: '起点', icon: 'mdi:map-marker-radius-outline' },
-  { key: 'pick-end', label: '终点', icon: 'mdi:map-marker-check-outline' },
-  { key: 'clear', label: '清空', icon: 'mdi:delete-sweep-outline' }
-] as const satisfies readonly PlanningToolbarItem[];
-
-export const planningRightTools = [
-  { key: 'layers', label: '图层', icon: 'mdi:layers-outline' },
-  { key: 'result', label: '结果', icon: 'mdi:routes' },
-  { key: 'reset', label: '复位', icon: 'mdi:home-outline' },
-  { key: 'zoom-in', label: '放大', icon: 'mdi:magnify-plus-outline' },
-  { key: 'zoom-out', label: '缩小', icon: 'mdi:magnify-minus-outline' },
-  { key: 'shot', label: '截图', icon: 'mdi:camera-outline' }
-] as const satisfies readonly PlanningToolbarItem[];
 
 // ──── 图层 ────
 export const planningDefaultLayers = [

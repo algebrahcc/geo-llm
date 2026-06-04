@@ -35,7 +35,7 @@ export const buildingModelSources = reactive<BuildingModelSource[]>([
       heading: 0,
       pitch: 0,
       roll: 0,
-      scale: 4
+      scale: 20
     }
   }
 ]);
@@ -319,16 +319,96 @@ export const buildingFloors = reactive<BuildingFloor[]>([
 ]);
 
 export const buildingRooms = reactive<BuildingRoom[]>([
-  { id: 'r1', floorId: 'f1', name: '一单元门厅', useType: '入口通道', summary: '入口狭窄约2m，电表箱可作掩体，楼梯入口在右侧。', riskLevel: 'medium', featureId: 'unit1-hall' },
-  { id: 'r2', floorId: 'f1', name: '楼梯间', useType: '垂直通道', summary: '预制板楼梯，控制后可切断楼上退路。', riskLevel: 'high', featureId: 'stairwell' },
-  { id: 'r3', floorId: 'f1', name: '底商杂物间', useType: '储藏空间', summary: '堆放旧家具杂物，需仔细搜索。', riskLevel: 'low', featureId: 'storage' },
-  { id: 'r4', floorId: 'f2', name: '201住户', useType: '居民住所', summary: '两室一厅布局，需逐屋检查是否有滞留居民。', riskLevel: 'low', featureId: 'apt201' },
-  { id: 'r5', floorId: 'f2', name: '202住户', useType: '居民住所', summary: '门已敞开，内部有翻动痕迹，疑似已被搜查。', riskLevel: 'medium', featureId: 'apt202' },
-  { id: 'r6', floorId: 'f3', name: '301住户', useType: '敌占区域', summary: '窗口有沙袋加固，可能设为前哨观察点。', riskLevel: 'high', featureId: 'apt301' },
-  { id: 'r7', floorId: 'f3', name: '302住户', useType: '敌占区域', summary: '房门加固，需破门进入，对抗强度高。', riskLevel: 'high', featureId: 'apt302' },
-  { id: 'r8', floorId: 'f4', name: '4F-全层', useType: '核心据守层', summary: '敌主要火力配置区，窗台有机枪射击孔。', riskLevel: 'high', featureId: 'apt4th' },
-  { id: 'r9', floorId: 'f5', name: '5F-阁楼', useType: '顶层据点', summary: '可通往屋顶，预估有狙击位和通讯设备。', riskLevel: 'high', featureId: 'apt5th' },
-  { id: 'r10', floorId: 'roof', name: '屋顶平台', useType: '制高控制', summary: '开阔屋顶，需警惕对面建筑威胁。', riskLevel: 'medium', featureId: 'roof' }
+  {
+    id: 'r1',
+    floorId: 'f1',
+    name: '一单元门厅',
+    useType: '入口通道',
+    summary: '入口狭窄约2m，电表箱可作掩体，楼梯入口在右侧。',
+    riskLevel: 'medium',
+    featureId: 'unit1-hall'
+  },
+  {
+    id: 'r2',
+    floorId: 'f1',
+    name: '楼梯间',
+    useType: '垂直通道',
+    summary: '预制板楼梯，控制后可切断楼上退路。',
+    riskLevel: 'high',
+    featureId: 'stairwell'
+  },
+  {
+    id: 'r3',
+    floorId: 'f1',
+    name: '底商杂物间',
+    useType: '储藏空间',
+    summary: '堆放旧家具杂物，需仔细搜索。',
+    riskLevel: 'low',
+    featureId: 'storage'
+  },
+  {
+    id: 'r4',
+    floorId: 'f2',
+    name: '201住户',
+    useType: '居民住所',
+    summary: '两室一厅布局，需逐屋检查是否有滞留居民。',
+    riskLevel: 'low',
+    featureId: 'apt201'
+  },
+  {
+    id: 'r5',
+    floorId: 'f2',
+    name: '202住户',
+    useType: '居民住所',
+    summary: '门已敞开，内部有翻动痕迹，疑似已被搜查。',
+    riskLevel: 'medium',
+    featureId: 'apt202'
+  },
+  {
+    id: 'r6',
+    floorId: 'f3',
+    name: '301住户',
+    useType: '敌占区域',
+    summary: '窗口有沙袋加固，可能设为前哨观察点。',
+    riskLevel: 'high',
+    featureId: 'apt301'
+  },
+  {
+    id: 'r7',
+    floorId: 'f3',
+    name: '302住户',
+    useType: '敌占区域',
+    summary: '房门加固，需破门进入，对抗强度高。',
+    riskLevel: 'high',
+    featureId: 'apt302'
+  },
+  {
+    id: 'r8',
+    floorId: 'f4',
+    name: '4F-全层',
+    useType: '核心据守层',
+    summary: '敌主要火力配置区，窗台有机枪射击孔。',
+    riskLevel: 'high',
+    featureId: 'apt4th'
+  },
+  {
+    id: 'r9',
+    floorId: 'f5',
+    name: '5F-阁楼',
+    useType: '顶层据点',
+    summary: '可通往屋顶，预估有狙击位和通讯设备。',
+    riskLevel: 'high',
+    featureId: 'apt5th'
+  },
+  {
+    id: 'r10',
+    floorId: 'roof',
+    name: '屋顶平台',
+    useType: '制高控制',
+    summary: '开阔屋顶，需警惕对面建筑威胁。',
+    riskLevel: 'medium',
+    featureId: 'roof'
+  }
 ]);
 
 export const buildingFeatureBindings = reactive<BuildingFeatureBinding[]>([

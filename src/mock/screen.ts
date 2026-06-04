@@ -140,3 +140,22 @@ export const screenNotices: ScreenNoticeItem[] = [
   { id: 'n3', level: 'error', title: '机动路线约束冲突：限高与限宽无法同时满足', time: '09:03' },
   { id: 'n4', level: 'info', title: '数据目录新增：交通路网（离线）更新至 2026-05', time: '08:32' }
 ];
+
+export interface ScreenHeatmapPoint {
+  longitude: number;
+  latitude: number;
+  value: number;
+}
+
+export const screenHeatmapPoints: ScreenHeatmapPoint[] = [
+  { longitude: 121.50, latitude: 25.05, value: 0.9 },
+  { longitude: 121.47, latitude: 25.10, value: 0.8 },
+  { longitude: 121.52, latitude: 25.08, value: 0.7 },
+  { longitude: 121.45, latitude: 25.12, value: 0.85 },
+  { longitude: 121.49, latitude: 25.03, value: 0.6 },
+  { longitude: 121.51, latitude: 25.11, value: 0.75 },
+  { longitude: 121.44, latitude: 25.07, value: 0.5 },
+  { longitude: 121.53, latitude: 25.09, value: 0.65 },
+  { longitude: 121.46, latitude: 25.06, value: 0.55 },
+  { longitude: 121.48, latitude: 25.13, value: 0.7 }
+];

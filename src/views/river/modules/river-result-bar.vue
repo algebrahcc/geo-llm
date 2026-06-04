@@ -135,8 +135,9 @@ function getSafetyColor(safety: string): string {
                 </div>
               </div>
 
-              <!-- ══ 展开详情（展开时在右侧） ══ -->
-              <div v-if="allExpanded || expandedCard === plan.rank" class="card-detail">
+              <!-- ══ 展开详情（CSS 过渡高度，避免 v-if 跳变） ══ -->
+              <div class="card-detail-wrapper" :class="{ 'card-detail-wrapper--open': allExpanded || expandedCard === plan.rank }">
+                <div class="card-detail">
                 <div class="detail-grid">
                   <div class="detail-block">
                     <div class="detail-label">📌 推荐场景</div>
@@ -174,6 +175,7 @@ function getSafetyColor(safety: string): string {
                       <li v-for="(cond, i) in plan.conditions" :key="i">{{ cond }}</li>
                     </ul>
                   </div>
+                </div>
                 </div>
               </div>
             </div>
@@ -523,6 +525,21 @@ function getSafetyColor(safety: string): string {
 }
 
 /* ──── 详情区域 ──── */
+.card-detail-wrapper {
+  overflow: hidden;
+}
+
+.card-detail-wrapper:not(.card-detail-wrapper--open) {
+  max-height: 0;
+  opacity: 0;
+}
+
+.card-detail-wrapper--open {
+  max-height: none;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
 .card-detail {
   padding: 12px 14px;
   flex: 1;
@@ -530,9 +547,14 @@ function getSafetyColor(safety: string): string {
   min-width: 0;
 }
 
-.card-body--row .card-detail {
+.card-body--row .card-detail-wrapper {
+  flex: 1;
+  min-width: 0;
+  max-height: none !important;
+  overflow-y: auto;
   border-left: 1px solid rgba(255, 255, 255, 0.06);
 }
+
 
 .detail-grid {
   display: grid;

@@ -22,7 +22,8 @@ import type {
   AiAnalysisStep,
   CrossingPlanCard,
   CrossingSettingForm,
-  KnowledgeHitDisplay
+  KnowledgeHitDisplay,
+  RiverToolKey
 } from './modules/types';
 
 defineOptions({
@@ -31,6 +32,7 @@ defineOptions({
 
 // ──── Viewer 引用 ────
 interface ViewerExpose {
+  initMapOverlays: () => void;
   resetView: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
@@ -86,7 +88,7 @@ function handleToggleLayer(key: string) {
 }
 
 // ──── 右侧工具栏 ────
-const activeRightTool = ref<string | null>(null);
+const activeRightTool = ref<RiverToolKey | null>(null);
 
 // ──── 表单更新 ────
 function handleFormUpdate(form: CrossingSettingForm) {
@@ -169,6 +171,9 @@ async function handleSubmitAnalysis() {
   resultVisible.value = true;
   resultCollapsed.value = false;
 
+  // 加载地图标绘（通道线、集结区、路线、风险区、标记点）
+  viewerRef.value?.initMapOverlays();
+
   analysisRunning.value = false;
 
   window.$message?.success('AI 智能分析完成，已生成渡河保障方案');
@@ -219,7 +224,7 @@ function handleToggleLayerPanel() {
 }
 
 // ──── 右侧工具栏 ────
-function handleRightToolSelect(key: string) {
+function handleRightToolSelect(key: RiverToolKey) {
   const viewer = viewerRef.value;
   switch (key) {
     case 'layers':
@@ -467,10 +472,11 @@ function handleToggleResult() {
 /* ──── 底部面板 ──── */
 .bottom-panel {
   position: fixed; width: calc(100vw - 480px); min-width: 600px;
-  max-height: 380px; display: flex; flex-direction: column;
+  max-height: 70vh; display: flex; flex-direction: column;
   background: #0e1626; border: 1px solid rgba(255,255,255,0.08);
   border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.45);
-  overflow: hidden; z-index: 21;
+  overflow: hidden auto; z-index: 21;
+  transition: max-height 0.25s ease;
 }
 
 /* ──── 拖拽手柄 ──── */
@@ -492,6 +498,19 @@ function handleToggleResult() {
 .bottom-panel :deep(.result-bar) {
   width: 100% !important; border: none !important;
   border-radius: 0 !important; box-shadow: none !important;
+}
+
+/* ──── 底部方案面板自适应内容高度 ──── */
+.bottom-panel :deep(.bar-content) {
+  flex: unset;
+  overflow-y: visible;
+}
+
+/* 内容超屏时才滚动 */
+@media (min-height: 900px) {
+  .bottom-panel {
+    max-height: 75vh;
+  }
 }
 
 /* ──── 过渡 ──── */

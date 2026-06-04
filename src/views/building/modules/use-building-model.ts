@@ -320,8 +320,9 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
         position,
         model: {
           uri: modelUrl,
+          scale: source.transform.scale ?? 1,
           minimumPixelSize: 128,
-          maximumScale: source.transform.scale ?? 1
+          maximumScale: (source.transform.scale ?? 1) * 2
         }
       });
 
@@ -331,15 +332,15 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
       modelPosition = position;
       requestRender();
 
-      // 第一人称地面视角：站在建筑南侧约40m，眼高3m，向北仰望
+      // 初始即定位到建筑上方斜视角：duration=0 不飞行动画，50m 高度俯视使大楼清晰可见
       viewer.camera.flyTo({
-        destination: Cartesian3.fromDegrees(longitude, latitude - 0.00036, 3),
+        destination: Cartesian3.fromDegrees(longitude, latitude - 0.0003, 50),
         orientation: {
           heading: CesiumMath.toRadians(0),
-          pitch: CesiumMath.toRadians(-8),
+          pitch: CesiumMath.toRadians(-35),
           roll: 0
         },
-        duration: 1.5
+        duration: 0
       });
     } catch (error) {
       loadState.error = error instanceof Error ? error.message : 'GLB 模型加载失败';

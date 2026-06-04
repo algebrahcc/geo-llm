@@ -29,6 +29,9 @@ export interface KnowledgeCollectionFormModel {
   group: string;
 }
 
+/** 模块引用标识 */
+export type ModuleRef = 'river' | 'planning' | 'knowledge' | 'agent';
+
 export interface KnowledgeDocument {
   id: string;
   name: string;
@@ -47,6 +50,8 @@ export interface KnowledgeDocument {
   lastUsedAt: string;
   status: KnowledgeDocumentStatus;
   indexMode: '混合切分' | '语义分段' | '手动分块' | '图片分割';
+  /** 被哪些模块引用 */
+  moduleRefs?: ModuleRef[];
 }
 
 export interface KnowledgeChunk {
@@ -67,6 +72,10 @@ export interface KnowledgeReference {
   name: string;
   type: '任务' | '专题' | '分析模板';
   description: string;
+  /** 引用模块：river=渡河, planning=规划, knowledge=知识库, agent=智能体 */
+  module?: 'river' | 'planning' | 'knowledge' | 'agent';
+  /** 可跳转的路由名称 */
+  route?: string;
 }
 
 export interface KnowledgeDocumentDetail extends KnowledgeDocument {
@@ -122,4 +131,10 @@ export interface KnowledgeRetrievalMatch {
   chunkTitle: string;
   snippet: string;
   score: number;
+  /** 0-1 浮点相似度 */
+  similarity: number;
+  /** 检索方法 */
+  method: 'vector' | 'bm25' | 'hybrid';
+  /** snippet 中命中关键词的起止区间 */
+  highlightRanges: [number, number][];
 }

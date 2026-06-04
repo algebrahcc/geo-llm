@@ -12,6 +12,7 @@ import {
   type KnowledgeEditFormModel
 } from '@/mock/knowledge';
 import { calculateCoverage, type EnvironmentParameter } from '@/mock/knowledge-parameters';
+import type { ModuleRef, KnowledgeReference } from '@/mock/knowledge';
 import KnowledgeEditDrawer from './modules/knowledge-edit-drawer.vue';
 
 defineOptions({
@@ -112,6 +113,30 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
 
   editVisible.value = false;
   window.$message?.success('文档信息已更新');
+}
+
+// ── 模块关联 ──
+const moduleRefMeta: Record<ModuleRef, { icon: string; label: string; color: string }> = {
+  river: { icon: 'mdi:ferry', label: '渡河保障', color: '#29a3ff' },
+  planning: { icon: 'mdi:map-marker-path', label: '机动规划', color: '#62e4ff' },
+  knowledge: { icon: 'mdi:book-open-variant', label: '知识库', color: '#a78bfa' },
+  agent: { icon: 'mdi:robot-outline', label: '智能体', color: '#f1c40f' }
+};
+
+function getRefTypeColor(reference: KnowledgeReference): string {
+  if (reference.module && moduleRefMeta[reference.module]) return moduleRefMeta[reference.module].color;
+  return '#29a3ff';
+}
+
+function navigateToRef(reference: KnowledgeReference) {
+  if (!reference.route) return;
+  try {
+    router.push({ name: reference.route as never }).catch(() => {
+      window.$message?.info(`模块 ${moduleRefMeta[reference.module!]?.label || reference.module} 暂未开放`);
+    });
+  } catch {
+    window.$message?.info('路由跳转暂不可用');
+  }
 }
 </script>
 
@@ -333,15 +358,33 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
           <div class="panel-head">
             <SvgIcon icon="mdi:link-variant" class="panel-head__icon" />
             <span class="panel-head__title">引用信息</span>
+            <span class="text-11px text-[rgba(147,196,255,0.4)] ml-auto">关联模块</span>
           </div>
           <div class="panel-body">
             <div class="grid gap-10px md:grid-cols-2">
-              <div v-for="item in detail.references" :key="item.id" class="reference-card">
+              <div v-for="item in detail.references" :key="item.id" class="reference-card ref-card--enhanced">
                 <div class="flex items-center gap-6px">
-                  <NTag size="small" round :bordered="false">{{ item.type }}</NTag>
-                  <div class="card-title">{{ item.name }}</div>
+                  <div class="ref-module-icon" :style="{ color: getRefTypeColor(item) }">
+                    <SvgIcon
+                      :icon="item.module && moduleRefMeta[item.module] ? moduleRefMeta[item.module].icon : 'mdi:link-variant'"
+                      class="ref-module-icon__svg"
+                    />
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-6px">
+                      <NTag size="small" round :bordered="false" :style="{ borderColor: getRefTypeColor(item) + '44', color: getRefTypeColor(item), background: getRefTypeColor(item) + '14' }">{{ item.type }}</NTag>
+                      <div class="card-title">{{ item.name }}</div>
+                    </div>
+                    <div v-if="item.module" class="ref-module-label" :style="{ color: getRefTypeColor(item) }">
+                      {{ moduleRefMeta[item.module]?.label || item.module }}
+                    </div>
+                  </div>
                 </div>
                 <div class="card-desc">{{ item.description }}</div>
+                <div v-if="item.route" class="ref-link" @click="navigateToRef(item)">
+                  查看详情
+                  <SvgIcon icon="mdi:arrow-right" class="ref-link__arrow" />
+                </div>
               </div>
             </div>
           </div>
@@ -597,6 +640,60 @@ function handleEditSubmit(form: KnowledgeEditFormModel) {
   border-radius: 4px;
   background: rgba(6, 20, 38, 0.5);
   border: 1px solid rgba(25, 95, 176, 0.18);
+}
+
+/* ── 增强引用卡片 ── */
+.ref-card--enhanced {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ref-module-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: currentColor;
+  mask-image: linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,0,0,0));
+  -webkit-mask-image: linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,0,0,0));
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+.ref-module-icon__svg {
+  font-size: 18px;
+}
+
+.ref-module-label {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.ref-link {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+  transition: opacity 0.2s;
+  user-select: none;
+  align-self: flex-end;
+
+  &:hover {
+    opacity: 0.75;
+    text-decoration: underline;
+  }
+}
+
+.ref-link__arrow {
+  font-size: 12px;
 }
 
 /* ── Parameter Table ── */

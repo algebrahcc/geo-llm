@@ -11,12 +11,9 @@ const { baseURL, otherBaseURL } = getServiceBaseURL(import.meta.env, isHttpProxy
 export const request = createFlatRequest(
   {
     baseURL,
-    headers: {
-      // Apifox mock token：仅在本地 mock 模式下注入，生产环境不携带
-      ...(import.meta.env.DEV && import.meta.env.VITE_HTTP_MOCK === 'Y'
+    headers: (import.meta.env.DEV && import.meta.env.VITE_HTTP_MOCK === 'Y'
         ? { apifoxToken: import.meta.env.VITE_APIFOX_TOKEN ?? '' }
         : {})
-    }
   },
   {
     defaultState: {

@@ -69,10 +69,10 @@ export interface BuildingRoamPoint {
   imageUrl: string;
   longitude: number;
   latitude: number;
-  roomId?: string;
   routeId?: string;
   description?: string;
   duration?: string;
+  roomId?: string;
 }
 
 // ──── GLB 模型源（替代3D Tiles）────

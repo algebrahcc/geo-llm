@@ -16,6 +16,7 @@ const emit = defineEmits<{
 const {
   containerRef,
   initViewer,
+  initMapOverlays,
   setActiveTool,
   setLayerVisible,
   flyToPreset,
@@ -42,6 +43,7 @@ onMounted(async () => {
 });
 
 defineExpose({
+  initMapOverlays,
   setActiveTool: (tool: RiverInteractiveTool | 'browse') => setActiveTool(tool),
   setLayerVisible: (key: RiverLayerKey, visible: boolean) => setLayerVisible(key, visible),
   flyToPreset,

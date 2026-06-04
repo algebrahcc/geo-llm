@@ -14,7 +14,8 @@ export type {
   KnowledgeImportFormModel,
   KnowledgeEditFormModel,
   KnowledgeFilterParams,
-  KnowledgeRetrievalMatch
+  KnowledgeRetrievalMatch,
+  ModuleRef
 } from '@/views/knowledge/modules/types';
 
 import type {
@@ -134,7 +135,8 @@ export const knowledgeDocuments = reactive<KnowledgeDocument[]>([
     updatedAt: '2026-05-23 16:40',
     lastUsedAt: '2026-05-24 09:12',
     status: 'ready',
-    indexMode: '混合切分'
+    indexMode: '混合切分',
+    moduleRefs: ['planning']
   },
   {
     id: 'doc-002',
@@ -153,7 +155,8 @@ export const knowledgeDocuments = reactive<KnowledgeDocument[]>([
     updatedAt: '2026-05-22 11:05',
     lastUsedAt: '2026-05-24 08:40',
     status: 'ready',
-    indexMode: '语义分段'
+    indexMode: '语义分段',
+    moduleRefs: ['river']
   },
   {
     id: 'doc-003',
@@ -172,7 +175,8 @@ export const knowledgeDocuments = reactive<KnowledgeDocument[]>([
     updatedAt: '2026-05-24 07:30',
     lastUsedAt: '2026-05-24 10:02',
     status: 'indexing',
-    indexMode: '混合切分'
+    indexMode: '混合切分',
+    moduleRefs: ['river', 'planning']
   },
   {
     id: 'doc-004',
@@ -191,7 +195,8 @@ export const knowledgeDocuments = reactive<KnowledgeDocument[]>([
     updatedAt: '2026-05-24 09:35',
     lastUsedAt: '2026-05-24 10:15',
     status: 'ready',
-    indexMode: '手动分块'
+    indexMode: '手动分块',
+    moduleRefs: ['knowledge', 'agent']
   },
   {
     id: 'doc-005',
@@ -210,7 +215,8 @@ export const knowledgeDocuments = reactive<KnowledgeDocument[]>([
     updatedAt: '2026-05-20 09:18',
     lastUsedAt: '2026-05-23 16:10',
     status: 'draft',
-    indexMode: '语义分段'
+    indexMode: '语义分段',
+    moduleRefs: ['river']
   },
   {
     id: 'doc-006',
@@ -229,7 +235,8 @@ export const knowledgeDocuments = reactive<KnowledgeDocument[]>([
     updatedAt: '2026-05-24 08:12',
     lastUsedAt: '2026-05-24 09:56',
     status: 'failed',
-    indexMode: '混合切分'
+    indexMode: '混合切分',
+    moduleRefs: ['planning']
   }
 ]);
 
@@ -262,13 +269,25 @@ const detailRecords = knowledgeDocuments.reduce<Record<string, KnowledgeDocument
         id: `${document.id}-ref-1`,
         name: '渡河保障方案研判任务',
         type: '任务',
-        description: '在智能分析阶段引用该文档作为背景资料。'
+        description: '在智能分析阶段引用该文档作为背景资料进行河床、堤防等要素判读。',
+        module: 'river' as const,
+        route: 'river_overview'
       },
       {
         id: `${document.id}-ref-2`,
         name: '区域专题问答模板',
         type: '分析模板',
-        description: '用于生成专题问答时的上下文补充。'
+        description: '用于生成专题问答时的上下文补充与术语对齐。',
+        module: 'knowledge' as const,
+        route: 'knowledge_index'
+      },
+      {
+        id: `${document.id}-ref-3`,
+        name: '机动规划路线比选',
+        type: '专题',
+        description: '参考该文档的地形、交通节点信息进行路线可行性评估。',
+        module: 'planning' as const,
+        route: 'planning_index'
       }
     ]
   };
@@ -368,13 +387,25 @@ function createDetailRecord(document: KnowledgeDocument): KnowledgeDocumentDetai
         id: `${document.id}-ref-1`,
         name: '渡河保障方案研判任务',
         type: '任务',
-        description: '在智能分析阶段引用该文档作为背景资料。'
+        description: '在智能分析阶段引用该文档作为背景资料进行河床、堤防等要素判读。',
+        module: 'river' as const,
+        route: 'river_overview'
       },
       {
         id: `${document.id}-ref-2`,
         name: '区域专题问答模板',
         type: '分析模板',
-        description: '用于生成专题问答时的上下文补充。'
+        description: '用于生成专题问答时的上下文补充与术语对齐。',
+        module: 'knowledge' as const,
+        route: 'knowledge_index'
+      },
+      {
+        id: `${document.id}-ref-3`,
+        name: '机动规划路线比选',
+        type: '专题',
+        description: '参考该文档的地形、交通节点信息进行路线可行性评估。',
+        module: 'planning' as const,
+        route: 'planning_index'
       }
     ],
     parameters
@@ -564,39 +595,156 @@ export function removeKnowledgeCollection(key: string) {
   return { success: true as const };
 }
 
-export function runKnowledgeRetrieval(query: string): KnowledgeRetrievalResult[] {
+// ── 语义簇映射：用于模拟向量语义检索 ──
+const semanticClusters: Record<string, string[]> = {
+  '水深': ['渡河', '水文', '河宽', '流速', '河道', '堤防', '水位'],
+  '岸线': ['港口', '海岸', '滩涂', '登陆', '沙滩', '礁石', '潮汐'],
+  '港口': ['岸线', '码头', '泊位', '装卸', '物资', '运输', '航道'],
+  '渡河': ['水深', '流速', '河床', '堤防', '架桥', '保障', '水文', '抢滩'],
+  '地形': ['地貌', '高程', '坡度', '山脊', '沟谷', '丘陵', '判读'],
+  '交通': ['道路', '节点', '桥梁', '公路', '铁路', '枢纽', '路线'],
+  '堤防': ['防洪', '风险', '险段', '加固', '抢险', '溃堤', '巡查'],
+  '水文': ['流量', '水位', '汛期', '降雨', '径流', '洪水', '水量'],
+  '保障': ['物资', '装备', '后勤', '供应', '储运', '调度', '支援'],
+  '模板': ['术语', '提示词', '标准', '规则', '联合', '模板', '问答'],
+  '风险': ['隐患', '预警', '评估', '脆弱性', '威胁', '安全', '排查'],
+  '道路': ['公路', '铁路', '交通', '桥梁', '隧道', '路口', '干线'],
+  '台湾': ['港口', '岸线', '东部', '西部', '海峡', '岛屿', '方向'],
+  '黄河': ['堤防', '风险', '河道', '险段', '抢险', '泥沙'],
+  '长江': ['流域', '地形', '河网', '岸线', '水系', '中下游']
+};
+
+function expandQueryWithSemanticClusters(queryTokens: string[]): string[] {
+  const expanded = [...queryTokens];
+  for (const token of queryTokens) {
+    const cluster = semanticClusters[token];
+    if (cluster) {
+      for (const related of cluster) {
+        if (!expanded.includes(related)) expanded.push(related);
+      }
+    }
+  }
+  return expanded;
+}
+
+function normalizeScore(rawScore: number, maxTokens: number): number {
+  if (maxTokens <= 0) return 0;
+  // 归一化到 0-1，加入随机扰动模拟真实效果
+  return Math.min(0.99, +(rawScore / maxTokens + (Math.random() * 0.15)).toFixed(4));
+}
+
+function computeHighlightRanges(snippet: string, searchTokens: string[]): [number, number][] {
+  const lowerSnippet = snippet.toLowerCase();
+  const ranges: [number, number][] = [];
+  for (const token of searchTokens) {
+    if (!token) continue;
+    let idx = 0;
+    while (idx < lowerSnippet.length) {
+      const pos = lowerSnippet.indexOf(token, idx);
+      if (pos === -1) break;
+      // 合并重叠/相邻区间
+      const end = pos + token.length;
+      let merged = false;
+      for (let i = 0; i < ranges.length; i++) {
+        const [s, e] = ranges[i];
+        if (pos <= e + 2 && end >= s - 2) {
+          ranges[i] = [Math.min(s, pos), Math.max(e, end)];
+          merged = true;
+          break;
+        }
+      }
+      if (!merged) ranges.push([pos, end]);
+      idx = end;
+    }
+  }
+  // 按起始位置排序
+  return ranges.sort((a, b) => a[0] - b[0]);
+}
+
+export function runKnowledgeRetrieval(
+  query: string,
+  method: 'keyword' | 'semantic' | 'hybrid' = 'keyword'
+): KnowledgeRetrievalResult[] {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return [];
 
   const tokens = normalized.split(/\s+/).filter(Boolean);
+  const maxTokens = tokens.length;
+
+  // ── 语义检索：扩展查询词 ──
+  const semanticTokens = method !== 'keyword' ? expandQueryWithSemanticClusters(tokens) : tokens;
+  const allSearchTokens = method === 'hybrid' ? [...new Set([...tokens, ...semanticTokens])] : (method === 'semantic' ? semanticTokens : tokens);
 
   return knowledgeDocuments
     .map(document => {
       const detail = knowledgeDocumentDetails[document.id];
       if (!detail) return null;
 
-      const matches = detail.chunks
-        .map(chunk => {
-          const haystack =
-            `${document.name} ${document.summary} ${chunk.content} ${chunk.keywords.join(' ')}`.toLowerCase();
-          const score = tokens.reduce((total, token) => total + (haystack.includes(token) ? 1 : 0), 0);
-          if (!score) return null;
+      const matches: KnowledgeRetrievalMatch[] = [];
 
-          const snippetStart = Math.max(chunk.content.toLowerCase().indexOf(tokens[0]) - 12, 0);
-          const snippet = chunk.content.slice(snippetStart, snippetStart + 88);
+      detail.chunks.forEach(chunk => {
+        const haystack =
+          `${document.name} ${document.summary} ${chunk.content} ${chunk.keywords.join(' ')} ${document.tags.join(' ')}`.toLowerCase();
 
-          return {
-            documentId: document.id,
-            chunkId: chunk.id,
-            chunkTitle: chunk.title,
-            snippet,
-            score
-          } satisfies KnowledgeRetrievalMatch;
-        })
-        .filter((item): item is KnowledgeRetrievalMatch => Boolean(item))
-        .sort((left, right) => right.score - left.score);
+        // 关键词/BM25 匹配
+        let bm25Raw = tokens.reduce((total, token) => total + (haystack.includes(token) ? 1 : 0), 0);
+        const bm25Sim = normalizeScore(bm25Raw, maxTokens);
+
+        // 语义匹配：基于扩展词和 tags/keywords 的语义重叠
+        let semanticRaw = 0;
+        if (method !== 'keyword') {
+          for (const token of semanticTokens) {
+            if (haystack.includes(token)) semanticRaw += 0.7;
+            if (document.tags.some(t => t.includes(token) || token.includes(t))) semanticRaw += 0.4;
+            if (document.summary.toLowerCase().includes(token)) semanticRaw += 0.3;
+          }
+        }
+        const semanticSim = method !== 'keyword' ? normalizeScore(semanticRaw, semanticTokens.length * 1.4) : 0;
+
+        // 综合相似度
+        let similarity: number;
+        let retrievalMethod: 'vector' | 'bm25' | 'hybrid';
+
+        if (method === 'keyword') {
+          similarity = bm25Sim;
+          retrievalMethod = 'bm25';
+          if (similarity <= 0) return;
+        } else if (method === 'semantic') {
+          similarity = semanticSim;
+          retrievalMethod = 'vector';
+          if (similarity <= 0) return;
+        } else {
+          // hybrid: BM25 40% + vector 60%
+          if (bm25Sim <= 0 && semanticSim <= 0) return;
+          similarity = +(bm25Sim * 0.4 + semanticSim * 0.6).toFixed(4);
+          retrievalMethod = 'hybrid';
+        }
+
+        // 生成 snippet
+        const snippetStart = Math.max(
+          chunk.content.toLowerCase().indexOf(allSearchTokens.find(t => haystack.includes(t)) || tokens[0] || '') - 8,
+          0
+        );
+        const snippet = chunk.content.slice(snippetStart, snippetStart + 82);
+
+        // 高亮区间
+        const highlightRanges = computeHighlightRanges(snippet, allSearchTokens);
+
+        matches.push({
+          documentId: document.id,
+          chunkId: chunk.id,
+          chunkTitle: chunk.title,
+          snippet,
+          score: Math.round(similarity * 10),
+          similarity,
+          method: retrievalMethod,
+          highlightRanges
+        });
+      });
 
       if (!matches.length) return null;
+
+      matches.sort((a, b) => b.similarity - a.similarity);
 
       return {
         document,
@@ -604,5 +752,5 @@ export function runKnowledgeRetrieval(query: string): KnowledgeRetrievalResult[]
       } satisfies KnowledgeRetrievalResult;
     })
     .filter((item): item is KnowledgeRetrievalResult => Boolean(item))
-    .sort((left, right) => right.matches[0].score - left.matches[0].score);
+    .sort((left, right) => right.matches[0].similarity - left.matches[0].similarity);
 }
