@@ -22,6 +22,7 @@ import {
   riverStaticAssemblyZones,
   riverStaticChannels
 } from '@/mock/river';
+import { sleep } from '@/utils/async';
 import type {
   RiverInteractiveTool,
   RiverLayerKey,
@@ -31,19 +32,16 @@ import type {
   RiverStatusInfo,
   RiverLineOverlay
 } from './types';
+import { createToolNameMap } from '@/typings/cesium';
 
 interface UseCesiumRiverOptions {
   onStatusChange?: (status: RiverStatusInfo) => void;
 }
 
-const toolNameMap: Record<RiverInteractiveTool | 'browse', string> = {
-  browse: '浏览',
-  annotate: '标注'
-};
-
-function sleep(ms: number) {
-  return new Promise(resolve => window.setTimeout(resolve, ms));
-}
+const toolNameMap = createToolNameMap<RiverInteractiveTool | 'browse'>([
+  ['browse', '浏览'],
+  ['annotate', '标注']
+]);
 
 export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
   const base = useCesiumBase();
@@ -73,30 +71,13 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
   let activePlan: RiverPlanKey = 'plan-a';
   let annotationIndex = 1;
 
+  const computeStatus = base.createEmitStatus(() => ({
+    activeTool: toolNameMap[activeTool],
+    currentPlan: riverPlanSummaries[activePlan].label
+  }));
+
   function emitStatus(cartesian?: Cartesian3 | null) {
-    const viewer = viewerRef.value;
-    if (!viewer) return;
-
-    const cameraHeight = viewer.camera.positionCartographic.height;
-    let longitude = '--';
-    let latitude = '--';
-    let altitude = '--';
-
-    if (cartesian) {
-      const cartographic = Cartographic.fromCartesian(cartesian);
-      longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(4);
-      latitude = CesiumMath.toDegrees(cartographic.latitude).toFixed(4);
-      altitude = `${Math.max(cartographic.height, 0).toFixed(0)} m`;
-    }
-
-    options.onStatusChange?.({
-      longitude,
-      latitude,
-      altitude,
-      cameraHeight: `${(cameraHeight / 1000).toFixed(1)} km`,
-      activeTool: toolNameMap[activeTool],
-      currentPlan: riverPlanSummaries[activePlan].label
-    });
+    options.onStatusChange?.(computeStatus(cartesian) as unknown as RiverStatusInfo);
   }
 
   // ─── Entity 创建（模块特有样式） ────────────────────

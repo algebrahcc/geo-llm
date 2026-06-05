@@ -9,7 +9,7 @@ import BuildingInfoPanel from './modules/building-info-panel.vue';
 import BuildingAiAssistantPanel from './modules/building-ai-assistant-panel.vue';
 import BuildingRoamBar from './modules/building-roam-bar.vue';
 import { useBuilding } from './modules/use-building';
-import { useDraggable } from './modules/use-draggable';
+import { useDraggable } from '@/composables/use-draggable';
 import type { BuildingModelLoadState, BuildingRoamPoint } from './modules/types';
 import type {
   BuildingStageToolKey,

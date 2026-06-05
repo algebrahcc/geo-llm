@@ -15,6 +15,7 @@ import {
   VerticalOrigin
 } from 'cesium';
 import { planningDefaultTaskForm, planningPresets, planningRouteScenes, planningRouteSummaries } from '@/mock/planning';
+import { createToolNameMap } from '@/typings/cesium';
 import type {
   PlanningInteractiveTool,
   PlanningLayerKey,
@@ -32,11 +33,11 @@ interface UseCesiumPlanningOptions {
   onPointPicked?: (payload: PlanningPickedPoint) => void;
 }
 
-const toolNameMap: Record<PlanningInteractiveTool, string> = {
-  browse: '浏览',
-  'pick-start': '选取起点',
-  'pick-end': '选取终点'
-};
+const toolNameMap = createToolNameMap<PlanningInteractiveTool>([
+  ['browse', '浏览'],
+  ['pick-start', '选取起点'],
+  ['pick-end', '选取终点']
+]);
 
 export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
   const base = useCesiumBase();
@@ -62,31 +63,14 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     waypoints: true
   };
 
+  const computeStatus = base.createEmitStatus(() => ({
+    activeTool: toolNameMap[activeTool],
+    currentRoute: planningRouteSummaries[currentRoute]?.label ?? '--',
+    planningState: '--'
+  }));
+
   function emitStatus(cartesian?: Cartesian3 | null) {
-    const viewer = viewerRef.value;
-    if (!viewer) return;
-
-    const cameraHeight = viewer.camera.positionCartographic.height;
-    let longitude = '--';
-    let latitude = '--';
-    let altitude = '--';
-
-    if (cartesian) {
-      const cartographic = Cartographic.fromCartesian(cartesian);
-      longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(4);
-      latitude = CesiumMath.toDegrees(cartographic.latitude).toFixed(4);
-      altitude = `${Math.max(cartographic.height, 0).toFixed(0)} m`;
-    }
-
-    options.onStatusChange?.({
-      longitude,
-      latitude,
-      altitude,
-      cameraHeight: `${(cameraHeight / 1000).toFixed(1)} km`,
-      activeTool: toolNameMap[activeTool],
-      currentRoute: planningRouteSummaries[currentRoute]?.label ?? '--',
-      planningState: '--'
-    });
+    options.onStatusChange?.(computeStatus(cartesian) as unknown as PlanningStatusInfo);
   }
 
   // ─── Entity 创建（模块特有样式） ────────────────────

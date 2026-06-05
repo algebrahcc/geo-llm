@@ -20,6 +20,7 @@ export interface PlanningLayerItem {
   label: string;
   icon: string;
   visible: boolean;
+  description?: string;
 }
 
 // ──── 路线规划点 ────
@@ -55,8 +56,50 @@ export interface PlanningPointOverlay {
 export interface PlanningWaypoint {
   id: string;
   name: string;
+  longitude: number | null;
+  latitude: number | null;
+}
+
+// ──── 途经点（含序号，用于机动任务） ────
+export interface PlanningMissionWaypoint extends PlanningWaypoint {
+  order: number;
+}
+
+// ──── 路线路段 ────
+export interface PlanningRouteSegment {
+  id: string;
+  index: number;
+  section: string;
+  roadName: string;
+  distance: number;
+  duration: string;
+  roadCondition: string;
+}
+
+// ──── 路线场景 ────
+export interface PlanningRouteScene {
+  route: PlanningLineOverlay;
+  risks: PlanningPolygonOverlay[];
+  obstacles: PlanningPointOverlay[];
+}
+
+// ──── 路线摘要 ────
+export interface PlanningRouteSummary {
+  key: string;
+  label: string;
+  title: string;
+  subtitle: string;
+  summary: string;
+  metrics: Array<{ label: string; value: string; tone: string }>;
+  highlights: string[];
+  risks: Array<{ title: string; detail: string }>;
+}
+
+// ──── 视角预设 ────
+export interface PlanningPreset {
   longitude: number;
   latitude: number;
+  height: number;
 }
 
 // ──── 状态信息 ────
@@ -114,7 +157,17 @@ export interface PlanningSupportSettingsForm {
   fuelReserveDays: number;
   plannedRoute: string;
   supportRequirement: string;
-  timeConstraint: string;
+  timeConstraint?: string;
+  departTime?: string;
+  arriveTime?: string;
+  durationLimit?: string;
+  constraints?: string[];
+  avgFuelConsumption?: number;
+  fuelAmount?: number;
+  supportLevel?: string;
+  needRepair?: boolean;
+  needRushRepair?: boolean;
+  otherNeeds?: string;
 }
 
 // ──── 路线结果卡片 ────
@@ -148,7 +201,7 @@ export interface PlanningSupportResultCard {
 
 // ──── 任务表单 ────
 export interface PlanningTaskForm {
-  name: string;
+  taskName: string;
   description: string;
   startName: string;
   startLongitude: number | null;
@@ -157,6 +210,33 @@ export interface PlanningTaskForm {
   endLongitude: number | null;
   endLatitude: number | null;
   waypoints: PlanningWaypoint[];
+  routePreference: string;
+  constraints: string[];
+}
+
+// ──── 机动任务表单 ────
+export interface PlanningMissionForm {
+  startName: string;
+  startLongitude: number | null;
+  startLatitude: number | null;
+  endName: string;
+  endLongitude: number | null;
+  endLatitude: number | null;
+  waypoints: PlanningMissionWaypoint[];
+  priorityCondition: string;
+  roadTypePreferences: string[];
+  terrainPreference: string;
+  avoidanceConditions: string[];
+  vehicleType: string;
+  vehicleCount: number;
+  formationType: string;
+}
+
+// ──── 机动任务结果汇总 ────
+export interface PlanningMissionResultSummary {
+  totalPlans: number;
+  bestPlan: string;
+  bestScore: number;
 }
 
 // ──── 方案结果项 ────
@@ -165,12 +245,15 @@ export interface PlanningPlanResult {
   label: string;
   description: string;
   score: number;
+  tag?: string;
+  tagType?: 'success' | 'info' | 'warning' | 'error';
 }
 
 // ──── 方案选项 ────
 export interface PlanningOption {
-  key: string;
+  key?: string;
   label: string;
-  icon: string;
+  icon?: string;
+  value?: string;
   disabled?: boolean;
 }

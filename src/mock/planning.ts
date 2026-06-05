@@ -24,70 +24,71 @@ import {
 
 // ──── 图层 ────
 export const planningDefaultLayers = [
-  { key: 'imagery', label: '影像底图', description: '全球 0-8', visible: true },
-  { key: 'selected-route', label: '当前路线', description: '高亮显示当前选中的推荐路线', visible: true },
-  { key: 'candidate-route', label: '备选路线', description: '展示其余候选路线用于对比', visible: true },
-  { key: 'risk', label: '风险区', description: '桥隧、坡度、威胁与拥堵风险区', visible: true },
-  { key: 'obstacle', label: '障碍点', description: '桥头拥堵、受限路段、观察点等关键障碍', visible: true },
-  { key: 'markers', label: '起终点标记', description: '任务起点、终点与关键节点标记', visible: true },
-  { key: 'waypoints', label: '途经点标记', description: '机动方案中的途经点位置标记', visible: true }
+  { key: 'imagery', label: '影像底图', icon: 'mdi:satellite-variant', description: '全球 0-8', visible: true },
+  { key: 'selected-route', label: '当前路线', icon: 'mdi:route', description: '高亮显示当前选中的推荐路线', visible: true },
+  { key: 'candidate-route', label: '备选路线', icon: 'mdi:routes', description: '展示其余候选路线用于对比', visible: true },
+  { key: 'risk', label: '风险区', icon: 'mdi:shield-alert', description: '桥隧、坡度、威胁与拥堵风险区', visible: true },
+  { key: 'obstacle', label: '障碍点', icon: 'mdi:map-marker-alert', description: '桥头拥堵、受限路段、观察点等关键障碍', visible: true },
+  { key: 'markers', label: '起终点标记', icon: 'mdi:map-marker', description: '任务起点、终点与关键节点标记', visible: true },
+  { key: 'waypoints', label: '途经点标记', icon: 'mdi:waypoints', description: '机动方案中的途经点位置标记', visible: true }
 ] as const satisfies readonly PlanningLayerItem[];
 
 // ──── 路线偏好选项 ────
 export const planningPreferenceOptions = [
-  { label: '最快到达', value: 'fastest' },
-  { label: '距离最短', value: 'shortest' },
-  { label: '风险最低', value: 'safest' }
+  { label: '最快到达', icon: 'mdi:speedometer', value: 'fastest' },
+  { label: '距离最短', icon: 'mdi:ruler', value: 'shortest' },
+  { label: '风险最低', icon: 'mdi:shield-check', value: 'safest' }
 ] as const satisfies readonly PlanningOption[];
 
 export const planningConstraintOptions = [
-  { label: '避开威胁区', value: 'avoid-threat' },
-  { label: '避开桥梁瓶颈', value: 'avoid-bridge' },
-  { label: '控制坡度', value: 'slope-limit' },
-  { label: '优先主干道', value: 'prefer-main-road' }
+  { label: '避开威胁区', icon: 'mdi:radar', value: 'avoid-threat' },
+  { label: '避开桥梁瓶颈', icon: 'mdi:bridge', value: 'avoid-bridge' },
+  { label: '控制坡度', icon: 'mdi:hill', value: 'slope-limit' },
+  { label: '优先主干道', icon: 'mdi:road-variant', value: 'prefer-main-road' }
 ] as const satisfies readonly PlanningOption[];
 
 // ──── 机动方案专用选项 ────
 export const planningPriorityOptions = [
-  { label: '用时最短', value: 'time' },
-  { label: '距离最短', value: 'distance' },
-  { label: '风险最低', value: 'risk' }
+  { label: '用时最短', icon: 'mdi:clock-fast', value: 'time' },
+  { label: '距离最短', icon: 'mdi:ruler', value: 'distance' },
+  { label: '风险最低', icon: 'mdi:shield-check', value: 'risk' }
 ] as const satisfies readonly PlanningOption[];
 
 export const planningRoadTypeOptions = [
-  { label: '高速公路', value: 'highway' },
-  { label: '国道', value: 'national' },
-  { label: '省道', value: 'provincial' },
-  { label: '乡道', value: 'rural' }
+  { label: '高速公路', icon: 'mdi:road', value: 'highway' },
+  { label: '国道', icon: 'mdi:road-variant', value: 'national' },
+  { label: '省道', icon: 'mdi:sign-direction', value: 'provincial' },
+  { label: '乡道', icon: 'mdi:road', value: 'rural' }
 ] as const satisfies readonly PlanningOption[];
 
 export const planningTerrainOptions = [
-  { label: '平原/丘陵优先', value: 'flat' },
-  { label: '山区优先', value: 'mountain' },
-  { label: '无偏好', value: 'none' }
+  { label: '平原/丘陵优先', icon: 'mdi:terrain', value: 'flat' },
+  { label: '山区优先', icon: 'mdi:mountain', value: 'mountain' },
+  { label: '无偏好', icon: 'mdi:earth', value: 'none' }
 ] as const satisfies readonly PlanningOption[];
 
 export const planningAvoidanceOptions = [
-  { label: '避开拥堵路段', value: 'congestion' },
-  { label: '避开施工路段', value: 'construction' },
-  { label: '远离高风险区域', value: 'high-risk' }
+  { label: '避开拥堵路段', icon: 'mdi:car-brake-alert', value: 'congestion' },
+  { label: '避开施工路段', icon: 'mdi:construction', value: 'construction' },
+  { label: '远离高风险区域', icon: 'mdi:shield-alert', value: 'high-risk' }
 ] as const satisfies readonly PlanningOption[];
 
 export const planningVehicleTypeOptions = [
-  { label: '轮式车辆', value: 'wheeled' },
-  { label: '履带车辆', value: 'tracked' },
-  { label: '混合编队', value: 'mixed' }
+  { label: '轮式车辆', icon: 'mdi:car', value: 'wheeled' },
+  { label: '履带车辆', icon: 'mdi:tractor', value: 'tracked' },
+  { label: '混合编队', icon: 'mdi:car-multiple', value: 'mixed' }
 ] as const satisfies readonly PlanningOption[];
 
 export const planningFormationOptions = [
-  { label: '分队编组', value: 'squad' },
-  { label: '单车行进', value: 'single' },
-  { label: '纵队编组', value: 'column' }
+  { label: '分队编组', icon: 'mdi:account-group', value: 'squad' },
+  { label: '单车行进', icon: 'mdi:car', value: 'single' },
+  { label: '纵队编组', icon: 'mdi:order-bool-ascending', value: 'column' }
 ] as const satisfies readonly PlanningOption[];
 
 // ──── 路线规划默认表单 ────
 export const planningDefaultTaskForm: PlanningTaskForm = {
   taskName: '台北城区机动支援路线规划',
+  description: '台北城区机动支援路线规划任务',
   startName: '南港综合保障点',
   endName: '淡水北岸接应区',
   startLongitude: 121.606,
@@ -95,7 +96,8 @@ export const planningDefaultTaskForm: PlanningTaskForm = {
   endLongitude: 121.433,
   endLatitude: 25.175,
   routePreference: 'fastest',
-  constraints: ['avoid-threat', 'prefer-main-road']
+  constraints: ['avoid-threat', 'prefer-main-road'],
+  waypoints: []
 };
 
 // ──── 机动方案默认表单 ────

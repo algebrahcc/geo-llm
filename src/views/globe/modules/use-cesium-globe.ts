@@ -21,6 +21,8 @@ import {
   globeStaticRoads,
   globeStaticRoutes
 } from '@/mock/globe';
+import { sleep } from '@/utils/async';
+import { createToolNameMap } from '@/typings/cesium';
 import type { GlobeInteractiveTool, GlobeLayerKey, GlobeStatusInfo } from './types';
 
 type Coordinate = readonly [number, number];
@@ -29,16 +31,12 @@ interface UseCesiumGlobeOptions {
   onStatusChange?: (status: GlobeStatusInfo) => void;
 }
 
-const toolNameMap: Record<GlobeInteractiveTool | 'browse', string> = {
-  browse: '浏览',
-  annotate: '标注',
-  'measure-distance': '测距',
-  'measure-area': '测面'
-};
-
-function sleep(ms: number) {
-  return new Promise(resolve => window.setTimeout(resolve, ms));
-}
+const toolNameMap = createToolNameMap<GlobeInteractiveTool | 'browse'>([
+  ['browse', '浏览'],
+  ['annotate', '标注'],
+  ['measure-distance', '测距'],
+  ['measure-area', '测面']
+]);
 
 export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
   const base = useCesiumBase();
@@ -67,29 +65,12 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
   let activeTool: GlobeInteractiveTool | 'browse' = 'browse';
   let annotationIndex = 1;
 
+  const computeStatus = base.createEmitStatus(() => ({
+    activeTool: toolNameMap[activeTool]
+  }));
+
   function emitStatus(cartesian?: Cartesian3 | null) {
-    const viewer = viewerRef.value;
-    if (!viewer) return;
-
-    const cameraHeight = viewer.camera.positionCartographic.height;
-    let longitude = '--';
-    let latitude = '--';
-    let altitude = '--';
-
-    if (cartesian) {
-      const cartographic = Cartographic.fromCartesian(cartesian);
-      longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(4);
-      latitude = CesiumMath.toDegrees(cartographic.latitude).toFixed(4);
-      altitude = `${Math.max(cartographic.height, 0).toFixed(0)} m`;
-    }
-
-    options.onStatusChange?.({
-      longitude,
-      latitude,
-      altitude,
-      cameraHeight: `${(cameraHeight / 1000).toFixed(1)} km`,
-      activeTool: toolNameMap[activeTool]
-    });
+    options.onStatusChange?.(computeStatus(cartesian) as unknown as GlobeStatusInfo);
   }
 
   // ─── Entity 创建（模块特有样式） ────────────────────

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   planningDefaultRouteSettingsForm,
@@ -9,6 +9,7 @@ import {
   planningSupportAnalysisSteps
 } from '@/mock/planning';
 import { runKnowledgeRetrieval } from '@/mock/knowledge';
+import { sleep } from '@/utils/async';
 import PlanningRouteAiPanel from './modules/planning-route-ai-panel.vue';
 import PlanningRouteResultBar from './modules/planning-route-result-bar.vue';
 import PlanningRouteSettingsPanel from './modules/planning-route-settings-panel.vue';
@@ -16,6 +17,7 @@ import PlanningSupportAiPanel from './modules/planning-support-ai-panel.vue';
 import PlanningSupportResultBar from './modules/planning-support-result-bar.vue';
 import PlanningSupportSettingsPanel from './modules/planning-support-settings-panel.vue';
 import SceneToolbar from '@/components/common/scene-toolbar.vue';
+import { useDraggable } from '@/composables/use-draggable';
 import PlanningViewer from './modules/planning-viewer.vue';
 import { usePlanning } from './modules/use-planning';
 import type {
@@ -131,98 +133,9 @@ const selectedRouteCard = ref<string | null>(null);
 const selectedSupportCard = ref<string | null>(null);
 
 // ──── 拖拽状态 ────
-interface DragState {
-  panel: 'left' | 'right' | 'bottom' | null;
-  startX: number;
-  startY: number;
-  startLeft: number;
-  startTop: number;
-  startRight: number;
-  startTopR: number;
-  startBottom: number;
-  startLeftB: number;
-}
-
-const leftPos = ref({ x: 72, y: 72 });
-const rightPos = ref({ x: 16, y: 72 });
-const bottomPos = ref({ x: 0, y: 14 });
-
-const drag = ref<DragState>({
-  panel: null,
-  startX: 0,
-  startY: 0,
-  startLeft: 0,
-  startTop: 0,
-  startRight: 0,
-  startTopR: 0,
-  startBottom: 0,
-  startLeftB: 0
-});
-
-const leftPanelStyle = computed(() => ({
-  left: `${leftPos.value.x}px`,
-  top: `${leftPos.value.y}px`
-}));
-
-const rightPanelStyle = computed(() => ({
-  right: `${rightPos.value.x}px`,
-  top: `${rightPos.value.y}px`
-}));
-
-const bottomPanelStyle = computed(() => ({
-  left: `calc(50% + ${bottomPos.value.x}px)`,
-  bottom: `${bottomPos.value.y}px`,
-  transform: 'translateX(-50%)'
-}));
-
-function onMouseDown(e: MouseEvent, panel: 'left' | 'right' | 'bottom') {
-  e.preventDefault();
-  drag.value = {
-    panel,
-    startX: e.clientX,
-    startY: e.clientY,
-    startLeft: leftPos.value.x,
-    startTop: leftPos.value.y,
-    startRight: rightPos.value.x,
-    startTopR: rightPos.value.y,
-    startBottom: bottomPos.value.y,
-    startLeftB: bottomPos.value.x
-  };
-  document.addEventListener('mousemove', onMouseMove);
-  document.addEventListener('mouseup', onMouseUp);
-}
-
-function onMouseMove(e: MouseEvent) {
-  const dx = e.clientX - drag.value.startX;
-  const dy = e.clientY - drag.value.startY;
-  if (drag.value.panel === 'left') {
-    leftPos.value = {
-      x: Math.max(0, drag.value.startLeft + dx),
-      y: Math.max(0, drag.value.startTop + dy)
-    };
-  } else if (drag.value.panel === 'right') {
-    rightPos.value = {
-      x: Math.max(0, drag.value.startRight - dx),
-      y: Math.max(0, drag.value.startTopR + dy)
-    };
-  } else if (drag.value.panel === 'bottom') {
-    bottomPos.value = {
-      x: drag.value.startLeftB + dx,
-      y: Math.max(0, drag.value.startBottom - dy)
-    };
-  }
-}
-
-function onMouseUp() {
-  drag.value.panel = null;
-  document.removeEventListener('mousemove', onMouseMove);
-  document.removeEventListener('mouseup', onMouseUp);
-}
-
-onBeforeUnmount(() => {
-  document.removeEventListener('mousemove', onMouseMove);
-  document.removeEventListener('mouseup', onMouseUp);
-});
+const leftDrag = useDraggable({ anchor: 'left', initialX: 72, initialY: 72 });
+const rightDrag = useDraggable({ anchor: 'right', initialX: 16, initialY: 72 });
+const bottomDrag = useDraggable({ anchor: 'bottom', initialX: 0, initialY: 14 });
 
 // ──── 业务逻辑（保留原有 composable） ────
 const {
@@ -285,11 +198,6 @@ function toggleRightPanel() {
 function toggleBottomPanel() {
   bottomPanelVisible.value = !bottomPanelVisible.value;
   if (bottomPanelVisible.value) bottomPanelCollapsed.value = false;
-}
-
-// ──── 工具方法 ────
-function sleep(ms: number) {
-  return new Promise(resolve => window.setTimeout(resolve, ms));
 }
 
 // ──── 机动规划提交 ────
@@ -663,9 +571,9 @@ function handleSupportAiSend(message: string) {
 
       <!-- ══════ 左侧设置面板（可拖拽/关闭） ══════ -->
       <Transition name="panel-slide-left">
-        <div v-if="leftPanelVisible" class="floating-panel left-panel" :style="leftPanelStyle">
+        <div v-if="leftPanelVisible" class="floating-panel left-panel" :style="leftDrag.style.value">
           <!-- 拖拽手柄 -->
-          <div class="panel-drag-handle" @mousedown="onMouseDown($event, 'left')">
+          <div class="panel-drag-handle" @mousedown="leftDrag.onDragStart">
             <span class="drag-dots">⋮⋮</span>
             <span class="drag-label">机动规划</span>
             <button type="button" class="panel-close-btn" @click.stop="leftPanelVisible = false">
@@ -725,9 +633,9 @@ function handleSupportAiSend(message: string) {
 
       <!-- ══════ 右侧AI助手面板（可拖拽/关闭） ══════ -->
       <Transition name="panel-slide-right">
-        <div v-if="rightPanelVisible" class="floating-panel right-panel" :style="rightPanelStyle">
+        <div v-if="rightPanelVisible" class="floating-panel right-panel" :style="rightDrag.style.value">
           <!-- 拖拽手柄 -->
-          <div class="panel-drag-handle" @mousedown="onMouseDown($event, 'right')">
+          <div class="panel-drag-handle" @mousedown="rightDrag.onDragStart">
             <span class="drag-dots">⋮⋮</span>
             <span class="drag-label">AI助手</span>
             <button type="button" class="panel-close-btn" @click.stop="rightPanelVisible = false">
@@ -764,9 +672,9 @@ function handleSupportAiSend(message: string) {
 
       <!-- ══════ 底部结果面板（可拖拽/关闭） ══════ -->
       <Transition name="panel-slide-up">
-        <div v-if="bottomPanelVisible" class="floating-panel bottom-panel" :style="bottomPanelStyle">
+        <div v-if="bottomPanelVisible" class="floating-panel bottom-panel" :style="bottomDrag.style.value">
           <!-- 拖拽手柄 -->
-          <div class="panel-drag-handle bottom-drag-handle" @mousedown="onMouseDown($event, 'bottom')">
+          <div class="panel-drag-handle bottom-drag-handle" @mousedown="bottomDrag.onDragStart">
             <span class="drag-dots">⋮⋮</span>
             <span class="drag-label">方案推荐</span>
             <button type="button" class="panel-close-btn" @click.stop="bottomPanelVisible = false">

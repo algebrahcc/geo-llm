@@ -16,7 +16,7 @@ import RiverSettingPanel from './modules/river-setting-panel.vue';
 import SceneToolbar from '@/components/common/scene-toolbar.vue';
 import type { SceneToolbarItem } from '@/components/common/scene-toolbar.vue';
 import RiverViewer from './modules/river-viewer.vue';
-import { useDraggable } from './modules/use-draggable';
+import { useDraggable } from '@/composables/use-draggable';
 import type { LayerItem } from './modules/river-layer-panel.vue';
 import type {
   AiAnalysisStep,

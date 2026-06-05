@@ -75,13 +75,11 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
   let currentFloors: BuildingFloor[] = [];
   let modelPosition: Cartesian3 | null = null;
 
-  const toolNameMap: Record<BuildingInteractiveTool, string> = {
-    browse: '浏览',
-    'focus-building': '定位楼宇',
-    'pick-room': '房间点选',
-    'measure-distance': '距离测量',
-    'measure-area': '面积测量'
-  };
+  const computeStatus = base.createEmitStatus(() => ({
+    activeTool: toolNameMap[activeTool],
+    sourceLabel: loadState.sourceLabel || '--',
+    loadStatus: getLoadStatusText()
+  }));
 
   function getLoadStatusText() {
     if (loadState.loading) return '加载中';
@@ -90,30 +88,24 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     return '待命';
   }
 
+  // 保持原有 toolNameMap 定义
+  const toolNameMap: Record<BuildingInteractiveTool, string> = {
+    browse: '浏览',
+    'focus-building': '定位楼宇',
+    'pick-room': '房间点选',
+    'measure-distance': '距离测量',
+    'measure-area': '面积测量'
+  };
+
   function emitStatus(cartesian?: Cartesian3 | null) {
-    const viewer = viewerRef.value;
-    if (!viewer) return;
-
-    const cameraHeight = viewer.camera.positionCartographic.height;
-    let longitude = '--';
-    let latitude = '--';
-    let altitude = '--';
-
-    if (cartesian) {
-      const cartographic = Cartographic.fromCartesian(cartesian);
-      longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(4);
-      latitude = CesiumMath.toDegrees(cartographic.latitude).toFixed(4);
-      altitude = `${Math.max(cartographic.height, 0).toFixed(0)} m`;
-    }
-
-    status.longitude = longitude;
-    status.latitude = latitude;
-    status.altitude = altitude;
-    status.cameraHeight = `${(cameraHeight / 1000).toFixed(1)} km`;
-    status.activeTool = toolNameMap[activeTool];
-    status.sourceLabel = loadState.sourceLabel || '--';
-    status.loadStatus = getLoadStatusText();
-
+    const result = computeStatus(cartesian);
+    status.longitude = result.longitude;
+    status.latitude = result.latitude;
+    status.altitude = result.altitude;
+    status.cameraHeight = result.cameraHeight;
+    status.activeTool = result.activeTool;
+    status.sourceLabel = result.sourceLabel;
+    status.loadStatus = result.loadStatus;
     options.onStatusChange?.({ ...status });
   }
 

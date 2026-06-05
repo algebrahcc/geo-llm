@@ -1,3 +1,9 @@
+/**
+ * 场景面板拖拽 Composable
+ *
+ * 支持 left/right/bottom 三种锚点方向的拖拽定位。
+ * 提取自 building/modules/use-draggable.ts，统一各场景使用。
+ */
 import { computed, onBeforeUnmount, ref } from 'vue';
 
 export type PanelAnchor = 'left' | 'right' | 'bottom';
@@ -24,7 +30,6 @@ export function useDraggable(options: DraggableOptions) {
     if (options.anchor === 'right') {
       return { right: `${pos.value.x}px`, top: `${pos.value.y}px` };
     }
-    // bottom
     return { left: `${pos.value.x}px`, bottom: `${pos.value.y}px` };
   });
 
@@ -45,11 +50,10 @@ export function useDraggable(options: DraggableOptions) {
     const dy = e.clientY - startY;
 
     if (options.anchor === 'left') {
-      pos.value = { x: Math.max(72, startPosX + dx), y: Math.max(0, startPosY + dy) };
+      pos.value = { x: Math.max(0, startPosX + dx), y: Math.max(0, startPosY + dy) };
     } else if (options.anchor === 'right') {
       pos.value = { x: Math.max(0, startPosX - dx), y: Math.max(0, startPosY + dy) };
     } else {
-      // bottom
       pos.value = { x: Math.max(0, startPosX + dx), y: Math.max(0, startPosY - dy) };
     }
   }

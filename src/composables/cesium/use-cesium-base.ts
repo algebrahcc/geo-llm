@@ -21,8 +21,9 @@ import {
   getOnlineImageryProviderOptions
 } from '@/utils/imagery';
 import { createTerrainProvider } from '@/utils/terrain';
+import type { BaseStatusInfo } from '@/typings/cesium';
 
-interface ViewerInitHooks {
+export interface ViewerInitHooks {
   /** 在影像层加载前执行（用于 scene 全局配置、camera 控制器等） */
   prepareViewer?: (viewer: Viewer) => void;
   /** 在影像层加载完成后、initViewer 返回前执行 */
@@ -193,39 +194,38 @@ export function useCesiumBase(): CesiumBaseReturn {
   function getCartesianFromScreen(position: Cartesian2): Cartesian3 | null {
     const viewer = viewerRef.value;
     if (!viewer) return null;
-    return viewer.camera.pickEllipsoid(position, viewer.scene.globe.ellipsoid);
+    return viewer.camera.pickEllipsoid(position, viewer.scene.globe.ellipsoid) ?? null;
   }
 
   // ─── emitStatus 工厂 ───────────────────────────────
+  //
+  // 各模块只需通过 extraFieldsFn 提供扩展字段，
+  // 基座自动计算经纬度/高度/相机高度等公共字段并合并返回。
 
   function createEmitStatus<T extends Record<string, unknown>>(
     extraFieldsFn: () => T
   ) {
     return (cartesian?: Cartesian3 | null) => {
       const viewer = viewerRef.value;
-      if (!viewer) return;
-
-      const cameraHeight = viewer.camera.positionCartographic.height;
+      const cameraHeight = viewer ? viewer.camera.positionCartographic.height : 0;
       let longitude = '--';
       let latitude = '--';
       let altitude = '--';
 
-      if (cartesian) {
+      if (cartesian && viewer) {
         const cartographic = Cartographic.fromCartesian(cartesian);
         longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(4);
         latitude = CesiumMath.toDegrees(cartographic.latitude).toFixed(4);
         altitude = `${Math.max(cartographic.height, 0).toFixed(0)} m`;
       }
 
-      // 各模块扩展的字段由 extraFieldsFn 计算，保持响应式
-      extraFieldsFn();
-
       return {
         longitude,
         latitude,
         altitude,
-        cameraHeight: `${(cameraHeight / 1000).toFixed(1)} km`
-      };
+        cameraHeight: `${(cameraHeight / 1000).toFixed(1)} km`,
+        ...(extraFieldsFn() as Record<string, unknown>)
+      } as BaseStatusInfo & T;
     };
   }
 

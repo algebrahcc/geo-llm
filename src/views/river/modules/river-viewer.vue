@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { useCesiumRiver } from './use-cesium-river';
 import type { RiverInteractiveTool, RiverLayerKey, RiverPlanKey, RiverStatusInfo } from './types';
 
@@ -66,19 +65,7 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="containerRef" class="river-viewer"></div>
+  <div class="cesium-viewer-shell">
+    <div ref="containerRef" class="cesium-viewer-container" />
+  </div>
 </template>
-
-<style scoped>
-.river-viewer {
-  height: 100%;
-  width: 100%;
-  background: #050810;
-}
-
-.river-viewer :deep(.cesium-widget-credits),
-.river-viewer :deep(.cesium-viewer-bottom),
-.river-viewer :deep(.cesium-credit-logoContainer) {
-  display: none !important;
-}
-</style>
