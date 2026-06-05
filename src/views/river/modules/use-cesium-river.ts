@@ -295,6 +295,7 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
         viewer.camera.percentageChanged = 0.01;
         viewer.scene.screenSpaceCameraController.zoomFactor = 1.18;
         viewer.scene.screenSpaceCameraController.inertiaZoom = 0.35;
+        (viewer.cesiumWidget.creditContainer as HTMLElement).style.display = 'none';
       },
       afterImagery() {
         // 绑定事件

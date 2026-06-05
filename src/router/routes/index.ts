@@ -16,15 +16,6 @@ const customRoutes = [
     }
   },
   {
-    name: 'globe-fullscreen',
-    path: '/globe-fullscreen',
-    component: 'layout.blank$view.globe',
-    meta: {
-      title: 'Web球',
-      hideInMenu: true
-    }
-  },
-  {
     name: 'planning-fullscreen',
     path: '/planning-fullscreen',
     component: 'layout.blank$view.planning',

@@ -66,17 +66,6 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
-    name: 'globe',
-    path: '/globe',
-    component: 'layout.base$view.globe',
-    meta: {
-      title: 'Web球',
-      order: 2,
-      icon: 'mdi:earth',
-      hideInMenu: true
-    }
-  },
-  {
     name: 'iframe-page',
     path: '/iframe-page/:url',
     component: 'layout.base$view.iframe-page',

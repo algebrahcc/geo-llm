@@ -35,8 +35,9 @@ function openScreen() {
 }
 
 function openGlobe() {
-  const url = router.resolve({ name: 'globe-fullscreen' }).href;
-  window.open(url, '_blank');
+  // eslint-disable-next-line no-underscore-dangle
+  const globeUrl = window.__APP_CONFIG__?.VITE_GLOBE_URL || 'http://192.168.12.211:19091/webglobe';
+  window.open(globeUrl, '_blank');
 }
 </script>
 

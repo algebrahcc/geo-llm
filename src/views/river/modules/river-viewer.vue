@@ -65,7 +65,27 @@ defineExpose({
 </script>
 
 <template>
-  <div class="cesium-viewer-shell">
-    <div ref="containerRef" class="cesium-viewer-container" />
+  <div class="river-viewer-shell">
+    <div ref="containerRef" class="river-viewer-container" />
   </div>
 </template>
+
+<style scoped>
+.river-viewer-shell {
+  position: relative;
+  height: 100%;
+  min-height: 520px;
+  overflow: hidden;
+  border-radius: 0;
+  background: #050810;
+}
+.river-viewer-container {
+  height: 100%;
+  width: 100%;
+}
+.river-viewer-shell :deep(.cesium-widget-credits),
+.river-viewer-shell :deep(.cesium-viewer-bottom),
+.river-viewer-shell :deep(.cesium-credit-logoContainer) {
+  display: none !important;
+}
+</style>

@@ -23,7 +23,6 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   agent: () => import("@/views/agent/index.vue"),
   building: () => import("@/views/building/index.vue"),
   catalog: () => import("@/views/catalog/index.vue"),
-  globe: () => import("@/views/globe/index.vue"),
   knowledge: () => import("@/views/knowledge/index.vue"),
   planning: () => import("@/views/planning/index.vue"),
   river: () => import("@/views/river/index.vue"),

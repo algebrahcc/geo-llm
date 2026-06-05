@@ -4,6 +4,7 @@
     "demo": "http://localhost:9529"
   },
   "VITE_BUILDING_TILESET_URL": "",
+  "VITE_GLOBE_URL": "http://192.168.12.211:19091/webglobe",
   "IMAGERY": {
     "mode": "local",
     "local": {

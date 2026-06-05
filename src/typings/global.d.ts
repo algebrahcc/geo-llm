@@ -76,6 +76,8 @@ export interface AppRuntimeConfig {
   VITE_OTHER_SERVICE_BASE_URL: Record<string, string>;
   /** 远程 3D Tiles 数据源 URL */
   VITE_BUILDING_TILESET_URL: string;
+  /** Web球外链地址 */
+  VITE_GLOBE_URL?: string;
   /** Cesium 影像配置 */
   IMAGERY: ImageryConfig;
   /** Cesium 高程（地形）配置 */
