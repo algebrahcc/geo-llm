@@ -12,6 +12,7 @@ export function createServiceConfig(env: Env.ImportMeta) {
   const { VITE_SERVICE_BASE_URL, VITE_OTHER_SERVICE_BASE_URL } = env;
 
   // 优先读取运行时配置，不可用则回退 env
+  // eslint-disable-next-line no-underscore-dangle
   const runtime = typeof window !== 'undefined' ? window.__APP_CONFIG__ : undefined;
   const serviceBaseUrl = runtime?.VITE_SERVICE_BASE_URL || VITE_SERVICE_BASE_URL;
 

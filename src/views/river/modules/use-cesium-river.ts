@@ -1,27 +1,19 @@
-import { onBeforeUnmount, shallowRef } from 'vue';
+import { useCesiumBase } from '@/composables/cesium/use-cesium-base';
 import {
   Cartesian2,
   Cartesian3,
   Cartographic,
   Color,
-  EllipsoidTerrainProvider,
   Entity,
   HeightReference,
   HorizontalOrigin,
-  ImageryLayer,
   LabelStyle,
   Math as CesiumMath,
   NearFarScalar,
   PolylineDashMaterialProperty,
   PolygonHierarchy,
-  Rectangle,
-  ScreenSpaceEventHandler,
-  ScreenSpaceEventType,
-  UrlTemplateImageryProvider,
-  VerticalOrigin,
-  Viewer
+  VerticalOrigin
 } from 'cesium';
-import { getGlobalImageryUrl, getRegionImageryUrl, getLocalImageryConfig, isOnlineImagery, getOnlineImageryProviderOptions } from '@/utils/imagery';
 import {
   riverFlowTemplate,
   riverPlanScenes,
@@ -51,15 +43,12 @@ const toolNameMap: Record<RiverInteractiveTool | 'browse', string> = {
 
 function sleep(ms: number) {
   return new Promise(resolve => window.setTimeout(resolve, ms));
-}export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
-  const containerRef = shallowRef<HTMLDivElement | null>(null);
-  const viewerRef = shallowRef<Viewer | null>(null);
+}
 
-  const globalImageryUrl = getGlobalImageryUrl();
-  const regionImageryUrl = getRegionImageryUrl();
-  const localConfig = getLocalImageryConfig();
+export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
+  const base = useCesiumBase();
+  const { containerRef, viewerRef } = base;
 
-  const imageryLayers: ImageryLayer[] = [];
   const staticEntities: Record<'channel' | 'assembly', Entity[]> = {
     channel: [],
     assembly: []
@@ -83,12 +72,9 @@ function sleep(ms: number) {
   let activeTool: RiverInteractiveTool | 'browse' = 'browse';
   let activePlan: RiverPlanKey = 'plan-a';
   let annotationIndex = 1;
-  let eventHandler: ScreenSpaceEventHandler | null = null;
-  let cameraChangedListener: (() => void) | null = null;
 
   function emitStatus(cartesian?: Cartesian3 | null) {
     const viewer = viewerRef.value;
-
     if (!viewer) return;
 
     const cameraHeight = viewer.camera.positionCartographic.height;
@@ -113,17 +99,10 @@ function sleep(ms: number) {
     });
   }
 
-  function requestRender() {
-    viewerRef.value?.scene.requestRender();
-  }
-
-  function getColor(css: string, alpha = 1) {
-    return Color.fromCssColorString(css).withAlpha(alpha);
-  }
+  // ─── Entity 创建（模块特有样式） ────────────────────
 
   function createPolylineEntity(layerKey: RiverLayerKey, item: RiverLineOverlay) {
     const viewer = viewerRef.value;
-
     if (!viewer) return null;
 
     const entity = viewer.entities.add({
@@ -132,19 +111,17 @@ function sleep(ms: number) {
       polyline: {
         positions: item.positions.map(position => Cartesian3.fromDegrees(position[0], position[1])),
         width: item.width ?? 5,
-        material: new PolylineDashMaterialProperty({ color: getColor(item.color, 0.94) }),
+        material: new PolylineDashMaterialProperty({ color: base.getColor(item.color, 0.94) }),
         clampToGround: true
       }
     });
 
     entity.show = layerVisibility[layerKey];
-
     return entity;
   }
 
   function createPolygonEntity(layerKey: RiverLayerKey, item: RiverPolygonOverlay) {
     const viewer = viewerRef.value;
-
     if (!viewer) return null;
 
     const entity = viewer.entities.add({
@@ -154,22 +131,20 @@ function sleep(ms: number) {
         hierarchy: new PolygonHierarchy(
           item.positions.map(position => Cartesian3.fromDegrees(position[0], position[1]))
         ),
-        material: getColor(item.color, 0.2),
+        material: base.getColor(item.color, 0.2),
         outline: true,
-        outlineColor: getColor(item.color, 0.95),
+        outlineColor: base.getColor(item.color, 0.95),
         outlineWidth: 2,
         heightReference: HeightReference.CLAMP_TO_GROUND
       }
     });
 
     entity.show = layerVisibility[layerKey];
-
     return entity;
   }
 
   function createPointEntity(layerKey: RiverLayerKey, item: RiverPointOverlay) {
     const viewer = viewerRef.value;
-
     if (!viewer) return null;
 
     const entity = viewer.entities.add({
@@ -178,7 +153,7 @@ function sleep(ms: number) {
       position: Cartesian3.fromDegrees(item.longitude, item.latitude),
       point: {
         pixelSize: 14,
-        color: getColor(item.color),
+        color: base.getColor(item.color),
         outlineColor: Color.WHITE,
         outlineWidth: 3,
         heightReference: HeightReference.CLAMP_TO_GROUND,
@@ -190,12 +165,12 @@ function sleep(ms: number) {
         font: 'bold 13px Microsoft YaHei',
         fillColor: Color.WHITE,
         showBackground: true,
-        backgroundColor: getColor('#0a1628', 0.85),
+        backgroundColor: base.getColor('#0a1628', 0.85),
         backgroundPadding: new Cartesian2(6, 4),
         pixelOffset: new Cartesian2(0, -24),
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
         style: LabelStyle.FILL_AND_OUTLINE,
-        outlineColor: getColor(item.color, 0.9),
+        outlineColor: base.getColor(item.color, 0.9),
         outlineWidth: 2,
         verticalOrigin: VerticalOrigin.BOTTOM,
         horizontalOrigin: HorizontalOrigin.CENTER
@@ -203,13 +178,13 @@ function sleep(ms: number) {
     });
 
     entity.show = layerVisibility[layerKey];
-
     return entity;
   }
 
+  // ─── 图层管理 ─────────────────────────────────────
+
   function clearPlanEntities() {
     const viewer = viewerRef.value;
-
     if (!viewer) return;
 
     Object.values(planEntities).forEach(entities => {
@@ -219,43 +194,30 @@ function sleep(ms: number) {
   }
 
   function syncLayerVisibility() {
-    imageryLayers.forEach(layer => {
-      layer.show = layerVisibility.imagery;
-    });
+    const { imageryLayers } = base;
+    imageryLayers.forEach(layer => { layer.show = layerVisibility.imagery; });
 
-    staticEntities.channel.forEach(entity => {
-      entity.show = layerVisibility.channel;
-    });
-
-    staticEntities.assembly.forEach(entity => {
-      entity.show = layerVisibility.assembly;
-    });
-
-    planEntities.route.forEach(entity => {
-      entity.show = layerVisibility.route;
-    });
-
-    planEntities.risk.forEach(entity => {
-      entity.show = layerVisibility.risk;
-    });
-
+    staticEntities.channel.forEach(entity => { entity.show = layerVisibility.channel; });
+    staticEntities.assembly.forEach(entity => { entity.show = layerVisibility.assembly; });
+    planEntities.route.forEach(entity => { entity.show = layerVisibility.route; });
+    planEntities.risk.forEach(entity => { entity.show = layerVisibility.risk; });
     [...planEntities.mark, ...dynamicMarkEntities].forEach(entity => {
       entity.show = layerVisibility.mark;
     });
 
-    requestRender();
+    base.requestRender();
   }
+
+  // ─── 模块数据加载 ─────────────────────────────────
 
   function addStaticEntities() {
     riverStaticChannels.forEach(item => {
       const entity = createPolylineEntity('channel', item);
-
       if (entity) staticEntities.channel.push(entity);
     });
 
     riverStaticAssemblyZones.forEach(item => {
       const entity = createPolygonEntity('assembly', item);
-
       if (entity) staticEntities.assembly.push(entity);
     });
   }
@@ -266,18 +228,15 @@ function sleep(ms: number) {
 
     const scene = riverPlanScenes[planKey];
     const routeEntity = createPolylineEntity('route', scene.route);
-
     if (routeEntity) planEntities.route.push(routeEntity);
 
     scene.riskZones.forEach(item => {
       const entity = createPolygonEntity('risk', item);
-
       if (entity) planEntities.risk.push(entity);
     });
 
     scene.marks.forEach(item => {
       const entity = createPointEntity('mark', item);
-
       if (entity) planEntities.mark.push(entity);
     });
 
@@ -286,29 +245,7 @@ function sleep(ms: number) {
   }
 
   function flyToPreset() {
-    const viewer = viewerRef.value;
-
-    if (!viewer) return;
-
-    viewer.camera.flyTo({
-      destination: Cartesian3.fromDegrees(
-        riverPresets.task.longitude,
-        riverPresets.task.latitude,
-        riverPresets.task.height
-      ),
-      duration: 1.4
-    });
-  }
-
-  function flyToLocation(longitude: number, latitude: number, height = riverPresets.task.height) {
-    const viewer = viewerRef.value;
-
-    if (!viewer) return;
-
-    viewer.camera.flyTo({
-      destination: Cartesian3.fromDegrees(longitude, latitude, height),
-      duration: 1.2
-    });
+    base.flyToLocation(riverPresets.task.longitude, riverPresets.task.latitude, riverPresets.task.height, 1.4);
   }
 
   function setActiveTool(tool: RiverInteractiveTool | 'browse') {
@@ -327,50 +264,13 @@ function sleep(ms: number) {
     emitStatus();
   }
 
-  function zoomIn() {
-    const viewer = viewerRef.value;
-
-    if (!viewer) return;
-
-    viewer.camera.zoomIn(1200);
-    emitStatus();
-  }
-
-  function zoomOut() {
-    const viewer = viewerRef.value;
-
-    if (!viewer) return;
-
-    viewer.camera.zoomOut(1200);
-    emitStatus();
-  }
-
-  function rotate() {
-    const viewer = viewerRef.value;
-
-    if (!viewer) return;
-
-    viewer.camera.rotateRight(CesiumMath.toRadians(10));
-    emitStatus();
-  }
-
-  function pitch() {
-    const viewer = viewerRef.value;
-
-    if (!viewer) return;
-
-    viewer.camera.lookUp(CesiumMath.toRadians(8));
-    emitStatus();
-  }
-
   function clearAnnotations() {
     const viewer = viewerRef.value;
-
     if (!viewer) return;
 
     dynamicMarkEntities.forEach(entity => viewer.entities.remove(entity));
     dynamicMarkEntities.splice(0, dynamicMarkEntities.length);
-    requestRender();
+    base.requestRender();
   }
 
   function createDynamicMark(longitude: number, latitude: number, name = `临时标注 ${annotationIndex}`) {
@@ -386,7 +286,7 @@ function sleep(ms: number) {
 
     if (entity) {
       dynamicMarkEntities.push(entity);
-      requestRender();
+      base.requestRender();
     }
   }
 
@@ -404,116 +304,44 @@ function sleep(ms: number) {
     flyToPreset();
   }
 
-  function exportScreenshot() {
-    const viewer = viewerRef.value;
-
-    if (!viewer) return;
-
-    try {
-      requestRender();
-      const url = viewer.canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `river-plan-${activePlan}.png`;
-      link.click();
-      window.$message?.success('已导出当前视角截图');
-    } catch {
-      window.$message?.error('截图导出失败');
-    }
-  }
-
-  function getCartesianFromScreen(position: Cartesian2) {
-    const viewer = viewerRef.value;
-
-    if (!viewer) return null;
-
-    return viewer.camera.pickEllipsoid(position, viewer.scene.globe.ellipsoid);
-  }
-
-  function bindSceneEvents() {
-    const viewer = viewerRef.value;
-
-    if (!viewer) return;
-
-    eventHandler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-
-    eventHandler.setInputAction((movement: { endPosition: Cartesian2 }) => {
-      const cartesian = getCartesianFromScreen(movement.endPosition);
-      emitStatus(cartesian);
-    }, ScreenSpaceEventType.MOUSE_MOVE);
-
-    eventHandler.setInputAction((event: { position: Cartesian2 }) => {
-      if (activeTool !== 'annotate') return;
-
-      const cartesian = getCartesianFromScreen(event.position);
-
-      if (!cartesian) return;
-
-      const cartographic = Cartographic.fromCartesian(cartesian);
-      createDynamicMark(CesiumMath.toDegrees(cartographic.longitude), CesiumMath.toDegrees(cartographic.latitude));
-      emitStatus(cartesian);
-    }, ScreenSpaceEventType.LEFT_CLICK);
-
-    cameraChangedListener = () => emitStatus();
-    viewer.camera.changed.addEventListener(cameraChangedListener);
-  }
+  // ─── 初始化 ───────────────────────────────────────
 
   async function initViewer() {
-    const container = containerRef.value;
+    await base.initViewer({
+      prepareViewer(viewer) {
+        viewer.scene.globe.depthTestAgainstTerrain = false;
+        viewer.scene.requestRenderMode = true;
+        viewer.camera.percentageChanged = 0.01;
+        viewer.scene.screenSpaceCameraController.zoomFactor = 1.18;
+        viewer.scene.screenSpaceCameraController.inertiaZoom = 0.35;
+      },
+      afterImagery() {
+        // 绑定事件
+        base.bindMouseEvents({
+          onMouseMove: (movement: { endPosition: Cartesian2 }) => {
+            const cartesian = base.getCartesianFromScreen(movement.endPosition);
+            emitStatus(cartesian);
+          },
+          onLeftClick: (event: { position: Cartesian2 }) => {
+            if (activeTool !== 'annotate') return;
 
-    if (!container || viewerRef.value) return;
+            const cartesian = base.getCartesianFromScreen(event.position);
+            if (!cartesian) return;
 
-    const viewer = new Viewer(container, {
-      animation: false,
-      baseLayerPicker: false,
-      fullscreenButton: false,
-      geocoder: false,
-      homeButton: false,
-      infoBox: false,
-      navigationHelpButton: false,
-      sceneModePicker: false,
-      selectionIndicator: false,
-      shouldAnimate: false,
-      terrainProvider: new EllipsoidTerrainProvider(),
-      timeline: false
+            const cartographic = Cartographic.fromCartesian(cartesian);
+            createDynamicMark(
+              CesiumMath.toDegrees(cartographic.longitude),
+              CesiumMath.toDegrees(cartographic.latitude)
+            );
+            emitStatus(cartesian);
+          }
+        });
+
+        base.addCameraChangeListener(() => emitStatus());
+        flyToPreset();
+        emitStatus(Cartesian3.fromDegrees(riverPresets.task.longitude, riverPresets.task.latitude, 0));
+      }
     });
-
-    viewerRef.value = viewer;
-    viewer.scene.globe.depthTestAgainstTerrain = false;
-    viewer.scene.requestRenderMode = true;
-    viewer.camera.percentageChanged = 0.01;
-    viewer.scene.screenSpaceCameraController.zoomFactor = 1.18;
-    viewer.scene.screenSpaceCameraController.inertiaZoom = 0.35;
-
-    viewer.imageryLayers.removeAll();
-    imageryLayers.splice(0, imageryLayers.length);
-
-    imageryLayers.push(
-      viewer.imageryLayers.addImageryProvider(
-        new UrlTemplateImageryProvider(
-          isOnlineImagery()
-            ? getOnlineImageryProviderOptions()
-            : { url: globalImageryUrl, minimumLevel: 0, maximumLevel: localConfig.globalMaxLevel }
-        )
-      )
-    );
-
-    if (regionImageryUrl) {
-      imageryLayers.push(
-        viewer.imageryLayers.addImageryProvider(
-          new UrlTemplateImageryProvider({
-            url: regionImageryUrl,
-            minimumLevel: 0,
-            maximumLevel: localConfig.regionMaxLevel,
-            rectangle: Rectangle.fromDegrees(...localConfig.regionRectangle)
-          })
-        )
-      );
-    }
-
-    bindSceneEvents();
-    flyToPreset();
-    emitStatus(Cartesian3.fromDegrees(riverPresets.task.longitude, riverPresets.task.latitude, 0));
   }
 
   /** 分析完成后调用：加载地图标绘并定位视角 */
@@ -524,21 +352,6 @@ function sleep(ms: number) {
     emitStatus(Cartesian3.fromDegrees(riverPresets.task.longitude, riverPresets.task.latitude, 0));
   }
 
-  onBeforeUnmount(() => {
-    if (eventHandler) {
-      eventHandler.destroy();
-      eventHandler = null;
-    }
-
-    if (viewerRef.value && cameraChangedListener) {
-      viewerRef.value.camera.changed.removeEventListener(cameraChangedListener);
-      cameraChangedListener = null;
-    }
-
-    viewerRef.value?.destroy();
-    viewerRef.value = null;
-  });
-
   return {
     containerRef,
     initViewer,
@@ -546,16 +359,16 @@ function sleep(ms: number) {
     setActiveTool,
     setLayerVisible,
     flyToPreset,
-    flyToLocation,
+    flyToLocation: base.flyToLocation,
     resetView,
-    zoomIn,
-    zoomOut,
-    rotate,
-    pitch,
+    zoomIn: base.zoomIn,
+    zoomOut: base.zoomOut,
+    rotate: base.rotate,
+    pitch: base.pitch,
     clearAnnotations,
     generateMark,
     startAnalysis,
-    exportScreenshot,
+    exportScreenshot: () => base.exportScreenshot(`river-plan-${activePlan}.png`),
     showPlan
   };
 }

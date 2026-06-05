@@ -20,5 +20,11 @@
       "maximumLevel": 18,
       "rectangle": null
     }
+  },
+  "TERRAIN": {
+    "enabled": true,
+    "url": "http://192.168.12.211:19091/terrain/{z}/{x}/{y}.terrain",
+    "requestVertexNormals": false,
+    "requestWaterMask": false
   }
 }

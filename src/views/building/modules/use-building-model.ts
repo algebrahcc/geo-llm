@@ -1,20 +1,15 @@
-import { onBeforeUnmount, reactive, shallowRef } from 'vue';
+import { reactive, shallowRef } from 'vue';
+import { useCesiumBase } from '@/composables/cesium/use-cesium-base';
 import {
   Cartesian2,
   Cartesian3,
   Cartographic,
   Color,
-  EllipsoidTerrainProvider,
   Entity,
-  ImageryLayer,
   Math as CesiumMath,
-  Rectangle,
   ScreenSpaceEventHandler,
-  ScreenSpaceEventType,
-  UrlTemplateImageryProvider,
-  Viewer
+  ScreenSpaceEventType
 } from 'cesium';
-import { getGlobalImageryUrl, getRegionImageryUrl, getLocalImageryConfig, isOnlineImagery, getOnlineImageryProviderOptions } from '@/utils/imagery';
 import type {
   BuildingFloor,
   BuildingRoamPoint,
@@ -40,15 +35,13 @@ function getRiskColor(level: BuildingRoom['riskLevel']) {
 }
 
 export function useBuildingModel(options: UseBuildingModelOptions = {}) {
-  const containerRef = shallowRef<HTMLDivElement | null>(null);
-  const viewerRef = shallowRef<Viewer | null>(null);
+  const base = useCesiumBase();
+  const { containerRef, viewerRef } = base;
+
   const modelEntityRef = shallowRef<Entity | null>(null);
-  const globalImageryUrl = getGlobalImageryUrl();
-  const regionImageryUrl = getRegionImageryUrl();
-  const localConfig = getLocalImageryConfig();
-  const imageryLayers = shallowRef<ImageryLayer[]>([]);
   const roomMarkerEntities = shallowRef<string[]>([]);
   const roamPointEntities = shallowRef<string[]>([]);
+
   const status = reactive<BuildingStageStatusInfo>({
     longitude: '--',
     latitude: '--',
@@ -78,11 +71,8 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
   const pointCoordinateMap = new Map<string, { longitude: number; latitude: number; height: number }>();
 
   let activeTool: BuildingInteractiveTool = 'browse';
-  let eventHandler: ScreenSpaceEventHandler | null = null;
-  let cameraChangedListener: (() => void) | null = null;
   let currentSource: BuildingModelSource | null = null;
   let currentFloors: BuildingFloor[] = [];
-  let currentRooms: BuildingRoom[] = [];
   let modelPosition: Cartesian3 | null = null;
 
   const toolNameMap: Record<BuildingInteractiveTool, string> = {
@@ -102,7 +92,6 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
 
   function emitStatus(cartesian?: Cartesian3 | null) {
     const viewer = viewerRef.value;
-
     if (!viewer) return;
 
     const cameraHeight = viewer.camera.positionCartographic.height;
@@ -136,128 +125,64 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     };
   }
 
-  function requestRender() {
-    viewerRef.value?.scene.requestRender();
-  }
-
   function getRoomCoordinate(room: BuildingRoom, roomIndex: number) {
     const floorIndex = Math.max(
       currentFloors.findIndex(item => item.id === room.floorId),
       0
     );
-    const base = getBaseTransform(currentSource?.transform);
+    const baseTransform = getBaseTransform(currentSource?.transform);
 
     return {
-      longitude: base.longitude - 0.00045 + floorIndex * 0.00008 + roomIndex * 0.00015,
-      latitude: base.latitude - 0.0003 + floorIndex * 0.00012 + roomIndex * 0.00005,
-      height: base.height + 14 + floorIndex * 16 + roomIndex * 4
+      longitude: baseTransform.longitude - 0.00045 + floorIndex * 0.00008 + roomIndex * 0.00015,
+      latitude: baseTransform.latitude - 0.0003 + floorIndex * 0.00012 + roomIndex * 0.00005,
+      height: baseTransform.height + 14 + floorIndex * 16 + roomIndex * 4
     };
   }
 
-  function getPointCoordinate(point: { roomId?: string }, pointIndex: number) {
-    const room = point.roomId ? currentRooms.find(item => item.id === point.roomId) : undefined;
-
-    if (room) {
-      const roomCoordinate = roomCoordinateMap.get(room.id);
-      if (roomCoordinate) {
-        return {
-          longitude: roomCoordinate.longitude + 0.00003,
-          latitude: roomCoordinate.latitude + 0.00003,
-          height: roomCoordinate.height + 8
-        };
-      }
-    }
-
-    const base = getBaseTransform(currentSource?.transform);
-    return {
-      longitude: base.longitude + pointIndex * 0.00012,
-      latitude: base.latitude - 0.0002 + pointIndex * 0.00006,
-      height: base.height + 20 + pointIndex * 6
-    };
-  }
+  // ─── 初始化 ───────────────────────────────────────
 
   async function initViewer() {
-    if (!containerRef.value || viewerRef.value) return;
+    await base.initViewer({
+      prepareViewer(viewer) {
+        viewer.scene.globe.showGroundAtmosphere = false;
+        if (viewer.scene.skyAtmosphere) {
+          viewer.scene.skyAtmosphere.show = false;
+        }
+        viewer.scene.globe.baseColor = Color.fromCssColorString('#07101d');
+        viewer.scene.screenSpaceCameraController.minimumZoomDistance = 10;
+        viewer.scene.screenSpaceCameraController.maximumZoomDistance = 40000000;
+        viewer.scene.screenSpaceCameraController.zoomFactor = 1.2;
+        viewer.scene.screenSpaceCameraController.inertiaZoom = 0.35;
+        (viewer.cesiumWidget.creditContainer as HTMLElement).style.display = 'none';
+      },
+      afterImagery(viewer) {
+        // 绑定事件（楼宇模块自己管理 ScreenSpaceEventHandler）
+        const eventHandler = new ScreenSpaceEventHandler(viewer.scene.canvas);
+        eventHandler.setInputAction((movement: { endPosition: Cartesian2 }) => {
+          emitStatus(viewer.camera.pickEllipsoid(movement.endPosition, viewer.scene.globe.ellipsoid));
+        }, ScreenSpaceEventType.MOUSE_MOVE);
 
-    const viewer = new Viewer(containerRef.value, {
-      animation: false,
-      baseLayerPicker: false,
-      fullscreenButton: false,
-      geocoder: false,
-      homeButton: false,
-      infoBox: false,
-      navigationHelpButton: false,
-      sceneModePicker: false,
-      selectionIndicator: false,
-      timeline: false,
-      baseLayer: false,
-      terrainProvider: new EllipsoidTerrainProvider(),
-      requestRenderMode: true,
-      maximumRenderTimeChange: Infinity
-    });
+        eventHandler.setInputAction((click: { position: Cartesian2 }) => {
+          const picked = viewer.scene.pick(click.position);
+          const entityId: unknown = picked?.id?.id;
+          const roomId = typeof entityId === 'string' && entityId.startsWith('building-room-')
+            ? entityId.slice('building-room-'.length)
+            : null;
 
-    viewerRef.value = viewer;
-    viewer.scene.globe.showGroundAtmosphere = false;
+          if (roomId) {
+            activeTool = 'pick-room';
+            options.onRoomPicked?.(roomId);
+            emitStatus(viewer.camera.pickEllipsoid(click.position, viewer.scene.globe.ellipsoid));
+          }
+        }, ScreenSpaceEventType.LEFT_CLICK);
 
-    if (viewer.scene.skyAtmosphere) {
-      viewer.scene.skyAtmosphere.show = false;
-    }
-
-    viewer.scene.globe.baseColor = Color.fromCssColorString('#07101d');
-    viewer.scene.screenSpaceCameraController.minimumZoomDistance = 10;
-    viewer.scene.screenSpaceCameraController.maximumZoomDistance = 40000000;
-    viewer.scene.screenSpaceCameraController.zoomFactor = 1.2;
-    viewer.scene.screenSpaceCameraController.inertiaZoom = 0.35;
-
-    (viewer.cesiumWidget.creditContainer as HTMLElement).style.display = 'none';
-
-    imageryLayers.value.push(
-      viewer.imageryLayers.addImageryProvider(
-        new UrlTemplateImageryProvider(
-          isOnlineImagery()
-            ? getOnlineImageryProviderOptions()
-            : { url: globalImageryUrl, minimumLevel: 0, maximumLevel: localConfig.globalMaxLevel }
-        )
-      )
-    );
-
-    if (regionImageryUrl) {
-      imageryLayers.value.push(
-        viewer.imageryLayers.addImageryProvider(
-          new UrlTemplateImageryProvider({
-            url: regionImageryUrl,
-            minimumLevel: 0,
-            maximumLevel: localConfig.regionMaxLevel,
-            rectangle: Rectangle.fromDegrees(...localConfig.regionRectangle)
-          })
-        )
-      );
-    }
-
-    eventHandler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-    eventHandler.setInputAction((movement: { endPosition: Cartesian2 }) => {
-      emitStatus(viewer.camera.pickEllipsoid(movement.endPosition, viewer.scene.globe.ellipsoid));
-    }, ScreenSpaceEventType.MOUSE_MOVE);
-
-    eventHandler.setInputAction((click: { position: Cartesian2 }) => {
-      const picked = viewer.scene.pick(click.position);
-      const entityId: unknown = picked?.id?.id;
-      // 实体 id 格式为 "building-room-${roomId}"，从中解析 roomId
-      const roomId = typeof entityId === 'string' && entityId.startsWith('building-room-')
-        ? entityId.slice('building-room-'.length)
-        : null;
-
-      if (roomId) {
-        activeTool = 'pick-room';
-        options.onRoomPicked?.(roomId);
-        emitStatus(viewer.camera.pickEllipsoid(click.position, viewer.scene.globe.ellipsoid));
+        base.addCameraChangeListener(() => emitStatus());
+        emitStatus();
       }
-    }, ScreenSpaceEventType.LEFT_CLICK);
-
-    cameraChangedListener = () => emitStatus();
-    viewer.camera.changed.addEventListener(cameraChangedListener);
-    emitStatus();
+    });
   }
+
+  // ─── 标记管理 ─────────────────────────────────────
 
   function clearMarkers() {
     const viewer = viewerRef.value;
@@ -284,7 +209,7 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     }
 
     loadState.loaded = false;
-    requestRender();
+    base.requestRender();
   }
 
   async function loadModel(source: BuildingModelSource) {
@@ -311,7 +236,7 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     }
 
     try {
-      const { longitude, latitude, height, scale } = source.transform;
+      const { longitude, latitude, height } = source.transform;
       const position = Cartesian3.fromDegrees(longitude, latitude, height);
 
       const entity = viewer.entities.add({
@@ -326,13 +251,12 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
         }
       });
 
-      modelEntityRef.value = entity;
+      modelEntityRef.value = entity as any;
       entity.show = layerVisibility.model;
       loadState.loaded = true;
       modelPosition = position;
-      requestRender();
+      base.requestRender();
 
-      // 初始即定位到建筑上方斜视角：duration=0 不飞行动画，50m 高度俯视使大楼清晰可见
       viewer.camera.flyTo({
         destination: Cartesian3.fromDegrees(longitude, latitude - 0.0003, 50),
         orientation: {
@@ -347,9 +271,11 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     } finally {
       loadState.loading = false;
       emitStatus();
-      requestRender();
+      base.requestRender();
     }
   }
+
+  // ─── 镜头控制 ─────────────────────────────────────
 
   function zoomToModel() {
     if (viewerRef.value && modelPosition) {
@@ -365,7 +291,7 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     }
   }
 
-  function captureView() {
+  function captureView(): string {
     const viewer = viewerRef.value;
     if (!viewer) return '';
     return viewer.canvas.toDataURL('image/png');
@@ -377,7 +303,6 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
 
     const transform = getBaseTransform(currentSource?.transform);
     activeTool = 'focus-building';
-    // 地面视角：站在南侧30m，眼高3m
     viewer.camera.flyTo({
       destination: Cartesian3.fromDegrees(transform.longitude, transform.latitude - 0.00027, 3),
       orientation: {
@@ -415,62 +340,6 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     emitStatus();
   }
 
-  function zoomIn() {
-    viewerRef.value?.camera.zoomIn(120);
-    emitStatus();
-  }
-
-  function zoomOut() {
-    viewerRef.value?.camera.zoomOut(120);
-    emitStatus();
-  }
-
-  function rotate() {
-    viewerRef.value?.camera.rotateLeft(CesiumMath.toRadians(12));
-    emitStatus();
-  }
-
-  function pitch() {
-    viewerRef.value?.camera.lookUp(CesiumMath.toRadians(8));
-    emitStatus();
-  }
-
-  function setActiveTool(tool: BuildingInteractiveTool) {
-    activeTool = tool;
-    emitStatus();
-  }
-
-  function setLayerVisible(layerKey: BuildingStageLayerKey, visible: boolean) {
-    const viewer = viewerRef.value;
-    layerVisibility[layerKey] = visible;
-
-    if (!viewer) return;
-
-    if (layerKey === 'imagery') {
-      imageryLayers.value.forEach(layer => { layer.show = visible; });
-    }
-
-    if (layerKey === 'model' && modelEntityRef.value) {
-      modelEntityRef.value.show = visible;
-    }
-
-    if (layerKey === 'rooms') {
-      roomMarkerEntities.value.forEach(id => {
-        const entity = viewer.entities.getById(id);
-        if (entity) entity.show = visible;
-      });
-    }
-
-    if (layerKey === 'route-points') {
-      roamPointEntities.value.forEach(id => {
-        const entity = viewer.entities.getById(id);
-        if (entity) entity.show = visible;
-      });
-    }
-
-    requestRender();
-  }
-
   function focusRoom(roomId: string) {
     const viewer = viewerRef.value;
     const coordinate = roomCoordinateMap.get(roomId);
@@ -494,7 +363,8 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     if (roomId) focusRoom(roomId);
   }
 
-  // 添加街景点位标注
+  // ─── 点位数据 ─────────────────────────────────────
+
   function addRoamPoints(points: Array<{ id: string; title: string; longitude: number; latitude: number }>) {
     const viewer = viewerRef.value;
     if (!viewer) return;
@@ -515,10 +385,9 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
       pointCoordinateMap.set(point.id, { longitude: point.longitude, latitude: point.latitude, height: 30 });
     });
 
-    requestRender();
+    base.requestRender();
   }
 
-  // 移除街景点位
   function clearRoamPoints() {
     const viewer = viewerRef.value;
     if (!viewer) return;
@@ -526,21 +395,20 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     roamPointEntities.value.forEach(id => { viewer.entities.removeById(id); });
     roamPointEntities.value = [];
     pointCoordinateMap.clear();
-    requestRender();
+    base.requestRender();
   }
 
-  function showRooms(rooms: BuildingRoom[], floors: BuildingFloor[], points: BuildingRoamPoint[]) {
+  function showRooms(rooms: BuildingRoom[], floors: BuildingFloor[], _points: BuildingRoamPoint[]) {
     const viewer = viewerRef.value;
     if (!viewer) return;
 
-    currentRooms = rooms;
     currentFloors = floors;
     clearMarkers();
 
     const floorLookup = new Map(floors.map(item => [item.id, item]));
 
     rooms.forEach((room, index) => {
-      const floor = floorLookup.get(room.floorId);
+      floorLookup.get(room.floorId);
       const coordinate = getRoomCoordinate(room, index);
       const id = `building-room-${room.id}`;
       const entity = viewer.entities.add({
@@ -558,18 +426,46 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
       roomCoordinateMap.set(room.id, coordinate);
     });
 
-    requestRender();
+    base.requestRender();
   }
 
-  onBeforeUnmount(() => {
-    if (cameraChangedListener && viewerRef.value) {
-      viewerRef.value.camera.changed.removeEventListener(cameraChangedListener);
+  // ─── 公开接口 ─────────────────────────────────────
+
+  function setActiveTool(tool: BuildingInteractiveTool) {
+    activeTool = tool;
+    emitStatus();
+  }
+
+  function setLayerVisible(layerKey: BuildingStageLayerKey, visible: boolean) {
+    const viewer = viewerRef.value;
+    layerVisibility[layerKey] = visible;
+
+    if (!viewer) return;
+
+    if (layerKey === 'imagery') {
+      base.imageryLayers.forEach(layer => { layer.show = visible; });
     }
-    eventHandler?.destroy();
-    if (viewerRef.value && !viewerRef.value.isDestroyed()) {
-      viewerRef.value.destroy();
+
+    if (layerKey === 'model' && modelEntityRef.value) {
+      modelEntityRef.value.show = visible;
     }
-  });
+
+    if (layerKey === 'rooms') {
+      roomMarkerEntities.value.forEach(id => {
+        const entity = viewer.entities.getById(id);
+        if (entity) entity.show = visible;
+      });
+    }
+
+    if (layerKey === 'route-points') {
+      roamPointEntities.value.forEach(id => {
+        const entity = viewer.entities.getById(id);
+        if (entity) entity.show = visible;
+      });
+    }
+
+    base.requestRender();
+  }
 
   return {
     containerRef,
@@ -581,10 +477,10 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     captureView,
     flyToBuilding,
     resetView,
-    zoomIn,
-    zoomOut,
-    rotate,
-    pitch,
+    zoomIn: base.zoomIn,
+    zoomOut: base.zoomOut,
+    rotate: base.rotate,
+    pitch: base.pitch,
     setActiveTool,
     setLayerVisible,
     focusFloor,
@@ -592,6 +488,9 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     showRooms,
     addRoamPoints,
     clearRoamPoints,
-    status
+    status,
+    // 给极少数外部调用 base 能力
+    flyToLocation: base.flyToLocation,
+    exportScreenshot: base.exportScreenshot
   };
 }

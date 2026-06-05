@@ -41,6 +41,7 @@ const DEFAULT_IMAGERY: ImageryConfig = {
  * 不可用时回退到默认本地离线配置。
  */
 export function getImageryConfig(): ImageryConfig {
+  // eslint-disable-next-line no-underscore-dangle
   return window.__APP_CONFIG__?.IMAGERY || DEFAULT_IMAGERY;
 }
 

@@ -8,5 +8,6 @@ export default defineConfig({
       registeredComponentsOnly: false,
       ignores: ['/^icon-/']
     }
-  ]
+  ],
+  'no-underscore-dangle': ['error', { allow: ['__APP_CONFIG__'] }]
 });

@@ -56,6 +56,18 @@ export interface ImageryConfig {
   online: ImageryOnlineConfig;
 }
 
+/** 高程（地形）配置 */
+export interface TerrainConfig {
+  /** 是否启用高程数据 */
+  enabled: boolean;
+  /** 高程瓦片服务 URL 模板（CesiumTerrainProvider 格式） */
+  url: string;
+  /** 是否请求顶点法线（用于地形光照效果） */
+  requestVertexNormals: boolean;
+  /** 是否请求水面遮罩（用于水面效果） */
+  requestWaterMask: boolean;
+}
+
 /** 运行时配置文件结构 (public/config.json) */
 export interface AppRuntimeConfig {
   /** 后端服务主 Base URL */
@@ -66,6 +78,8 @@ export interface AppRuntimeConfig {
   VITE_BUILDING_TILESET_URL: string;
   /** Cesium 影像配置 */
   IMAGERY: ImageryConfig;
+  /** Cesium 高程（地形）配置 */
+  TERRAIN?: TerrainConfig;
 }
 
 declare global {

@@ -1,25 +1,17 @@
-import { onBeforeUnmount, shallowRef } from 'vue';
+import { useCesiumBase } from '@/composables/cesium/use-cesium-base';
 import {
   Cartesian2,
   Cartesian3,
   Cartographic,
   Color,
-  EllipsoidTerrainProvider,
   Entity,
   HeightReference,
   HorizontalOrigin,
-  ImageryLayer,
   LabelStyle,
   Math as CesiumMath,
   PolygonHierarchy,
-  Rectangle,
-  ScreenSpaceEventHandler,
-  ScreenSpaceEventType,
-  UrlTemplateImageryProvider,
-  VerticalOrigin,
-  Viewer
+  VerticalOrigin
 } from 'cesium';
-import { getGlobalImageryUrl, getRegionImageryUrl, getLocalImageryConfig, isOnlineImagery, getOnlineImageryProviderOptions } from '@/utils/imagery';
 import {
   globeAnalysisResult,
   globeAnalysisSteps,
@@ -49,11 +41,8 @@ function sleep(ms: number) {
 }
 
 export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
-  const containerRef = shallowRef<HTMLDivElement | null>(null);
-  const viewerRef = shallowRef<Viewer | null>(null);
-  const globalImageryUrl = getGlobalImageryUrl();
-  const regionImageryUrl = getRegionImageryUrl();
-  const localConfig = getLocalImageryConfig();
+  const base = useCesiumBase();
+  const { containerRef, viewerRef } = base;
 
   const layerVisibility: Record<GlobeLayerKey, boolean> = {
     imagery: true,
@@ -74,16 +63,12 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
   const dynamicRouteEntities: Entity[] = [];
   const dynamicMeasureEntities: Entity[] = [];
   const measurePositions: Cartesian3[] = [];
-  const imageryLayers: ImageryLayer[] = [];
 
   let activeTool: GlobeInteractiveTool | 'browse' = 'browse';
   let annotationIndex = 1;
-  let eventHandler: ScreenSpaceEventHandler | null = null;
-  let cameraChangedListener: (() => void) | null = null;
 
   function emitStatus(cartesian?: Cartesian3 | null) {
     const viewer = viewerRef.value;
-
     if (!viewer) return;
 
     const cameraHeight = viewer.camera.positionCartographic.height;
@@ -107,20 +92,13 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
     });
   }
 
-  function requestRender() {
-    viewerRef.value?.scene.requestRender();
-  }
-
-  function getColor(css: string, alpha = 1) {
-    return Color.fromCssColorString(css).withAlpha(alpha);
-  }
+  // ─── Entity 创建（模块特有样式） ────────────────────
 
   function createPointEntity(
     layerKey: Exclude<GlobeLayerKey, 'imagery'>,
     entityOptions: { id: string; name: string; longitude: number; latitude: number; color: string }
   ) {
     const viewer = viewerRef.value;
-
     if (!viewer) return null;
 
     const entity = viewer.entities.add({
@@ -128,7 +106,7 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
       position: Cartesian3.fromDegrees(entityOptions.longitude, entityOptions.latitude),
       point: {
         pixelSize: 11,
-        color: getColor(entityOptions.color),
+        color: base.getColor(entityOptions.color),
         outlineColor: Color.WHITE,
         outlineWidth: 2,
         heightReference: HeightReference.CLAMP_TO_GROUND
@@ -138,7 +116,7 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
         font: '12px Microsoft YaHei',
         fillColor: Color.WHITE,
         showBackground: true,
-        backgroundColor: getColor('#0f172a', 0.78),
+        backgroundColor: base.getColor('#0f172a', 0.78),
         pixelOffset: new Cartesian2(0, -22),
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
         style: LabelStyle.FILL,
@@ -148,7 +126,6 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
     });
 
     entity.show = layerVisibility[layerKey];
-
     return entity;
   }
 
@@ -157,7 +134,6 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
     polylineOptions: { id: string; positions: readonly Coordinate[]; color: string; width?: number }
   ) {
     const viewer = viewerRef.value;
-
     if (!viewer) return null;
 
     const entity = viewer.entities.add({
@@ -165,19 +141,17 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
       polyline: {
         positions: polylineOptions.positions.map(position => Cartesian3.fromDegrees(position[0], position[1])),
         width: polylineOptions.width ?? 4,
-        material: getColor(polylineOptions.color, 0.92),
+        material: base.getColor(polylineOptions.color, 0.92),
         clampToGround: true
       }
     });
 
     entity.show = layerVisibility[layerKey];
-
     return entity;
   }
 
   function createPolygonEntity(polygonOptions: { id: string; positions: readonly Coordinate[]; color: string }) {
     const viewer = viewerRef.value;
-
     if (!viewer) return null;
 
     const entity = viewer.entities.add({
@@ -186,71 +160,60 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
         hierarchy: new PolygonHierarchy(
           polygonOptions.positions.map(position => Cartesian3.fromDegrees(position[0], position[1]))
         ),
-        material: getColor(polygonOptions.color, 0.18),
+        material: base.getColor(polygonOptions.color, 0.18),
         outline: true,
-        outlineColor: getColor(polygonOptions.color, 0.92),
+        outlineColor: base.getColor(polygonOptions.color, 0.92),
         heightReference: HeightReference.CLAMP_TO_GROUND
       }
     });
 
     entity.show = layerVisibility.route;
-
     return entity;
   }
+
+  // ─── 模块数据加载 ─────────────────────────────────
 
   function addStaticEntities() {
     globeStaticRoads.forEach(item => {
       const entity = createPolylineEntity('road', item);
-
       if (entity) staticEntities.road.push(entity);
     });
 
     globeStaticPipelines.forEach(item => {
       const entity = createPolylineEntity('pipeline', item);
-
       if (entity) staticEntities.pipeline.push(entity);
     });
 
     globeStaticRoutes.forEach(item => {
       const route = createPolylineEntity('route', item);
-
       if (route) staticEntities.route.push(route);
     });
 
     globeStaticMarks.forEach(item => {
       const entity = createPointEntity('mark', item);
-
       if (entity) staticEntities.mark.push(entity);
     });
   }
 
+  // ─── 测量与标注工具 ───────────────────────────────
+
   function clearMeasureDraft() {
     const viewer = viewerRef.value;
-
     if (!viewer) return;
 
     dynamicMeasureEntities.splice(0).forEach(entity => viewer.entities.remove(entity));
     measurePositions.length = 0;
-    requestRender();
+    base.requestRender();
   }
 
   function clearDynamicMarks() {
     const viewer = viewerRef.value;
-
     if (!viewer) return;
 
     dynamicMarkEntities.splice(0).forEach(entity => viewer.entities.remove(entity));
     dynamicRouteEntities.splice(0).forEach(entity => viewer.entities.remove(entity));
     clearMeasureDraft();
-    requestRender();
-  }
-
-  function getSurfacePosition(position: Cartesian2) {
-    const viewer = viewerRef.value;
-
-    if (!viewer) return null;
-
-    return viewer.camera.pickEllipsoid(position, viewer.scene.globe.ellipsoid);
+    base.requestRender();
   }
 
   function addDynamicAnnotation(longitude: number, latitude: number, name?: string) {
@@ -264,21 +227,14 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
 
     if (entity) {
       dynamicMarkEntities.push(entity);
-      requestRender();
+      base.requestRender();
     }
   }
 
-  /**
-   * 计算两点间球面距离（米）
-   */
   function calcDistance(p1: Cartesian3, p2: Cartesian3): number {
     return Cartesian3.distance(p1, p2);
   }
 
-  /**
-   * 计算三角形面积（球面近似，平方米）
-   * 使用海伦公式对三点间距离进行近似计算
-   */
   function calcTriangleArea(p1: Cartesian3, p2: Cartesian3, p3: Cartesian3): number {
     const a = Cartesian3.distance(p1, p2);
     const b = Cartesian3.distance(p2, p3);
@@ -294,7 +250,7 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
       position,
       point: {
         pixelSize: 9,
-        color: getColor('#ffd43b'),
+        color: base.getColor('#ffd43b'),
         outlineColor: Color.WHITE,
         outlineWidth: 2
       }
@@ -307,7 +263,7 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
         polyline: {
           positions: [...measurePositions],
           width: 3,
-          material: getColor('#ffd43b'),
+          material: base.getColor('#ffd43b'),
           clampToGround: false
         }
       });
@@ -315,8 +271,7 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
       if (polyline) dynamicMeasureEntities.push(polyline);
 
       const distanceM = calcDistance(measurePositions[0], measurePositions[1]);
-      const distanceKm = (distanceM / 1000).toFixed(2);
-      window.$message?.success(`测距完成：${distanceKm} km`);
+      window.$message?.success(`测距完成：${(distanceM / 1000).toFixed(2)} km`);
       measurePositions.length = 0;
       activeTool = 'browse';
       emitStatus();
@@ -324,7 +279,7 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
       window.$message?.info('请继续选择第二个点');
     }
 
-    requestRender();
+    base.requestRender();
   }
 
   function handleMeasureArea(position: Cartesian3) {
@@ -334,7 +289,7 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
       position,
       point: {
         pixelSize: 9,
-        color: getColor('#ff922b'),
+        color: base.getColor('#ff922b'),
         outlineColor: Color.WHITE,
         outlineWidth: 2
       }
@@ -346,17 +301,16 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
       const polygon = viewerRef.value?.entities.add({
         polygon: {
           hierarchy: new PolygonHierarchy([...measurePositions]),
-          material: getColor('#ff922b', 0.24),
+          material: base.getColor('#ff922b', 0.24),
           outline: true,
-          outlineColor: getColor('#ff922b')
+          outlineColor: base.getColor('#ff922b')
         }
       });
 
       if (polygon) dynamicMeasureEntities.push(polygon);
 
       const areaSqM = calcTriangleArea(measurePositions[0], measurePositions[1], measurePositions[2]);
-      const areaSqKm = (areaSqM / 1e6).toFixed(3);
-      window.$message?.success(`测面完成：${areaSqKm} km²`);
+      window.$message?.success(`测面完成：${(areaSqM / 1e6).toFixed(3)} km²`);
       measurePositions.length = 0;
       activeTool = 'browse';
       emitStatus();
@@ -364,128 +318,15 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
       window.$message?.info('请继续选择区域顶点');
     }
 
-    requestRender();
+    base.requestRender();
   }
 
-  function bindMouseEvents() {
-    const viewer = viewerRef.value;
-
-    if (!viewer) return;
-
-    eventHandler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-
-    eventHandler.setInputAction((movement: { endPosition: Cartesian2 }) => {
-      emitStatus(getSurfacePosition(movement.endPosition));
-    }, ScreenSpaceEventType.MOUSE_MOVE);
-
-    eventHandler.setInputAction((click: { position: Cartesian2 }) => {
-      const cartesian = getSurfacePosition(click.position);
-
-      if (!cartesian) return;
-
-      const cartographic = Cartographic.fromCartesian(cartesian);
-      const longitude = Number(CesiumMath.toDegrees(cartographic.longitude).toFixed(6));
-      const latitude = Number(CesiumMath.toDegrees(cartographic.latitude).toFixed(6));
-
-      if (activeTool === 'annotate') {
-        addDynamicAnnotation(longitude, latitude);
-        window.$message?.success('已添加标注');
-      }
-
-      if (activeTool === 'measure-distance') {
-        handleMeasureDistance(cartesian);
-      }
-
-      if (activeTool === 'measure-area') {
-        handleMeasureArea(cartesian);
-      }
-    }, ScreenSpaceEventType.LEFT_CLICK);
-
-    cameraChangedListener = () => emitStatus();
-    viewer.camera.changed.addEventListener(cameraChangedListener);
-  }
-
-  async function initViewer() {
-    if (!containerRef.value || viewerRef.value) return;
-
-    const viewer = new Viewer(containerRef.value, {
-      animation: false,
-      baseLayerPicker: false,
-      fullscreenButton: false,
-      geocoder: false,
-      homeButton: false,
-      infoBox: false,
-      navigationHelpButton: false,
-      sceneModePicker: false,
-      selectionIndicator: false,
-      timeline: false,
-      baseLayer: false,
-      terrainProvider: new EllipsoidTerrainProvider(),
-      requestRenderMode: true,
-      maximumRenderTimeChange: Infinity
-    });
-
-    viewerRef.value = viewer;
-
-    viewer.scene.globe.showGroundAtmosphere = false;
-    if (viewer.scene.skyAtmosphere) {
-      viewer.scene.skyAtmosphere.show = false;
-    }
-    viewer.scene.globe.baseColor = Color.fromCssColorString('#07101d');
-    viewer.scene.screenSpaceCameraController.minimumZoomDistance = 25000;
-    viewer.scene.screenSpaceCameraController.maximumZoomDistance = 40000000;
-    viewer.scene.screenSpaceCameraController.zoomFactor = 1.5;
-    viewer.scene.screenSpaceCameraController.inertiaZoom = 0.5;
-
-    (viewer.cesiumWidget.creditContainer as HTMLElement).style.display = 'none';
-
-    imageryLayers.push(
-      viewer.imageryLayers.addImageryProvider(
-        new UrlTemplateImageryProvider(
-          isOnlineImagery()
-            ? getOnlineImageryProviderOptions()
-            : { url: globalImageryUrl, minimumLevel: 0, maximumLevel: localConfig.globalMaxLevel }
-        )
-      )
-    );
-
-    if (regionImageryUrl) {
-      imageryLayers.push(
-        viewer.imageryLayers.addImageryProvider(
-          new UrlTemplateImageryProvider({
-            url: regionImageryUrl,
-            minimumLevel: 9,
-            maximumLevel: localConfig.regionMaxLevel,
-            rectangle: Rectangle.fromDegrees(...localConfig.regionRectangle)
-          })
-        )
-      );
-    }
-
-    addStaticEntities();
-    bindMouseEvents();
-    flyToPreset('default');
-    emitStatus();
-  }
+  // ─── 公开接口 ─────────────────────────────────────
 
   function flyToPreset(preset: keyof typeof globePresets = 'task') {
-    const viewer = viewerRef.value;
     const target = globePresets[preset];
-
-    if (!viewer || !target) return;
-
-    flyToLocation(target.longitude, target.latitude, target.height);
-  }
-
-  function flyToLocation(longitude: number, latitude: number, height: number = globePresets.task.height) {
-    const viewer = viewerRef.value;
-
-    if (!viewer) return;
-
-    viewer.camera.flyTo({
-      destination: Cartesian3.fromDegrees(longitude, latitude, height),
-      duration: 1.3
-    });
+    if (!target) return;
+    base.flyToLocation(target.longitude, target.latitude, target.height);
   }
 
   function resetView() {
@@ -497,68 +338,33 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
 
   function setActiveTool(tool: GlobeInteractiveTool | 'browse') {
     activeTool = tool;
-
-    if (tool === 'browse') {
-      clearMeasureDraft();
-    }
-
+    if (tool === 'browse') clearMeasureDraft();
     emitStatus();
   }
 
   function setLayerVisible(layerKey: GlobeLayerKey, visible: boolean) {
     const viewer = viewerRef.value;
-
     layerVisibility[layerKey] = visible;
 
     if (!viewer) return;
 
     if (layerKey === 'imagery') {
-      imageryLayers.forEach(imageryLayer => {
-        imageryLayer.show = visible;
-      });
-      requestRender();
+      base.imageryLayers.forEach(layer => { layer.show = visible; });
+      base.requestRender();
       return;
     }
 
-    // 静态实体
-    staticEntities[layerKey].forEach(entity => {
-      entity.show = visible;
-    });
+    staticEntities[layerKey].forEach(entity => { entity.show = visible; });
 
-    // 动态实体
     if (layerKey === 'mark') {
-      dynamicMarkEntities.forEach(entity => {
-        entity.show = visible;
-      });
+      dynamicMarkEntities.forEach(entity => { entity.show = visible; });
     }
 
     if (layerKey === 'route') {
-      dynamicRouteEntities.forEach(entity => {
-        entity.show = visible;
-      });
+      dynamicRouteEntities.forEach(entity => { entity.show = visible; });
     }
 
-    requestRender();
-  }
-
-  function zoomIn() {
-    viewerRef.value?.camera.zoomIn(25000);
-    emitStatus();
-  }
-
-  function zoomOut() {
-    viewerRef.value?.camera.zoomOut(25000);
-    emitStatus();
-  }
-
-  function rotate() {
-    viewerRef.value?.camera.rotateLeft(CesiumMath.toRadians(18));
-    emitStatus();
-  }
-
-  function pitch() {
-    viewerRef.value?.camera.lookUp(CesiumMath.toRadians(12));
-    emitStatus();
+    base.requestRender();
   }
 
   function clearAnnotations() {
@@ -588,37 +394,65 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
 
     globeAnalysisResult.marks.forEach(item => {
       const entity = createPointEntity('mark', item);
-
       if (entity) dynamicMarkEntities.push(entity);
     });
 
     flyToPreset('task');
-    requestRender();
+    base.requestRender();
   }
 
-  function exportScreenshot() {
-    const viewer = viewerRef.value;
+  // ─── 初始化 ───────────────────────────────────────
 
-    if (!viewer) return;
+  async function initViewer() {
+    await base.initViewer({
+      prepareViewer(viewer) {
+        viewer.scene.globe.showGroundAtmosphere = false;
+        if (viewer.scene.skyAtmosphere) {
+          viewer.scene.skyAtmosphere.show = false;
+        }
+        viewer.scene.globe.baseColor = Color.fromCssColorString('#07101d');
+        viewer.scene.screenSpaceCameraController.minimumZoomDistance = 25000;
+        viewer.scene.screenSpaceCameraController.maximumZoomDistance = 40000000;
+        viewer.scene.screenSpaceCameraController.zoomFactor = 1.5;
+        viewer.scene.screenSpaceCameraController.inertiaZoom = 0.5;
+        (viewer.cesiumWidget.creditContainer as HTMLElement).style.display = 'none';
+      },
+      afterImagery() {
+        addStaticEntities();
 
-    const link = document.createElement('a');
-    link.download = `webglobe-${Date.now()}.png`;
-    link.href = viewer.canvas.toDataURL('image/png');
-    link.click();
-    window.$message?.success('截图已导出');
+        base.bindMouseEvents({
+          onMouseMove: (movement: { endPosition: Cartesian2 }) => {
+            emitStatus(base.getCartesianFromScreen(movement.endPosition));
+          },
+          onLeftClick: (click: { position: Cartesian2 }) => {
+            const cartesian = base.getCartesianFromScreen(click.position);
+            if (!cartesian) return;
+
+            const cartographic = Cartographic.fromCartesian(cartesian);
+            const longitude = Number(CesiumMath.toDegrees(cartographic.longitude).toFixed(6));
+            const latitude = Number(CesiumMath.toDegrees(cartographic.latitude).toFixed(6));
+
+            if (activeTool === 'annotate') {
+              addDynamicAnnotation(longitude, latitude);
+              window.$message?.success('已添加标注');
+            }
+
+            if (activeTool === 'measure-distance') {
+              handleMeasureDistance(cartesian);
+            }
+
+            if (activeTool === 'measure-area') {
+              handleMeasureArea(cartesian);
+            }
+          }
+        });
+
+        base.addCameraChangeListener(() => emitStatus());
+        flyToPreset('default');
+        emitStatus();
+      }
+    });
   }
-
-  onBeforeUnmount(() => {
-    if (cameraChangedListener && viewerRef.value) {
-      viewerRef.value.camera.changed.removeEventListener(cameraChangedListener);
-    }
-
-    eventHandler?.destroy();
-
-    if (viewerRef.value && !viewerRef.value.isDestroyed()) {
-      viewerRef.value.destroy();
-    }
-  });
 
   return {
     containerRef,
@@ -626,15 +460,15 @@ export function useCesiumGlobe(options: UseCesiumGlobeOptions = {}) {
     setActiveTool,
     setLayerVisible,
     flyToPreset,
-    flyToLocation,
+    flyToLocation: base.flyToLocation,
     resetView,
-    zoomIn,
-    zoomOut,
-    rotate,
-    pitch,
+    zoomIn: base.zoomIn,
+    zoomOut: base.zoomOut,
+    rotate: base.rotate,
+    pitch: base.pitch,
     clearAnnotations,
     generateMark,
     startAnalysis,
-    exportScreenshot
+    exportScreenshot: () => base.exportScreenshot(`webglobe-${Date.now()}.png`)
   };
 }

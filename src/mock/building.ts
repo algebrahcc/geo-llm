@@ -282,6 +282,7 @@ export const buildingRoamRoutes = reactive<BuildingRoamRoute[]>([
 
 const localTilesetUrl = `${import.meta.env.BASE_URL}3dtiles/building-demo/tileset.json`;
 const remoteTilesetUrl =
+  // eslint-disable-next-line no-underscore-dangle
   window.__APP_CONFIG__?.VITE_BUILDING_TILESET_URL || import.meta.env.VITE_BUILDING_TILESET_URL || '';
 
 export const buildingTilesetSources = [

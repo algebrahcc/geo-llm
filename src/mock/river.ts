@@ -1,8 +1,7 @@
 import type {
   AiAnalysisStep,
   CrossingPlanCard,
-  CrossingSettingForm,
-  KnowledgeHitDisplay
+  CrossingSettingForm
 } from '@/views/river/modules/types';
 
 // ─────────────────── 旧版保留 ───────────────────

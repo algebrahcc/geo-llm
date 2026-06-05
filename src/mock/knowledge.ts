@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import { extractTextParameters, extractImageParameters, type EnvironmentParameter } from './knowledge-parameters';
+import { extractTextParameters, extractImageParameters } from './knowledge-parameters';
 
 // 类型定义已迁移至 src/views/knowledge/modules/types.ts，此处 re-export 保持向后兼容
 export type {

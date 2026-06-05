@@ -431,9 +431,9 @@ export function useScreenGlobe() {
     // Observe container size changes and resize Cesium canvas
     if (containerRef.value) {
       resizeObserver = new ResizeObserver(() => {
-        const viewer = viewerRef.value;
-        if (viewer && !viewer.isDestroyed()) {
-          viewer.resize();
+        const v = viewerRef.value;
+        if (v && !v.isDestroyed()) {
+          v.resize();
         }
       });
       resizeObserver.observe(containerRef.value);

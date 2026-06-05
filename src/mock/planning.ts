@@ -4,7 +4,6 @@ import type {
   PlanningMissionForm,
   PlanningMissionResultSummary,
   PlanningOption,
-  PlanningPlanMetric,
   PlanningPlanResult,
   PlanningPreset,
   PlanningRouteKey,

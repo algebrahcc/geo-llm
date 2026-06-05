@@ -8,11 +8,11 @@ defineOptions({
 });
 
 interface Props {
-  collapsed: boolean;
-  running: boolean;
+  collapsed?: boolean;
+  running?: boolean;
   steps: PlanningAnalysisStep[];
-  progress: number;
-  statusText: string;
+  progress?: number;
+  statusText?: string;
   knowledgeHits?: { docCount: number; chunkCount: number; docNames: string[] } | null;
 }
 

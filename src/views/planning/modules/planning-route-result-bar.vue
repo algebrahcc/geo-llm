@@ -7,8 +7,8 @@ defineOptions({
 });
 
 interface Props {
-  collapsed: boolean;
-  selectedKey: string | null;
+  collapsed?: boolean;
+  selectedKey?: string | null;
   cards?: readonly PlanningRouteResultCard[];
 }
 
