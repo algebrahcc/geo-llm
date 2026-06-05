@@ -41,7 +41,7 @@ const {
   addRoamPoints,
   clearRoamPoints,
   zoomToModel,
-  captureView,
+  exportScreenshot,
   flyToBuilding,
   resetView,
   zoomIn,
@@ -50,7 +50,9 @@ const {
   pitch,
   setActiveTool,
   setLayerVisible,
-  focusFloor
+  focusFloor,
+  is2dMode,
+  toggleViewMode
 } = useBuildingModel({
   onRoomPicked(roomId) { emit('roomPicked', roomId); },
   onStatusChange(s) { emit('statusChange', s); }
@@ -98,7 +100,6 @@ defineExpose({
   loadModel,
   unloadModel,
   zoomToModel,
-  captureView,
   flyToBuilding,
   resetView,
   zoomIn,
@@ -110,7 +111,10 @@ defineExpose({
   focusFloor,
   showRooms,
   addRoamPoints,
-  clearRoamPoints
+  clearRoamPoints,
+  exportScreenshot,
+  is2dMode,
+  toggleViewMode
 });
 </script>
 

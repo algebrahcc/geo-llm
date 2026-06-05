@@ -291,10 +291,8 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     }
   }
 
-  function captureView(): string {
-    const viewer = viewerRef.value;
-    if (!viewer) return '';
-    return viewer.canvas.toDataURL('image/png');
+  function exportScreenshot() {
+    base.exportScreenshot(`building-${loadState.sourceKey || 'view'}-${Date.now()}.png`);
   }
 
   function flyToBuilding() {
@@ -474,7 +472,7 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     loadModel,
     unloadModel,
     zoomToModel,
-    captureView,
+    exportScreenshot,
     flyToBuilding,
     resetView,
     zoomIn: base.zoomIn,
@@ -489,8 +487,9 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     addRoamPoints,
     clearRoamPoints,
     status,
+    is2dMode: base.is2dMode,
+    toggleViewMode: base.toggleViewMode,
     // 给极少数外部调用 base 能力
-    flyToLocation: base.flyToLocation,
-    exportScreenshot: base.exportScreenshot
+    flyToLocation: base.flyToLocation
   };
 }

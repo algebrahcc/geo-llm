@@ -7,14 +7,14 @@ import {
   aiAnalysisStepTemplate,
   crossingPlanCards,
   defaultCrossingSettingForm,
-  riverDefaultLayers,
-  riverRightTools
+  riverDefaultLayers
 } from '@/mock/river';
 import RiverAiAssistantPanel from './modules/river-ai-assistant-panel.vue';
 import RiverLayerPanel from './modules/river-layer-panel.vue';
 import RiverResultBar from './modules/river-result-bar.vue';
 import RiverSettingPanel from './modules/river-setting-panel.vue';
-import RiverToolbar from './modules/river-toolbar.vue';
+import SceneToolbar from '@/components/common/scene-toolbar.vue';
+import type { SceneToolbarItem } from '@/components/common/scene-toolbar.vue';
 import RiverViewer from './modules/river-viewer.vue';
 import { useDraggable } from './modules/use-draggable';
 import type { LayerItem } from './modules/river-layer-panel.vue';
@@ -22,8 +22,7 @@ import type {
   AiAnalysisStep,
   CrossingPlanCard,
   CrossingSettingForm,
-  KnowledgeHitDisplay,
-  RiverToolKey
+  KnowledgeHitDisplay
 } from './modules/types';
 
 defineOptions({
@@ -38,6 +37,8 @@ interface ViewerExpose {
   zoomOut: () => void;
   rotate: () => void;
   pitch: () => void;
+  exportScreenshot: () => void;
+  toggleViewMode: () => void;
 }
 
 const viewerRef = ref<ViewerExpose | null>(null);
@@ -88,7 +89,17 @@ function handleToggleLayer(key: string) {
 }
 
 // ──── 右侧工具栏 ────
-const activeRightTool = ref<RiverToolKey | null>(null);
+const activeRightTool = ref<string | null>(null);
+const is2dMode = ref(false);
+const rightTools: readonly SceneToolbarItem[] = [
+  { key: 'layers', label: '图层管理', icon: 'mdi:layers-outline' },
+  { key: 'reset', label: '复位', icon: 'mdi:home-outline' },
+  { key: 'pitch', label: '俯仰', icon: 'mdi:axis-arrow' },
+  { key: 'rotate', label: '旋转', icon: 'mdi:rotate-orbit' },
+  { key: 'zoom-in', label: '放大', icon: 'mdi:magnify-plus-outline' },
+  { key: 'zoom-out', label: '缩小', icon: 'mdi:magnify-minus-outline' },
+  { key: 'screenshot', label: '截图', icon: 'mdi:camera-outline' }
+];
 
 // ──── 表单更新 ────
 function handleFormUpdate(form: CrossingSettingForm) {
@@ -224,7 +235,7 @@ function handleToggleLayerPanel() {
 }
 
 // ──── 右侧工具栏 ────
-function handleRightToolSelect(key: RiverToolKey) {
+function handleRightToolSelect(key: string) {
   const viewer = viewerRef.value;
   switch (key) {
     case 'layers':
@@ -247,10 +258,18 @@ function handleRightToolSelect(key: RiverToolKey) {
     case 'zoom-out':
       viewer?.zoomOut();
       return;
+    case 'screenshot':
+      viewer?.exportScreenshot?.();
+      return;
     default:
       activeRightTool.value = key;
       return;
   }
+}
+
+function handleToggle2d3d() {
+  viewerRef.value?.toggleViewMode?.();
+  is2dMode.value = !is2dMode.value;
 }
 
 // ──── 返回主页 ────
@@ -423,13 +442,15 @@ function handleToggleResult() {
         </div>
       </Transition>
 
-      <!-- ══════ 右侧工具栏 ══════ -->
+      <!-- ══════ 右侧工具栏（公共：2D/3D切换、图层、复位、缩放、旋转、俯仰、截图） ══════ -->
       <div class="right-side">
-        <RiverToolbar
+        <SceneToolbar
           placement="right"
-          :items="riverRightTools"
+          :items="rightTools"
+          :is-2d-mode="is2dMode"
           :active-key="activeRightTool"
           @select="handleRightToolSelect"
+          @toggle-2d3d="handleToggle2d3d"
         />
       </div>
     </div>

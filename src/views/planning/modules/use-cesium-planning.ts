@@ -429,6 +429,10 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     resetView,
     zoomIn: base.zoomIn,
     zoomOut: base.zoomOut,
-    exportScreenshot: () => base.exportScreenshot(`planning-route-${currentRoute}.png`)
+    rotate: base.rotate,
+    pitch: base.pitch,
+    exportScreenshot: () => base.exportScreenshot(`planning-route-${currentRoute}.png`),
+    is2dMode: base.is2dMode,
+    toggleViewMode: base.toggleViewMode
   };
 }

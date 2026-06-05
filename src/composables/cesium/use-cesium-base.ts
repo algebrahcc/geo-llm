@@ -1,4 +1,4 @@
-import { onBeforeUnmount, shallowRef, type Ref } from 'vue';
+import { onBeforeUnmount, ref, shallowRef, type Ref } from 'vue';
 import {
   Cartesian2,
   Cartesian3,
@@ -67,6 +67,10 @@ export interface CesiumBaseReturn {
 
   /** 导出截图 */
   exportScreenshot: (filename: string) => void;
+
+  /** 2D / 3D 视图切换 */
+  is2dMode: Ref<boolean>;
+  toggleViewMode: () => void;
 }
 
 /**
@@ -105,7 +109,12 @@ export function useCesiumBase(): CesiumBaseReturn {
       sceneModePicker: false,
       selectionIndicator: false,
       timeline: false,
-      terrainProvider: new EllipsoidTerrainProvider()
+      terrainProvider: new EllipsoidTerrainProvider(),
+      contextOptions: {
+        webgl: {
+          preserveDrawingBuffer: true
+        }
+      }
     });
 
     viewerRef.value = viewer;
@@ -140,11 +149,12 @@ export function useCesiumBase(): CesiumBaseReturn {
       );
     }
 
-    // 加载高程（地形）数据
-    const terrainProvider = await createTerrainProvider();
-    if (terrainProvider) {
-      viewer.terrainProvider = terrainProvider;
-    }
+    // 异步加载高程（地形）数据，不阻塞初始化流程
+    createTerrainProvider().then(provider => {
+      if (provider) {
+        viewer.terrainProvider = provider;
+      }
+    });
 
     // 异步 hook（如等待模块初始化完成后才返回）
     await hooks?.afterImageryAsync?.(viewer);
@@ -277,6 +287,29 @@ export function useCesiumBase(): CesiumBaseReturn {
     viewerRef.value?.camera.lookUp(radians);
   }
 
+  // ─── 2D / 3D 视图切换 ──────────────────────────────
+
+  const is2dMode = ref(false);
+
+  function toggleViewMode() {
+    const viewer = viewerRef.value;
+    if (!viewer) return;
+
+    if (is2dMode.value) {
+      // 切换到 3D
+      viewer.scene.morphTo3D(0);
+      viewer.scene.screenSpaceCameraController.enableRotate = true;
+      viewer.scene.screenSpaceCameraController.enableTilt = true;
+    } else {
+      // 切换到 2D
+      viewer.scene.morphTo2D(0);
+      viewer.scene.screenSpaceCameraController.enableRotate = false;
+      viewer.scene.screenSpaceCameraController.enableTilt = false;
+    }
+
+    is2dMode.value = !is2dMode.value;
+  }
+
   // ─── 截图 ─────────────────────────────────────────
 
   function exportScreenshot(filename: string) {
@@ -284,14 +317,18 @@ export function useCesiumBase(): CesiumBaseReturn {
     if (!viewer) return;
 
     try {
-      requestRender();
+      // 强制同步渲染确保画布内容最新
+      viewer.render();
       const url = viewer.canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.href = url;
       link.download = filename;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       window.$message?.success('已导出当前视角截图');
-    } catch {
+    } catch (err) {
+      console.error('[Screenshot] 导出失败:', err);
       window.$message?.error('截图导出失败');
     }
   }
@@ -318,6 +355,8 @@ export function useCesiumBase(): CesiumBaseReturn {
     zoomOut,
     rotate,
     pitch,
-    exportScreenshot
+    exportScreenshot,
+    is2dMode,
+    toggleViewMode
   };
 }

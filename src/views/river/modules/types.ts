@@ -4,25 +4,7 @@ export type RiverPlanKey = 'plan-a' | 'plan-b' | 'plan-c';
 
 export type RiverLayerKey = 'imagery' | 'channel' | 'assembly' | 'risk' | 'mark' | 'route';
 
-export type RiverToolKey =
-  | 'task'
-  | 'analysis'
-  | 'annotate'
-  | 'locate'
-  | 'layers'
-  | 'reset'
-  | 'pitch'
-  | 'rotate'
-  | 'zoom-in'
-  | 'zoom-out';
-
 export type RiverInteractiveTool = 'browse' | 'annotate';
-
-export interface RiverToolbarItem {
-  key: RiverToolKey;
-  label: string;
-  icon: string;
-}
 
 export interface RiverLayerItem {
   key: RiverLayerKey;

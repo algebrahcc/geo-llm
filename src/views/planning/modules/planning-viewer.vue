@@ -33,7 +33,11 @@ const {
   resetView,
   zoomIn,
   zoomOut,
-  exportScreenshot
+  rotate,
+  pitch,
+  exportScreenshot,
+  is2dMode,
+  toggleViewMode
 } = useCesiumPlanning({
   onStatusChange(status) {
     emit('statusChange', status);
@@ -60,7 +64,11 @@ defineExpose({
   resetView,
   zoomIn,
   zoomOut,
-  exportScreenshot
+  rotate,
+  pitch,
+  exportScreenshot,
+  is2dMode,
+  toggleViewMode
 });
 </script>
 

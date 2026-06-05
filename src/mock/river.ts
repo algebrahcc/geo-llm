@@ -4,17 +4,6 @@ import type {
   CrossingSettingForm
 } from '@/views/river/modules/types';
 
-// ─────────────────── 旧版保留 ───────────────────
-
-export const riverRightTools = [
-  { key: 'layers', label: '图层面板', icon: 'mdi:layers-outline' },
-  { key: 'reset', label: '复位', icon: 'mdi:home-outline' },
-  { key: 'pitch', label: '俯仰', icon: 'mdi:axis-arrow' },
-  { key: 'rotate', label: '旋转', icon: 'mdi:rotate-orbit' },
-  { key: 'zoom-in', label: '放大', icon: 'mdi:magnify-plus-outline' },
-  { key: 'zoom-out', label: '缩小', icon: 'mdi:magnify-minus-outline' }
-] as const;
-
 export const riverDefaultLayers = [
   { key: 'imagery', label: '影像底图', description: '全球 0-8', visible: true },
   { key: 'channel', label: '渡河通道', description: '展示渡河主通道与浮渡方向', visible: true },

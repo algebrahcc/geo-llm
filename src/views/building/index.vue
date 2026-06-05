@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue';
+import { reactive, ref, watch, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 import BuildingSceneViewer from './modules/building-scene-viewer.vue';
-import BuildingToolbar from './modules/building-toolbar.vue';
+import SceneToolbar from '@/components/common/scene-toolbar.vue';
+import type { SceneToolbarItem } from '@/components/common/scene-toolbar.vue';
 import BuildingTaskStagePanel from './modules/building-task-stage-panel.vue';
 import BuildingInfoPanel from './modules/building-info-panel.vue';
 import BuildingAiAssistantPanel from './modules/building-ai-assistant-panel.vue';
@@ -34,6 +35,8 @@ interface ViewerExposed {
   focusFloor: (floorId: string) => void;
   showRooms: (rooms: any[], floors: any[], points: any[]) => void;
   addRoamPoints: (points: Array<{ id: string; title: string; longitude: number; latitude: number }>) => void;
+  is2dMode: Ref<boolean>;
+  toggleViewMode: () => void;
 }
 
 const viewerRef = ref<ViewerExposed | null>(null);
@@ -90,9 +93,20 @@ const {
 } = useBuilding();
 
 // ──── 工具栏配置 ────
-const leftTools: readonly { key: BuildingStageToolKey; label: string; icon: string }[] = [
+const is2dMode = ref(false);
+const leftTools: readonly SceneToolbarItem[] = [
   { key: 'task', label: '任务信息', icon: 'mdi:clipboard-text-outline' },
+  { key: 'ai', label: 'AI 对话', icon: 'mdi:robot-outline' },
   { key: 'focus-building', label: '定位楼宇', icon: 'mdi:crosshairs-gps' }
+];
+
+const rightTools: readonly SceneToolbarItem[] = [
+  { key: 'reset', label: '复位', icon: 'mdi:home-outline' },
+  { key: 'pitch', label: '俯仰', icon: 'mdi:axis-arrow' },
+  { key: 'rotate', label: '旋转', icon: 'mdi:rotate-orbit' },
+  { key: 'zoom-in', label: '放大', icon: 'mdi:magnify-plus-outline' },
+  { key: 'zoom-out', label: '缩小', icon: 'mdi:magnify-minus-outline' },
+  { key: 'screenshot', label: '截图', icon: 'mdi:camera-outline' }
 ];
 
 // ──── 事件处理 ────
@@ -102,6 +116,10 @@ function handleLeftToolSelect(key: BuildingStageToolKey) {
       taskPanelVisible.value = !taskPanelVisible.value;
       if (taskPanelVisible.value) taskPanelCollapsed.value = false;
       viewerRef.value?.setActiveTool('browse');
+      return;
+    case 'ai':
+      aiPanelVisible.value = !aiPanelVisible.value;
+      if (aiPanelVisible.value) aiPanelCollapsed.value = false;
       return;
     case 'focus-building':
       viewerRef.value?.setActiveTool('focus-building');
@@ -134,6 +152,25 @@ function handleRoamPointSelect(point: BuildingRoamPoint) {
 
 function handleBackToMain() { void router.push({ name: 'screen' }); }
 
+function handleRightToolSelect(key: string) {
+  const viewer = viewerRef.value;
+  if (!viewer) return;
+  switch (key) {
+    case 'reset': viewer.resetView(); return;
+    case 'pitch': viewer.pitch(); return;
+    case 'rotate': viewer.rotate(); return;
+    case 'zoom-in': viewer.zoomIn(); return;
+    case 'zoom-out': viewer.zoomOut(); return;
+    case 'screenshot': viewer.exportScreenshot?.(); return;
+    default: return;
+  }
+}
+
+function handleToggle2d3d() {
+  viewerRef.value?.toggleViewMode();
+  is2dMode.value = !is2dMode.value;
+}
+
 // 模型加载完成后添加街景点位
 watch(() => modelLoadState.loaded, loaded => {
   if (loaded && viewerRef.value) {
@@ -159,25 +196,17 @@ watch(() => modelLoadState.loaded, loaded => {
         @status-change="handleStatusChange"
       />
 
-      <!-- ═══ 左侧工具栏 ═══ -->
-      <BuildingToolbar placement="left" :items="leftTools" @select="handleLeftToolSelect" />
+      <!-- ═══ 左侧工具栏（场景特有：任务信息、定位楼宇） ═══ -->
+      <SceneToolbar placement="left" :items="leftTools" :show-2d3d-switch="false" @select="handleLeftToolSelect" />
 
-      <!-- ═══ 右侧 AI 机器人按钮 ═══ -->
-      <div class="ai-float-btn-wrap">
-        <NTooltip placement="left">
-          <template #trigger>
-            <button
-              type="button"
-              class="ai-float-btn"
-              :class="{ 'ai-float-btn--active': aiPanelVisible }"
-              @click="aiPanelVisible = !aiPanelVisible; if (aiPanelVisible) aiPanelCollapsed = false"
-            >
-              <SvgIcon icon="mdi:robot-outline" class="ai-float-icon" />
-            </button>
-          </template>
-          <span>{{ aiPanelVisible ? '关闭 AI 对话' : '打开 AI 对话' }}</span>
-        </NTooltip>
-      </div>
+      <!-- ═══ 右侧工具栏（公共：2D/3D切换、复位、缩放、旋转、俯仰、截图） ═══ -->
+      <SceneToolbar
+        placement="right"
+        :items="rightTools"
+        :is-2d-mode="is2dMode"
+        @select="handleRightToolSelect"
+        @toggle-2d3d="handleToggle2d3d"
+      />
 
       <!-- ═══ 返回按钮 ═══ -->
       <div class="stage-actions-wrap">
@@ -269,21 +298,6 @@ watch(() => modelLoadState.loaded, loaded => {
 }
 .stage-back-button:active { transform: translateY(-1px); }
 .stage-back-icon { font-size: 18px; }
-
-/* ─── 右侧 AI 机器人按钮 ─── */
-.ai-float-btn-wrap {
-  position: absolute; right: 16px; top: 18px; z-index: 23;
-}
-.ai-float-btn {
-  display: flex; height: 44px; width: 44px; align-items: center; justify-content: center;
-  border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
-  background: rgba(9,14,28,0.78); color: rgba(255,255,255,0.88);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.18); backdrop-filter: blur(14px);
-  cursor: pointer; transition: all 0.18s ease;
-}
-.ai-float-btn:hover { border-color: rgba(43,107,255,0.45); background: rgba(19,31,54,0.88); }
-.ai-float-btn--active { border-color: rgba(43,107,255,0.55); background: rgba(43,107,255,0.15); }
-.ai-float-icon { font-size: 20px; }
 
 /* ──── 可拖拽面板通用 ──── */
 .side-panel {

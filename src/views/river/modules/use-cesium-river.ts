@@ -369,6 +369,8 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     generateMark,
     startAnalysis,
     exportScreenshot: () => base.exportScreenshot(`river-plan-${activePlan}.png`),
-    showPlan
+    showPlan,
+    is2dMode: base.is2dMode,
+    toggleViewMode: base.toggleViewMode
   };
 }

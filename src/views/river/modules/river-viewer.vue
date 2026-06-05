@@ -30,7 +30,9 @@ const {
   generateMark,
   startAnalysis,
   exportScreenshot,
-  showPlan
+  showPlan,
+  is2dMode,
+  toggleViewMode
 } = useCesiumRiver({
   onStatusChange(status) {
     emit('statusChange', status);
@@ -57,7 +59,9 @@ defineExpose({
   generateMark,
   startAnalysis: (planKey: RiverPlanKey, onStep?: (index: number) => void) => startAnalysis(planKey, onStep),
   exportScreenshot,
-  showPlan
+  showPlan,
+  is2dMode,
+  toggleViewMode
 });
 </script>
 

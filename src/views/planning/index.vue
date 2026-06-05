@@ -15,7 +15,7 @@ import PlanningRouteSettingsPanel from './modules/planning-route-settings-panel.
 import PlanningSupportAiPanel from './modules/planning-support-ai-panel.vue';
 import PlanningSupportResultBar from './modules/planning-support-result-bar.vue';
 import PlanningSupportSettingsPanel from './modules/planning-support-settings-panel.vue';
-import PlanningToolbar from './modules/planning-toolbar.vue';
+import SceneToolbar from '@/components/common/scene-toolbar.vue';
 import PlanningViewer from './modules/planning-viewer.vue';
 import { usePlanning } from './modules/use-planning';
 import type {
@@ -29,7 +29,6 @@ import type {
   PlanningRouteResultCard,
   PlanningRouteSettingsForm,
   PlanningSupportSettingsForm,
-  PlanningToolKey,
   PlanningWaypoint
 } from './modules/types';
 
@@ -48,6 +47,9 @@ interface PlanningViewerExposed {
   zoomIn: () => void;
   zoomOut: () => void;
   exportScreenshot: () => void;
+  rotate: () => void;
+  pitch: () => void;
+  toggleViewMode: () => void;
 }
 
 const viewerRef = ref<PlanningViewerExposed | null>(null);
@@ -484,9 +486,10 @@ function handleSupportCardSelect(key: string) {
 }
 
 // ──── 右侧工具栏 ────
-const activeRightTool = ref<PlanningToolKey | null>(null);
+const activeRightTool = ref<string | null>(null);
+const is2dMode = ref(false);
 
-function handleRightToolSelect(key: PlanningToolKey) {
+function handleRightToolSelect(key: string) {
   switch (key) {
     case 'reset':
       viewerRef.value?.resetView();
@@ -497,13 +500,24 @@ function handleRightToolSelect(key: PlanningToolKey) {
     case 'zoom-out':
       viewerRef.value?.zoomOut();
       break;
-    case 'shot':
-      viewerRef.value?.exportScreenshot();
+    case 'rotate':
+      viewerRef.value?.rotate?.();
+      break;
+    case 'pitch':
+      viewerRef.value?.pitch?.();
+      break;
+    case 'screenshot':
+      viewerRef.value?.exportScreenshot?.();
       break;
     default:
       break;
   }
   activeRightTool.value = key;
+}
+
+function handleToggle2d3d() {
+  viewerRef.value?.toggleViewMode?.();
+  is2dMode.value = !is2dMode.value;
 }
 
 function handleLayerChange(payload: { key: PlanningLayerKey; visible: boolean }) {
@@ -628,18 +642,22 @@ function handleSupportAiSend(message: string) {
         </NTooltip>
       </div>
 
-      <!-- ══════ 右侧：工具栏 ══════ -->
+      <!-- ══════ 右侧：工具栏（公共：2D/3D切换、复位、缩放、截图） ══════ -->
       <div class="right-toolbar">
-        <PlanningToolbar
+        <SceneToolbar
           placement="right"
+          :is-2d-mode="is2dMode"
           :items="[
             { key: 'reset', label: '复位', icon: 'mdi:home-outline' },
             { key: 'zoom-in', label: '放大', icon: 'mdi:magnify-plus-outline' },
             { key: 'zoom-out', label: '缩小', icon: 'mdi:magnify-minus-outline' },
-            { key: 'shot', label: '截图', icon: 'mdi:camera-outline' }
+            { key: 'rotate', label: '旋转', icon: 'mdi:rotate-orbit' },
+            { key: 'pitch', label: '俯仰', icon: 'mdi:axis-arrow' },
+            { key: 'screenshot', label: '截图', icon: 'mdi:camera-outline' }
           ]"
           :active-key="activeRightTool"
           @select="handleRightToolSelect"
+          @toggle-2d3d="handleToggle2d3d"
         />
       </div>
 

@@ -15,12 +15,6 @@ export type BuildingStageToolKey =
 
 export type BuildingInteractiveTool = 'browse' | 'focus-building' | 'pick-room' | 'measure-distance' | 'measure-area';
 
-export interface BuildingToolbarItem {
-  key: BuildingStageToolKey;
-  label: string;
-  icon: string;
-}
-
 export interface BuildingLayerItem {
   key: BuildingStageLayerKey;
   label: string;
