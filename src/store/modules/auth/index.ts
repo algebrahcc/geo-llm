@@ -173,15 +173,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   }
 
   async function getUserInfo() {
-    const { data: info, error } = await fetchGetUserInfo();
-
-    if (!error) {
-      // update store
-      Object.assign(userInfo, info);
-
-      return true;
-    }
-
+    // 开发环境使用 demo token 时直接返回硬编码信息，跳过 API 调用
     if (getToken() === DEMO_LOGIN_TOKEN) {
       Object.assign(userInfo, {
         userId: 'demo',
@@ -189,6 +181,15 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
         roles: [import.meta.env.VITE_STATIC_SUPER_ROLE],
         buttons: []
       });
+
+      return true;
+    }
+
+    const { data: info, error } = await fetchGetUserInfo();
+
+    if (!error) {
+      // update store
+      Object.assign(userInfo, info);
 
       return true;
     }
