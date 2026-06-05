@@ -47,7 +47,12 @@ export interface CesiumBaseReturn {
   /** 构建带模块扩展字段的 emitStatus */
   createEmitStatus: <T extends Record<string, unknown>>(
     extraFieldsFn: () => T
-  ) => (cartesian?: Cartesian3 | null) => void;
+  ) => (cartesian?: Cartesian3 | null) => BaseStatusInfo & T;
+
+  /** 仅计算基础状态字段（不含扩展字段），供 building 模块等特殊场景使用 */
+  computeBaseStatus: (
+    cartesian?: Cartesian3 | null
+  ) => { longitude: string; latitude: string; altitude: string; cameraHeight: string; };
 
   /** 绑定鼠标与 Camera 事件 */
   bindMouseEvents: (handlers: {
@@ -201,10 +206,12 @@ export function useCesiumBase(): CesiumBaseReturn {
   //
   // 各模块只需通过 extraFieldsFn 提供扩展字段，
   // 基座自动计算经纬度/高度/相机高度等公共字段并合并返回。
+  //
+  // 返回函数的类型在调用处用 Record<string, unknown> 桥接，避免泛型推断 void。
 
   function createEmitStatus<T extends Record<string, unknown>>(
     extraFieldsFn: () => T
-  ) {
+  ): (cartesian?: Cartesian3 | null) => BaseStatusInfo & T {
     return (cartesian?: Cartesian3 | null) => {
       const viewer = viewerRef.value;
       const cameraHeight = viewer ? viewer.camera.positionCartographic.height : 0;
@@ -224,9 +231,29 @@ export function useCesiumBase(): CesiumBaseReturn {
         latitude,
         altitude,
         cameraHeight: `${(cameraHeight / 1000).toFixed(1)} km`,
-        ...(extraFieldsFn() as Record<string, unknown>)
-      } as BaseStatusInfo & T;
+        ...extraFieldsFn()
+      } as unknown as BaseStatusInfo & T;
     };
+  }
+
+  /** 仅计算基础状态字段（不含扩展字段），供 building 模块等特殊场景使用 */
+  function computeBaseStatus(cartesian?: Cartesian3 | null): {
+    longitude: string; latitude: string; altitude: string; cameraHeight: string;
+  } {
+    const viewer = viewerRef.value;
+    const cameraHeight = viewer ? viewer.camera.positionCartographic.height : 0;
+    let longitude = '--';
+    let latitude = '--';
+    let altitude = '--';
+
+    if (cartesian && viewer) {
+      const cartographic = Cartographic.fromCartesian(cartesian);
+      longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(4);
+      latitude = CesiumMath.toDegrees(cartographic.latitude).toFixed(4);
+      altitude = `${Math.max(cartographic.height, 0).toFixed(0)} m`;
+    }
+
+    return { longitude, latitude, altitude, cameraHeight: `${(cameraHeight / 1000).toFixed(1)} km` };
   }
 
   // ─── 事件绑定 ─────────────────────────────────────
@@ -347,6 +374,7 @@ export function useCesiumBase(): CesiumBaseReturn {
     getColor,
     getCartesianFromScreen,
     createEmitStatus,
+    computeBaseStatus,
     bindMouseEvents,
     addCameraChangeListener,
     removeCameraChangeListener,

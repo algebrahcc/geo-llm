@@ -143,6 +143,18 @@ export interface PlanningRouteSettingsForm {
   advanceArea: string;
   roadGrades: string[];
   vehicleFormation: string;
+  waypointName?: string;
+  timeWeight?: number;
+  distanceWeight?: number;
+  riskWeight?: number;
+  advanceAreas?: string[];
+  roadGrade?: string;
+  difficultyLevels?: string[];
+  taskType?: string;
+  fleetScale?: string;
+  vehicleModel?: string;
+  arrivalDeadline?: string;
+  missionName?: string;
 }
 
 // ──── 保障设置表单 ────
@@ -164,10 +176,17 @@ export interface PlanningSupportSettingsForm {
   constraints?: string[];
   avgFuelConsumption?: number;
   fuelAmount?: number;
-  supportLevel?: string;
+  supportLevel?: string | number;
   needRepair?: boolean;
   needRushRepair?: boolean;
   otherNeeds?: string;
+  missionCause?: string;
+  missionDesc?: string;
+  personnelCount?: number;
+  vehicleCount?: number;
+  deadline?: string;
+  vehicleType?: string;
+  missionName?: string;
 }
 
 // ──── 路线结果卡片 ────
@@ -182,6 +201,7 @@ export interface PlanningRouteResultCard {
   distance: string;
   score: number;
   highlights: string[];
+  mainPath?: string;
 }
 
 // ──── 保障结果卡片 ────
@@ -243,10 +263,14 @@ export interface PlanningMissionResultSummary {
 export interface PlanningPlanResult {
   key: string;
   label: string;
-  description: string;
+  description?: string;
   score: number;
   tag?: string;
   tagType?: 'success' | 'info' | 'warning' | 'error';
+  metrics?: Array<{ label: string; value: string; unit?: string }>;
+  routeDescription?: string;
+  mainRoads?: string;
+  isRecommended?: boolean;
 }
 
 // ──── 方案选项 ────

@@ -1,0 +1,36 @@
+npm warn Unknown project config "store-dir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "package-import-method". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "shamefully-hoist". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "strict-peer-dependencies". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "auto-install-peers". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "node-linker". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+src/mock/planning.ts(515,3): error TS2353: Object literal may only specify known properties, and 'timeWeight' does not exist in type 'PlanningRouteSettingsForm'.
+src/mock/planning.ts(528,3): error TS2353: Object literal may only specify known properties, and 'missionName' does not exist in type 'PlanningSupportSettingsForm'.
+src/views/planning/index.vue(255,42): error TS2551: Property 'advanceAreas' does not exist on type '{ taskName: string; startName: string; startLongitude: number; startLatitude: number; endName: string; endLongitude: number; endLatitude: number; waypoints: { id: string; name: string; longitude: number; latitude: number; }[]; ... 5 more ...; waypointName?: string | undefined; }'. Did you mean 'advanceArea'?
+src/views/planning/index.vue(256,33): error TS2551: Property 'advanceAreas' does not exist on type '{ taskName: string; startName: string; startLongitude: number; startLatitude: number; endName: string; endLongitude: number; endLatitude: number; waypoints: { id: string; name: string; longitude: number; latitude: number; }[]; ... 5 more ...; waypointName?: string | undefined; }'. Did you mean 'advanceArea'?
+src/views/planning/index.vue(315,50): error TS2339: Property 'missionName' does not exist on type '{ taskName: string; supportType: string; forceScale: string; totalPersonnel: number; totalVehicles: number; fuelType: string; fuelConsumption: string; fuelReserveDays: number; plannedRoute: string; ... 17 more ...; vehicleType?: string | undefined; }'.
+src/views/planning/modules/planning-route-settings-panel.vue(126,32): error TS2339: Property 'timeWeight' does not exist on type 'PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(131,46): error TS2345: Argument of type '"timeWeight"' is not assignable to parameter of type 'keyof PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(133,50): error TS2339: Property 'timeWeight' does not exist on type 'PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(138,32): error TS2339: Property 'distanceWeight' does not exist on type 'PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(143,46): error TS2345: Argument of type '"distanceWeight"' is not assignable to parameter of type 'keyof PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(145,50): error TS2339: Property 'distanceWeight' does not exist on type 'PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(150,32): error TS2339: Property 'riskWeight' does not exist on type 'PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(155,46): error TS2345: Argument of type '"riskWeight"' is not assignable to parameter of type 'keyof PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(157,50): error TS2339: Property 'riskWeight' does not exist on type 'PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(169,28): error TS2551: Property 'advanceAreas' does not exist on type 'PlanningRouteSettingsForm'. Did you mean 'advanceArea'?
+src/views/planning/modules/planning-route-settings-panel.vue(172,42): error TS2345: Argument of type '"advanceAreas"' is not assignable to parameter of type 'keyof PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(185,30): error TS2551: Property 'roadGrade' does not exist on type 'PlanningRouteSettingsForm'. Did you mean 'roadGrades'?
+src/views/planning/modules/planning-route-settings-panel.vue(188,44): error TS2345: Argument of type '"roadGrade"' is not assignable to parameter of type 'keyof PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(194,30): error TS2339: Property 'difficultyLevels' does not exist on type 'PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(197,44): error TS2345: Argument of type '"difficultyLevels"' is not assignable to parameter of type 'keyof PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(211,30): error TS2339: Property 'taskType' does not exist on type 'PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(214,44): error TS2345: Argument of type '"taskType"' is not assignable to parameter of type 'keyof PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(221,32): error TS2339: Property 'fleetScale' does not exist on type 'PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(224,46): error TS2345: Argument of type '"fleetScale"' is not assignable to parameter of type 'keyof PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(230,32): error TS2339: Property 'vehicleModel' does not exist on type 'PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(233,46): error TS2345: Argument of type '"vehicleModel"' is not assignable to parameter of type 'keyof PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(240,30): error TS2339: Property 'arrivalDeadline' does not exist on type 'PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-route-settings-panel.vue(243,44): error TS2345: Argument of type '"arrivalDeadline"' is not assignable to parameter of type 'keyof PlanningRouteSettingsForm'.
+src/views/planning/modules/planning-support-settings-panel.vue(58,36): error TS2339: Property 'missionName' does not exist on type 'PlanningSupportSettingsForm'.
+src/views/planning/modules/planning-support-settings-panel.vue(58,110): error TS2345: Argument of type '"missionName"' is not assignable to parameter of type 'keyof PlanningSupportSettingsForm'.

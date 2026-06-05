@@ -2,6 +2,7 @@ export type BuildingStageLayerKey = 'imagery' | 'model' | 'rooms' | 'route-point
 
 export type BuildingStageToolKey =
   | 'task'
+  | 'ai'
   | 'focus-building'
   | 'layers'
   | 'reset'

@@ -504,14 +504,20 @@ export const planningSupportConstraintOptions = [
 
 // ──── 机动规划默认表单 ────
 export const planningDefaultRouteSettingsForm: PlanningRouteSettingsForm = {
+  taskName: '台北城区机动支援路线规划',
   startName: '南港综合保障点',
   startLongitude: 121.606,
   startLatitude: 25.054,
-  waypointName: '',
   endName: '淡水北岸接应区',
   endLongitude: 121.433,
   endLatitude: 25.175,
+  waypoints: [],
   routePreference: 'time',
+  forceScale: 'medium',
+  advanceArea: 'multiple',
+  roadGrades: ['highway', 'national'],
+  vehicleFormation: 'mixed',
+  waypointName: '',
   timeWeight: 30,
   distanceWeight: 30,
   riskWeight: 40,
@@ -525,6 +531,16 @@ export const planningDefaultRouteSettingsForm: PlanningRouteSettingsForm = {
 };
 
 export const planningDefaultSupportSettingsForm: PlanningSupportSettingsForm = {
+  taskName: '台北城区机动保障支援',
+  supportType: 'logistics',
+  forceScale: 'company',
+  totalPersonnel: 120,
+  totalVehicles: 25,
+  fuelType: 'diesel',
+  fuelConsumption: '35L/100km',
+  fuelReserveDays: 3,
+  plannedRoute: 'route-a',
+  supportRequirement: '油料补给与车辆维修',
   missionName: '台北城区机动保障支援',
   missionCause: 'combat-ready',
   missionDesc: '为前线部队提供油料与维修保障支援',
@@ -533,7 +549,6 @@ export const planningDefaultSupportSettingsForm: PlanningSupportSettingsForm = {
   deadline: '24h',
   vehicleType: 'wheeled',
   avgFuelConsumption: 35,
-  fuelType: 'diesel',
   fuelAmount: 5000,
   supportLevel: 80,
   needRepair: true,

@@ -252,8 +252,8 @@ async function handleRoutePlan() {
     endLongitude: routeSettingsForm.value.endLongitude,
     endLatitude: routeSettingsForm.value.endLatitude,
     routePreference: legacyPref,
-    constraints: routeSettingsForm.value.advanceAreas.length > 0
-      ? routeSettingsForm.value.advanceAreas
+    constraints: (routeSettingsForm.value.advanceAreas ?? []).length > 0
+      ? (routeSettingsForm.value.advanceAreas ?? [])
       : taskForm.value.constraints
   });
 

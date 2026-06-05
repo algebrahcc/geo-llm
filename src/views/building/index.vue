@@ -35,6 +35,7 @@ interface ViewerExposed {
   focusFloor: (floorId: string) => void;
   showRooms: (rooms: any[], floors: any[], points: any[]) => void;
   addRoamPoints: (points: Array<{ id: string; title: string; longitude: number; latitude: number }>) => void;
+  exportScreenshot?: (filename?: string) => void;
   is2dMode: Ref<boolean>;
   toggleViewMode: () => void;
 }
@@ -110,7 +111,7 @@ const rightTools: readonly SceneToolbarItem[] = [
 ];
 
 // ──── 事件处理 ────
-function handleLeftToolSelect(key: BuildingStageToolKey) {
+function handleLeftToolSelect(key: string) {
   switch (key) {
     case 'task':
       taskPanelVisible.value = !taskPanelVisible.value;

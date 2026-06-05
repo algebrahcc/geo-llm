@@ -75,20 +75,7 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
   let currentFloors: BuildingFloor[] = [];
   let modelPosition: Cartesian3 | null = null;
 
-  const computeStatus = base.createEmitStatus(() => ({
-    activeTool: toolNameMap[activeTool],
-    sourceLabel: loadState.sourceLabel || '--',
-    loadStatus: getLoadStatusText()
-  }));
-
-  function getLoadStatusText() {
-    if (loadState.loading) return '加载中';
-    if (loadState.error) return '异常';
-    if (loadState.loaded) return '已连接';
-    return '待命';
-  }
-
-  // 保持原有 toolNameMap 定义
+  // 工具名称映射
   const toolNameMap: Record<BuildingInteractiveTool, string> = {
     browse: '浏览',
     'focus-building': '定位楼宇',
@@ -97,15 +84,22 @@ export function useBuildingModel(options: UseBuildingModelOptions = {}) {
     'measure-area': '面积测量'
   };
 
+  function getLoadStatusText() {
+    if (loadState.loading) return '加载中';
+    if (loadState.error) return '异常';
+    if (loadState.loaded) return '已连接';
+    return '待命';
+  }
+
   function emitStatus(cartesian?: Cartesian3 | null) {
-    const result = computeStatus(cartesian);
+    const result = base.computeBaseStatus(cartesian);
     status.longitude = result.longitude;
     status.latitude = result.latitude;
     status.altitude = result.altitude;
     status.cameraHeight = result.cameraHeight;
-    status.activeTool = result.activeTool;
-    status.sourceLabel = result.sourceLabel;
-    status.loadStatus = result.loadStatus;
+    status.activeTool = toolNameMap[activeTool];
+    status.sourceLabel = loadState.sourceLabel || '--';
+    status.loadStatus = getLoadStatusText();
     options.onStatusChange?.({ ...status });
   }
 

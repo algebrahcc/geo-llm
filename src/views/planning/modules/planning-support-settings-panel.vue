@@ -167,7 +167,7 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
             <div class="form-group">
               <label class="form-label">保障等级</label>
               <div class="slider-row">
-                <NSlider :value="form.supportLevel" :min="0" :max="100" :step="5" size="small" @update:value="updateField('supportLevel', $event)" />
+                <NSlider :value="form.supportLevel as number" :min="0" :max="100" :step="5" size="small" @update:value="updateField('supportLevel', $event)" />
                 <span class="slider-val">{{ form.supportLevel }}%</span>
               </div>
             </div>
