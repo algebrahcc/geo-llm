@@ -3,6 +3,15 @@
 @import './transition.css';
 @import './nav-theme.css';
 
+/* ──── 全局字体设计 Token ──── */
+:root {
+  --font-xs: 12px;
+  --font-sm: 13px;
+  --font-base: 14px;
+  --font-md: 15px;
+  --font-lg: 16px;
+}
+
 html,
 body,
 #app {

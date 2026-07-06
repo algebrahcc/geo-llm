@@ -293,7 +293,7 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
 }
 
 .settings-subtitle {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.45);
 }
@@ -349,7 +349,7 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.88);
   margin-bottom: 10px;
@@ -364,7 +364,7 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
   border-radius: 50%;
   background: rgba(41, 163, 255, 0.18);
   color: #29b6ff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -415,7 +415,7 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
 /* 表单 */
 .form-label {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.56);
   margin-bottom: 5px;
 }
@@ -448,7 +448,7 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
 }
 
 .weight-label {
-  font-size: 11px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.48);
   min-width: 52px;
   flex-shrink: 0;
@@ -459,7 +459,7 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
 }
 
 .weight-val {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: #29b6ff;
   min-width: 32px;

@@ -271,7 +271,7 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
 }
 
 .settings-subtitle {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.45);
 }
@@ -327,7 +327,7 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.88);
   margin-bottom: 10px;
@@ -342,7 +342,7 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
   border-radius: 50%;
   background: rgba(46, 229, 157, 0.18);
   color: #2ee59d;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -350,7 +350,7 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
 /* 表单 */
 .form-label {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.56);
   margin-bottom: 5px;
 }
@@ -381,7 +381,7 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
 }
 
 .slider-val {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: #2ee59d;
   min-width: 36px;
@@ -398,7 +398,7 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.78);
   cursor: pointer;
   user-select: none;

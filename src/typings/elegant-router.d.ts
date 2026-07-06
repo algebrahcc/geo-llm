@@ -38,7 +38,6 @@ declare module "@elegant-router/types" {
     "agent": "/agent";
     "building": "/building";
     "catalog": "/catalog";
-    "globe": "/globe";
     "iframe-page": "/iframe-page/:url";
     "knowledge": "/knowledge";
     "login": "/login/:module(pwd-login)?";
@@ -97,7 +96,6 @@ declare module "@elegant-router/types" {
     | "agent"
     | "building"
     | "catalog"
-    | "globe"
     | "iframe-page"
     | "knowledge"
     | "login"
@@ -143,7 +141,6 @@ declare module "@elegant-router/types" {
     | "agent"
     | "building"
     | "catalog"
-    | "globe"
     | "knowledge"
     | "planning"
     | "river"

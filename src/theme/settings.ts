@@ -32,6 +32,12 @@ export const themeSettings: App.Theme.ThemeSetting = {
     },
     globalSearch: {
       visible: true
+    },
+    themeSchemaSwitch: {
+      visible: false
+    },
+    themeConfigButton: {
+      visible: false
     }
   },
   tab: {

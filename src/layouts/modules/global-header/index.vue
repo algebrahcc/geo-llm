@@ -54,11 +54,12 @@ function openGlobe() {
       <ButtonIcon icon="mdi:earth" tooltip-content="Web球" @click="openGlobe" />
       <FullScreen v-if="!appStore.isMobile" :full="isFullscreen" @click="toggle" />
       <ThemeSchemaSwitch
+        v-if="themeStore.header.themeSchemaSwitch.visible"
         :theme-schema="themeStore.themeScheme"
         :is-dark="themeStore.darkMode"
         @switch="themeStore.toggleThemeScheme"
       />
-      <ThemeConfigButton v-if="!appStore.isMobile" />
+      <ThemeConfigButton v-if="!appStore.isMobile && themeStore.header.themeConfigButton.visible" />
       <UserAvatar />
     </div>
   </DarkModeContainer>

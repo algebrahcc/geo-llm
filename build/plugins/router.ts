@@ -51,8 +51,7 @@ export function setupElegantRouter() {
 
       const routeMetaMap: Partial<Record<RouteKey, Partial<RouteMeta>>> = {
         screen: { title: '统计大屏', order: 1, icon: 'mdi:monitor-dashboard' },
-        globe: { title: 'Web球', order: 2, icon: 'mdi:earth' },
-        catalog: { title: '数据目录', order: 3, icon: 'mdi:database' },
+        catalog: { title: '数据目录', order: 2, icon: 'mdi:database' },
         building: { title: '楼宇夺控', order: 4, icon: 'mdi:office-building' },
         river: { title: '渡河保障方案', order: 5, icon: 'mdi:ferry' },
         planning: { title: '机动路线规划', order: 6, icon: 'mdi:routes' },

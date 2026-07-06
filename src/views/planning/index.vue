@@ -135,7 +135,7 @@ const selectedSupportCard = ref<string | null>(null);
 // ──── 拖拽状态 ────
 const leftDrag = useDraggable({ anchor: 'left', initialX: 72, initialY: 72 });
 const rightDrag = useDraggable({ anchor: 'right', initialX: 16, initialY: 72 });
-const bottomDrag = useDraggable({ anchor: 'bottom', initialX: 0, initialY: 14 });
+const bottomDrag = useDraggable({ anchor: 'right', initialX: 700, initialY: 72 });
 
 // ──── 业务逻辑（保留原有 composable） ────
 const {
@@ -670,8 +670,8 @@ function handleSupportAiSend(message: string) {
         </div>
       </Transition>
 
-      <!-- ══════ 底部结果面板（可拖拽/关闭） ══════ -->
-      <Transition name="panel-slide-up">
+      <!-- ══════ 中间结果面板（可拖拽/关闭） ══════ -->
+      <Transition name="panel-slide-center">
         <div v-if="bottomPanelVisible" class="floating-panel bottom-panel" :style="bottomDrag.style.value">
           <!-- 拖拽手柄 -->
           <div class="panel-drag-handle bottom-drag-handle" @mousedown="bottomDrag.onDragStart">
@@ -790,8 +790,8 @@ function handleSupportAiSend(message: string) {
 }
 
 .bottom-panel {
-  width: min(96vw, 1100px);
-  max-height: 300px;
+  width: 380px;
+  max-height: calc(100vh - 144px);
 }
 
 /* ──── 拖拽手柄 ──── */
@@ -801,7 +801,7 @@ function handleSupportAiSend(message: string) {
   gap: 6px;
   height: 32px;
   padding: 0 14px;
-  font-size: 10px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.36);
   background: rgba(255, 255, 255, 0.03);
   cursor: move;
@@ -822,7 +822,7 @@ function handleSupportAiSend(message: string) {
 }
 
 .drag-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.4);
 }
@@ -868,7 +868,7 @@ function handleSupportAiSend(message: string) {
   border-radius: 0;
   background: transparent;
   color: rgba(255, 255, 255, 0.42);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   position: relative;
@@ -1001,20 +1001,20 @@ function handleSupportAiSend(message: string) {
   opacity: 0;
 }
 
-.panel-slide-up-enter-active,
-.panel-slide-up-leave-active {
+.panel-slide-center-enter-active,
+.panel-slide-center-leave-active {
   transition:
     transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.28s ease;
 }
 
-.panel-slide-up-enter-from {
-  transform: translateX(-50%) translateY(20px);
+.panel-slide-center-enter-from {
+  transform: scale(0.92);
   opacity: 0;
 }
 
-.panel-slide-up-leave-to {
-  transform: translateX(-50%) translateY(20px);
+.panel-slide-center-leave-to {
+  transform: scale(0.92);
   opacity: 0;
 }
 
@@ -1029,7 +1029,7 @@ function handleSupportAiSend(message: string) {
   }
 
   .bottom-panel {
-    width: min(96vw, 960px);
+    width: 340px;
   }
 }
 
@@ -1045,7 +1045,8 @@ function handleSupportAiSend(message: string) {
   }
 
   .bottom-panel {
-    width: calc(100vw - 36px);
+    width: calc(100vw - 72px);
+    max-width: 380px;
   }
 }
 </style>

@@ -59,6 +59,16 @@ declare namespace App {
           /** Whether to show the GlobalSearch */
           visible: boolean;
         };
+        /** Theme schema switch */
+        themeSchemaSwitch: {
+          /** Whether to show the theme schema switch */
+          visible: boolean;
+        };
+        /** Theme config button */
+        themeConfigButton: {
+          /** Whether to show the theme config button */
+          visible: boolean;
+        };
       };
       /** Tab */
       tab: {

@@ -143,7 +143,7 @@ html.dark .n-dropdown-option-body--active {
 /* Dropdown item text */
 html.dark .n-dropdown-option-body__label {
   color: rgba(203, 227, 255, 0.82) !important;
-  font-size: 13px !important;
+  font-size: 14px !important;
 }
 
 html.dark .n-dropdown-option-body:hover .n-dropdown-option-body__label {
@@ -201,7 +201,7 @@ html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content--selected {
 
 html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content .n-menu-item-content__text {
   color: rgba(203, 227, 255, 0.82) !important;
-  font-size: 13px !important;
+  font-size: 14px !important;
 }
 
 html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content:hover .n-menu-item-content__text {

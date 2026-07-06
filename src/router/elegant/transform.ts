@@ -184,7 +184,6 @@ const routeMap: RouteMap = {
   "agent": "/agent",
   "building": "/building",
   "catalog": "/catalog",
-  "globe": "/globe",
   "iframe-page": "/iframe-page/:url",
   "knowledge": "/knowledge",
   "login": "/login/:module(pwd-login)?",

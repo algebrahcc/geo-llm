@@ -134,7 +134,7 @@ function getScoreColor(score: number): string {
   border: none;
   background: transparent;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
@@ -159,7 +159,7 @@ function getScoreColor(score: number): string {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.88);
 }
@@ -192,15 +192,16 @@ function getScoreColor(score: number): string {
 /* 卡片滚动区 */
 .cards-scroll {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   padding: 12px 16px;
-  overflow-x: auto;
+  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(141, 184, 255, 0.2) transparent;
 }
 
 .cards-scroll::-webkit-scrollbar {
-  height: 4px;
+  width: 4px;
 }
 
 .cards-scroll::-webkit-scrollbar-thumb {
@@ -210,8 +211,7 @@ function getScoreColor(score: number): string {
 
 /* 方案卡片 */
 .plan-card {
-  min-width: 240px;
-  max-width: 280px;
+  width: 100%;
   padding: 14px 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -248,18 +248,18 @@ function getScoreColor(score: number): string {
 }
 
 .card-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.92);
 }
 
 .card-subtitle {
-  font-size: 11px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.45);
 }
 
 .card-tag {
-  font-size: 10px;
+  font-size: 12px;
   padding: 2px 8px;
   border-radius: 4px;
   font-weight: 600;
@@ -311,7 +311,7 @@ function getScoreColor(score: number): string {
 
 .rating-score {
   margin-left: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -335,7 +335,7 @@ function getScoreColor(score: number): string {
 }
 
 .metric-value {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -348,7 +348,7 @@ function getScoreColor(score: number): string {
 }
 
 .metric-label {
-  font-size: 10px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.4);
 }
 
@@ -369,7 +369,7 @@ function getScoreColor(score: number): string {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.6);
   line-height: 1.4;
 }
