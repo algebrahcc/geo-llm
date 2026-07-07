@@ -2,7 +2,7 @@ import { BACKEND_ERROR_CODE, createFlatRequest, createRequest, type AxiosRespons
 import { useAuthStore } from '@/store/modules/auth';
 import { localStg } from '@/utils/storage';
 import { getServiceBaseURL } from '@/utils/service';
-import { getAuthorization, handleExpiredRequest, showErrorMsg } from './shared';
+import { getAuthorization, showErrorMsg } from './shared';
 import type { RequestInstanceState } from './type';
 
 const isHttpProxy = import.meta.env.DEV && import.meta.env.VITE_HTTP_PROXY === 'Y';
@@ -38,11 +38,9 @@ export const request = createFlatRequest(
       // to change this logic by yourself, you can modify the `VITE_SERVICE_SUCCESS_CODE` in `.env` file
       return String(response.data.code) === import.meta.env.VITE_SERVICE_SUCCESS_CODE;
     },
-    async onBackendFail(response, instance) {
+    async onBackendFail(response) {
       const authStore = useAuthStore();
       const responseCode = String(response.data.code);
-      const currentToken = localStg.get('token');
-      const isDevDemoToken = import.meta.env.DEV && currentToken === 'demo-token';
 
       function handleLogout() {
         authStore.resetStore();
@@ -87,23 +85,11 @@ export const request = createFlatRequest(
         return null;
       }
 
-      // when the backend response code is in `expiredTokenCodes`, it means the token is expired, and refresh token
-      // the api `refreshToken` can not return error code in `expiredTokenCodes`, otherwise it will be a dead loop, should return `logoutCodes` or `modalLogoutCodes`
+      // when the backend response code is in `expiredTokenCodes`, it means the token is expired
       const expiredTokenCodes = import.meta.env.VITE_SERVICE_EXPIRED_TOKEN_CODES?.split(',') || [];
       if (expiredTokenCodes.includes(responseCode)) {
-        // In dev mode the app uses a built-in demo token, which is not a real backend user.
-        // Skip refresh/logout flow so auth store can fall back to demo user info locally.
-        if (isDevDemoToken) {
-          return null;
-        }
-
-        const success = await handleExpiredRequest(request.state);
-        if (success) {
-          const Authorization = getAuthorization();
-          Object.assign(response.config.headers, { Authorization });
-
-          return instance.request(response.config) as Promise<AxiosResponse>;
-        }
+        handleLogout();
+        return null;
       }
 
       return null;

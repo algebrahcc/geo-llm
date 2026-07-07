@@ -2,6 +2,7 @@
 @import './nprogress.css';
 @import './transition.css';
 @import './nav-theme.css';
+@import './system-page.css';
 
 /* ──── 全局字体设计 Token ──── */
 :root {

@@ -50,8 +50,14 @@ export function setupElegantRouter() {
       };
 
       const routeMetaMap: Partial<Record<RouteKey, Partial<RouteMeta>>> = {
+        system: { title: '系统管理', order: 9, icon: 'mdi:cog' },
+        system_user: { title: '用户管理', icon: 'mdi:account-group', order: 1 },
+        system_role: { title: '角色管理', icon: 'mdi:shield-account', order: 2 },
+        system_menu: { title: '菜单管理', icon: 'mdi:menu-open', order: 3, hideInMenu: true },
+        system_log: { title: '日志管理', icon: 'mdi:file-document-multiple', order: 4 },
+        system_online: { title: '在线用户', icon: 'mdi:account-clock', order: 5 },
         screen: { title: '统计大屏', order: 1, icon: 'mdi:monitor-dashboard' },
-        catalog: { title: '数据目录', order: 2, icon: 'mdi:database' },
+        catalog: { title: '数据目录', order: 3, icon: 'mdi:database' },
         building: { title: '楼宇夺控', order: 4, icon: 'mdi:office-building' },
         river: { title: '渡河保障方案', order: 5, icon: 'mdi:ferry' },
         planning: { title: '机动路线规划', order: 6, icon: 'mdi:routes' },

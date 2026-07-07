@@ -1,0 +1,365 @@
+/* ============================================================
+   系统管理模块 - 统一页面样式 (Shared System Page UI)
+   设计参考：数据目录页表格（图标单元格 / 药丸标签 / 圆形操作按钮）
+   配色：使用系统主题主色变量 --primary-color（随主题/明暗自适应）
+   注意：本文件为全局样式（由 global.css @import），
+        不可使用 :deep()（那是 SFC scoped 专用），直接写子代选择器即可。
+   ============================================================ */
+
+/* ── 页面根容器 ── */
+.sys-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px 24px 24px;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+/* ── 筛选工具栏：压平为分隔线，而非浮起卡片 ── */
+.sys-search-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 2px 0 16px;
+  border-bottom: 1px solid rgb(var(--primary-color) / 0.18);
+}
+
+.sys-search-fields {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sys-search-fields .n-input,
+.sys-search-fields .n-select {
+  width: 190px;
+}
+
+.sys-search-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── 内容表格容器：单一干净表面 + 主题色细边框，无投影 ──
+   注意：不要在此设置 overflow: hidden，否则会将操作列圆形按钮的
+   悬浮提示（::after）裁掉（尤其最后一行）。圆角仅靠 border 体现。 */
+.sys-content-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgb(var(--container-bg-color));
+  border: 1px solid rgb(var(--primary-color) / 0.18);
+  border-radius: 8px;
+}
+
+/* ============ NDataTable 深度覆盖（目录页风格） ============ */
+.sys-content-card .n-data-table {
+  flex: 1;
+  --n-padding: 13px 16px;
+  --n-border-color: rgb(var(--primary-color) / 0.14);
+  --n-td-color-hover: rgb(var(--primary-color) / 0.08);
+  --n-font-size: 13px;
+}
+
+/* 表头：主题色浅渐变底 + 主题色强调下边框（替代默认灰） */
+.sys-content-card .n-data-table-thead .n-data-table-th {
+  background: linear-gradient(180deg, rgb(var(--primary-color) / 0.1), rgb(var(--primary-color) / 0.04)) !important;
+  font-weight: 600;
+  font-size: 13px;
+  color: rgb(var(--base-text-color));
+  border-bottom: 2px solid rgb(var(--primary-color)) !important;
+  padding: 13px 16px;
+}
+
+/* 补齐左上/右上圆角（卡片不再 overflow:hidden，需手动圆角表头） */
+.sys-content-card .n-data-table-thead .n-data-table-th:first-child {
+  border-top-left-radius: 7px;
+}
+
+.sys-content-card .n-data-table-thead .n-data-table-th:last-child {
+  border-top-right-radius: 7px;
+}
+
+/* 单元格：舒适密度 + 极淡主题色分隔线 */
+.sys-content-card .n-data-table-td {
+  padding: 13px 16px;
+  border-bottom: 1px solid rgb(var(--primary-color) / 0.1) !important;
+  color: rgb(var(--base-text-color) / 0.92);
+}
+
+/* 行悬停：主题色极淡染（替代默认灰） */
+.sys-content-card .n-data-table-tr:hover .n-data-table-td {
+  background: rgb(var(--primary-color) / 0.07) !important;
+}
+
+/* 选中行 / 当前排序列保持主题色一致 */
+.sys-content-card .n-data-table-tr.n-data-table-tr--selected .n-data-table-td,
+.sys-content-card .n-data-table-td.n-data-table-td--sortable.n-data-table-td--sorted {
+  background: rgb(var(--primary-color) / 0.1) !important;
+}
+
+/* 翻页条：清晰分隔、避免被忽略/贴边 */
+.sys-content-card .n-data-table__pagination {
+  padding: 12px 16px;
+  border-top: 1px solid rgb(var(--primary-color) / 0.14);
+  background: rgb(var(--container-bg-color));
+}
+
+/* 独立翻页条（NDataTable 之外，作为卡片正常子元素，不会被表格滚动裁切） */
+.sys-table-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-top: 1px solid rgb(var(--primary-color) / 0.14);
+  background: rgb(var(--container-bg-color));
+}
+
+.sys-table-footer__total {
+  font-size: 12px;
+  color: rgb(var(--base-text-color) / 0.7);
+}
+
+/* ====== 单元格：图标 + 主标题 + 副标题（参考 dataset-cell） ====== */
+.sys-content-card .sys-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sys-content-card .sys-cell__icon {
+  flex-shrink: 0;
+  font-size: 18px;
+  color: rgb(var(--primary-color));
+  filter: drop-shadow(0 0 4px rgb(var(--primary-color) / 0.25));
+}
+
+.sys-content-card .sys-cell__content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sys-content-card .sys-cell__title {
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: rgb(var(--base-text-color));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sys-content-card .sys-cell__sub {
+  font-size: 11px;
+  color: rgb(var(--base-text-color) / 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ====== 状态药丸标签（参考 status-tag） ====== */
+.sys-content-card .sys-status-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.sys-content-card .sys-status-tag--success {
+  background: rgb(34 197 94 / 0.14);
+  border-color: rgb(34 197 94 / 0.3);
+  color: rgb(74 222 128 / 0.95);
+}
+
+.sys-content-card .sys-status-tag--error {
+  background: rgb(239 68 68 / 0.14);
+  border-color: rgb(239 68 68 / 0.3);
+  color: rgb(248 113 113 / 0.95);
+}
+
+.sys-content-card .sys-status-tag--warning {
+  background: rgb(245 158 11 / 0.14);
+  border-color: rgb(245 158 11 / 0.3);
+  color: rgb(251 191 36 / 0.95);
+}
+
+.sys-content-card .sys-status-tag--default {
+  background: rgb(var(--base-text-color) / 0.08);
+  border-color: rgb(var(--base-text-color) / 0.16);
+  color: rgb(var(--base-text-color) / 0.7);
+}
+
+/* ====== 类型 / 信息药丸（参考 type-chip） ====== */
+.sys-content-card .sys-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1;
+  background: rgb(var(--primary-color) / 0.12);
+  border: 1px solid rgb(var(--primary-color) / 0.28);
+  color: rgb(var(--primary-color));
+}
+
+/* ====== 操作列：圆形图标按钮（参考 action-icon-btn） ====== */
+.sys-content-card .action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sys-content-card .sys-action-btn {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgb(var(--primary-color) / 0.06);
+  border: 1px solid rgb(var(--primary-color) / 0.12);
+  color: rgb(var(--base-text-color) / 0.6);
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  outline: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sys-content-card .sys-action-btn:hover {
+  color: rgb(var(--primary-color));
+  background: rgb(var(--primary-color) / 0.16);
+  border-color: rgb(var(--primary-color) / 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgb(var(--primary-color) / 0.2);
+}
+
+.sys-content-card .sys-action-btn__svg {
+  font-size: 15px;
+  transition: transform 0.25s ease;
+}
+
+.sys-content-card .sys-action-btn:hover .sys-action-btn__svg {
+  transform: scale(1.18);
+}
+
+/* 危险变体 */
+.sys-content-card .sys-action-btn--danger {
+  background: rgb(239 68 68 / 0.05);
+  border-color: rgb(239 68 68 / 0.12);
+  color: rgb(248 113 113 / 0.7);
+}
+
+.sys-content-card .sys-action-btn--danger:hover {
+  color: rgb(248 113 113);
+  background: rgb(239 68 68 / 0.15);
+  border-color: rgb(239 68 68 / 0.35);
+  box-shadow: 0 4px 12px rgb(239 68 68 / 0.18);
+}
+
+/* ── 详情描述列表容器 ── */
+.sys-detail-card {
+  background: rgb(var(--container-bg-color));
+  border: 1px solid rgb(var(--primary-color) / 0.18);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+/* 代码/长文本块 */
+.sys-code-block {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 220px;
+  overflow: auto;
+  background: rgb(var(--primary-color) / 0.06);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: rgb(var(--base-text-color));
+}
+
+/* ── 暗色模式：主题色带透明度已自适应，微调边框可见度 ── */
+html.dark .sys-search-card {
+  border-bottom-color: rgb(var(--primary-color) / 0.24);
+}
+
+html.dark .sys-content-card,
+html.dark .sys-detail-card {
+  border-color: rgb(var(--primary-color) / 0.24);
+}
+
+/* ============ 弹窗统一样式（参考系统页主题） ============ */
+/* NModal 的 class 经 BodyWrapper 落到 NCard 根元素上（同时含 .n-modal），
+   故 .sys-modal 即卡片本身，对其直接设置背景/边框，无需 :deep() */
+.n-modal.sys-modal {
+  --n-border-radius: 10px;
+  background: rgb(var(--container-bg-color));
+  border: 1px solid rgb(var(--primary-color) / 0.22);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
+}
+
+.n-modal.sys-modal .n-card__header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgb(var(--primary-color) / 0.14);
+}
+
+/* 标题前加主题色竖条 + 主题色文字 */
+.n-modal.sys-modal .n-card-header__main {
+  position: relative;
+  padding-left: 12px;
+  color: rgb(var(--base-text-color));
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.n-modal.sys-modal .n-card-header__main::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: rgb(var(--primary-color));
+}
+
+.n-modal.sys-modal .n-card__content {
+  padding: 20px;
+}
+
+.n-modal.sys-modal .n-card__footer {
+  padding: 14px 20px;
+  border-top: 1px solid rgb(var(--primary-color) / 0.14);
+}
+
+/* 弹窗内表单描述文本/标签统一用主题文字色 */
+.n-modal.sys-modal .n-form-item-label__text {
+  color: rgb(var(--base-text-color) / 0.85);
+}

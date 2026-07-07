@@ -10,9 +10,6 @@ import { useRouteStore } from '../route';
 import { useTabStore } from '../tab';
 import { clearAuthStorage, getToken } from './shared';
 
-const DEMO_LOGIN_TOKEN = 'demo-token';
-const DEMO_REFRESH_TOKEN = 'demo-refresh-token';
-
 export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   const route = useRoute();
   const authStore = useAuthStore();
@@ -26,6 +23,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   const userInfo: Api.Auth.UserInfo = reactive({
     userId: '',
     userName: '',
+    nickname: '',
     roles: [],
     buttons: []
   });
@@ -96,37 +94,14 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
    *
    * @param userName User name
    * @param password Password
+   * @param captcha Captcha text (optional)
+   * @param uuid Captcha uuid (optional)
    * @param [redirect=true] Whether to redirect after login. Default is `true`
    */
-  async function login(userName: string, password: string, redirect = true) {
+  async function login(userName: string, password: string, captcha?: string, uuid?: string, redirect = true) {
     startLoading();
 
-    if (import.meta.env.DEV) {
-      const pass = await loginByToken({ token: DEMO_LOGIN_TOKEN, refreshToken: DEMO_REFRESH_TOKEN });
-
-      if (pass) {
-        const isClear = checkTabClear();
-        let needRedirect = redirect;
-
-        if (isClear) {
-          needRedirect = false;
-        }
-        await redirectFromLogin(needRedirect);
-
-        window.$notification?.success({
-          title: '登录成功',
-          content: `欢迎回来，${userInfo.userName}`,
-          duration: 4500
-        });
-      } else {
-        resetStore();
-      }
-
-      endLoading();
-      return;
-    }
-
-    const { data: loginToken, error } = await fetchLogin(userName, password);
+    const { data: loginToken, error } = await fetchLogin(userName, password, captcha, uuid);
 
     if (!error) {
       const pass = await loginByToken(loginToken);
@@ -158,7 +133,6 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   async function loginByToken(loginToken: Api.Auth.LoginToken) {
     // 1. stored in the localStorage, the later requests need it in headers
     localStg.set('token', loginToken.token);
-    localStg.set('refreshToken', loginToken.refreshToken);
 
     // 2. get user info
     const pass = await getUserInfo();
@@ -173,23 +147,19 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   }
 
   async function getUserInfo() {
-    // 开发环境使用 demo token 时直接返回硬编码信息，跳过 API 调用
-    if (getToken() === DEMO_LOGIN_TOKEN) {
-      Object.assign(userInfo, {
-        userId: 'demo',
-        userName: 'Admin',
-        roles: [import.meta.env.VITE_STATIC_SUPER_ROLE],
-        buttons: []
-      });
-
-      return true;
-    }
-
     const { data: info, error } = await fetchGetUserInfo();
 
-    if (!error) {
-      // update store
-      Object.assign(userInfo, info);
+    if (!error && info) {
+      // 映射后端字段到前端结构
+      // 后端: { id, username, nickname, permissions, roles }
+      // 前端: { userId, userName, nickname, roles, buttons }
+      Object.assign(userInfo, {
+        userId: String(info.userId ?? ''),
+        userName: info.userName || '',
+        nickname: info.nickname || info.userName || '',
+        roles: info.roles || [],
+        buttons: info.buttons || []
+      });
 
       return true;
     }

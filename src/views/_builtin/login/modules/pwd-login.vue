@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useAuthStore } from '@/store/modules/auth';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
+import { fetchCaptchaImage } from '@/service/api';
 
 defineOptions({
   name: 'PwdLogin'
@@ -13,11 +14,39 @@ const { formRef, validate } = useNaiveForm();
 interface FormModel {
   userName: string;
   password: string;
+  captcha: string;
 }
 
 const model: FormModel = reactive({
-  userName: 'Admin',
-  password: '123456'
+  userName: 'admin',
+  password: 'admin123',
+  captcha: ''
+});
+
+const captchaImg = ref('');
+const captchaUuid = ref('');
+const captchaEnabled = ref(false);
+const captchaLoading = ref(false);
+
+async function refreshCaptcha() {
+  captchaLoading.value = true;
+  try {
+    const { data, error } = await fetchCaptchaImage();
+    if (!error && data) {
+      captchaEnabled.value = data.isEnabled;
+      if (data.isEnabled) {
+        captchaImg.value = data.img;
+        captchaUuid.value = data.uuid;
+        model.captcha = '';
+      }
+    }
+  } finally {
+    captchaLoading.value = false;
+  }
+}
+
+onMounted(() => {
+  refreshCaptcha();
 });
 
 const rules = computed<Record<keyof FormModel, App.Global.FormRule[]>>(() => {
@@ -25,13 +54,19 @@ const rules = computed<Record<keyof FormModel, App.Global.FormRule[]>>(() => {
 
   return {
     userName: formRules.userName,
-    password: formRules.pwd
+    password: [formRules.pwd[0]],
+    captcha: captchaEnabled.value ? [formRules.code[0]] : []
   };
 });
 
 async function handleSubmit() {
   await validate();
-  await authStore.login(model.userName, model.password);
+  await authStore.login(
+    model.userName,
+    model.password,
+    captchaEnabled.value ? model.captcha : undefined,
+    captchaEnabled.value ? captchaUuid.value : undefined
+  );
 }
 </script>
 
@@ -64,6 +99,29 @@ async function handleSubmit() {
           autocapitalize: 'none'
         }"
       />
+    </NFormItem>
+    <NFormItem v-if="captchaEnabled" path="captcha">
+      <div class="flex gap-8px">
+        <NInput
+          v-model:value="model.captcha"
+          placeholder="请输入验证码…"
+          :input-props="{
+            name: 'captcha',
+            autocomplete: 'off',
+            'aria-label': '验证码',
+            spellcheck: false,
+            autocapitalize: 'none'
+          }"
+        />
+        <NButton
+          :loading="captchaLoading"
+          class="h-40px w-120px flex-shrink-0 !p-0"
+          @click="refreshCaptcha"
+        >
+          <img v-if="captchaImg" :src="captchaImg" alt="验证码" class="h-full w-full rounded-4px" />
+          <span v-else>获取验证码</span>
+        </NButton>
+      </div>
     </NFormItem>
     <NSpace vertical :size="24">
       <div class="flex-y-center justify-between">

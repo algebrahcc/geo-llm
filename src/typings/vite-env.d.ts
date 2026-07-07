@@ -29,6 +29,12 @@ declare namespace Env {
     /** backend service base url */
     readonly VITE_SERVICE_BASE_URL: string;
     /**
+     * real backend service base url (login & system management)
+     *
+     * can be overridden by public/config.json at runtime
+     */
+    readonly VITE_SERVICE_REAL_BASE_URL?: string;
+    /**
      * success code of backend service
      *
      * when the code is received, the request is successful

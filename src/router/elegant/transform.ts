@@ -189,7 +189,13 @@ const routeMap: RouteMap = {
   "login": "/login/:module(pwd-login)?",
   "planning": "/planning",
   "river": "/river",
-  "screen": "/screen"
+  "screen": "/screen",
+  "system": "/system",
+  "system_log": "/system/log",
+  "system_menu": "/system/menu",
+  "system_online": "/system/online",
+  "system_role": "/system/role",
+  "system_user": "/system/user"
 };
 
 /**

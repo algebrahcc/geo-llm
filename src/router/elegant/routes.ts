@@ -127,5 +127,68 @@ export const generatedRoutes: GeneratedRoute[] = [
       order: 1,
       icon: 'mdi:monitor-dashboard'
     }
+  },
+  {
+    name: 'system',
+    path: '/system',
+    component: 'layout.base',
+    meta: {
+      title: '系统管理',
+      order: 9,
+      icon: 'mdi:cog'
+    },
+    children: [
+      {
+        name: 'system_user',
+        path: '/system/user',
+        component: 'view.system_user',
+        meta: {
+          title: '用户管理',
+          icon: 'mdi:account-group',
+          order: 1
+        }
+      },
+      {
+        name: 'system_role',
+        path: '/system/role',
+        component: 'view.system_role',
+        meta: {
+          title: '角色管理',
+          icon: 'mdi:shield-account',
+          order: 2
+        }
+      },
+      {
+        name: 'system_menu',
+        path: '/system/menu',
+        component: 'view.system_menu',
+        meta: {
+          title: '菜单管理',
+          icon: 'mdi:menu-open',
+          order: 3,
+          hideInMenu: true
+        }
+      },
+      {
+        name: 'system_log',
+        path: '/system/log',
+        component: 'view.system_log',
+        meta: {
+          title: '日志管理',
+          icon: 'mdi:file-document-multiple',
+          order: 4
+        }
+      },
+      {
+        name: 'system_online',
+        path: '/system/online',
+        component: 'view.system_online',
+        meta: {
+          title: '在线用户',
+          icon: 'mdi:account-clock',
+          order: 5
+        }
+      }
+    ]
   }
 ];

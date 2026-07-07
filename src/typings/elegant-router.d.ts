@@ -44,6 +44,12 @@ declare module "@elegant-router/types" {
     "planning": "/planning";
     "river": "/river";
     "screen": "/screen";
+    "system": "/system";
+    "system_log": "/system/log";
+    "system_menu": "/system/menu";
+    "system_online": "/system/online";
+    "system_role": "/system/role";
+    "system_user": "/system/user";
   };
 
   /**
@@ -102,6 +108,7 @@ declare module "@elegant-router/types" {
     | "planning"
     | "river"
     | "screen"
+    | "system"
   >;
 
   /**
@@ -145,6 +152,11 @@ declare module "@elegant-router/types" {
     | "planning"
     | "river"
     | "screen"
+    | "system_log"
+    | "system_menu"
+    | "system_online"
+    | "system_role"
+    | "system_user"
   >;
 
   /**

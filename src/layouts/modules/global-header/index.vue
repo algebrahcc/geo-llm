@@ -36,8 +36,9 @@ function openScreen() {
 
 function openGlobe() {
    
-  // eslint-disable-next-line no-underscore-dangle
-  const globeUrl = window.__APP_CONFIG__?.VITE_GLOBE_URL || 'http://192.168.12.211:19091/webglobe';
+   
+   
+  const globeUrl = window['__APP_CONFIG__']?.VITE_GLOBE_URL || 'http://192.168.12.211:19091/webglobe';
   window.open(globeUrl, '_blank');
 }
 </script>

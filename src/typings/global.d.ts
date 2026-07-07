@@ -74,6 +74,8 @@ export interface AppRuntimeConfig {
   VITE_SERVICE_BASE_URL: string;
   /** 其他后端服务 Base URL（JSON 对象，如 {"demo": "http://localhost:9529"}） */
   VITE_OTHER_SERVICE_BASE_URL: Record<string, string>;
+  /** 真实后端服务 Base URL（登录与系统管理），可被运行时 config.json 覆盖 */
+  VITE_SERVICE_REAL_BASE_URL: string;
   /** 远程 3D Tiles 数据源 URL */
   VITE_BUILDING_TILESET_URL: string;
   /** Web球外链地址 */

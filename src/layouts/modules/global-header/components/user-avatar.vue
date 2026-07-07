@@ -4,6 +4,7 @@ import type { VNode } from 'vue';
 import { useAuthStore } from '@/store/modules/auth';
 import { useRouterPush } from '@/hooks/common/router';
 import { useSvgIcon } from '@/hooks/common/icon';
+import { fetchLogout } from '@/service/api';
 
 defineOptions({
   name: 'UserAvatar'
@@ -42,13 +43,14 @@ const options = computed(() => {
   return opts;
 });
 
-function logout() {
+async function logout() {
   window.$dialog?.info({
     title: '提示',
     content: '确认退出登录？',
     positiveText: '确认',
     negativeText: '取消',
-    onPositiveClick: () => {
+    onPositiveClick: async () => {
+      await fetchLogout();
       authStore.resetStore();
     }
   });

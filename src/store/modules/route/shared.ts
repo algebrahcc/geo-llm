@@ -75,12 +75,20 @@ export function sortRoutesByOrder(routes: ElegantConstRoute[]) {
 export function getGlobalMenusByAuthRoutes(routes: ElegantConstRoute[]) {
   const menus: App.Global.Menu[] = [];
 
-  routes.forEach(route => {
+  const sortedRoutes = [...routes].sort(
+    (next, prev) => (Number(next.meta?.order) || 0) - (Number(prev.meta?.order) || 0)
+  );
+
+  sortedRoutes.forEach(route => {
     if (!route.meta?.hideInMenu) {
       const menu = getGlobalMenuByBaseRoute(route);
 
       if (route.children?.some(child => !child.meta?.hideInMenu)) {
-        menu.children = getGlobalMenusByAuthRoutes(route.children);
+        menu.children = getGlobalMenusByAuthRoutes(
+          [...route.children].sort(
+            (next, prev) => (Number(next.meta?.order) || 0) - (Number(prev.meta?.order) || 0)
+          )
+        );
       }
 
       menus.push(menu);
