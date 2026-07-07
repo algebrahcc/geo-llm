@@ -93,32 +93,32 @@ function getLegendColor(key: BIMLegendKey) {
           <div class="bim-diagram">
             <svg viewBox="0 0 120 130" class="bim-svg">
               <!-- 建筑外轮廓 -->
-              <rect x="15" y="8" width="90" height="115" rx="2" fill="none" stroke="#5ea4ff" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.6"/>
+              <rect x="15" y="8" width="90" height="115" rx="2" fill="none" stroke="#5ea4ff" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.6" />
               <!-- 楼顶 -->
-              <line x1="14" y1="12" x2="106" y2="12" stroke="rgba(255,255,255,0.15)" stroke-width="0.8"/>
+              <line x1="14" y1="12" x2="106" y2="12" stroke="rgba(255,255,255,0.15)" stroke-width="0.8" />
               <!-- 楼层线 + 楼梯间示意 -->
-              <line x1="16" y1="32" x2="104" y2="32" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
-              <rect x="25" y="16" width="12" height="14" rx="1" fill="#e8e8e8" opacity="0.6"/>
-              <rect x="41" y="16" width="20" height="14" rx="1" fill="#ffcf5c" opacity="0.5"/>
-              <rect x="65" y="16" width="34" height="14" rx="1" fill="#e8e8e8" opacity="0.6"/>
+              <line x1="16" y1="32" x2="104" y2="32" stroke="rgba(255,255,255,0.08)" stroke-width="0.5" />
+              <rect x="25" y="16" width="12" height="14" rx="1" fill="#e8e8e8" opacity="0.6" />
+              <rect x="41" y="16" width="20" height="14" rx="1" fill="#ffcf5c" opacity="0.5" />
+              <rect x="65" y="16" width="34" height="14" rx="1" fill="#e8e8e8" opacity="0.6" />
 
-              <line x1="16" y1="52" x2="104" y2="52" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
-              <rect x="25" y="36" width="12" height="14" rx="1" fill="#5ea4ff" opacity="0.5"/>
-              <rect x="41" y="36" width="30" height="14" rx="1" fill="#e8e8e8" opacity="0.6"/>
-              <rect x="75" y="36" width="24" height="14" rx="1" fill="#e8e8e8" opacity="0.6"/>
+              <line x1="16" y1="52" x2="104" y2="52" stroke="rgba(255,255,255,0.08)" stroke-width="0.5" />
+              <rect x="25" y="36" width="12" height="14" rx="1" fill="#5ea4ff" opacity="0.5" />
+              <rect x="41" y="36" width="30" height="14" rx="1" fill="#e8e8e8" opacity="0.6" />
+              <rect x="75" y="36" width="24" height="14" rx="1" fill="#e8e8e8" opacity="0.6" />
 
-              <line x1="16" y1="72" x2="104" y2="72" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
-              <rect x="25" y="56" width="12" height="14" rx="1" fill="#5ea4ff" opacity="0.4"/>
-              <rect x="41" y="56" width="28" height="14" rx="1" fill="#fb7185" opacity="0.5"/>
-              <rect x="73" y="56" width="26" height="14" rx="1" fill="#fb7185" opacity="0.5"/>
+              <line x1="16" y1="72" x2="104" y2="72" stroke="rgba(255,255,255,0.08)" stroke-width="0.5" />
+              <rect x="25" y="56" width="12" height="14" rx="1" fill="#5ea4ff" opacity="0.4" />
+              <rect x="41" y="56" width="28" height="14" rx="1" fill="#fb7185" opacity="0.5" />
+              <rect x="73" y="56" width="26" height="14" rx="1" fill="#fb7185" opacity="0.5" />
 
-              <line x1="16" y1="92" x2="104" y2="92" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
-              <rect x="25" y="76" width="12" height="14" rx="1" fill="#5ea4ff" opacity="0.3"/>
-              <rect x="41" y="76" width="58" height="14" rx="1" fill="#fb7185" opacity="0.5"/>
+              <line x1="16" y1="92" x2="104" y2="92" stroke="rgba(255,255,255,0.08)" stroke-width="0.5" />
+              <rect x="25" y="76" width="12" height="14" rx="1" fill="#5ea4ff" opacity="0.3" />
+              <rect x="41" y="76" width="58" height="14" rx="1" fill="#fb7185" opacity="0.5" />
 
-              <line x1="16" y1="112" x2="104" y2="112" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
-              <rect x="25" y="96" width="12" height="14" rx="1" fill="#5ea4ff" opacity="0.3"/>
-              <rect x="41" y="96" width="58" height="14" rx="1" fill="#fb7185" opacity="0.4"/>
+              <line x1="16" y1="112" x2="104" y2="112" stroke="rgba(255,255,255,0.08)" stroke-width="0.5" />
+              <rect x="25" y="96" width="12" height="14" rx="1" fill="#5ea4ff" opacity="0.3" />
+              <rect x="41" y="96" width="58" height="14" rx="1" fill="#fb7185" opacity="0.4" />
 
               <text x="60" y="125" font-size="7" fill="rgba(255,255,255,0.25)" text-anchor="middle">预制板公寓剖面</text>
             </svg>
@@ -146,12 +146,16 @@ function getLegendColor(key: BIMLegendKey) {
               size="small"
               type="info"
               round
-            >主入口</NTag>
+            >
+              主入口
+            </NTag>
             <NButton
               size="tiny"
               type="primary"
               @click="emit('setPrimaryEntrance', primaryEntrance.id)"
-            >设为主要突破口</NButton>
+            >
+              设为主要突破口
+            </NButton>
           </div>
 
           <div class="entrance-grid">

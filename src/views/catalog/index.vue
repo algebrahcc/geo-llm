@@ -1466,7 +1466,7 @@ onBeforeUnmount(() => {
       v-model:show="analysisVisible"
       :mask-closable="true"
       :close-on-esc="true"
-      :transform-origin="'center'"
+      transform-origin="center"
       class="catalog-analysis-modal"
     >
       <div v-if="analysisItem" class="analysis-card">

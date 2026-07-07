@@ -274,7 +274,6 @@ watch(() => modelLoadState.loaded, loaded => {
 
       <!-- ═══ 底部：街景漫游点 ═══ -->
       <BuildingRoamBar :points="buildingRoamPoints" @select-point="handleRoamPointSelect" />
-
     </div>
   </div>
 </template>

@@ -27,7 +27,7 @@ function handleSelect(point: BuildingRoamPoint) { emit('selectPoint', point); }
     </button>
 
     <!-- 卡片列表 -->
-    <transition name="roam-slide">
+    <Transition name="roam-slide">
       <div v-show="expanded" class="roam-panel">
         <div class="roam-scroll">
           <div
@@ -52,7 +52,7 @@ function handleSelect(point: BuildingRoamPoint) { emit('selectPoint', point); }
           </div>
         </div>
       </div>
-    </transition>
+    </Transition>
   </div>
 </template>
 

@@ -138,44 +138,44 @@ function getSafetyColor(safety: string): string {
               <!-- ══ 展开详情（CSS 过渡高度，避免 v-if 跳变） ══ -->
               <div class="card-detail-wrapper" :class="{ 'card-detail-wrapper--open': allExpanded || expandedCard === plan.rank }">
                 <div class="card-detail">
-                <div class="detail-grid">
-                  <div class="detail-block">
-                    <div class="detail-label">📌 推荐场景</div>
-                    <div class="detail-text">{{ plan.scenario }}</div>
+                  <div class="detail-grid">
+                    <div class="detail-block">
+                      <div class="detail-label">📌 推荐场景</div>
+                      <div class="detail-text">{{ plan.scenario }}</div>
+                    </div>
+                    <div class="detail-block">
+                      <div class="detail-label">🗺️ 路线说明</div>
+                      <div class="detail-text">{{ plan.routeDesc }}</div>
+                    </div>
                   </div>
-                  <div class="detail-block">
-                    <div class="detail-label">🗺️ 路线说明</div>
-                    <div class="detail-text">{{ plan.routeDesc }}</div>
-                  </div>
-                </div>
 
-                <div class="detail-block">
-                  <div class="detail-label">🔧 关键装备</div>
-                  <div class="detail-tags">
-                    <span v-for="eq in plan.keyEquipment" :key="eq" class="detail-tag">{{ eq }}</span>
+                  <div class="detail-block">
+                    <div class="detail-label">🔧 关键装备</div>
+                    <div class="detail-tags">
+                      <span v-for="eq in plan.keyEquipment" :key="eq" class="detail-tag">{{ eq }}</span>
+                    </div>
                   </div>
-                </div>
 
-                <div class="detail-grid detail-grid--cols3">
-                  <div class="detail-block">
-                    <div class="detail-label detail-label--pos">✅ 优势</div>
-                    <ul class="detail-list">
-                      <li v-for="(adv, i) in plan.advantages" :key="i">{{ adv }}</li>
-                    </ul>
+                  <div class="detail-grid detail-grid--cols3">
+                    <div class="detail-block">
+                      <div class="detail-label detail-label--pos">✅ 优势</div>
+                      <ul class="detail-list">
+                        <li v-for="(adv, i) in plan.advantages" :key="i">{{ adv }}</li>
+                      </ul>
+                    </div>
+                    <div class="detail-block">
+                      <div class="detail-label detail-label--warn">⚠️ 风险</div>
+                      <ul class="detail-list detail-list--warn">
+                        <li v-for="(risk, i) in plan.risks" :key="i">{{ risk }}</li>
+                      </ul>
+                    </div>
+                    <div class="detail-block">
+                      <div class="detail-label detail-label--info">📋 适用条件</div>
+                      <ul class="detail-list detail-list--info">
+                        <li v-for="(cond, i) in plan.conditions" :key="i">{{ cond }}</li>
+                      </ul>
+                    </div>
                   </div>
-                  <div class="detail-block">
-                    <div class="detail-label detail-label--warn">⚠️ 风险</div>
-                    <ul class="detail-list detail-list--warn">
-                      <li v-for="(risk, i) in plan.risks" :key="i">{{ risk }}</li>
-                    </ul>
-                  </div>
-                  <div class="detail-block">
-                    <div class="detail-label detail-label--info">📋 适用条件</div>
-                    <ul class="detail-list detail-list--info">
-                      <li v-for="(cond, i) in plan.conditions" :key="i">{{ cond }}</li>
-                    </ul>
-                  </div>
-                </div>
                 </div>
               </div>
             </div>

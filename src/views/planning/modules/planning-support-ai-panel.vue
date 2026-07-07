@@ -107,7 +107,7 @@ function getStatusIcon(step: PlanningAnalysisStep) {
             class="step-item"
             :class="[`step-item--${step.status}`]"
           >
-            <div class="step-line-wrap" v-if="index > 0">
+            <div v-if="index > 0" class="step-line-wrap">
               <div class="step-line" :class="{ 'step-line--active': step.status === 'completed' || step.status === 'running' }" />
             </div>
             <div class="step-node-row">
