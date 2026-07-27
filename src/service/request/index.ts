@@ -11,9 +11,10 @@ const { baseURL, otherBaseURL } = getServiceBaseURL(import.meta.env, isHttpProxy
 export const request = createFlatRequest(
   {
     baseURL,
-    headers: (import.meta.env.DEV && import.meta.env.VITE_HTTP_MOCK === 'Y'
+    headers:
+      import.meta.env.DEV && import.meta.env.VITE_HTTP_MOCK === 'Y'
         ? { apifoxToken: import.meta.env.VITE_APIFOX_TOKEN ?? '' }
-        : {})
+        : {}
   },
   {
     defaultState: {

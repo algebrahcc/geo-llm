@@ -9,7 +9,7 @@ import SvgIcon from '@/components/custom/svg-icon.vue';
 
 defineOptions({ name: 'ScenePanel' });
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     /** 面板标题 */
     title: string;
@@ -62,12 +62,7 @@ function handleDragStart(e: MouseEvent) {
       >
         <span class="scene-panel__drag-dots">{{ placement === 'bottom' ? '⋯' : '⋮⋮' }}</span>
         <span class="scene-panel__title">{{ title }}</span>
-        <button
-          v-if="closable"
-          type="button"
-          class="scene-panel__close-btn"
-          @click.stop="emit('close')"
-        >
+        <button v-if="closable" type="button" class="scene-panel__close-btn" @click.stop="emit('close')">
           <SvgIcon icon="mdi:close" />
         </button>
       </div>
@@ -200,29 +195,59 @@ function handleDragStart(e: MouseEvent) {
 /* ─── 过渡动画 ─── */
 .panel-slide-left-enter-active,
 .panel-slide-left-leave-active {
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
+  transition:
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.28s ease;
 }
-.panel-slide-left-enter-from { transform: translateX(-20px); opacity: 0; }
-.panel-slide-left-leave-to { transform: translateX(-20px); opacity: 0; }
+.panel-slide-left-enter-from {
+  transform: translateX(-20px);
+  opacity: 0;
+}
+.panel-slide-left-leave-to {
+  transform: translateX(-20px);
+  opacity: 0;
+}
 
 .panel-slide-right-enter-active,
 .panel-slide-right-leave-active {
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
+  transition:
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.28s ease;
 }
-.panel-slide-right-enter-from { transform: translateX(20px); opacity: 0; }
-.panel-slide-right-leave-to { transform: translateX(20px); opacity: 0; }
+.panel-slide-right-enter-from {
+  transform: translateX(20px);
+  opacity: 0;
+}
+.panel-slide-right-leave-to {
+  transform: translateX(20px);
+  opacity: 0;
+}
 
 .panel-slide-up-enter-active,
 .panel-slide-up-leave-active {
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
+  transition:
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.28s ease;
 }
-.panel-slide-up-enter-from { transform: translateX(-50%) translateY(20px); opacity: 0; }
-.panel-slide-up-leave-to { transform: translateX(-50%) translateY(20px); opacity: 0; }
+.panel-slide-up-enter-from {
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+}
+.panel-slide-up-leave-to {
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+}
 
 /* ─── 响应式 ─── */
 @media (max-width: 1280px) {
-  .scene-panel--left { width: min(340px, calc(100vw - 72px)); }
-  .scene-panel--right { width: min(380px, calc(100vw - 72px)); }
-  .scene-panel--bottom { width: min(96vw, 960px); }
+  .scene-panel--left {
+    width: min(340px, calc(100vw - 72px));
+  }
+  .scene-panel--right {
+    width: min(380px, calc(100vw - 72px));
+  }
+  .scene-panel--bottom {
+    width: min(96vw, 960px);
+  }
 }
 </style>

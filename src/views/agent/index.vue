@@ -3,7 +3,13 @@ import { computed, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import { agentDefinitions, createAgentDefinition, createAgentRunTask, getTasksByAgentKey, type AgentCreateModel } from '@/mock/agent';
+import {
+  agentDefinitions,
+  createAgentDefinition,
+  createAgentRunTask,
+  getTasksByAgentKey,
+  type AgentCreateModel
+} from '@/mock/agent';
 import AgentLogList from './modules/agent-log-list.vue';
 import AgentSidebar from './modules/agent-sidebar.vue';
 import AgentStageBoard from './modules/agent-stage-board.vue';
@@ -132,7 +138,14 @@ function goTaskDetail(taskId: string) {
           <div class="panel-body">
             <div class="section-desc">{{ selectedAgent.description }}</div>
             <div class="mt-10px flex flex-wrap gap-4px">
-              <NTag v-for="item in selectedAgent.capabilityTags" :key="item" size="small" round :bordered="false" class="capability-tag">
+              <NTag
+                v-for="item in selectedAgent.capabilityTags"
+                :key="item"
+                size="small"
+                round
+                :bordered="false"
+                class="capability-tag"
+              >
                 {{ item }}
               </NTag>
             </div>
@@ -278,7 +291,9 @@ function goTaskDetail(taskId: string) {
 .agent-main .panel-surface {
   background: var(--surface-bg);
   border: 1px solid var(--surface-border);
-  box-shadow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 18px 40px rgba(1, 8, 18, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(32, 111, 202, 0.22),
+    0 18px 40px rgba(1, 8, 18, 0.45);
   position: relative;
   border-radius: 4px;
 }

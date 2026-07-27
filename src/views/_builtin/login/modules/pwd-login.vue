@@ -113,11 +113,7 @@ async function handleSubmit() {
             autocapitalize: 'none'
           }"
         />
-        <NButton
-          :loading="captchaLoading"
-          class="h-40px w-120px flex-shrink-0 !p-0"
-          @click="refreshCaptcha"
-        >
+        <NButton :loading="captchaLoading" class="h-40px w-120px flex-shrink-0 !p-0" @click="refreshCaptcha">
           <img v-if="captchaImg" :src="captchaImg" alt="验证码" class="h-full w-full rounded-4px" />
           <span v-else>获取验证码</span>
         </NButton>

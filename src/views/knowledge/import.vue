@@ -21,9 +21,7 @@ const router = useRouter();
 const themeStore = useThemeStore();
 const darkMode = computed(() => themeStore.darkMode);
 
-const importType = ref<'document' | 'image'>(
-  (route.query.type as string) === 'image' ? 'image' : 'document'
-);
+const importType = ref<'document' | 'image'>((route.query.type as string) === 'image' ? 'image' : 'document');
 
 const form = reactive({
   name: '',
@@ -38,9 +36,7 @@ const form = reactive({
 });
 
 const categoryOptions = computed(() =>
-  knowledgeCategories
-    .filter(item => item.key !== 'all')
-    .map(item => ({ label: item.label, value: item.key }))
+  knowledgeCategories.filter(item => item.key !== 'all').map(item => ({ label: item.label, value: item.key }))
 );
 
 const indexModeOptions = [
@@ -72,15 +68,11 @@ function goBack() {
 }
 
 function handleFileChange(options: { fileList: UploadFileInfo[] }) {
-  form.imageFiles = options.fileList
-    .filter(f => f.file)
-    .map(f => ({ name: f.name, size: f.file?.size || 0 }));
+  form.imageFiles = options.fileList.filter(f => f.file).map(f => ({ name: f.name, size: f.file?.size || 0 }));
 }
 
 function handleFileRemove(options: { file: UploadFileInfo; fileList: UploadFileInfo[] }) {
-  form.imageFiles = options.fileList
-    .filter(f => f.file)
-    .map(f => ({ name: f.name, size: f.file?.size || 0 }));
+  form.imageFiles = options.fileList.filter(f => f.file).map(f => ({ name: f.name, size: f.file?.size || 0 }));
 }
 
 function handleSubmit() {
@@ -164,11 +156,7 @@ function handleSubmit() {
           <div class="mode-tab__desc">PDF / DOCX / MD / TXT</div>
         </div>
       </button>
-      <button
-        class="mode-tab"
-        :class="{ 'mode-tab--active': importType === 'image' }"
-        @click="importType = 'image'"
-      >
+      <button class="mode-tab" :class="{ 'mode-tab--active': importType === 'image' }" @click="importType = 'image'">
         <SvgIcon icon="mdi:image-outline" class="mode-tab__icon" />
         <div class="mode-tab__text">
           <div class="mode-tab__title">图片导入</div>
@@ -343,7 +331,9 @@ function handleSubmit() {
   box-sizing: border-box;
 }
 
-.import-page--dark { color-scheme: dark; }
+.import-page--dark {
+  color-scheme: dark;
+}
 
 /* ====== Header ====== */
 .import-header {
@@ -426,7 +416,9 @@ function handleSubmit() {
 .mode-tab--active {
   border-color: var(--accent);
   background: linear-gradient(180deg, rgba(10, 46, 92, 0.94) 0%, rgba(5, 28, 58, 0.94) 100%);
-  box-shadow: 0 0 0 1px rgba(41, 163, 255, 0.2), 0 8px 24px rgba(4, 79, 162, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(41, 163, 255, 0.2),
+    0 8px 24px rgba(4, 79, 162, 0.2);
   color: #fff;
 }
 
@@ -622,12 +614,16 @@ function handleSubmit() {
 }
 
 /* ====== Scrollbar ====== */
-.import-page::-webkit-scrollbar { width: 8px; }
+.import-page::-webkit-scrollbar {
+  width: 8px;
+}
 .import-page::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: rgba(48, 127, 212, 0.45);
 }
-.import-page::-webkit-scrollbar-track { background: transparent; }
+.import-page::-webkit-scrollbar-track {
+  background: transparent;
+}
 
 @media (max-width: 900px) {
   .import-body {

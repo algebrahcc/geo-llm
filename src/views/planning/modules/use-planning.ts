@@ -74,9 +74,7 @@ export function usePlanning() {
   });
   const selectedPlan = ref<PlanningPlanKey>('plan-a');
   const missionRunning = ref(false);
-  const analysisSteps = ref<PlanningAnalysisStep[]>(
-    mockAnalysisSteps.map(step => ({ ...step }))
-  );
+  const analysisSteps = ref<PlanningAnalysisStep[]>(mockAnalysisSteps.map(step => ({ ...step })));
   const analysisProgress = ref(58);
   const analysisStatusText = ref('正在分析路况与障碍情况，请稍候...');
   const knowledgeHits = ref<{ docCount: number; chunkCount: number; docNames: string[] } | null>(null);
@@ -124,7 +122,11 @@ export function usePlanning() {
     const retrievalResults = runKnowledgeRetrieval(routeQuery);
     const docCount = retrievalResults.length;
     const topDocNames = retrievalResults.slice(0, 3).map(r => r.document.name);
-    knowledgeHits.value = { docCount, chunkCount: retrievalResults.reduce((s, r) => s + r.matches.length, 0), docNames: topDocNames };
+    knowledgeHits.value = {
+      docCount,
+      chunkCount: retrievalResults.reduce((s, r) => s + r.matches.length, 0),
+      docNames: topDocNames
+    };
 
     await sleep(960);
     setCurrentRoute(
@@ -159,9 +161,7 @@ export function usePlanning() {
   }
 
   function updateWaypoint(id: string, updates: Partial<PlanningWaypoint>) {
-    const newWaypoints = missionForm.value.waypoints.map(wp =>
-      wp.id === id ? { ...wp, ...updates } : wp
-    );
+    const newWaypoints = missionForm.value.waypoints.map(wp => (wp.id === id ? { ...wp, ...updates } : wp));
     missionForm.value = { ...missionForm.value, waypoints: newWaypoints };
   }
 
@@ -202,9 +202,10 @@ export function usePlanning() {
 
       // 知识库检索步骤显示实际命中结果
       if (steps[i].id === 'step-0' && knowledgeHits.value) {
-        analysisStatusText.value = docCount > 0
-          ? `正在检索知识库... 命中 ${docCount} 篇文档（${docNames.slice(0, 2).join('、')}），共 ${totalChunks} 条片段`
-          : '正在检索知识库... 未命中相关文档，使用默认模板';
+        analysisStatusText.value =
+          docCount > 0
+            ? `正在检索知识库... 命中 ${docCount} 篇文档（${docNames.slice(0, 2).join('、')}），共 ${totalChunks} 条片段`
+            : '正在检索知识库... 未命中相关文档，使用默认模板';
       } else {
         analysisStatusText.value = getStepStatusText(steps[i].label);
       }
@@ -214,22 +215,21 @@ export function usePlanning() {
     // 完成所有步骤
     analysisSteps.value = steps.map(step => ({ ...step, status: 'completed' }));
     analysisProgress.value = 100;
-    analysisStatusText.value = docCount > 0
-      ? `分析完成，已结合 ${docCount} 篇知识文档生成 3 条推荐方案`
-      : '分析完成，已生成3条推荐方案';
+    analysisStatusText.value =
+      docCount > 0 ? `分析完成，已结合 ${docCount} 篇知识文档生成 3 条推荐方案` : '分析完成，已生成3条推荐方案';
     selectedPlan.value = 'plan-a';
     missionRunning.value = false;
   }
 
   function getStepStatusText(stepLabel: string): string {
     const textMap: Record<string, string> = {
-      '知识库检索': '正在检索知识库，匹配相关文档...',
-      '路网数据加载': '正在加载全国路网数据...',
-      '路线可行性分析': '正在分析路线可行性...',
-      '路况与障碍分析': '正在分析路况与障碍情况，请稍候...',
-      '风险评估分析': '正在评估沿途风险因素...',
-      '方案生成与优化': '正在生成优化方案...',
-      '结果输出': '正在整理输出结果...'
+      知识库检索: '正在检索知识库，匹配相关文档...',
+      路网数据加载: '正在加载全国路网数据...',
+      路线可行性分析: '正在分析路线可行性...',
+      路况与障碍分析: '正在分析路况与障碍情况，请稍候...',
+      风险评估分析: '正在评估沿途风险因素...',
+      方案生成与优化: '正在生成优化方案...',
+      结果输出: '正在整理输出结果...'
     };
     return textMap[stepLabel] || '处理中...';
   }

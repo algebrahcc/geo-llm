@@ -76,7 +76,9 @@ const colorMap = {
 .panel-surface {
   background: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
   border: 1px solid rgba(43, 131, 255, 0.28);
-  box-shadow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 18px 40px rgba(1, 8, 18, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(32, 111, 202, 0.22),
+    0 18px 40px rgba(1, 8, 18, 0.45);
   border-radius: 4px;
   position: relative;
 }

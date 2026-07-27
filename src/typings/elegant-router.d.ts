@@ -19,11 +19,6 @@ declare module "@elegant-router/types" {
     "not-found": "/:pathMatch(.*)*";
     "screen-fullscreen": "/screen-fullscreen";
     "globe-fullscreen": "/globe-fullscreen";
-    "building_overview": "/building/overview";
-    "building_workspace": "/building/workspace";
-    "building_structure": "/building/structure";
-    "building_material": "/building/material";
-    "building_task_detail": "/building/task-detail";
     "agent_workbench": "/agent/workbench";
     "agent_config": "/agent/config";
     "agent_test": "/agent/test";
@@ -36,7 +31,6 @@ declare module "@elegant-router/types" {
     "404": "/404";
     "500": "/500";
     "agent": "/agent";
-    "building": "/building";
     "catalog": "/catalog";
     "iframe-page": "/iframe-page/:url";
     "knowledge": "/knowledge";
@@ -71,11 +65,6 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "screen-fullscreen"
     | "globe-fullscreen"
-    | "building_overview"
-    | "building_workspace"
-    | "building_structure"
-    | "building_material"
-    | "building_task_detail"
     | "agent_workbench"
     | "agent_config"
     | "agent_test"
@@ -100,7 +89,6 @@ declare module "@elegant-router/types" {
     | "404"
     | "500"
     | "agent"
-    | "building"
     | "catalog"
     | "iframe-page"
     | "knowledge"
@@ -120,11 +108,6 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "screen-fullscreen"
     | "globe-fullscreen"
-    | "building_overview"
-    | "building_workspace"
-    | "building_structure"
-    | "building_material"
-    | "building_task_detail"
     | "agent_workbench"
     | "agent_config"
     | "agent_test"
@@ -146,7 +129,6 @@ declare module "@elegant-router/types" {
     | "iframe-page"
     | "login"
     | "agent"
-    | "building"
     | "catalog"
     | "knowledge"
     | "planning"
@@ -168,11 +150,6 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "screen-fullscreen"
     | "globe-fullscreen"
-    | "building_overview"
-    | "building_workspace"
-    | "building_structure"
-    | "building_material"
-    | "building_task_detail"
     | "agent_workbench"
     | "agent_config"
     | "agent_test"

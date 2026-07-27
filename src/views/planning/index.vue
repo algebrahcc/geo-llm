@@ -26,7 +26,6 @@ import type {
   PlanningLayerKey,
   PlanningPageMode,
   PlanningPickedPoint,
-  PlanningPlanKey,
   PlanningRouteKey,
   PlanningRouteResultCard,
   PlanningRouteSettingsForm,
@@ -111,12 +110,8 @@ const rightPanelCollapsed = ref(false);
 const bottomPanelCollapsed = ref(false);
 
 // ──── 分析步骤与进度 ────
-const routeAnalysisSteps = ref<PlanningAnalysisStep[]>(
-  planningRouteAnalysisSteps.map(s => ({ ...s }))
-);
-const supportAnalysisSteps = ref<PlanningAnalysisStep[]>(
-  planningSupportAnalysisSteps.map(s => ({ ...s }))
-);
+const routeAnalysisSteps = ref<PlanningAnalysisStep[]>(planningRouteAnalysisSteps.map(s => ({ ...s })));
+const supportAnalysisSteps = ref<PlanningAnalysisStep[]>(planningSupportAnalysisSteps.map(s => ({ ...s })));
 const routeProgress = ref(0);
 const supportProgress = ref(0);
 const routeStatusText = ref('');
@@ -141,28 +136,11 @@ const bottomDrag = useDraggable({ anchor: 'right', initialX: 700, initialY: 72 }
 const {
   taskForm,
   currentRoute,
-  currentSummary,
   updateForm,
   setCurrentRoute,
   startPlanning,
-  missionForm,
-  selectedPlan,
-  missionResultSummary,
-  planResults,
-  missionRunning,
-  analysisSteps,
-  analysisProgress,
-  analysisStatusText,
-  updateMissionForm,
-  addWaypoint: addWaypointToForm,
-  removeWaypoint: removeWaypointFromForm,
-  reorderWaypoints: reorderWaypointsInForm,
-  selectPlan,
-  startMissionPlanning,
-  layerItems,
   planningState,
   setPickedPoint,
-  setLayerVisible,
   setPlanningState
 } = usePlanning();
 
@@ -228,9 +206,10 @@ async function handleRoutePlan() {
       const topDocs = results.slice(0, 3).map(r => r.document.name);
       const chunkCount = results.reduce((s, r) => s + r.matches.length, 0);
       routeKnowledgeHits.value = { docCount, chunkCount, docNames: topDocs };
-      routeStatusText.value = docCount > 0
-        ? `正在检索知识库... 命中 ${docCount} 篇文档（${topDocs.slice(0, 2).join('、')}），共 ${chunkCount} 条片段`
-        : '正在检索知识库... 未命中相关文档，使用默认模板';
+      routeStatusText.value =
+        docCount > 0
+          ? `正在检索知识库... 命中 ${docCount} 篇文档（${topDocs.slice(0, 2).join('、')}），共 ${chunkCount} 条片段`
+          : '正在检索知识库... 未命中相关文档，使用默认模板';
     } else {
       routeStatusText.value = getRouteStepText(steps[i].label);
     }
@@ -252,9 +231,10 @@ async function handleRoutePlan() {
     endLongitude: routeSettingsForm.value.endLongitude,
     endLatitude: routeSettingsForm.value.endLatitude,
     routePreference: legacyPref,
-    constraints: (routeSettingsForm.value.advanceAreas ?? []).length > 0
-      ? (routeSettingsForm.value.advanceAreas ?? [])
-      : taskForm.value.constraints
+    constraints:
+      (routeSettingsForm.value.advanceAreas ?? []).length > 0
+        ? (routeSettingsForm.value.advanceAreas ?? [])
+        : taskForm.value.constraints
   });
 
   setPlanningState('analyzing');
@@ -262,8 +242,16 @@ async function handleRoutePlan() {
     await startPlanning();
     // 根据 setCurrentRoute 的结果更新地图标绘
     viewerRef.value?.showRoute(currentRoute.value);
-    viewerRef.value?.setStartPoint(routeSettingsForm.value.startLongitude, routeSettingsForm.value.startLatitude, routeSettingsForm.value.startName);
-    viewerRef.value?.setEndPoint(routeSettingsForm.value.endLongitude, routeSettingsForm.value.endLatitude, routeSettingsForm.value.endName);
+    viewerRef.value?.setStartPoint(
+      routeSettingsForm.value.startLongitude,
+      routeSettingsForm.value.startLatitude,
+      routeSettingsForm.value.startName
+    );
+    viewerRef.value?.setEndPoint(
+      routeSettingsForm.value.endLongitude,
+      routeSettingsForm.value.endLatitude,
+      routeSettingsForm.value.endName
+    );
     setPlanningState('done');
 
     const matchedCard = routeResultCards.value.find(c => c.score >= 82)?.key;
@@ -283,13 +271,13 @@ async function handleRoutePlan() {
 
 function getRouteStepText(label: string): string {
   const map: Record<string, string> = {
-    '路网数据解析': '正在解析路网数据...',
-    '障碍识别分析': '正在识别障碍区域...',
-    '交通状况评估': '正在评估交通状况...',
-    '多路径规划': '正在规划多条候选路径...',
-    '路线风险评估': '正在评估路线风险...',
-    '方案优化排序': '正在优化排序方案...',
-    '结果输出': '正在整理输出结果...'
+    路网数据解析: '正在解析路网数据...',
+    障碍识别分析: '正在识别障碍区域...',
+    交通状况评估: '正在评估交通状况...',
+    多路径规划: '正在规划多条候选路径...',
+    路线风险评估: '正在评估路线风险...',
+    方案优化排序: '正在优化排序方案...',
+    结果输出: '正在整理输出结果...'
   };
   return map[label] || '处理中...';
 }
@@ -318,9 +306,10 @@ async function handleSupportPlan() {
       const topDocs = results.slice(0, 3).map(r => r.document.name);
       const chunkCount = results.reduce((s, r) => s + r.matches.length, 0);
       supportKnowledgeHits.value = { docCount, chunkCount, docNames: topDocs };
-      supportStatusText.value = docCount > 0
-        ? `正在检索知识库... 命中 ${docCount} 篇文档（${topDocs.slice(0, 2).join('、')}），共 ${chunkCount} 条片段`
-        : '正在检索知识库... 未命中相关文档，使用默认模板';
+      supportStatusText.value =
+        docCount > 0
+          ? `正在检索知识库... 命中 ${docCount} 篇文档（${topDocs.slice(0, 2).join('、')}），共 ${chunkCount} 条片段`
+          : '正在检索知识库... 未命中相关文档，使用默认模板';
     } else {
       supportStatusText.value = getSupportStepText(steps[i].label);
     }
@@ -341,13 +330,13 @@ async function handleSupportPlan() {
 
 function getSupportStepText(label: string): string {
   const map: Record<string, string> = {
-    '路网解析': '正在解析路网数据...',
-    '障碍识别': '正在识别障碍区域...',
-    '预案生成': '正在生成保障预案...',
-    '兵力车量计算': '正在计算兵力与车辆配置...',
-    '油料计算': '正在计算油料需求...',
-    '保障布设': '正在规划保障站点布设...',
-    '方案评估': '正在评估方案可行性...'
+    路网解析: '正在解析路网数据...',
+    障碍识别: '正在识别障碍区域...',
+    预案生成: '正在生成保障预案...',
+    兵力车量计算: '正在计算兵力与车辆配置...',
+    油料计算: '正在计算油料需求...',
+    保障布设: '正在规划保障站点布设...',
+    方案评估: '正在评估方案可行性...'
   };
   return map[label] || '处理中...';
 }
@@ -428,11 +417,6 @@ function handleToggle2d3d() {
   is2dMode.value = !is2dMode.value;
 }
 
-function handleLayerChange(payload: { key: PlanningLayerKey; visible: boolean }) {
-  setLayerVisible(payload.key, payload.visible);
-  viewerRef.value?.setLayerVisible(payload.key, payload.visible);
-}
-
 function handleViewerReady() {
   viewerRef.value?.showRoute(currentRoute.value);
   viewerRef.value?.setStartPoint(taskForm.value.startLongitude, taskForm.value.startLatitude, taskForm.value.startName);
@@ -490,11 +474,7 @@ function handleSupportAiSend(message: string) {
 <template>
   <div class="planning-page">
     <div class="planning-stage">
-      <PlanningViewer
-        ref="viewerRef"
-        @ready="handleViewerReady"
-        @point-picked="handlePointPicked"
-      />
+      <PlanningViewer ref="viewerRef" @ready="handleViewerReady" @point-picked="handlePointPicked" />
 
       <!-- ══════ 左上角：返回按钮 + 面板开关 ══════ -->
       <div class="left-buttons">
@@ -610,7 +590,9 @@ function handleSupportAiSend(message: string) {
               :form="routeSettingsForm"
               :running="routeRunning"
               :collapsed="leftPanelCollapsed"
-              :pick-mode-label="planningState === 'picking-start' ? '选取起点' : planningState === 'picking-end' ? '选取终点' : '待规划'"
+              :pick-mode-label="
+                planningState === 'picking-start' ? '选取起点' : planningState === 'picking-end' ? '选取终点' : '待规划'
+              "
               @plan="handleRoutePlan"
               @toggle-collapse="handleLeftPanelCollapse"
               @update-form="handleRouteSettingsUpdate"

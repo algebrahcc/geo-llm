@@ -118,7 +118,7 @@ const columns: DataTableColumns<Api.System.RoleItem> = [
     key: 'status',
     width: 90,
     align: 'center',
-    render: (row) => renderStatusTag(row.status)
+    render: row => renderStatusTag(row.status)
   },
   { title: '创建时间', key: 'createTime', width: 170 },
   {
@@ -304,7 +304,13 @@ const statusOptions = [
     </NModal>
 
     <!-- 权限分配弹窗 -->
-    <NModal v-model:show="permModalVisible" :title="`分配权限 - ${permRoleName}`" preset="card" class="sys-modal" style="width: 560px">
+    <NModal
+      v-model:show="permModalVisible"
+      :title="`分配权限 - ${permRoleName}`"
+      preset="card"
+      class="sys-modal"
+      style="width: 560px"
+    >
       <div class="sys-detail-card" style="max-height: 420px; overflow-y: auto">
         <NTree
           v-model:checked-keys="checkedKeys"
@@ -324,4 +330,3 @@ const statusOptions = [
     </NModal>
   </div>
 </template>
-

@@ -1,5 +1,3 @@
-
-
 /** 影像配置 - 本地模式 */
 export interface ImageryLocalConfig {
   /** 全局底图瓦片路径（相对于 BASE_URL） */

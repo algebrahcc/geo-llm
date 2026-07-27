@@ -32,10 +32,14 @@ const placeholderText = computed(() => {
 
 const modeLabel = computed(() => {
   switch (searchMode.value) {
-    case 'keyword': return '关键词检索';
-    case 'semantic': return '语义检索';
-    case 'hybrid': return '混合检索';
-    default: return '关键词检索';
+    case 'keyword':
+      return '关键词检索';
+    case 'semantic':
+      return '语义检索';
+    case 'hybrid':
+      return '混合检索';
+    default:
+      return '关键词检索';
   }
 });
 
@@ -69,11 +73,17 @@ function getSimilarityColor(sim: number): string {
   return '#ff6b6b';
 }
 
-function getMethodMeta(method: KnowledgeRetrievalMatch['method']): { label: string; type: 'info' | 'default' | 'success' } {
+function getMethodMeta(method: KnowledgeRetrievalMatch['method']): {
+  label: string;
+  type: 'info' | 'default' | 'success';
+} {
   switch (method) {
-    case 'vector': return { label: '向量召回', type: 'info' };
-    case 'bm25': return { label: 'BM25', type: 'default' };
-    case 'hybrid': return { label: '混合', type: 'success' };
+    case 'vector':
+      return { label: '向量召回', type: 'info' };
+    case 'bm25':
+      return { label: 'BM25', type: 'default' };
+    case 'hybrid':
+      return { label: '混合', type: 'success' };
   }
 }
 
@@ -170,8 +180,14 @@ function renderHighlightedSnippet(snippet: string, ranges: [number, number][]): 
                       v-for="ref in item.document.moduleRefs"
                       :key="ref"
                       class="module-badge"
-                      :style="{ color: moduleMeta[ref].color, background: moduleMeta[ref].bg, borderColor: moduleMeta[ref].color + '44' }"
-                    >{{ moduleMeta[ref].label }}</span>
+                      :style="{
+                        color: moduleMeta[ref].color,
+                        background: moduleMeta[ref].bg,
+                        borderColor: moduleMeta[ref].color + '44'
+                      }"
+                    >
+                      {{ moduleMeta[ref].label }}
+                    </span>
                   </div>
                   <div class="text-11px text-[rgba(147,196,255,0.5)]">{{ item.document.updatedAt }}</div>
                 </div>
@@ -189,14 +205,22 @@ function renderHighlightedSnippet(snippet: string, ranges: [number, number][]): 
                         <div class="similarity-bar">
                           <span
                             class="similarity-bar__fill"
-                            :style="{ width: (match.similarity * 100).toFixed(0) + '%', background: getSimilarityColor(match.similarity) }"
+                            :style="{
+                              width: (match.similarity * 100).toFixed(0) + '%',
+                              background: getSimilarityColor(match.similarity)
+                            }"
                           ></span>
                         </div>
-                        <span
-                          class="similarity-text"
-                          :style="{ color: getSimilarityColor(match.similarity) }"
-                        >{{ (match.similarity * 100).toFixed(0) }}%</span>
-                        <NTag size="small" round :bordered="false" :type="getMethodMeta(match.method).type" class="method-tag">
+                        <span class="similarity-text" :style="{ color: getSimilarityColor(match.similarity) }">
+                          {{ (match.similarity * 100).toFixed(0) }}%
+                        </span>
+                        <NTag
+                          size="small"
+                          round
+                          :bordered="false"
+                          :type="getMethodMeta(match.method).type"
+                          class="method-tag"
+                        >
                           {{ getMethodMeta(match.method).label }}
                         </NTag>
                       </div>
@@ -257,7 +281,9 @@ function renderHighlightedSnippet(snippet: string, ranges: [number, number][]): 
 .panel-surface {
   background: var(--surface-bg);
   border: 1px solid var(--surface-border);
-  box-shadow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 18px 40px rgba(1, 8, 18, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(32, 111, 202, 0.22),
+    0 18px 40px rgba(1, 8, 18, 0.45);
   border-radius: 4px;
   position: relative;
 }

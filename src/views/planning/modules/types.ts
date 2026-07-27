@@ -10,7 +10,14 @@ export type PlanningRouteKey = 'route-a' | 'route-b' | 'route-c';
 export type PlanningPlanKey = 'plan-a' | 'plan-b' | 'plan-c' | 'plan-d';
 
 // ──── 图层 Key ────
-export type PlanningLayerKey = 'imagery' | 'selected-route' | 'candidate-route' | 'risk' | 'obstacle' | 'markers' | 'waypoints';
+export type PlanningLayerKey =
+  | 'imagery'
+  | 'selected-route'
+  | 'candidate-route'
+  | 'risk'
+  | 'obstacle'
+  | 'markers'
+  | 'waypoints';
 
 export type PlanningInteractiveTool = 'browse' | 'pick-start' | 'pick-end';
 

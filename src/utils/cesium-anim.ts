@@ -3,14 +3,7 @@
  *
  * 从 use-screen-globe.ts 提取，供大屏/仪表盘等场景复用。
  */
-import {
-  Cartesian3,
-  Color,
-  ColorMaterialProperty,
-  ConstantProperty,
-  HeightReference,
-  type Viewer
-} from 'cesium';
+import { Cartesian3, Color, ColorMaterialProperty, ConstantProperty, HeightReference, type Viewer } from 'cesium';
 
 interface RingAnimState {
   radius: number;
@@ -101,11 +94,7 @@ export function addScatterPoints(
 }
 
 /** 更新涟漪动画状态（每 tick 调用） */
-export function updateAnimState(
-  points: ScatterPoint[],
-  ringStates: Map<string, RingAnimState>,
-  animStart: number
-) {
+export function updateAnimState(points: ScatterPoint[], ringStates: Map<string, RingAnimState>, animStart: number) {
   const now = Date.now();
   points.forEach(point => {
     const elapsed1 = (now - animStart) % 3000;

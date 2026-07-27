@@ -16,21 +16,53 @@ import type {
   PlanningSupportSettingsForm,
   PlanningTaskForm
 } from '@/views/planning/modules/types';
-import {
-  planningRouteACoords,
-  planningRouteBCoords,
-  planningRouteCCoords
-} from './planning-route-coords';
+import { planningRouteACoords, planningRouteBCoords, planningRouteCCoords } from './planning-route-coords';
 
 // ──── 图层 ────
 export const planningDefaultLayers = [
   { key: 'imagery', label: '影像底图', icon: 'mdi:satellite-variant', description: '全球 0-8', visible: true },
-  { key: 'selected-route', label: '当前路线', icon: 'mdi:route', description: '高亮显示当前选中的推荐路线', visible: true },
-  { key: 'candidate-route', label: '备选路线', icon: 'mdi:routes', description: '展示其余候选路线用于对比', visible: true },
-  { key: 'risk', label: '风险区', icon: 'mdi:shield-alert', description: '桥隧、坡度、威胁与拥堵风险区', visible: true },
-  { key: 'obstacle', label: '障碍点', icon: 'mdi:map-marker-alert', description: '桥头拥堵、受限路段、观察点等关键障碍', visible: true },
-  { key: 'markers', label: '起终点标记', icon: 'mdi:map-marker', description: '任务起点、终点与关键节点标记', visible: true },
-  { key: 'waypoints', label: '途经点标记', icon: 'mdi:waypoints', description: '机动方案中的途经点位置标记', visible: true }
+  {
+    key: 'selected-route',
+    label: '当前路线',
+    icon: 'mdi:route',
+    description: '高亮显示当前选中的推荐路线',
+    visible: true
+  },
+  {
+    key: 'candidate-route',
+    label: '备选路线',
+    icon: 'mdi:routes',
+    description: '展示其余候选路线用于对比',
+    visible: true
+  },
+  {
+    key: 'risk',
+    label: '风险区',
+    icon: 'mdi:shield-alert',
+    description: '桥隧、坡度、威胁与拥堵风险区',
+    visible: true
+  },
+  {
+    key: 'obstacle',
+    label: '障碍点',
+    icon: 'mdi:map-marker-alert',
+    description: '桥头拥堵、受限路段、观察点等关键障碍',
+    visible: true
+  },
+  {
+    key: 'markers',
+    label: '起终点标记',
+    icon: 'mdi:map-marker',
+    description: '任务起点、终点与关键节点标记',
+    visible: true
+  },
+  {
+    key: 'waypoints',
+    label: '途经点标记',
+    icon: 'mdi:waypoints',
+    description: '机动方案中的途经点位置标记',
+    visible: true
+  }
 ] as const satisfies readonly PlanningLayerItem[];
 
 // ──── 路线偏好选项 ────
@@ -189,11 +221,7 @@ export const planningRouteSummaries = {
       { label: '风险等级', value: '低', tone: 'success' },
       { label: '通行评分', value: '79', tone: 'primary' }
     ],
-    highlights: [
-      '全程迂回绕行，暴露风险最低',
-      '适合重装车辆与大编组稳妥推进',
-      '作为第一、二线受阻时的低风险备选'
-    ],
+    highlights: ['全程迂回绕行，暴露风险最低', '适合重装车辆与大编组稳妥推进', '作为第一、二线受阻时的低风险备选'],
     risks: [
       { title: '耗时长', detail: '整体绕行较远，不利于抢时任务。' },
       { title: '补给跨度', detail: '路线最长，对油料与中途保障要求更高。' }
@@ -269,8 +297,8 @@ export const planningRouteScenes = {
         positions: [
           [121.528, 25.096],
           [121.548, 25.096],
-          [121.550, 25.115],
-          [121.530, 25.115]
+          [121.55, 25.115],
+          [121.53, 25.115]
         ] as readonly [number, number][]
       }
     ],

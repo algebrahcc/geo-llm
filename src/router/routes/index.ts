@@ -32,15 +32,6 @@ const customRoutes = [
       title: '渡河保障方案',
       hideInMenu: true
     }
-  },
-  {
-    name: 'building-fullscreen',
-    path: '/building-fullscreen',
-    component: 'layout.blank$view.building',
-    meta: {
-      title: '楼宇夺控',
-      hideInMenu: true
-    }
   }
 ] as unknown as CustomRoute[];
 
@@ -66,19 +57,6 @@ function createPlanningElegantRoute() {
       title: '机动路线规划',
       order: 6,
       icon: 'mdi:routes'
-    }
-  } satisfies ElegantConstRoute;
-}
-
-function createBuildingElegantRoute() {
-  return {
-    name: 'building',
-    path: '/building',
-    component: 'layout.blank$view.building',
-    meta: {
-      title: '楼宇夺控',
-      order: 4,
-      icon: 'mdi:office-building'
     }
   } satisfies ElegantConstRoute;
 }
@@ -324,10 +302,9 @@ export function createStaticRoutes() {
     ...customRoutes,
     createPlanningElegantRoute() as unknown as ElegantRoute,
     createRiverElegantRoute() as unknown as ElegantRoute,
-    createBuildingElegantRoute() as unknown as ElegantRoute,
     createKnowledgeElegantRoute() as unknown as ElegantRoute,
     createAgentElegantRoute() as unknown as ElegantRoute,
-    ...generatedRoutes.filter(item => !['knowledge', 'agent', 'building', 'river', 'planning'].includes(item.name))
+    ...generatedRoutes.filter(item => !['knowledge', 'agent', 'river', 'planning'].includes(item.name))
   ].forEach(item => {
     if (item.meta?.constant) {
       constantRoutes.push(item);

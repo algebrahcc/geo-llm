@@ -115,12 +115,22 @@ function handleSubmit() {
             </div>
             <div class="form-field flex-1">
               <label class="field-label">行动时间</label>
-              <input v-model="localForm.actionTime" type="text" class="field-input" placeholder="2026-06-15 06:00" @input="handleFormChange" />
+              <input
+                v-model="localForm.actionTime"
+                type="text"
+                class="field-input"
+                placeholder="2026-06-15 06:00"
+                @input="handleFormChange"
+              />
             </div>
           </div>
           <div class="form-field">
             <label class="field-label">保障兵力</label>
-            <NSelect v-model:value="localForm.forceScale" :options="forceScaleOptions" @update:value="handleFormChange" />
+            <NSelect
+              v-model:value="localForm.forceScale"
+              :options="forceScaleOptions"
+              @update:value="handleFormChange"
+            />
           </div>
         </div>
       </div>
@@ -132,36 +142,76 @@ function handleSubmit() {
           <div class="form-row">
             <div class="form-field flex-1">
               <label class="field-label">河宽 (m)</label>
-              <input v-model.number="localForm.riverWidth" type="number" class="field-input" @input="handleFormChange" />
+              <input
+                v-model.number="localForm.riverWidth"
+                type="number"
+                class="field-input"
+                @input="handleFormChange"
+              />
             </div>
             <div class="form-field flex-1">
               <label class="field-label">水深范围</label>
-              <input v-model="localForm.waterDepthRange" type="text" class="field-input" placeholder="8~15m" @input="handleFormChange" />
+              <input
+                v-model="localForm.waterDepthRange"
+                type="text"
+                class="field-input"
+                placeholder="8~15m"
+                @input="handleFormChange"
+              />
             </div>
           </div>
           <div class="form-row">
             <div class="form-field flex-1">
               <label class="field-label">流速</label>
-              <input v-model="localForm.flowVelocity" type="text" class="field-input" placeholder="2.5~3.5 m/s" @input="handleFormChange" />
+              <input
+                v-model="localForm.flowVelocity"
+                type="text"
+                class="field-input"
+                placeholder="2.5~3.5 m/s"
+                @input="handleFormChange"
+              />
             </div>
             <div class="form-field flex-1">
               <label class="field-label">河床地形</label>
-              <input v-model="localForm.riverbedTerrain" type="text" class="field-input" placeholder="砂卵石为主" @input="handleFormChange" />
+              <input
+                v-model="localForm.riverbedTerrain"
+                type="text"
+                class="field-input"
+                placeholder="砂卵石为主"
+                @input="handleFormChange"
+              />
             </div>
           </div>
           <div class="form-row">
             <div class="form-field flex-1">
               <label class="field-label">天气条件</label>
-              <input v-model="localForm.weatherCondition" type="text" class="field-input" placeholder="晴 28°C" @input="handleFormChange" />
+              <input
+                v-model="localForm.weatherCondition"
+                type="text"
+                class="field-input"
+                placeholder="晴 28°C"
+                @input="handleFormChange"
+              />
             </div>
             <div class="form-field flex-1">
               <label class="field-label">能见度 (km)</label>
-              <input v-model.number="localForm.visibilityKm" type="number" class="field-input" @input="handleFormChange" />
+              <input
+                v-model.number="localForm.visibilityKm"
+                type="number"
+                class="field-input"
+                @input="handleFormChange"
+              />
             </div>
           </div>
           <div class="form-field">
             <label class="field-label">战略意图</label>
-            <input v-model="localForm.strategicIntent" type="text" class="field-input" placeholder="无明确敌情" @input="handleFormChange" />
+            <input
+              v-model="localForm.strategicIntent"
+              type="text"
+              class="field-input"
+              placeholder="无明确敌情"
+              @input="handleFormChange"
+            />
           </div>
         </div>
       </div>
@@ -194,7 +244,13 @@ function handleSubmit() {
         <div class="section-body">
           <div class="form-field">
             <label class="field-label">时间约束</label>
-            <input v-model="localForm.timeConstraint" type="text" class="field-input" placeholder="3小时内完成渡河" @input="handleFormChange" />
+            <input
+              v-model="localForm.timeConstraint"
+              type="text"
+              class="field-input"
+              placeholder="3小时内完成渡河"
+              @input="handleFormChange"
+            />
           </div>
           <div class="form-field">
             <label class="field-label">其他要求</label>
@@ -263,7 +319,9 @@ function handleSubmit() {
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   font-size: 16px;
-  transition: background 0.18s, color 0.18s;
+  transition:
+    background 0.18s,
+    color 0.18s;
 }
 
 .action-btn:hover {
@@ -322,11 +380,21 @@ function handleSubmit() {
   flex-shrink: 0;
 }
 
-.section-label--mission::before { background: #f59e0b; }
-.section-label--basic::before { background: #3b82f6; }
-.section-label--env::before { background: #22c55e; }
-.section-label--resource::before { background: #a855f7; }
-.section-label--constraint::before { background: #ef4444; }
+.section-label--mission::before {
+  background: #f59e0b;
+}
+.section-label--basic::before {
+  background: #3b82f6;
+}
+.section-label--env::before {
+  background: #22c55e;
+}
+.section-label--resource::before {
+  background: #a855f7;
+}
+.section-label--constraint::before {
+  background: #ef4444;
+}
 
 .section-body {
   padding: 8px 12px 10px;
@@ -369,7 +437,10 @@ function handleSubmit() {
   color: rgba(255, 255, 255, 0.88);
   font-size: 12px;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background 0.2s;
   box-sizing: border-box;
 }
 
@@ -465,16 +536,29 @@ function handleSubmit() {
 
 .submit-btn {
   width: 100%;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 11px 16px; border: none; border-radius: 8px;
-  background: #2563eb; color: #fff;
-  font-size: 13px; font-weight: 600;
-  cursor: pointer; transition: background 0.15s; letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  letter-spacing: 0.02em;
 }
 
-.submit-btn:hover:not(:disabled) { background: #1d4ed8; }
+.submit-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+}
 
-.submit-btn:active:not(:disabled) { background: #1e40af; }
+.submit-btn:active:not(:disabled) {
+  background: #1e40af;
+}
 
 .submit-btn:disabled {
   opacity: 0.6;
@@ -491,8 +575,12 @@ function handleSubmit() {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .btn-text {

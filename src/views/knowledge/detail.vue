@@ -233,7 +233,9 @@ function navigateToRef(reference: KnowledgeReference) {
                 </div>
                 <div class="metric-row">
                   <span class="field__label">{{ isImageDoc ? '区域数量' : '分块数量' }}</span>
-                  <span class="field__value">{{ isImageDoc ? (detail.regionCount ?? detail.chunkCount) : detail.chunkCount }}</span>
+                  <span class="field__value">
+                    {{ isImageDoc ? (detail.regionCount ?? detail.chunkCount) : detail.chunkCount }}
+                  </span>
                 </div>
                 <div v-if="isImageDoc && detail.segmentModel" class="metric-row">
                   <span class="field__label">分割模型</span>
@@ -266,7 +268,9 @@ function navigateToRef(reference: KnowledgeReference) {
           <div class="panel-head">
             <SvgIcon icon="mdi:chart-scatter-plot" class="panel-head__icon" />
             <span class="panel-head__title">结构化参数</span>
-            <span class="param-coverage-badge">{{ paramCoverage.covered }}/{{ paramCoverage.total }} ({{ paramCoverage.rate }}%)</span>
+            <span class="param-coverage-badge">
+              {{ paramCoverage.covered }}/{{ paramCoverage.total }} ({{ paramCoverage.rate }}%)
+            </span>
           </div>
           <div class="panel-body">
             <template v-for="(items, cat) in groupedParams" :key="cat">
@@ -294,7 +298,14 @@ function navigateToRef(reference: KnowledgeReference) {
                       <span class="param-value">{{ p.value }}{{ p.value != null ? ' ' : '' }}{{ p.unit }}</span>
                     </span>
                     <span class="param-table__col param-table__col--conf">
-                      <span class="param-conf" :style="{ '--conf-color': paramConfColor(p.confidence), '--conf-bg': paramConfBg(p.confidence), '--conf-w': (p.confidence * 100).toFixed(0) + '%' }">
+                      <span
+                        class="param-conf"
+                        :style="{
+                          '--conf-color': paramConfColor(p.confidence),
+                          '--conf-bg': paramConfBg(p.confidence),
+                          '--conf-w': (p.confidence * 100).toFixed(0) + '%'
+                        }"
+                      >
                         {{ (p.confidence * 100).toFixed(0) }}%
                       </span>
                     </span>
@@ -307,15 +318,16 @@ function navigateToRef(reference: KnowledgeReference) {
                 </div>
               </div>
             </template>
-            <div v-if="parameters.length === 0" class="param-empty">
-              暂无结构化参数数据
-            </div>
+            <div v-if="parameters.length === 0" class="param-empty">暂无结构化参数数据</div>
           </div>
         </div>
 
         <div class="panel-surface">
           <div class="panel-head">
-            <SvgIcon :icon="isImageDoc ? 'mdi:image-search-outline' : 'mdi:view-grid-outline'" class="panel-head__icon" />
+            <SvgIcon
+              :icon="isImageDoc ? 'mdi:image-search-outline' : 'mdi:view-grid-outline'"
+              class="panel-head__icon"
+            />
             <span class="panel-head__title">{{ isImageDoc ? '区域要素预览' : 'Chunk 预览' }}</span>
           </div>
           <div class="panel-body">
@@ -323,13 +335,24 @@ function navigateToRef(reference: KnowledgeReference) {
               <div v-for="chunk in detail.chunks" :key="chunk.id" class="chunk-card">
                 <div class="flex items-center justify-between gap-10px">
                   <div class="flex items-center gap-6px">
-                    <NTag v-if="chunk.type === 'image-region'" size="small" round type="info" :bordered="false" class="region-tag">
+                    <NTag
+                      v-if="chunk.type === 'image-region'"
+                      size="small"
+                      round
+                      type="info"
+                      :bordered="false"
+                      class="region-tag"
+                    >
                       区域 {{ chunk.regionIndex }}
                     </NTag>
                     <div class="card-title">{{ chunk.title }}</div>
                   </div>
                   <div class="flex items-center gap-6px">
-                    <span v-if="chunk.confidence != null" class="confidence-tag" :class="`confidence-tag--${chunk.confidence >= 0.8 ? 'high' : chunk.confidence >= 0.5 ? 'mid' : 'low'}`">
+                    <span
+                      v-if="chunk.confidence != null"
+                      class="confidence-tag"
+                      :class="`confidence-tag--${chunk.confidence >= 0.8 ? 'high' : chunk.confidence >= 0.5 ? 'mid' : 'low'}`"
+                    >
                       {{ (chunk.confidence * 100).toFixed(0) }}%
                     </span>
                     <NTag size="small" round :bordered="false" :type="chunk.status === 'ready' ? 'success' : 'warning'">
@@ -340,10 +363,23 @@ function navigateToRef(reference: KnowledgeReference) {
                 <div class="card-desc">{{ chunk.content }}</div>
                 <div class="mt-10px flex flex-wrap items-center justify-between gap-8px">
                   <div class="flex flex-wrap gap-4px">
-                    <NTag v-if="chunk.type === 'image-region'" size="small" round :bordered="false" class="detail-tag detail-tag--image">
+                    <NTag
+                      v-if="chunk.type === 'image-region'"
+                      size="small"
+                      round
+                      :bordered="false"
+                      class="detail-tag detail-tag--image"
+                    >
                       图片要素
                     </NTag>
-                    <NTag v-for="tag in chunk.keywords" :key="tag" size="small" round :bordered="false" class="detail-tag">
+                    <NTag
+                      v-for="tag in chunk.keywords"
+                      :key="tag"
+                      size="small"
+                      round
+                      :bordered="false"
+                      class="detail-tag"
+                    >
                       {{ tag }}
                     </NTag>
                   </div>
@@ -366,13 +402,26 @@ function navigateToRef(reference: KnowledgeReference) {
                 <div class="flex items-center gap-6px">
                   <div class="ref-module-icon" :style="{ color: getRefTypeColor(item) }">
                     <SvgIcon
-                      :icon="item.module && moduleRefMeta[item.module] ? moduleRefMeta[item.module].icon : 'mdi:link-variant'"
+                      :icon="
+                        item.module && moduleRefMeta[item.module] ? moduleRefMeta[item.module].icon : 'mdi:link-variant'
+                      "
                       class="ref-module-icon__svg"
                     />
                   </div>
                   <div>
                     <div class="flex items-center gap-6px">
-                      <NTag size="small" round :bordered="false" :style="{ borderColor: getRefTypeColor(item) + '44', color: getRefTypeColor(item), background: getRefTypeColor(item) + '14' }">{{ item.type }}</NTag>
+                      <NTag
+                        size="small"
+                        round
+                        :bordered="false"
+                        :style="{
+                          borderColor: getRefTypeColor(item) + '44',
+                          color: getRefTypeColor(item),
+                          background: getRefTypeColor(item) + '14'
+                        }"
+                      >
+                        {{ item.type }}
+                      </NTag>
                       <div class="card-title">{{ item.name }}</div>
                     </div>
                     <div v-if="item.module" class="ref-module-label" :style="{ color: getRefTypeColor(item) }">
@@ -446,7 +495,9 @@ function navigateToRef(reference: KnowledgeReference) {
 .panel-surface {
   background: var(--surface-bg);
   border: 1px solid var(--surface-border);
-  box-shadow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 18px 40px rgba(1, 8, 18, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(32, 111, 202, 0.22),
+    0 18px 40px rgba(1, 8, 18, 0.45);
   border-radius: 4px;
   position: relative;
 }
@@ -658,8 +709,8 @@ function navigateToRef(reference: KnowledgeReference) {
   justify-content: center;
   flex-shrink: 0;
   background: currentColor;
-  mask-image: linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,0,0,0));
-  -webkit-mask-image: linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,0,0,0));
+  mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0));
+  -webkit-mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0));
   filter: drop-shadow(0 0 6px currentColor);
 }
 
@@ -709,7 +760,9 @@ function navigateToRef(reference: KnowledgeReference) {
 }
 
 .param-category {
-  & + & { margin-top: 16px; }
+  & + & {
+    margin-top: 16px;
+  }
 }
 
 .param-category__title {
@@ -734,10 +787,22 @@ function navigateToRef(reference: KnowledgeReference) {
   border-radius: 2px;
   flex-shrink: 0;
 
-  &--水文 { background: #29a3ff; box-shadow: 0 0 6px rgba(41, 163, 255, 0.4); }
-  &--地形 { background: #5ee8a0; box-shadow: 0 0 6px rgba(94, 232, 160, 0.4); }
-  &--情报 { background: #f1c40f; box-shadow: 0 0 6px rgba(241, 196, 15, 0.4); }
-  &--工程 { background: #a78bfa; box-shadow: 0 0 6px rgba(167, 139, 250, 0.4); }
+  &--水文 {
+    background: #29a3ff;
+    box-shadow: 0 0 6px rgba(41, 163, 255, 0.4);
+  }
+  &--地形 {
+    background: #5ee8a0;
+    box-shadow: 0 0 6px rgba(94, 232, 160, 0.4);
+  }
+  &--情报 {
+    background: #f1c40f;
+    box-shadow: 0 0 6px rgba(241, 196, 15, 0.4);
+  }
+  &--工程 {
+    background: #a78bfa;
+    box-shadow: 0 0 6px rgba(167, 139, 250, 0.4);
+  }
 }
 
 .param-empty {
@@ -775,20 +840,37 @@ function navigateToRef(reference: KnowledgeReference) {
   font-size: 12px;
   transition: background 0.2s;
 
-  &:last-child { border-bottom: none; }
-  &:hover { background: rgba(10, 45, 80, 0.5); }
+  &:last-child {
+    border-bottom: none;
+  }
+  &:hover {
+    background: rgba(10, 45, 80, 0.5);
+  }
 
   &--low {
     background: rgba(241, 196, 15, 0.06);
-    &:hover { background: rgba(241, 196, 15, 0.1); }
+    &:hover {
+      background: rgba(241, 196, 15, 0.1);
+    }
   }
 }
 
 .param-table__col {
-  &--name { flex: 0 0 110px; color: var(--text-primary); }
-  &--value { flex: 0 0 120px; }
-  &--conf { flex: 0 0 100px; }
-  &--source { flex: 1; display: flex; justify-content: flex-end; }
+  &--name {
+    flex: 0 0 110px;
+    color: var(--text-primary);
+  }
+  &--value {
+    flex: 0 0 120px;
+  }
+  &--conf {
+    flex: 0 0 100px;
+  }
+  &--source {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 
 .param-value {
@@ -814,7 +896,7 @@ function navigateToRef(reference: KnowledgeReference) {
     width: 40px;
     height: 4px;
     border-radius: 2px;
-    background: rgba(255,255,255,0.08);
+    background: rgba(255, 255, 255, 0.08);
     position: relative;
   }
   &::after {

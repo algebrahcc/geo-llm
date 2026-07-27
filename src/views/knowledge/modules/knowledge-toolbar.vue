@@ -42,15 +42,34 @@ const emit = defineEmits<{
     <div class="toolbar__right">
       <div class="filter-group">
         <span class="filter-label">来源</span>
-        <NSelect :value="source" class="filter-select" clearable placeholder="全部" :options="sourceOptions" @update:value="emit('update:source', $event || '')" />
+        <NSelect
+          :value="source"
+          class="filter-select"
+          clearable
+          placeholder="全部"
+          :options="sourceOptions"
+          @update:value="emit('update:source', $event || '')"
+        />
       </div>
       <div class="filter-group">
         <span class="filter-label">状态</span>
-        <NSelect :value="status" class="filter-select" placeholder="全部" :options="statusOptions" @update:value="emit('update:status', $event)" />
+        <NSelect
+          :value="status"
+          class="filter-select"
+          placeholder="全部"
+          :options="statusOptions"
+          @update:value="emit('update:status', $event)"
+        />
       </div>
       <div class="filter-group">
         <span class="filter-label">排序</span>
-        <NSelect :value="sort" class="filter-select" placeholder="默认" :options="sortOptions" @update:value="emit('update:sort', $event)" />
+        <NSelect
+          :value="sort"
+          class="filter-select"
+          placeholder="默认"
+          :options="sortOptions"
+          @update:value="emit('update:sort', $event)"
+        />
       </div>
       <NButton size="small" @click="emit('reset')">重置</NButton>
       <NButton type="primary" size="small" @click="emit('importDoc')">
@@ -216,7 +235,11 @@ const emit = defineEmits<{
   --n-text-color-pressed: #e9f5ff !important;
   --n-text-color-focus: #fff !important;
   box-shadow: inset 0 1px 0 rgba(152, 219, 255, 0.06);
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 :deep(.n-button:hover) {

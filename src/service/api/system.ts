@@ -40,7 +40,7 @@ export function fetchUserDelete(ids: number[]) {
   return request<void>({
     url: '/system/user',
     method: 'delete',
-    data: ids
+    data: { ids }
   });
 }
 
@@ -93,7 +93,7 @@ export function fetchRoleDelete(ids: number[]) {
   return request<void>({
     url: '/system/role',
     method: 'delete',
-    data: ids
+    data: { ids }
   });
 }
 
@@ -152,6 +152,6 @@ export function fetchMenuDelete(ids: number[]) {
   return request<void>({
     url: '/system/menu',
     method: 'delete',
-    data: ids
+    data: { ids }
   });
 }

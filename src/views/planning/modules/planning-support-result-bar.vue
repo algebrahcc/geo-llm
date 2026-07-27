@@ -12,7 +12,7 @@ interface Props {
   cards?: readonly PlanningSupportResultCard[];
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   collapsed: false,
   selectedKey: null,
   cards: () => planningSupportResultCards

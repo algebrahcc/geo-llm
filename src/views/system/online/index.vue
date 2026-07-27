@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import { h, onMounted, reactive, ref } from 'vue';
-import {
-  NButton,
-  NDataTable,
-  NInput,
-  NPopconfirm,
-  NTooltip,
-  type DataTableColumns
-} from 'naive-ui';
+import { NButton, NDataTable, NInput, NPopconfirm, NTooltip, type DataTableColumns } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { fetchOnlineUserPage, fetchKickoutOnlineUser } from '@/service/api/monitor';
 
@@ -33,9 +26,15 @@ function renderUserCell(row: Api.Monitor.OnlineUserItem) {
 // ==================== 表格 ====================
 const columns: DataTableColumns<Api.Monitor.OnlineUserItem> = [
   { title: '用户名', key: 'username', width: 200, render: renderUserCell },
-  { title: '客户端', key: 'clientType', width: 120, align: 'center', render(row) {
-    return h('span', { class: 'sys-chip' }, row.clientType || '未知');
-  } },
+  {
+    title: '客户端',
+    key: 'clientType',
+    width: 120,
+    align: 'center',
+    render(row) {
+      return h('span', { class: 'sys-chip' }, row.clientType || '未知');
+    }
+  },
   { title: 'IP', key: 'ip', width: 140 },
   { title: '地址', key: 'address', width: 140, ellipsis: { tooltip: true } },
   { title: '浏览器', key: 'browser', width: 120 },
@@ -168,4 +167,3 @@ function handleReset() {
     </section>
   </div>
 </template>
-

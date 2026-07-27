@@ -51,12 +51,7 @@ function getSafetyColor(safety: string): string {
         <span class="conf-dot" />
         置信度 {{ confidence }}%
       </span>
-      <button
-        v-if="plans.length > 0 && !collapsed"
-        type="button"
-        class="expand-all-btn"
-        @click="toggleExpandAll"
-      >
+      <button v-if="plans.length > 0 && !collapsed" type="button" class="expand-all-btn" @click="toggleExpandAll">
         {{ allExpanded ? '折叠全部' : '展开全部' }}
       </button>
       <div class="header-actions">
@@ -77,7 +72,9 @@ function getSafetyColor(safety: string): string {
 
       <template v-else>
         <div class="plan-desc">
-          共生成 <strong>{{ plans.length }}</strong> 项可行方案，综合知识库检索与智能体推理分析，按推荐指数排序：
+          共生成
+          <strong>{{ plans.length }}</strong>
+          项可行方案，综合知识库检索与智能体推理分析，按推荐指数排序：
         </div>
 
         <div class="plan-cards">
@@ -129,14 +126,17 @@ function getSafetyColor(safety: string): string {
                 <div class="card-expand-hint">
                   <SvgIcon
                     class="hint-chevron"
-                    :icon="(allExpanded || expandedCard === plan.rank) ? 'mdi:chevron-right' : 'mdi:chevron-down'"
+                    :icon="allExpanded || expandedCard === plan.rank ? 'mdi:chevron-right' : 'mdi:chevron-down'"
                   />
-                  <span>{{ (allExpanded || expandedCard === plan.rank) ? '收起' : '查看详情' }}</span>
+                  <span>{{ allExpanded || expandedCard === plan.rank ? '收起' : '查看详情' }}</span>
                 </div>
               </div>
 
               <!-- ══ 展开详情（CSS 过渡高度，避免 v-if 跳变） ══ -->
-              <div class="card-detail-wrapper" :class="{ 'card-detail-wrapper--open': allExpanded || expandedCard === plan.rank }">
+              <div
+                class="card-detail-wrapper"
+                :class="{ 'card-detail-wrapper--open': allExpanded || expandedCard === plan.rank }"
+              >
                 <div class="card-detail">
                   <div class="detail-grid">
                     <div class="detail-block">
@@ -274,7 +274,9 @@ function getSafetyColor(safety: string): string {
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   font-size: 16px;
-  transition: background 0.18s, color 0.18s;
+  transition:
+    background 0.18s,
+    color 0.18s;
 }
 
 .action-btn:hover {
@@ -361,7 +363,11 @@ function getSafetyColor(safety: string): string {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   overflow: hidden;
-  transition: border-color 0.25s, box-shadow 0.25s, min-width 0.3s, max-width 0.3s;
+  transition:
+    border-color 0.25s,
+    box-shadow 0.25s,
+    min-width 0.3s,
+    max-width 0.3s;
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.015);
 }
@@ -554,7 +560,6 @@ function getSafetyColor(safety: string): string {
   overflow-y: auto;
   border-left: 1px solid rgba(255, 255, 255, 0.06);
 }
-
 
 .detail-grid {
   display: grid;

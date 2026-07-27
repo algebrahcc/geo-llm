@@ -12,7 +12,7 @@ interface Props {
   cards?: readonly PlanningRouteResultCard[];
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   collapsed: false,
   selectedKey: null,
   cards: () => planningRouteResultCards

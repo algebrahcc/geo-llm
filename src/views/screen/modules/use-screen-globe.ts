@@ -20,7 +20,13 @@ import {
   Viewer
 } from 'cesium';
 import { screenGlobePoints, screenHeatmapPoints } from '@/mock/screen';
-import { getGlobalImageryUrl, getRegionImageryUrl, getLocalImageryConfig, isOnlineImagery, getOnlineImageryProviderOptions } from '@/utils/imagery';
+import {
+  getGlobalImageryUrl,
+  getRegionImageryUrl,
+  getLocalImageryConfig,
+  isOnlineImagery,
+  getOnlineImageryProviderOptions
+} from '@/utils/imagery';
 import { addScatterPoints, updateAnimState, updateRingEntities } from '@/utils/cesium-anim';
 
 export type SceneModeKey = '3d' | '2d';
@@ -119,16 +125,24 @@ export function useScreenGlobe() {
       let r: number, g: number, b: number;
       if (alpha < 0.25) {
         const t = alpha / 0.25;
-        r = 0; g = Math.floor(t * 200); b = Math.floor(100 + t * 155);
+        r = 0;
+        g = Math.floor(t * 200);
+        b = Math.floor(100 + t * 155);
       } else if (alpha < 0.5) {
         const t = (alpha - 0.25) / 0.25;
-        r = 0; g = Math.floor(200 + t * 55); b = Math.floor(255 - t * 55);
+        r = 0;
+        g = Math.floor(200 + t * 55);
+        b = Math.floor(255 - t * 55);
       } else if (alpha < 0.75) {
         const t = (alpha - 0.5) / 0.25;
-        r = Math.floor(t * 255); g = 255; b = 0;
+        r = Math.floor(t * 255);
+        g = 255;
+        b = 0;
       } else {
         const t = (alpha - 0.75) / 0.25;
-        r = 255; g = Math.floor(255 - t * 200); b = 0;
+        r = 255;
+        g = Math.floor(255 - t * 200);
+        b = 0;
       }
       data[i] = r;
       data[i + 1] = g;
@@ -138,10 +152,7 @@ export function useScreenGlobe() {
     ctx.putImageData(imageData, 0, 0);
 
     const rectangle = Rectangle.fromDegrees(west, south, east, north);
-    viewer.imageryLayers.addImageryProvider(
-      new SingleTileImageryProvider({ url: canvas.toDataURL(), rectangle }),
-      0
-    );
+    viewer.imageryLayers.addImageryProvider(new SingleTileImageryProvider({ url: canvas.toDataURL(), rectangle }), 0);
   }
 
   // ---- Scene mode switching (3D / 2D only) ----
@@ -264,8 +275,14 @@ export function useScreenGlobe() {
 
     // Mouse hover pause auto-rotate
     const cesiumContainer = viewer.container;
-    cesiumContainer.addEventListener('mouseenter', () => { mouseOverContainer = true; autoRotateEnabled = false; });
-    cesiumContainer.addEventListener('mouseleave', () => { mouseOverContainer = false; autoRotateEnabled = true; });
+    cesiumContainer.addEventListener('mouseenter', () => {
+      mouseOverContainer = true;
+      autoRotateEnabled = false;
+    });
+    cesiumContainer.addEventListener('mouseleave', () => {
+      mouseOverContainer = false;
+      autoRotateEnabled = true;
+    });
 
     startAutoRotate();
 

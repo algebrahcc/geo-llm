@@ -244,5 +244,5 @@ export const planningRouteCCoords: readonly [number, number][] = [
 export const planningOsrmMetrics = {
   'route-a': { distance: 27429, duration: 1967 },
   'route-b': { distance: 31794, duration: 2804 },
-  'route-c': { distance: 35335, duration: 3625 },
+  'route-c': { distance: 35335, duration: 3625 }
 } as const;

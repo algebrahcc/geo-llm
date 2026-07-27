@@ -73,17 +73,17 @@ const analysisVectorLayer = shallowRef<VectorLayer<VectorSource> | null>(null);
 const categoryCountMap = computed<Record<string, number>>(() => {
   return dataList.value.reduce<Record<string, number>>((acc, item) => {
     const typeToKeys: Record<string, string[]> = {
-      '遥感影像': ['img', 'img-optical', 'img-sar', 'img-aerial', 'img-multi'],
-      '数字高程': ['dem', 'dem-dem', 'dem-dsm', 'dem-derived'],
-      '倾斜摄影': ['oblique', 'oblique-city', 'oblique-single', 'oblique-3dtiles'],
-      '气象水文': ['hydro', 'hydro-rain', 'hydro-river', 'hydro-lake', 'hydro-station'],
-      '地下管网': ['pipe', 'pipe-water', 'pipe-other', 'pipe-elec'],
-      '矢量基础': ['vec', 'vec-dlg', 'vec-building', 'vec-traffic', 'vec-admin', 'vec-landuse'],
-      '地名地址': ['poi', 'poi-strategic', 'poi-target', 'poi-facility'],
-      '战场专题': ['battlefield', 'bf-climate', 'bf-geology', 'bf-em', 'bf-pop'],
-      '障碍物与目标': ['obstacle', 'obs-urban', 'obs-traffic', 'obs-defense'],
-      '多模态语料': ['corpus', 'corpus-text', 'corpus-image', 'corpus-media'],
-      '历史方案': ['plan', 'plan-river', 'plan-route', 'plan-building']
+      遥感影像: ['img', 'img-optical', 'img-sar', 'img-aerial', 'img-multi'],
+      数字高程: ['dem', 'dem-dem', 'dem-dsm', 'dem-derived'],
+      倾斜摄影: ['oblique', 'oblique-city', 'oblique-single', 'oblique-3dtiles'],
+      气象水文: ['hydro', 'hydro-rain', 'hydro-river', 'hydro-lake', 'hydro-station'],
+      地下管网: ['pipe', 'pipe-water', 'pipe-other', 'pipe-elec'],
+      矢量基础: ['vec', 'vec-dlg', 'vec-building', 'vec-traffic', 'vec-admin', 'vec-landuse'],
+      地名地址: ['poi', 'poi-strategic', 'poi-target', 'poi-facility'],
+      战场专题: ['battlefield', 'bf-climate', 'bf-geology', 'bf-em', 'bf-pop'],
+      障碍物与目标: ['obstacle', 'obs-urban', 'obs-traffic', 'obs-defense'],
+      多模态语料: ['corpus', 'corpus-text', 'corpus-image', 'corpus-media'],
+      历史方案: ['plan', 'plan-river', 'plan-route', 'plan-building']
     };
     const keys = typeToKeys[item.type];
     if (keys) {
@@ -133,7 +133,6 @@ const scenarioOptions = computed<SelectOption[]>(() => [
   { label: '全部场景', value: '' },
   { label: '渡河保障', value: '渡河保障' },
   { label: '机动路线规划', value: '机动路线规划' },
-  { label: '楼宇夺控', value: '楼宇夺控' },
   { label: '城市攻防', value: '城市攻防' },
   { label: '交通研判', value: '交通研判' },
   { label: '地形分析', value: '地形分析' },
@@ -147,17 +146,17 @@ const filteredData = computed(() => {
 
   // Tab 过滤 — 新 11 类映射
   const TAB_TO_TYPE: Record<string, string[]> = {
-    '遥感影像': ['遥感影像'],
-    '数字高程': ['数字高程'],
-    '倾斜摄影': ['倾斜摄影'],
-    '气象水文': ['气象水文'],
-    '地下管网': ['地下管网'],
-    '矢量基础': ['矢量基础'],
-    '地名地址': ['地名地址'],
-    '战场专题': ['战场专题'],
-    '障碍物与目标': ['障碍物与目标'],
-    '多模态语料': ['多模态语料'],
-    '历史方案': ['历史方案']
+    遥感影像: ['遥感影像'],
+    数字高程: ['数字高程'],
+    倾斜摄影: ['倾斜摄影'],
+    气象水文: ['气象水文'],
+    地下管网: ['地下管网'],
+    矢量基础: ['矢量基础'],
+    地名地址: ['地名地址'],
+    战场专题: ['战场专题'],
+    障碍物与目标: ['障碍物与目标'],
+    多模态语料: ['多模态语料'],
+    历史方案: ['历史方案']
   };
 
   if (activeTab.value && activeTab.value !== '总览') {
@@ -169,17 +168,17 @@ const filteredData = computed(() => {
 
   if (selectedCategory.value) {
     const TYPE_TO_CATEGORY: Record<string, string[]> = {
-      '遥感影像': ['img', 'img-optical', 'img-sar', 'img-aerial', 'img-multi'],
-      '数字高程': ['dem', 'dem-dem', 'dem-dsm', 'dem-derived'],
-      '倾斜摄影': ['oblique', 'oblique-city', 'oblique-single', 'oblique-3dtiles'],
-      '气象水文': ['hydro', 'hydro-rain', 'hydro-river', 'hydro-lake', 'hydro-station'],
-      '地下管网': ['pipe', 'pipe-water', 'pipe-other', 'pipe-elec'],
-      '矢量基础': ['vec', 'vec-dlg', 'vec-building', 'vec-traffic', 'vec-admin', 'vec-landuse'],
-      '地名地址': ['poi', 'poi-strategic', 'poi-target', 'poi-facility'],
-      '战场专题': ['battlefield', 'bf-climate', 'bf-geology', 'bf-em', 'bf-pop'],
-      '障碍物与目标': ['obstacle', 'obs-urban', 'obs-traffic', 'obs-defense'],
-      '多模态语料': ['corpus', 'corpus-text', 'corpus-image', 'corpus-media'],
-      '历史方案': ['plan', 'plan-river', 'plan-route', 'plan-building']
+      遥感影像: ['img', 'img-optical', 'img-sar', 'img-aerial', 'img-multi'],
+      数字高程: ['dem', 'dem-dem', 'dem-dsm', 'dem-derived'],
+      倾斜摄影: ['oblique', 'oblique-city', 'oblique-single', 'oblique-3dtiles'],
+      气象水文: ['hydro', 'hydro-rain', 'hydro-river', 'hydro-lake', 'hydro-station'],
+      地下管网: ['pipe', 'pipe-water', 'pipe-other', 'pipe-elec'],
+      矢量基础: ['vec', 'vec-dlg', 'vec-building', 'vec-traffic', 'vec-admin', 'vec-landuse'],
+      地名地址: ['poi', 'poi-strategic', 'poi-target', 'poi-facility'],
+      战场专题: ['battlefield', 'bf-climate', 'bf-geology', 'bf-em', 'bf-pop'],
+      障碍物与目标: ['obstacle', 'obs-urban', 'obs-traffic', 'obs-defense'],
+      多模态语料: ['corpus', 'corpus-text', 'corpus-image', 'corpus-media'],
+      历史方案: ['plan', 'plan-river', 'plan-route', 'plan-building']
     };
     filtered = filtered.filter(item => {
       const cats = TYPE_TO_CATEGORY[item.type];
@@ -325,11 +324,7 @@ const columns = computed<DataTableColumns<CatalogItem>>(() => [
     align: 'center',
     render(row) {
       const cfg = getStatusConfig(row.status);
-      return h(
-        'span',
-        { class: `status-tag status-tag--${cfg.type}` },
-        cfg.label
-      );
+      return h('span', { class: `status-tag status-tag--${cfg.type}` }, cfg.label);
     }
   },
   {
@@ -417,34 +412,34 @@ function normalizeSize(size: string) {
 
 function getDataTypeIcon(type: string): string {
   const iconMap: Record<string, string> = {
-    '遥感影像': 'mdi:database',
-    '数字高程': 'mdi:terrain',
-    '倾斜摄影': 'mdi:layers-triple',
-    '气象水文': 'mdi:weather-rainy',
-    '地下管网': 'mdi:transit-connection-horizontal',
-    '矢量基础': 'mdi:vector-polyline',
-    '地名地址': 'mdi:map-marker-outline',
-    '战场专题': 'mdi:shield-outline',
-    '障碍物与目标': 'mdi:alert-octagon-outline',
-    '多模态语料': 'mdi:file-document-multiple-outline',
-    '历史方案': 'mdi:history'
+    遥感影像: 'mdi:database',
+    数字高程: 'mdi:terrain',
+    倾斜摄影: 'mdi:layers-triple',
+    气象水文: 'mdi:weather-rainy',
+    地下管网: 'mdi:transit-connection-horizontal',
+    矢量基础: 'mdi:vector-polyline',
+    地名地址: 'mdi:map-marker-outline',
+    战场专题: 'mdi:shield-outline',
+    障碍物与目标: 'mdi:alert-octagon-outline',
+    多模态语料: 'mdi:file-document-multiple-outline',
+    历史方案: 'mdi:history'
   };
   return iconMap[type] || 'mdi:file-document-outline';
 }
 
 function getTypeTagClass(type: string) {
   const typeClassMap: Record<string, string> = {
-    '遥感影像': 'type-chip--image',
-    '数字高程': 'type-chip--elevation',
-    '倾斜摄影': 'type-chip--oblique',
-    '气象水文': 'type-chip--hydro',
-    '地下管网': 'type-chip--pipe',
-    '矢量基础': 'type-chip--vector',
-    '地名地址': 'type-chip--poi',
-    '战场专题': 'type-chip--battlefield',
-    '障碍物与目标': 'type-chip--obstacle',
-    '多模态语料': 'type-chip--corpus',
-    '历史方案': 'type-chip--plan'
+    遥感影像: 'type-chip--image',
+    数字高程: 'type-chip--elevation',
+    倾斜摄影: 'type-chip--oblique',
+    气象水文: 'type-chip--hydro',
+    地下管网: 'type-chip--pipe',
+    矢量基础: 'type-chip--vector',
+    地名地址: 'type-chip--poi',
+    战场专题: 'type-chip--battlefield',
+    障碍物与目标: 'type-chip--obstacle',
+    多模态语料: 'type-chip--corpus',
+    历史方案: 'type-chip--plan'
   };
   return typeClassMap[type] || 'type-chip--default';
 }
@@ -1000,13 +995,25 @@ function getVectorStyle(featureType: string): Style {
       fill: new Fill({ color: 'rgba(102, 187, 106, 0.25)' })
     }),
     vehicle: new Style({
-      image: new CircleStyle({ radius: 7, fill: new Fill({ color: '#f44336' }), stroke: new Stroke({ color: '#fff', width: 2 }) })
+      image: new CircleStyle({
+        radius: 7,
+        fill: new Fill({ color: '#f44336' }),
+        stroke: new Stroke({ color: '#fff', width: 2 })
+      })
     }),
     ship: new Style({
-      image: new CircleStyle({ radius: 7, fill: new Fill({ color: '#2196f3' }), stroke: new Stroke({ color: '#fff', width: 2 }) })
+      image: new CircleStyle({
+        radius: 7,
+        fill: new Fill({ color: '#2196f3' }),
+        stroke: new Stroke({ color: '#fff', width: 2 })
+      })
     }),
     aircraft: new Style({
-      image: new CircleStyle({ radius: 8, fill: new Fill({ color: '#e91e63' }), stroke: new Stroke({ color: '#fff', width: 2 }) })
+      image: new CircleStyle({
+        radius: 8,
+        fill: new Fill({ color: '#e91e63' }),
+        stroke: new Stroke({ color: '#fff', width: 2 })
+      })
     }),
     'road-damage': new Style({
       stroke: new Stroke({ color: '#ff1744', width: 2, lineDash: [8, 4] }),
@@ -1146,7 +1153,6 @@ watch(analysisVisible, val => {
 onBeforeUnmount(() => {
   destroyAnalysisMap();
 });
-
 </script>
 
 <template>
@@ -1439,7 +1445,9 @@ onBeforeUnmount(() => {
             <div class="detail-grid">
               <div class="detail-field">
                 <span class="detail-field__label">标注样本数</span>
-                <span class="detail-field__value detail-field__value--mono">{{ detailItem.finetuneStatus.sampleCount?.toLocaleString() || '—' }}</span>
+                <span class="detail-field__value detail-field__value--mono">
+                  {{ detailItem.finetuneStatus.sampleCount?.toLocaleString() || '—' }}
+                </span>
               </div>
               <div class="detail-field">
                 <span class="detail-field__label">标注完成度</span>
@@ -1448,12 +1456,20 @@ onBeforeUnmount(() => {
               <div v-if="detailItem.finetuneStatus.taskTypes?.length" class="detail-field detail-field--full">
                 <span class="detail-field__label">适用任务</span>
                 <div class="detail-tags">
-                  <span v-for="t in detailItem.finetuneStatus.taskTypes" :key="t" class="detail-tag detail-tag--finetune">{{ t }}</span>
+                  <span
+                    v-for="t in detailItem.finetuneStatus.taskTypes"
+                    :key="t"
+                    class="detail-tag detail-tag--finetune"
+                  >
+                    {{ t }}
+                  </span>
                 </div>
               </div>
               <div v-if="detailItem.finetuneStatus.modelVersion" class="detail-field detail-field--full">
                 <span class="detail-field__label">模型版本</span>
-                <span class="detail-field__value detail-field__value--mono">{{ detailItem.finetuneStatus.modelVersion }}</span>
+                <span class="detail-field__value detail-field__value--mono">
+                  {{ detailItem.finetuneStatus.modelVersion }}
+                </span>
               </div>
             </div>
           </div>
@@ -1521,7 +1537,11 @@ onBeforeUnmount(() => {
                       <SvgIcon :icon="getSubItemIcon(item.key)" />
                     </span>
                     <span class="analysis-sub-item__label">{{ item.label }}</span>
-                    <SvgIcon v-if="isAnalysisLoading && selectedAnalysisType === item.key" icon="mdi:loading" class="analysis-sub-item__spinner" />
+                    <SvgIcon
+                      v-if="isAnalysisLoading && selectedAnalysisType === item.key"
+                      icon="mdi:loading"
+                      class="analysis-sub-item__spinner"
+                    />
                   </div>
                 </div>
               </NCollapseItem>
@@ -1780,12 +1800,16 @@ onBeforeUnmount(() => {
 }
 
 .catalog-search-input :deep(.n-input:hover) {
-  box-shadow: inset 0 1px 0 rgba(136, 214, 255, 0.04), 0 2px 8px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(136, 214, 255, 0.04),
+    0 2px 8px rgba(0, 0, 0, 0.25);
   border-color: rgba(58, 160, 255, 0.5) !important;
 }
 
 .catalog-search-input :deep(.n-input--focus) {
-  box-shadow: 0 0 0 2px rgba(41, 163, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 0 0 2px rgba(41, 163, 255, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.3);
   background: linear-gradient(180deg, rgba(3, 20, 38, 0.98) 0%, rgba(2, 16, 31, 0.98) 100%);
 }
 
@@ -1797,7 +1821,9 @@ onBeforeUnmount(() => {
 
 /* Enhanced placeholder animation */
 .catalog-search-input :deep(.n-input__placeholder) {
-  transition: color 0.3s ease, transform 0.3s ease;
+  transition:
+    color 0.3s ease,
+    transform 0.3s ease;
 }
 
 .catalog-search-input :deep(.n-input--focus .n-input__placeholder) {
@@ -1860,7 +1886,9 @@ onBeforeUnmount(() => {
   gap: 4px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  box-shadow: inset 0 1px 0 rgba(181, 233, 255, 0.18), 0 2px 8px rgba(12, 110, 206, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(181, 233, 255, 0.18),
+    0 2px 8px rgba(12, 110, 206, 0.25);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -1878,7 +1906,9 @@ onBeforeUnmount(() => {
 }
 
 .catalog-search-btn:hover {
-  box-shadow: inset 0 1px 0 rgba(181, 233, 255, 0.25), 0 4px 16px rgba(12, 110, 206, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(181, 233, 255, 0.25),
+    0 4px 16px rgba(12, 110, 206, 0.35);
   transform: translateY(-2px);
 }
 
@@ -1888,7 +1918,9 @@ onBeforeUnmount(() => {
 
 .catalog-search-btn:active {
   transform: translateY(0);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 4px rgba(12, 110, 206, 0.2);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 1px 4px rgba(12, 110, 206, 0.2);
   transition: all 0.1s ease;
 }
 
@@ -1923,7 +1955,9 @@ onBeforeUnmount(() => {
   --n-padding: 0 18px !important;
   font-weight: 600;
   letter-spacing: 0.3px;
-  box-shadow: inset 0 1px 0 rgba(181, 233, 255, 0.14), 0 4px 16px rgba(4, 79, 162, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(181, 233, 255, 0.14),
+    0 4px 16px rgba(4, 79, 162, 0.22);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -1941,7 +1975,9 @@ onBeforeUnmount(() => {
 }
 
 .catalog-primary-btn:hover {
-  box-shadow: inset 0 1px 0 rgba(181, 233, 255, 0.22), 0 6px 24px rgba(4, 79, 162, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(181, 233, 255, 0.22),
+    0 6px 24px rgba(4, 79, 162, 0.35);
   transform: translateY(-2px);
 }
 
@@ -1951,7 +1987,9 @@ onBeforeUnmount(() => {
 
 .catalog-primary-btn:active {
   transform: translateY(0);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(4, 79, 162, 0.2);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 2px 8px rgba(4, 79, 162, 0.2);
   transition: all 0.1s ease;
 }
 
@@ -1979,7 +2017,9 @@ onBeforeUnmount(() => {
 }
 
 .catalog-ghost-btn:hover {
-  box-shadow: inset 0 1px 0 rgba(129, 211, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(129, 211, 255, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.25);
   transform: translateY(-2px);
   border-color: rgba(58, 160, 255, 0.5) !important;
 }
@@ -2011,13 +2051,17 @@ onBeforeUnmount(() => {
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(9, 43, 82, 0.96) 0%, rgba(4, 22, 43, 0.96) 100%);
   border: 1px solid rgba(46, 130, 223, 0.24);
-  box-shadow: inset 0 1px 0 rgba(152, 219, 255, 0.06), 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(152, 219, 255, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.2);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .catalog-filter-card:hover {
   border-color: rgba(58, 160, 255, 0.4);
-  box-shadow: inset 0 1px 0 rgba(152, 219, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(152, 219, 255, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.3);
   transform: translateY(-1px);
 }
 
@@ -2330,7 +2374,9 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
   z-index: 10;
 }
 
@@ -2692,10 +2738,22 @@ onBeforeUnmount(() => {
   vertical-align: middle;
 }
 
-.detail-grade--A { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-.detail-grade--B { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
-.detail-grade--C { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
-.detail-grade--D { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.detail-grade--A {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+.detail-grade--B {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+.detail-grade--C {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+.detail-grade--D {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
 
 .detail-audit-badge {
   display: inline-flex;
@@ -2707,9 +2765,18 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
-.detail-audit-badge--approved { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-.detail-audit-badge--pending { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
-.detail-audit-badge--rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.detail-audit-badge--approved {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+.detail-audit-badge--pending {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+.detail-audit-badge--rejected {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
 
 .detail-steps {
   display: flex;
@@ -2745,12 +2812,36 @@ onBeforeUnmount(() => {
 }
 
 /* New type-chip variants */
-.type-chip--vector { background: rgba(99, 102, 241, 0.12); border-color: rgba(99, 102, 241, 0.3); color: rgba(165, 180, 252, 0.9); }
-.type-chip--poi { background: rgba(236, 72, 153, 0.12); border-color: rgba(236, 72, 153, 0.3); color: rgba(244, 114, 182, 0.9); }
-.type-chip--battlefield { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.3); color: rgba(248, 113, 113, 0.9); }
-.type-chip--obstacle { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3); color: rgba(251, 191, 36, 0.9); }
-.type-chip--corpus { background: rgba(20, 184, 166, 0.12); border-color: rgba(20, 184, 166, 0.3); color: rgba(94, 234, 212, 0.9); }
-.type-chip--plan { background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3); color: rgba(192, 132, 252, 0.9); }
+.type-chip--vector {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: rgba(165, 180, 252, 0.9);
+}
+.type-chip--poi {
+  background: rgba(236, 72, 153, 0.12);
+  border-color: rgba(236, 72, 153, 0.3);
+  color: rgba(244, 114, 182, 0.9);
+}
+.type-chip--battlefield {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: rgba(248, 113, 113, 0.9);
+}
+.type-chip--obstacle {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: rgba(251, 191, 36, 0.9);
+}
+.type-chip--corpus {
+  background: rgba(20, 184, 166, 0.12);
+  border-color: rgba(20, 184, 166, 0.3);
+  color: rgba(94, 234, 212, 0.9);
+}
+.type-chip--plan {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.3);
+  color: rgba(192, 132, 252, 0.9);
+}
 
 :deep(.n-tree-node-content) {
   height: 36px;
@@ -2809,8 +2900,6 @@ onBeforeUnmount(() => {
 :deep(.catalog-filter__select .n-base-selection-input) {
   padding-left: 6px;
 }
-
-
 
 .catalog-sidebar__panel::-webkit-scrollbar,
 .catalog-data-table :deep(.n-data-table-base-table-body::-webkit-scrollbar) {
@@ -3002,7 +3091,9 @@ onBeforeUnmount(() => {
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
     z-index: 10;
   }
 
@@ -3407,6 +3498,8 @@ onBeforeUnmount(() => {
 
 /* ── Keyframes ── */
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

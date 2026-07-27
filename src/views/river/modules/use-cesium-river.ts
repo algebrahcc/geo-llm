@@ -176,12 +176,22 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
 
   function syncLayerVisibility() {
     const { imageryLayers } = base;
-    imageryLayers.forEach(layer => { layer.show = layerVisibility.imagery; });
+    imageryLayers.forEach(layer => {
+      layer.show = layerVisibility.imagery;
+    });
 
-    staticEntities.channel.forEach(entity => { entity.show = layerVisibility.channel; });
-    staticEntities.assembly.forEach(entity => { entity.show = layerVisibility.assembly; });
-    planEntities.route.forEach(entity => { entity.show = layerVisibility.route; });
-    planEntities.risk.forEach(entity => { entity.show = layerVisibility.risk; });
+    staticEntities.channel.forEach(entity => {
+      entity.show = layerVisibility.channel;
+    });
+    staticEntities.assembly.forEach(entity => {
+      entity.show = layerVisibility.assembly;
+    });
+    planEntities.route.forEach(entity => {
+      entity.show = layerVisibility.route;
+    });
+    planEntities.risk.forEach(entity => {
+      entity.show = layerVisibility.risk;
+    });
     [...planEntities.mark, ...dynamicMarkEntities].forEach(entity => {
       entity.show = layerVisibility.mark;
     });

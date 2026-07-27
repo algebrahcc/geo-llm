@@ -69,7 +69,6 @@ export const agentLabelMap: Record<AgentKey, string> = {
 export type ScenarioTag =
   | '渡河保障'
   | '机动路线规划'
-  | '楼宇夺控'
   | '城市攻防'
   | '交通研判'
   | '地形分析'
@@ -470,7 +469,7 @@ export const catalogData: CatalogItem[] = [
     standardizeStatus: std(),
     tileStatus: tile(true, ['TMS', 'WMS', 'WMTS']),
     agentBinding: ['building-control', 'image-recognition', 'geo-analysis'],
-    scenarioTags: ['楼宇夺控', '城市攻防', '目标识别'],
+    scenarioTags: ['城市攻防', '目标识别'],
     audit: { auditor: '赵工', auditTime: '2026-04-08', status: 'approved' },
     finetuneStatus: { used: true, taskTypes: ['建筑检测', '车辆检测'], sampleCount: 8000, annotationComplete: 65 }
   },
@@ -619,7 +618,7 @@ export const catalogData: CatalogItem[] = [
     },
     tileStatus: tile(true, ['TMS', 'WMS', 'WMTS']),
     agentBinding: ['geo-analysis', 'building-control', 'mobility-planning'],
-    scenarioTags: ['地形分析', '楼宇夺控', '城市攻防'],
+    scenarioTags: ['地形分析', '城市攻防'],
     audit: { auditor: '赵工', auditTime: '2026-05-08', status: 'approved', comments: '质量优秀' },
     finetuneStatus: { used: false }
   },
@@ -645,7 +644,7 @@ export const catalogData: CatalogItem[] = [
     standardizeStatus: std(),
     tileStatus: tile(true, ['WMS', 'WMTS']),
     agentBinding: ['building-control', 'geo-analysis'],
-    scenarioTags: ['楼宇夺控', '城市攻防', '地形分析'],
+    scenarioTags: ['城市攻防', '地形分析'],
     audit: { auditor: '李工', auditTime: '2026-04-12', status: 'approved' },
     finetuneStatus: { used: false }
   },
@@ -742,7 +741,7 @@ export const catalogData: CatalogItem[] = [
     standardizeStatus: std(),
     tileStatus: tile(true, ['WMS', 'WMTS']),
     agentBinding: ['building-control', 'geo-analysis', 'image-recognition'],
-    scenarioTags: ['楼宇夺控', '城市攻防', '目标识别'],
+    scenarioTags: ['城市攻防', '目标识别'],
     audit: { auditor: '赵工', auditTime: '2026-05-12', status: 'approved' },
     finetuneStatus: { used: false }
   },
@@ -768,7 +767,7 @@ export const catalogData: CatalogItem[] = [
     standardizeStatus: std(),
     tileStatus: tile(true, ['WMS', 'WMTS']),
     agentBinding: ['building-control', 'geo-analysis'],
-    scenarioTags: ['楼宇夺控', '城市攻防'],
+    scenarioTags: ['城市攻防'],
     audit: { auditor: '赵工', auditTime: '2026-04-20', status: 'approved' },
     finetuneStatus: { used: false }
   },
@@ -794,7 +793,7 @@ export const catalogData: CatalogItem[] = [
     standardizeStatus: std(),
     tileStatus: tile(true, ['WMS', 'WMTS']),
     agentBinding: ['building-control', 'mobility-planning', 'geo-analysis'],
-    scenarioTags: ['楼宇夺控', '机动路线规划', '城市攻防', '态势感知'],
+    scenarioTags: ['机动路线规划', '城市攻防', '态势感知'],
     audit: { auditor: '王工', auditTime: '2026-05-05', status: 'approved' },
     finetuneStatus: { used: false }
   },
@@ -825,7 +824,7 @@ export const catalogData: CatalogItem[] = [
     standardizeStatus: std(),
     tileStatus: tile(false, []),
     agentBinding: ['river-crossing', 'building-control'],
-    scenarioTags: ['渡河保障', '交通研判', '楼宇夺控'],
+    scenarioTags: ['渡河保障', '交通研判'],
     audit: { auditor: '张工', auditTime: '2026-04-15', status: 'approved' },
     finetuneStatus: { used: false }
   },
@@ -851,7 +850,7 @@ export const catalogData: CatalogItem[] = [
     standardizeStatus: std(),
     tileStatus: tile(true, ['WMS', 'WMTS']),
     agentBinding: ['building-control', 'geo-analysis'],
-    scenarioTags: ['楼宇夺控', '城市攻防', '态势感知'],
+    scenarioTags: ['城市攻防', '态势感知'],
     audit: { auditor: '李工', auditTime: '2026-03-08', status: 'approved' },
     finetuneStatus: { used: false }
   },
@@ -877,7 +876,7 @@ export const catalogData: CatalogItem[] = [
     standardizeStatus: std(),
     tileStatus: tile(false, []),
     agentBinding: ['building-control', 'geo-analysis'],
-    scenarioTags: ['楼宇夺控', '城市攻防'],
+    scenarioTags: ['城市攻防'],
     audit: { auditor: '赵工', auditTime: '2026-02-22', status: 'pending', comments: '待补充部分区域' },
     finetuneStatus: { used: false }
   },
@@ -1253,7 +1252,7 @@ export const catalogData: CatalogItem[] = [
     },
     tileStatus: tile(true, ['WFS', 'WMS']),
     agentBinding: ['geo-analysis', 'mobility-planning', 'building-control'],
-    scenarioTags: ['地形分析', '楼宇夺控', '城市攻防'],
+    scenarioTags: ['地形分析', '城市攻防'],
     audit: { auditor: '赵工', auditTime: '2026-04-12', status: 'approved' },
     finetuneStatus: { used: false }
   },
@@ -1284,7 +1283,7 @@ export const catalogData: CatalogItem[] = [
     standardizeStatus: std(),
     tileStatus: tile(true, ['WFS', 'WMS']),
     agentBinding: ['building-control', 'geo-analysis', 'image-recognition'],
-    scenarioTags: ['楼宇夺控', '城市攻防', '目标识别'],
+    scenarioTags: ['城市攻防', '目标识别'],
     audit: { auditor: '张工', auditTime: '2026-04-18', status: 'approved' },
     finetuneStatus: {
       used: true,
@@ -2243,7 +2242,7 @@ export const catalogData: CatalogItem[] = [
     coordinateSystem: 'CGCS 2000',
     bbox: [116.1, 39.7, 116.5, 40.0],
     updateTime: '2026-03-05',
-    tags: ['楼宇夺控', '历史方案', '整编'],
+    tags: ['历史方案', '整编'],
     quality: q(82, 78, 80),
     lineage: lin('整编', ['原始方案收集', '结构化提取', '三维模型关联', '参数标准化'], 'v1.0', '2026-02-10'),
     standardizeStatus: {
@@ -2255,7 +2254,7 @@ export const catalogData: CatalogItem[] = [
     },
     tileStatus: tile(false, []),
     agentBinding: ['building-control', 'knowledge'],
-    scenarioTags: ['楼宇夺控', '城市攻防', '预案生成'],
+    scenarioTags: ['城市攻防', '预案生成'],
     audit: { auditor: '赵工', auditTime: '2026-03-03', status: 'pending', comments: '部分参数待补充' },
     finetuneStatus: { used: true, taskTypes: ['方案生成', '态势推演'], sampleCount: 100, annotationComplete: 80 }
   },
@@ -2285,7 +2284,7 @@ export const catalogData: CatalogItem[] = [
     },
     tileStatus: tile(false, []),
     agentBinding: ['river-crossing', 'mobility-planning', 'building-control', 'knowledge'],
-    scenarioTags: ['渡河保障', '机动路线规划', '楼宇夺控', '预案生成'],
+    scenarioTags: ['渡河保障', '机动路线规划', '预案生成'],
     audit: { auditor: '王工', auditTime: '2026-02-25', status: 'approved' },
     finetuneStatus: {
       used: true,

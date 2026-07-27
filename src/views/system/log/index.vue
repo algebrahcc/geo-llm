@@ -16,12 +16,7 @@ import {
   type DropdownOption
 } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import {
-  fetchLogPage,
-  fetchLogDetail,
-  exportLoginLog,
-  exportOperationLog
-} from '@/service/api/monitor';
+import { fetchLogPage, fetchLogDetail, exportLoginLog, exportOperationLog } from '@/service/api/monitor';
 
 defineOptions({ name: 'LogManage' });
 
@@ -42,10 +37,7 @@ function renderStatusText(status: Api.Monitor.LogStatus): { text: string; type: 
   // 对象形式：{ code, description }
   if (status && typeof status === 'object') {
     const code = status.code;
-    const ok =
-      code === 1 ||
-      status.description === '成功' ||
-      /success/i.test(status.description || '');
+    const ok = code === 1 || status.description === '成功' || /success/i.test(status.description || '');
     return { text: status.description || (ok ? '成功' : '失败'), type: ok ? 'success' : 'error' };
   }
   // 数字形式：1=成功，其余（含 0）=失败
@@ -211,11 +203,7 @@ const statusOptions = [
         <NButton @click="handleReset">重置</NButton>
       </div>
       <div class="sys-search-actions">
-        <NDropdown
-          trigger="click"
-          :options="exportOptions"
-          @select="handleExportSelect"
-        >
+        <NDropdown trigger="click" :options="exportOptions" @select="handleExportSelect">
           <NButton>
             <template #icon>
               <SvgIcon icon="mdi:download" />
@@ -255,12 +243,21 @@ const statusOptions = [
     </section>
 
     <!-- 详情弹窗 -->
-    <NModal v-model:show="detailVisible" title="日志详情" preset="card" class="sys-modal" style="width: 760px" :loading="detailLoading">
+    <NModal
+      v-model:show="detailVisible"
+      title="日志详情"
+      preset="card"
+      class="sys-modal"
+      style="width: 760px"
+      :loading="detailLoading"
+    >
       <NDescriptions v-if="detail" label-placement="left" bordered :column="2">
         <NDescriptionsItem label="描述">{{ detail.description }}</NDescriptionsItem>
         <NDescriptionsItem label="模块">{{ detail.module }}</NDescriptionsItem>
         <NDescriptionsItem label="状态">
-          <NTag :type="renderStatusText(detail.status).type" size="small">{{ renderStatusText(detail.status).text }}</NTag>
+          <NTag :type="renderStatusText(detail.status).type" size="small">
+            {{ renderStatusText(detail.status).text }}
+          </NTag>
         </NDescriptionsItem>
         <NDescriptionsItem label="耗时">{{ detail.timeTaken }} ms</NDescriptionsItem>
         <NDescriptionsItem label="IP">{{ detail.ip }}</NDescriptionsItem>
@@ -286,4 +283,3 @@ const statusOptions = [
     </NModal>
   </div>
 </template>
-

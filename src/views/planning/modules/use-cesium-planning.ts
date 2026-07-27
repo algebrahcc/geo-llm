@@ -219,17 +219,25 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
 
   function syncLayerVisibility() {
     const { imageryLayers } = base;
-    imageryLayers.forEach(layer => { layer.show = layerVisibility.imagery; });
+    imageryLayers.forEach(layer => {
+      layer.show = layerVisibility.imagery;
+    });
 
     updateRouteStyles();
 
-    selectedRiskEntities.forEach(entity => { entity.show = layerVisibility.risk; });
-    selectedObstacleEntities.forEach(entity => { entity.show = layerVisibility.obstacle; });
+    selectedRiskEntities.forEach(entity => {
+      entity.show = layerVisibility.risk;
+    });
+    selectedObstacleEntities.forEach(entity => {
+      entity.show = layerVisibility.obstacle;
+    });
 
     if (startMarkerEntity) startMarkerEntity.show = layerVisibility.markers;
     if (endMarkerEntity) endMarkerEntity.show = layerVisibility.markers;
 
-    waypointMarkerEntities.forEach(entity => { entity.show = layerVisibility.waypoints; });
+    waypointMarkerEntities.forEach(entity => {
+      entity.show = layerVisibility.waypoints;
+    });
 
     base.requestRender();
   }
@@ -316,12 +324,7 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
   }
 
   function flyToPreset() {
-    base.flyToLocation(
-      planningPresets.task.longitude,
-      planningPresets.task.latitude,
-      planningPresets.task.height,
-      1.3
-    );
+    base.flyToLocation(planningPresets.task.longitude, planningPresets.task.latitude, planningPresets.task.height, 1.3);
   }
 
   function setActiveTool(tool: PlanningInteractiveTool) {

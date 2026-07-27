@@ -8,7 +8,7 @@ export interface SceneToolbarItem {
   icon: string;
 }
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     /** 工具按钮列表 */
     items?: readonly SceneToolbarItem[];

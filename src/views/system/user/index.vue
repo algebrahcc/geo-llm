@@ -120,7 +120,7 @@ const columns: DataTableColumns<Api.System.UserItem> = [
   { title: '邮箱', key: 'email', width: 180, ellipsis: { tooltip: true } },
   { title: '手机号', key: 'phone', width: 130 },
   { title: '部门', key: 'deptName', width: 120 },
-  { title: '状态', key: 'status', width: 90, render: (row) => renderStatusTag(row.status) },
+  { title: '状态', key: 'status', width: 90, render: row => renderStatusTag(row.status) },
   { title: '创建时间', key: 'createTime', width: 170 },
   {
     title: '操作',
@@ -166,7 +166,17 @@ onMounted(() => {
 function handleCreate() {
   editId.value = null;
   modalTitle.value = '新增用户';
-  Object.assign(formData, { username: '', nickname: '', gender: 0, email: '', phone: '', description: '', status: 1, deptId: undefined, roleIds: [] });
+  Object.assign(formData, {
+    username: '',
+    nickname: '',
+    gender: 0,
+    email: '',
+    phone: '',
+    description: '',
+    status: 1,
+    deptId: undefined,
+    roleIds: []
+  });
   modalVisible.value = true;
 }
 
@@ -258,7 +268,16 @@ const statusOptions = [
           </template>
           搜索
         </NButton>
-        <NButton @click="query.username = ''; query.nickname = ''; query.status = undefined; handleSearch()">重置</NButton>
+        <NButton
+          @click="
+            query.username = '';
+            query.nickname = '';
+            query.status = undefined;
+            handleSearch();
+          "
+        >
+          重置
+        </NButton>
       </div>
       <div class="sys-search-actions">
         <NButton type="primary" @click="handleCreate">
@@ -294,7 +313,14 @@ const statusOptions = [
     </section>
 
     <!-- 新增/编辑弹窗 -->
-    <NModal v-model:show="modalVisible" :title="modalTitle" preset="card" class="sys-modal" style="width: 540px" :loading="false">
+    <NModal
+      v-model:show="modalVisible"
+      :title="modalTitle"
+      preset="card"
+      class="sys-modal"
+      style="width: 540px"
+      :loading="false"
+    >
       <NForm label-placement="left" label-width="80px" :model="formData">
         <NFormItem label="用户名" required>
           <NInput v-model:value="formData.username" :disabled="!!editId" placeholder="请输入用户名" />
@@ -342,4 +368,3 @@ const statusOptions = [
     </NModal>
   </div>
 </template>
-

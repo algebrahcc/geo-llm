@@ -13,7 +13,8 @@ import type { RequestInstanceState } from './type';
  */
 // eslint-disable-next-line no-underscore-dangle
 const runtimeConfig = typeof window !== 'undefined' ? window.__APP_CONFIG__ : undefined;
-const realBaseURL = runtimeConfig?.VITE_SERVICE_REAL_BASE_URL || import.meta.env.VITE_SERVICE_REAL_BASE_URL || 'http://localhost:8000';
+const realBaseURL =
+  runtimeConfig?.VITE_SERVICE_REAL_BASE_URL || import.meta.env.VITE_SERVICE_REAL_BASE_URL || 'http://localhost:8000';
 
 export const request = createFlatRequest(
   {

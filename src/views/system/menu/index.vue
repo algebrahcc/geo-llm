@@ -83,8 +83,20 @@ async function handleAddRoot() {
   isChildMode.value = false;
   modalTitle.value = '新增根菜单';
   Object.assign(formData, {
-    parentId: 0, title: '', type: 2, path: '', name: '', component: '', redirect: '',
-    icon: '', isExternal: false, isCache: false, isHidden: false, permission: '', sort: 999, status: 1
+    parentId: 0,
+    title: '',
+    type: 2,
+    path: '',
+    name: '',
+    component: '',
+    redirect: '',
+    icon: '',
+    isExternal: false,
+    isCache: false,
+    isHidden: false,
+    permission: '',
+    sort: 999,
+    status: 1
   });
   modalVisible.value = true;
 }
@@ -98,8 +110,20 @@ async function handleAddChild() {
   isChildMode.value = true;
   modalTitle.value = `新增子菜单 - ${selectedNode.value.title}`;
   Object.assign(formData, {
-    parentId: selectedNode.value.id, title: '', type: 2, path: '', name: '', component: '', redirect: '',
-    icon: '', isExternal: false, isCache: false, isHidden: false, permission: '', sort: 999, status: 1
+    parentId: selectedNode.value.id,
+    title: '',
+    type: 2,
+    path: '',
+    name: '',
+    component: '',
+    redirect: '',
+    icon: '',
+    isExternal: false,
+    isCache: false,
+    isHidden: false,
+    permission: '',
+    sort: 999,
+    status: 1
   });
   modalVisible.value = true;
 }
@@ -180,13 +204,18 @@ function buildTree(nodes: Api.System.MenuItem[]): TreeOption[] {
     key: node.id,
     label: node.title,
     children: node.children?.length ? buildTree(node.children) : undefined,
-    prefix: () => h(NSpace, { size: 4, align: 'center' }, {
-      default: () => [
-        getTypeTag(node.type),
-        node.permission ? h(NTag, { size: 'tiny', bordered: true }, { default: () => node.permission }) : null,
-        node.status === 0 ? h(NTag, { size: 'tiny', type: 'default' }, { default: () => '禁用' }) : null
-      ]
-    })
+    prefix: () =>
+      h(
+        NSpace,
+        { size: 4, align: 'center' },
+        {
+          default: () => [
+            getTypeTag(node.type),
+            node.permission ? h(NTag, { size: 'tiny', bordered: true }, { default: () => node.permission }) : null,
+            node.status === 0 ? h(NTag, { size: 'tiny', type: 'default' }, { default: () => '禁用' }) : null
+          ]
+        }
+      )
   }));
 }
 
@@ -227,7 +256,15 @@ const statusOptions = [
     </div>
 
     <!-- 新增/编辑弹窗 -->
-    <NModal v-model:show="modalVisible" :title="modalTitle" preset="dialog" style="width: 520px" positive-text="确定" negative-text="取消" @positive-click="handleSubmit">
+    <NModal
+      v-model:show="modalVisible"
+      :title="modalTitle"
+      preset="dialog"
+      style="width: 520px"
+      positive-text="确定"
+      negative-text="取消"
+      @positive-click="handleSubmit"
+    >
       <NForm label-placement="left" label-width="80px" :model="formData">
         <NFormItem label="类型" required>
           <NSelect v-model:value="formData.type" :options="typeOptions" />

@@ -41,7 +41,7 @@ export const PARAMETER_SCHEMA: readonly ParameterSchemaItem[] = [
   // 工程
   { key: 'pontoon_span', label: '浮桥最大跨度', unit: 'm', category: '工程', range: [60, 600] },
   { key: 'bridge_capacity', label: '舟桥通行能力', unit: '辆/h', category: '工程', range: [20, 200] },
-  { key: 'ferry_candidates', label: '候选渡口数', unit: '个', category: '工程', range: [1, 8] },
+  { key: 'ferry_candidates', label: '候选渡口数', unit: '个', category: '工程', range: [1, 8] }
 ] as const;
 
 function rand(min: number, max: number): number {
@@ -91,10 +91,7 @@ export function extractTextParameters(doc: KnowledgeDocument): EnvironmentParame
 /**
  * 从图片区域 chunk 模拟提取图像参数（8-12 项，偏向水文/地形）
  */
-export function extractImageParameters(
-  doc: KnowledgeDocument,
-  chunks: KnowledgeChunk[]
-): EnvironmentParameter[] {
+export function extractImageParameters(doc: KnowledgeDocument, chunks: KnowledgeChunk[]): EnvironmentParameter[] {
   const params: EnvironmentParameter[] = [];
   const schemaItems = PARAMETER_SCHEMA.filter(s => s.category === '水文' || s.category === '地形');
 
@@ -103,9 +100,7 @@ export function extractImageParameters(
   const shuffled = [...schemaItems].sort(() => Math.random() - 0.5).slice(0, Math.min(count, schemaItems.length));
 
   // 用 chunk 的平均 confidence 作为基准
-  const avgConf = chunks.length > 0
-    ? chunks.reduce((sum, c) => sum + (c.confidence || 0.7), 0) / chunks.length
-    : 0.72;
+  const avgConf = chunks.length > 0 ? chunks.reduce((sum, c) => sum + (c.confidence || 0.7), 0) / chunks.length : 0.72;
 
   for (const schema of shuffled) {
     const [min, max] = schema.range;

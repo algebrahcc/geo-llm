@@ -23,7 +23,7 @@ const sectionCollapsed = ref<Record<string, boolean>>({
   intro: false,
   params: false,
   progress: false,
-  knowledge: false,
+  knowledge: false
 });
 
 function toggleSection(key: string) {
@@ -95,12 +95,6 @@ function toggleKnowledgeHit(docName: string) {
   expandedKnowledge.value = expandedKnowledge.value === docName ? null : docName;
 }
 
-function getStepStatusIcon(status: AiAnalysisStep['status']) {
-  if (status === 'success') return '✅';
-  if (status === 'running') return '🔄';
-  return '⏳';
-}
-
 function getStepStatusLabel(status: AiAnalysisStep['status']) {
   if (status === 'success') return '已完成';
   if (status === 'running') return '进行中';
@@ -136,10 +130,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
       <div class="toolbar-progress">
         <span class="toolbar-label">分析进度</span>
         <div class="toolbar-bar">
-          <div
-            class="toolbar-fill"
-            :style="{ width: `${(completedStepsCount() / totalStepsCount()) * 100}%` }"
-          />
+          <div class="toolbar-fill" :style="{ width: `${(completedStepsCount() / totalStepsCount()) * 100}%` }" />
         </div>
         <span class="toolbar-count">{{ completedStepsCount() }}/{{ totalStepsCount() }}</span>
       </div>
@@ -151,10 +142,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
         <div class="section-header-bar" @click="toggleSection('intro')">
           <span class="section-quick-icon">🧠</span>
           <span class="section-quick-title">关于助手</span>
-          <SvgIcon
-            class="section-chevron"
-            :icon="sectionCollapsed.intro ? 'mdi:chevron-down' : 'mdi:chevron-up'"
-          />
+          <SvgIcon class="section-chevron" :icon="sectionCollapsed.intro ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
         </div>
         <div v-show="!sectionCollapsed.intro" class="section-body">
           <div class="intro-greeting">
@@ -175,10 +163,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
           <span class="section-quick-icon">📝</span>
           <span class="section-quick-title">输入参数</span>
           <span class="section-badge">{{ paramList.length }}</span>
-          <SvgIcon
-            class="section-chevron"
-            :icon="sectionCollapsed.params ? 'mdi:chevron-down' : 'mdi:chevron-up'"
-          />
+          <SvgIcon class="section-chevron" :icon="sectionCollapsed.params ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
         </div>
         <div v-show="!sectionCollapsed.params" class="section-body section-body--compact">
           <div class="param-list">
@@ -196,10 +181,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
           <span class="section-quick-icon">📊</span>
           <span class="section-quick-title">分析过程</span>
           <span class="section-badge section-badge--accent">{{ completedStepsCount() }}/{{ totalStepsCount() }}</span>
-          <SvgIcon
-            class="section-chevron"
-            :icon="sectionCollapsed.progress ? 'mdi:chevron-down' : 'mdi:chevron-up'"
-          />
+          <SvgIcon class="section-chevron" :icon="sectionCollapsed.progress ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
         </div>
         <div v-show="!sectionCollapsed.progress" class="section-body">
           <div class="step-list">
@@ -214,10 +196,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
             >
               <!-- 左侧圆点+连线 -->
               <div class="step-indicator">
-                <div
-                  class="step-dot"
-                  :class="`step-dot--${step.status}`"
-                >
+                <div class="step-dot" :class="`step-dot--${step.status}`">
                   <span v-if="step.status === 'success'" class="dot-check">✓</span>
                   <span v-else-if="step.status === 'running'" class="dot-spinner" />
                 </div>
@@ -249,10 +228,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
           <span class="section-quick-icon">📚</span>
           <span class="section-quick-title">知识库命中</span>
           <span class="section-badge section-badge--green">{{ knowledgeHits.length }}</span>
-          <SvgIcon
-            class="section-chevron"
-            :icon="sectionCollapsed.knowledge ? 'mdi:chevron-down' : 'mdi:chevron-up'"
-          />
+          <SvgIcon class="section-chevron" :icon="sectionCollapsed.knowledge ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
         </div>
         <div v-show="!sectionCollapsed.knowledge" class="section-body">
           <div class="knowledge-list">
@@ -280,7 +256,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
                 <div v-for="(snippet, sIdx) in hit.topSnippets" :key="sIdx" class="snippet-item">
                   <div class="snippet-header">
                     <span class="snippet-title">{{ snippet.chunkTitle }}</span>
-                    <span class="snippet-score-badge">{{ (snippet.score).toFixed(1) }}</span>
+                    <span class="snippet-score-badge">{{ snippet.score.toFixed(1) }}</span>
                   </div>
                   <div class="snippet-text">{{ snippet.snippet }}</div>
                   <div class="snippet-score-bar">
@@ -300,7 +276,12 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
       <div v-if="references.length > 0" class="references-section">
         <div class="ref-label">🔗 引用来源</div>
         <div class="ref-tags">
-          <span v-for="(ref, i) in references" :key="i" class="ref-tag" :class="{ 'ref-tag--doc': i < references.length - 2, 'ref-tag--sys': i >= references.length - 2 }">
+          <span
+            v-for="(ref, i) in references"
+            :key="i"
+            class="ref-tag"
+            :class="{ 'ref-tag--doc': i < references.length - 2, 'ref-tag--sys': i >= references.length - 2 }"
+          >
             {{ ref }}
           </span>
         </div>
@@ -309,12 +290,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
       <!-- ══════ 对话消息 ══════ -->
       <div v-if="messages.length > 1" class="chat-messages">
         <div class="chat-divider"><span>对话记录</span></div>
-        <div
-          v-for="msg in messages.slice(1)"
-          :key="msg.id"
-          class="chat-msg"
-          :class="`chat-msg--${msg.role}`"
-        >
+        <div v-for="msg in messages.slice(1)" :key="msg.id" class="chat-msg" :class="`chat-msg--${msg.role}`">
           <span class="msg-avatar">{{ msg.role === 'user' ? '👤' : '🤖' }}</span>
           <div class="msg-bubble" :class="`msg-bubble--${msg.role}`">
             {{ msg.content }}
@@ -420,7 +396,9 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   font-size: 16px;
-  transition: background 0.18s, color 0.18s;
+  transition:
+    background 0.18s,
+    color 0.18s;
 }
 
 .action-btn:hover {
@@ -698,7 +676,9 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .step-line {
@@ -770,8 +750,13 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 @keyframes tagPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
 
 .step-tool {
@@ -798,7 +783,9 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 8px;
   overflow: hidden;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .knowledge-card:hover {
@@ -1070,7 +1057,9 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   color: rgba(255, 255, 255, 0.88);
   font-size: 12px;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .chat-input::placeholder {
@@ -1094,7 +1083,9 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   color: #fff;
   cursor: pointer;
   font-size: 16px;
-  transition: opacity 0.18s, transform 0.12s;
+  transition:
+    opacity 0.18s,
+    transform 0.12s;
   flex-shrink: 0;
 }
 

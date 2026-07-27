@@ -5,17 +5,19 @@ const path = require('path');
 function osrmRoute(coords) {
   return new Promise((resolve, reject) => {
     const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
-    https.get(url, (res) => {
-      let data = '';
-      res.on('data', (chunk) => (data += chunk));
-      res.on('end', () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch (e) {
-          reject(e);
-        }
-      });
-    }).on('error', reject);
+    https
+      .get(url, res => {
+        let data = '';
+        res.on('data', chunk => (data += chunk));
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            reject(e);
+          }
+        });
+      })
+      .on('error', reject);
   });
 }
 
@@ -58,12 +60,11 @@ function downsample(coords, targetCount) {
     };
   });
 
-  let code =
-    '// Auto-generated from OSRM routing engine - real road network data\n';
+  let code = '// Auto-generated from OSRM routing engine - real road network data\n';
   code += `// Generated: ${new Date().toISOString()}\n`;
   code += '// Source: https://router.project-osrm.org\n\n';
 
-  results.forEach((r) => {
+  results.forEach(r => {
     code += `// Route: ${r.key} - ${r.distance}m, ${r.duration}s (${r.sampledCount} pts from ${r.originalCount} original)\n`;
     code += `export const planning${r.label}Coords: readonly [number, number][] = [\n`;
     r.coords.forEach((c, idx) => {
@@ -74,7 +75,7 @@ function downsample(coords, targetCount) {
   });
 
   code += 'export const planningOsrmMetrics = {\n';
-  results.forEach((r) => {
+  results.forEach(r => {
     code += `  '${r.key}': { distance: ${r.distance}, duration: ${r.duration} },\n`;
   });
   code += '} as const;\n';
@@ -83,7 +84,7 @@ function downsample(coords, targetCount) {
   fs.writeFileSync(outPath, code, 'utf-8');
   console.log(`Written ${code.split('\n').length} lines to ${outPath}`);
 
-  results.forEach((r) => {
+  results.forEach(r => {
     const durMin = Math.round(r.duration / 60);
     const distKm = (r.distance / 1000).toFixed(1);
     console.log(`  ${r.key}: ${distKm}km, ${durMin}min (${r.sampledCount} waypoints)`);

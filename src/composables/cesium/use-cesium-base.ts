@@ -50,9 +50,12 @@ export interface CesiumBaseReturn {
   ) => (cartesian?: Cartesian3 | null) => BaseStatusInfo & T;
 
   /** 仅计算基础状态字段（不含扩展字段），供 building 模块等特殊场景使用 */
-  computeBaseStatus: (
-    cartesian?: Cartesian3 | null
-  ) => { longitude: string; latitude: string; altitude: string; cameraHeight: string; };
+  computeBaseStatus: (cartesian?: Cartesian3 | null) => {
+    longitude: string;
+    latitude: string;
+    altitude: string;
+    cameraHeight: string;
+  };
 
   /** 绑定鼠标与 Camera 事件 */
   bindMouseEvents: (handlers: {
@@ -238,7 +241,10 @@ export function useCesiumBase(): CesiumBaseReturn {
 
   /** 仅计算基础状态字段（不含扩展字段），供 building 模块等特殊场景使用 */
   function computeBaseStatus(cartesian?: Cartesian3 | null): {
-    longitude: string; latitude: string; altitude: string; cameraHeight: string;
+    longitude: string;
+    latitude: string;
+    altitude: string;
+    cameraHeight: string;
   } {
     const viewer = viewerRef.value;
     const cameraHeight = viewer ? viewer.camera.positionCartographic.height : 0;

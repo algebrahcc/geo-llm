@@ -85,9 +85,7 @@ export function getGlobalMenusByAuthRoutes(routes: ElegantConstRoute[]) {
 
       if (route.children?.some(child => !child.meta?.hideInMenu)) {
         menu.children = getGlobalMenusByAuthRoutes(
-          [...route.children].sort(
-            (next, prev) => (Number(next.meta?.order) || 0) - (Number(prev.meta?.order) || 0)
-          )
+          [...route.children].sort((next, prev) => (Number(next.meta?.order) || 0) - (Number(prev.meta?.order) || 0))
         );
       }
 

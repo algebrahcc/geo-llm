@@ -46,16 +46,6 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
-    name: 'building',
-    path: '/building',
-    component: 'layout.base$view.building',
-    meta: {
-      title: '楼宇夺控',
-      order: 4,
-      icon: 'mdi:office-building'
-    }
-  },
-  {
     name: 'catalog',
     path: '/catalog',
     component: 'layout.base$view.catalog',

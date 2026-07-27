@@ -16,7 +16,7 @@ interface Props {
   knowledgeHits?: { docCount: number; chunkCount: number; docNames: string[] } | null;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   collapsed: false,
   running: false,
   progress: 0,
@@ -101,14 +101,12 @@ function getStatusIcon(step: PlanningAnalysisStep) {
       <div class="analysis-section">
         <div class="analysis-title">智能分析进度（输出）</div>
         <div class="steps-list">
-          <div
-            v-for="(step, index) in steps"
-            :key="step.id"
-            class="step-item"
-            :class="[`step-item--${step.status}`]"
-          >
+          <div v-for="(step, index) in steps" :key="step.id" class="step-item" :class="[`step-item--${step.status}`]">
             <div v-if="index > 0" class="step-line-wrap">
-              <div class="step-line" :class="{ 'step-line--active': step.status === 'completed' || step.status === 'running' }" />
+              <div
+                class="step-line"
+                :class="{ 'step-line--active': step.status === 'completed' || step.status === 'running' }"
+              />
             </div>
             <div class="step-node-row">
               <div class="step-circle" :class="`step-circle--${step.status}`">
@@ -144,9 +142,13 @@ function getStatusIcon(step: PlanningAnalysisStep) {
         <div class="kb-info">
           <span class="kb-title">知识库召回</span>
           <span class="kb-detail">
-            命中 <strong>{{ knowledgeHits.docCount }}</strong> 篇文档
-            （{{ knowledgeHits.docNames.slice(0, 2).join('、') }}<template v-if="knowledgeHits.docCount > 3"> 等</template>），
-            共 <strong>{{ knowledgeHits.chunkCount }}</strong> 条知识片段
+            命中
+            <strong>{{ knowledgeHits.docCount }}</strong>
+            篇文档 （{{ knowledgeHits.docNames.slice(0, 2).join('、') }}
+            <template v-if="knowledgeHits.docCount > 3">等</template>
+            ）， 共
+            <strong>{{ knowledgeHits.chunkCount }}</strong>
+            条知识片段
           </span>
         </div>
       </div>
@@ -162,13 +164,7 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 
     <!-- 输入区 -->
     <div v-show="!collapsed" class="chat-input-area">
-      <input
-        v-model="chatInput"
-        type="text"
-        class="chat-input"
-        placeholder="输入问题..."
-        @keyup.enter="handleSend"
-      />
+      <input v-model="chatInput" type="text" class="chat-input" placeholder="输入问题..." @keyup.enter="handleSend" />
       <button type="button" class="send-btn" :disabled="!chatInput.trim()" @click="handleSend">
         <SvgIcon icon="mdi:send" />
       </button>
@@ -261,13 +257,23 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 @keyframes glow {
-  0%, 100% { box-shadow: 0 0 6px rgba(251, 191, 36, 0.2); }
-  50% { box-shadow: 0 0 16px rgba(251, 191, 36, 0.45); }
+  0%,
+  100% {
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.45);
+  }
 }
 
 .action-btn {
@@ -442,8 +448,13 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 }
 
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(41, 163, 255, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(41, 163, 255, 0); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(41, 163, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(41, 163, 255, 0);
+  }
 }
 
 .step-info {
@@ -575,8 +586,14 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 }
 
 @keyframes msg-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .chat-msg--user {

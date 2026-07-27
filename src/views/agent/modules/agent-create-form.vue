@@ -136,7 +136,11 @@ function handleSubmit() {
             <SvgIcon v-if="idx < currentStep" icon="mdi:check" class="step-nav__check" />
             <SvgIcon v-else :icon="step.icon" class="step-nav__step-icon" />
           </div>
-          <div v-if="idx < steps.length - 1" class="step-nav__line" :class="{ 'step-nav__line--done': idx < currentStep }" />
+          <div
+            v-if="idx < steps.length - 1"
+            class="step-nav__line"
+            :class="{ 'step-nav__line--done': idx < currentStep }"
+          />
         </div>
         <div class="step-nav__text">
           <div class="step-nav__label">{{ step.label }}</div>
@@ -167,7 +171,12 @@ function handleSubmit() {
               </NFormItem>
             </div>
             <NFormItem label="描述" required>
-              <NInput v-model:value="form.description" type="textarea" :autosize="{ minRows: 3, maxRows: 5 }" placeholder="详细描述智能体的功能和应用场景" />
+              <NInput
+                v-model:value="form.description"
+                type="textarea"
+                :autosize="{ minRows: 3, maxRows: 5 }"
+                placeholder="详细描述智能体的功能和应用场景"
+              />
             </NFormItem>
             <div class="form-grid-2">
               <NFormItem label="分类">
@@ -195,7 +204,13 @@ function handleSubmit() {
             </NFormItem>
             <NFormItem label="温度 (Temperature)">
               <div class="w-full temperature-control">
-                <NSlider v-model:value="form.temperature" :min="0" :max="1" :step="0.1" :marks="{ 0: '精确', 0.5: '平衡', 1: '创意' }" />
+                <NSlider
+                  v-model:value="form.temperature"
+                  :min="0"
+                  :max="1"
+                  :step="0.1"
+                  :marks="{ 0: '精确', 0.5: '平衡', 1: '创意' }"
+                />
               </div>
             </NFormItem>
             <div class="form-grid-2">
@@ -222,7 +237,12 @@ function handleSubmit() {
             <NFormItem label="工具链">
               <NCheckboxGroup v-model:value="form.tools">
                 <div class="tool-grid">
-                  <NCheckbox v-for="tool in toolCheckboxOptions" :key="tool.value" :value="tool.value" :label="tool.label" />
+                  <NCheckbox
+                    v-for="tool in toolCheckboxOptions"
+                    :key="tool.value"
+                    :value="tool.value"
+                    :label="tool.label"
+                  />
                 </div>
               </NCheckboxGroup>
             </NFormItem>
@@ -246,10 +266,20 @@ function handleSubmit() {
           </div>
           <NForm label-placement="top" :show-feedback="false" class="step-form">
             <NFormItem label="系统提示词">
-              <NInput v-model:value="form.systemPrompt" type="textarea" :autosize="{ minRows: 6, maxRows: 12 }" placeholder="定义智能体的角色、行为和输出格式要求，例如：&#10;你是一名地理分析助手，需要以结论、依据要点、建议动作三段式返回结果。" />
+              <NInput
+                v-model:value="form.systemPrompt"
+                type="textarea"
+                :autosize="{ minRows: 6, maxRows: 12 }"
+                placeholder="定义智能体的角色、行为和输出格式要求，例如：&#10;你是一名地理分析助手，需要以结论、依据要点、建议动作三段式返回结果。"
+              />
             </NFormItem>
             <NFormItem label="默认任务输入">
-              <NInput v-model:value="form.defaultInput" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" placeholder="用户运行智能体时的默认输入内容" />
+              <NInput
+                v-model:value="form.defaultInput"
+                type="textarea"
+                :autosize="{ minRows: 3, maxRows: 6 }"
+                placeholder="用户运行智能体时的默认输入内容"
+              />
             </NFormItem>
           </NForm>
         </div>

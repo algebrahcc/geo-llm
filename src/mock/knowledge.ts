@@ -49,11 +49,31 @@ export const extractModelOptions = [
 ];
 
 const imageRegionTemplates = [
-  { title: '水域区域', content: '检测到水域区域，面积约 3.2km²，流向东南，水面宽度约 280m，水深平均 4.5m。该区域与周边支流形成汇水网络，丰水期水位上涨显著。' },
-  { title: '植被覆盖区', content: '检测到大面积植被覆盖区域，面积约 5.8km²，以阔叶林为主，覆盖密度约 78%。区域内分布有农田与林地过渡带，地形坡度 5°-15°。' },
-  { title: '建设用地', content: '检测到建设用地集中区域，面积约 1.4km²，包含居民点、道路和工业设施。建筑密度中等，主要交通干道呈南北走向，排水系统完善度约 65%。' },
-  { title: '裸地与沙洲', content: '检测到裸地与沙洲区域，面积约 0.9km²，位于河道转弯处东侧，地表覆盖度低于 15%。汛期可能被淹没，枯水期出露面积增大。' },
-  { title: '丘陵地貌', content: '检测到丘陵地貌区域，面积约 4.1km²，高程差约 120m，坡度 10°-25°。山脊线呈东北-西南走向，沟谷发育充分，汇水面积较大。' }
+  {
+    title: '水域区域',
+    content:
+      '检测到水域区域，面积约 3.2km²，流向东南，水面宽度约 280m，水深平均 4.5m。该区域与周边支流形成汇水网络，丰水期水位上涨显著。'
+  },
+  {
+    title: '植被覆盖区',
+    content:
+      '检测到大面积植被覆盖区域，面积约 5.8km²，以阔叶林为主，覆盖密度约 78%。区域内分布有农田与林地过渡带，地形坡度 5°-15°。'
+  },
+  {
+    title: '建设用地',
+    content:
+      '检测到建设用地集中区域，面积约 1.4km²，包含居民点、道路和工业设施。建筑密度中等，主要交通干道呈南北走向，排水系统完善度约 65%。'
+  },
+  {
+    title: '裸地与沙洲',
+    content:
+      '检测到裸地与沙洲区域，面积约 0.9km²，位于河道转弯处东侧，地表覆盖度低于 15%。汛期可能被淹没，枯水期出露面积增大。'
+  },
+  {
+    title: '丘陵地貌',
+    content:
+      '检测到丘陵地貌区域，面积约 4.1km²，高程差约 120m，坡度 10°-25°。山脊线呈东北-西南走向，沟谷发育充分，汇水面积较大。'
+  }
 ];
 
 export const knowledgeCollections = reactive<KnowledgeCollection[]>([
@@ -365,9 +385,7 @@ function createChunks(document: KnowledgeDocument) {
 
 function createDetailRecord(document: KnowledgeDocument): KnowledgeDocumentDetail {
   const parameters = extractTextParameters(document);
-  const paramLog = parameters.length > 0
-    ? `已提取 ${parameters.length} 项结构化环境参数`
-    : '未提取到结构化参数';
+  const paramLog = parameters.length > 0 ? `已提取 ${parameters.length} 项结构化环境参数` : '未提取到结构化参数';
 
   return {
     ...document,
@@ -433,18 +451,16 @@ export function createKnowledgeDocument(
   return document;
 }
 
-export function createImageKnowledgeDocument(
-  payload: {
-    name: string;
-    category: string;
-    source: string;
-    tags: string[];
-    summary: string;
-    segmentModel: string;
-    extractModel: string;
-    imageFiles: { name: string; size: number }[];
-  }
-) {
+export function createImageKnowledgeDocument(payload: {
+  name: string;
+  category: string;
+  source: string;
+  tags: string[];
+  summary: string;
+  segmentModel: string;
+  extractModel: string;
+  imageFiles: { name: string; size: number }[];
+}) {
   const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
   const regionCount = 3 + Math.floor(Math.random() * 3); // 3-5 regions
   const totalSize = payload.imageFiles.reduce((sum, f) => sum + f.size, 0);
@@ -491,9 +507,8 @@ export function createImageKnowledgeDocument(
 
   // 从图片区域 chunk 提取结构化参数
   const imageParams = extractImageParameters(document, chunks);
-  const paramLog = imageParams.length > 0
-    ? `已从图像区域提取 ${imageParams.length} 项结构化环境参数`
-    : '未从图像中提取到结构化参数';
+  const paramLog =
+    imageParams.length > 0 ? `已从图像区域提取 ${imageParams.length} 项结构化环境参数` : '未从图像中提取到结构化参数';
 
   const detail: KnowledgeDocumentDetail = {
     ...document,
@@ -597,21 +612,21 @@ export function removeKnowledgeCollection(key: string) {
 
 // ── 语义簇映射：用于模拟向量语义检索 ──
 const semanticClusters: Record<string, string[]> = {
-  '水深': ['渡河', '水文', '河宽', '流速', '河道', '堤防', '水位'],
-  '岸线': ['港口', '海岸', '滩涂', '登陆', '沙滩', '礁石', '潮汐'],
-  '港口': ['岸线', '码头', '泊位', '装卸', '物资', '运输', '航道'],
-  '渡河': ['水深', '流速', '河床', '堤防', '架桥', '保障', '水文', '抢滩'],
-  '地形': ['地貌', '高程', '坡度', '山脊', '沟谷', '丘陵', '判读'],
-  '交通': ['道路', '节点', '桥梁', '公路', '铁路', '枢纽', '路线'],
-  '堤防': ['防洪', '风险', '险段', '加固', '抢险', '溃堤', '巡查'],
-  '水文': ['流量', '水位', '汛期', '降雨', '径流', '洪水', '水量'],
-  '保障': ['物资', '装备', '后勤', '供应', '储运', '调度', '支援'],
-  '模板': ['术语', '提示词', '标准', '规则', '联合', '模板', '问答'],
-  '风险': ['隐患', '预警', '评估', '脆弱性', '威胁', '安全', '排查'],
-  '道路': ['公路', '铁路', '交通', '桥梁', '隧道', '路口', '干线'],
-  '台湾': ['港口', '岸线', '东部', '西部', '海峡', '岛屿', '方向'],
-  '黄河': ['堤防', '风险', '河道', '险段', '抢险', '泥沙'],
-  '长江': ['流域', '地形', '河网', '岸线', '水系', '中下游']
+  水深: ['渡河', '水文', '河宽', '流速', '河道', '堤防', '水位'],
+  岸线: ['港口', '海岸', '滩涂', '登陆', '沙滩', '礁石', '潮汐'],
+  港口: ['岸线', '码头', '泊位', '装卸', '物资', '运输', '航道'],
+  渡河: ['水深', '流速', '河床', '堤防', '架桥', '保障', '水文', '抢滩'],
+  地形: ['地貌', '高程', '坡度', '山脊', '沟谷', '丘陵', '判读'],
+  交通: ['道路', '节点', '桥梁', '公路', '铁路', '枢纽', '路线'],
+  堤防: ['防洪', '风险', '险段', '加固', '抢险', '溃堤', '巡查'],
+  水文: ['流量', '水位', '汛期', '降雨', '径流', '洪水', '水量'],
+  保障: ['物资', '装备', '后勤', '供应', '储运', '调度', '支援'],
+  模板: ['术语', '提示词', '标准', '规则', '联合', '模板', '问答'],
+  风险: ['隐患', '预警', '评估', '脆弱性', '威胁', '安全', '排查'],
+  道路: ['公路', '铁路', '交通', '桥梁', '隧道', '路口', '干线'],
+  台湾: ['港口', '岸线', '东部', '西部', '海峡', '岛屿', '方向'],
+  黄河: ['堤防', '风险', '河道', '险段', '抢险', '泥沙'],
+  长江: ['流域', '地形', '河网', '岸线', '水系', '中下游']
 };
 
 function expandQueryWithSemanticClusters(queryTokens: string[]): string[] {
@@ -630,7 +645,7 @@ function expandQueryWithSemanticClusters(queryTokens: string[]): string[] {
 function normalizeScore(rawScore: number, maxTokens: number): number {
   if (maxTokens <= 0) return 0;
   // 归一化到 0-1，加入随机扰动模拟真实效果
-  return Math.min(0.99, +(rawScore / maxTokens + (Math.random() * 0.15)).toFixed(4));
+  return Math.min(0.99, +(rawScore / maxTokens + Math.random() * 0.15).toFixed(4));
 }
 
 function computeHighlightRanges(snippet: string, searchTokens: string[]): [number, number][] {
@@ -673,7 +688,12 @@ export function runKnowledgeRetrieval(
 
   // ── 语义检索：扩展查询词 ──
   const semanticTokens = method !== 'keyword' ? expandQueryWithSemanticClusters(tokens) : tokens;
-  const allSearchTokens = method === 'hybrid' ? [...new Set([...tokens, ...semanticTokens])] : (method === 'semantic' ? semanticTokens : tokens);
+  const allSearchTokens =
+    method === 'hybrid'
+      ? [...new Set([...tokens, ...semanticTokens])]
+      : method === 'semantic'
+        ? semanticTokens
+        : tokens;
 
   return knowledgeDocuments
     .map(document => {

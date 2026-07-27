@@ -85,7 +85,9 @@ function handleSubmit(config: Parameters<typeof updateAgentConfig>[0]) {
 .panel-surface {
   background: var(--surface-bg);
   border: 1px solid var(--surface-border);
-  box-shadow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 18px 40px rgba(1, 8, 18, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(32, 111, 202, 0.22),
+    0 18px 40px rgba(1, 8, 18, 0.45);
   position: relative;
   border-radius: 4px;
 }

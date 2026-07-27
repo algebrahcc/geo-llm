@@ -41,7 +41,9 @@ const statusMeta = {
   border: 1px solid rgba(25, 95, 176, 0.18);
   border-radius: 4px;
   background: rgba(6, 20, 38, 0.5);
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .step-item:hover {

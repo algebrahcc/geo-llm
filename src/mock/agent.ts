@@ -380,17 +380,16 @@ export function createAgentRunTask(payload: AgentRunFormModel) {
   const topDocNames = retrievalResults.slice(0, 3).map(r => r.document.name);
   const topSnippet = retrievalResults[0]?.matches[0]?.snippet || '';
 
-  const retrieveDesc = totalHits > 0
-    ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk（${topDocNames.slice(0, 2).join('、')}）`
-    : '未命中相关文档，使用默认知识模板';
+  const retrieveDesc =
+    totalHits > 0
+      ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk（${topDocNames.slice(0, 2).join('、')}）`
+      : '未命中相关文档，使用默认知识模板';
 
-  const references = totalHits > 0
-    ? [...topDocNames, '运行模板', '智能体默认配置']
-    : ['无相关命中文档', '运行模板', '智能体默认配置'];
+  const references =
+    totalHits > 0 ? [...topDocNames, '运行模板', '智能体默认配置'] : ['无相关命中文档', '运行模板', '智能体默认配置'];
 
-  const knowledgeSummary = totalHits > 0
-    ? `已从 ${hitDocCount} 篇知识库文档中召回 ${totalHits} 条相关片段`
-    : '未检索到匹配知识';
+  const knowledgeSummary =
+    totalHits > 0 ? `已从 ${hitDocCount} 篇知识库文档中召回 ${totalHits} 条相关片段` : '未检索到匹配知识';
   const enrichedSnippet = topSnippet ? `（示例片段：${topSnippet.slice(0, 60)}...）` : '';
 
   const task: AgentRunTask = {
@@ -449,13 +448,10 @@ export function runAgentTest(agentKey: AgentKey, prompt: string) {
   const hitDocCount = retrievalResults.length;
   const topDocNames = retrievalResults.slice(0, 3).map(r => r.document.name);
 
-  const retrievalDetail = totalHits > 0
-    ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk（${topDocNames[0] || ''}）`
-    : '未命中相关文档';
+  const retrievalDetail =
+    totalHits > 0 ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk（${topDocNames[0] || ''}）` : '未命中相关文档';
 
-  const references = totalHits > 0
-    ? [...topDocNames, '配置模板']
-    : ['配置模板'];
+  const references = totalHits > 0 ? [...topDocNames, '配置模板'] : ['配置模板'];
 
   const record: AgentTestRecord = {
     id: `test-${agentKey}-${Date.now()}`,

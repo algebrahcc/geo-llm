@@ -143,7 +143,9 @@ function handleRerun() {
               </div>
               <div class="panel-body">
                 <div class="flex flex-wrap gap-4px">
-                  <NTag v-for="item in detail.references" :key="item" size="small" round :bordered="false">{{ item }}</NTag>
+                  <NTag v-for="item in detail.references" :key="item" size="small" round :bordered="false">
+                    {{ item }}
+                  </NTag>
                 </div>
               </div>
             </div>
@@ -194,7 +196,9 @@ function handleRerun() {
 .panel-surface {
   background: var(--surface-bg);
   border: 1px solid var(--surface-border);
-  box-shadow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 18px 40px rgba(1, 8, 18, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(32, 111, 202, 0.22),
+    0 18px 40px rgba(1, 8, 18, 0.45);
   border-radius: 4px;
   position: relative;
 }

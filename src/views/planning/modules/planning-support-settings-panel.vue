@@ -55,7 +55,12 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
             </div>
             <div class="form-group">
               <label class="form-label">任务名称</label>
-              <NInput :value="form.missionName" size="small" placeholder="输入任务名称" @update:value="updateField('missionName', $event)" />
+              <NInput
+                :value="form.missionName"
+                size="small"
+                placeholder="输入任务名称"
+                @update:value="updateField('missionName', $event)"
+              />
             </div>
             <div class="form-group">
               <label class="form-label">任务起因</label>
@@ -103,7 +108,12 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
             </div>
             <div class="form-group">
               <label class="form-label">预计完成时限</label>
-              <NInput :value="form.deadline" size="small" placeholder="如：24小时" @update:value="updateField('deadline', $event)" />
+              <NInput
+                :value="form.deadline"
+                size="small"
+                placeholder="如：24小时"
+                @update:value="updateField('deadline', $event)"
+              />
             </div>
           </div>
 
@@ -167,7 +177,14 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
             <div class="form-group">
               <label class="form-label">保障等级</label>
               <div class="slider-row">
-                <NSlider :value="form.supportLevel as number" :min="0" :max="100" :step="5" size="small" @update:value="updateField('supportLevel', $event)" />
+                <NSlider
+                  :value="form.supportLevel as number"
+                  :min="0"
+                  :max="100"
+                  :step="5"
+                  size="small"
+                  @update:value="updateField('supportLevel', $event)"
+                />
                 <span class="slider-val">{{ form.supportLevel }}%</span>
               </div>
             </div>
@@ -175,12 +192,20 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
               <label class="form-label">保障项目</label>
               <div class="checkbox-group">
                 <label class="custom-checkbox">
-                  <input type="checkbox" :checked="form.needRepair" @change="updateField('needRepair', ($event.target as HTMLInputElement).checked)" />
+                  <input
+                    type="checkbox"
+                    :checked="form.needRepair"
+                    @change="updateField('needRepair', ($event.target as HTMLInputElement).checked)"
+                  />
                   <span class="check-mark" />
                   维修保障
                 </label>
                 <label class="custom-checkbox">
-                  <input type="checkbox" :checked="form.needRushRepair" @change="updateField('needRushRepair', ($event.target as HTMLInputElement).checked)" />
+                  <input
+                    type="checkbox"
+                    :checked="form.needRushRepair"
+                    @change="updateField('needRushRepair', ($event.target as HTMLInputElement).checked)"
+                  />
                   <span class="check-mark" />
                   抢修保障
                 </label>
@@ -188,7 +213,12 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
             </div>
             <div class="form-group">
               <label class="form-label">其他需求</label>
-              <NInput :value="form.otherNeeds" size="small" placeholder="如有其他保障需求请输入" @update:value="updateField('otherNeeds', $event)" />
+              <NInput
+                :value="form.otherNeeds"
+                size="small"
+                placeholder="如有其他保障需求请输入"
+                @update:value="updateField('otherNeeds', $event)"
+              />
             </div>
           </div>
 
@@ -201,16 +231,31 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
             <div class="form-row">
               <div class="form-group form-group--half">
                 <label class="form-label">出发时间</label>
-                <NInput :value="form.departTime" size="small" placeholder="如：06:00" @update:value="updateField('departTime', $event)" />
+                <NInput
+                  :value="form.departTime"
+                  size="small"
+                  placeholder="如：06:00"
+                  @update:value="updateField('departTime', $event)"
+                />
               </div>
               <div class="form-group form-group--half">
                 <label class="form-label">到达时间</label>
-                <NInput :value="form.arriveTime" size="small" placeholder="如：18:00" @update:value="updateField('arriveTime', $event)" />
+                <NInput
+                  :value="form.arriveTime"
+                  size="small"
+                  placeholder="如：18:00"
+                  @update:value="updateField('arriveTime', $event)"
+                />
               </div>
             </div>
             <div class="form-group">
               <label class="form-label">机动时长要求</label>
-              <NInput :value="form.durationLimit" size="small" placeholder="如：12小时" @update:value="updateField('durationLimit', $event)" />
+              <NInput
+                :value="form.durationLimit"
+                size="small"
+                placeholder="如：12小时"
+                @update:value="updateField('durationLimit', $event)"
+              />
             </div>
             <div class="form-group">
               <label class="form-label">约束条件</label>
@@ -485,6 +530,8 @@ function updateField<K extends keyof PlanningSupportSettingsForm>(key: K, value:
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

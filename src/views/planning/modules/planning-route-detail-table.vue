@@ -59,11 +59,7 @@ const columns: DataTableColumns<PlanningRouteSegment> = [
     align: 'center',
     render(row) {
       const color = row.roadCondition === '畅通' ? '#2ee59d' : '#f7c766';
-      return h(
-        'span',
-        { style: { color, fontSize: '12px', fontWeight: '500' } },
-        row.roadCondition
-      );
+      return h('span', { style: { color, fontSize: '12px', fontWeight: '500' } }, row.roadCondition);
     }
   },
   {

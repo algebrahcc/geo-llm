@@ -31,7 +31,9 @@ const emit = defineEmits<{
   padding: 10px 12px;
   text-align: left;
   background: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
-  box-shadow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 8px 20px rgba(1, 8, 18, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(32, 111, 202, 0.22),
+    0 8px 20px rgba(1, 8, 18, 0.35);
   cursor: pointer;
   transition:
     border-color 0.2s ease,

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-
 export interface LayerItem {
   key: string;
   label: string;
@@ -52,11 +50,7 @@ function handleLayerToggle(key: string) {
           :class="{ 'layer-item--active': layer.visible }"
         >
           <div class="layer-check">
-            <input
-              type="checkbox"
-              :checked="layer.visible"
-              @change="handleLayerToggle(layer.key)"
-            />
+            <input type="checkbox" :checked="layer.visible" @change="handleLayerToggle(layer.key)" />
             <div class="layer-color" :class="`layer-color--${layer.key}`" />
           </div>
           <div class="layer-info">
@@ -124,7 +118,9 @@ function handleLayerToggle(key: string) {
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   font-size: 16px;
-  transition: background 0.18s, color 0.18s;
+  transition:
+    background 0.18s,
+    color 0.18s;
 }
 
 .action-btn:hover {
@@ -169,7 +165,9 @@ function handleLayerToggle(key: string) {
   border-radius: 8px;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .layer-item:hover {
@@ -201,12 +199,24 @@ function handleLayerToggle(key: string) {
   border-radius: 2px;
 }
 
-.layer-color--imagery { background: #22c55e; }
-.layer-color--channel { background: #3b82f6; }
-.layer-color--assembly { background: #f59e0b; }
-.layer-color--risk { background: #ef4444; }
-.layer-color--mark { background: #a855f7; }
-.layer-color--route { background: #ec4899; }
+.layer-color--imagery {
+  background: #22c55e;
+}
+.layer-color--channel {
+  background: #3b82f6;
+}
+.layer-color--assembly {
+  background: #f59e0b;
+}
+.layer-color--risk {
+  background: #ef4444;
+}
+.layer-color--mark {
+  background: #a855f7;
+}
+.layer-color--route {
+  background: #ec4899;
+}
 
 .layer-info {
   display: flex;

@@ -32,7 +32,6 @@ export const screenTaskTrend = {
 export const screenTaskDistribution = [
   { name: '渡河保障', value: 28 },
   { name: '机动路线', value: 22 },
-  { name: '楼宇夺控', value: 34 },
   { name: '城市攻防', value: 26 },
   { name: '态势研判', value: 18 }
 ];
@@ -86,7 +85,6 @@ export const screenHotKeywords = [
 export const screenAiRank = [
   { name: '机动路线规划智能体', value: 64 },
   { name: '渡河保障方案智能体', value: 52 },
-  { name: '楼宇夺控智能体', value: 41 },
   { name: '障碍物识别智能体', value: 35 },
   { name: '态势研判智能体', value: 29 }
 ];
@@ -148,8 +146,8 @@ export interface ScreenHeatmapPoint {
 }
 
 export const screenHeatmapPoints: ScreenHeatmapPoint[] = [
-  { longitude: 121.50, latitude: 25.05, value: 0.9 },
-  { longitude: 121.47, latitude: 25.10, value: 0.8 },
+  { longitude: 121.5, latitude: 25.05, value: 0.9 },
+  { longitude: 121.47, latitude: 25.1, value: 0.8 },
   { longitude: 121.52, latitude: 25.08, value: 0.7 },
   { longitude: 121.45, latitude: 25.12, value: 0.85 },
   { longitude: 121.49, latitude: 25.03, value: 0.6 },

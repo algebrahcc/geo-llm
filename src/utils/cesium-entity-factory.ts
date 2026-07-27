@@ -113,7 +113,9 @@ export function createPolylineEntity(viewer: Viewer, opts: PolylineEntityOptions
       positions: opts.positions.map(p => Cartesian3.fromDegrees(p[0], p[1])),
       width: opts.width ?? 5,
       material: opts.dash
-        ? new PolylineDashMaterialProperty({ color: Color.fromCssColorString(opts.color).withAlpha(opts.alpha ?? 0.94) })
+        ? new PolylineDashMaterialProperty({
+            color: Color.fromCssColorString(opts.color).withAlpha(opts.alpha ?? 0.94)
+          })
         : new ColorMaterialProperty(Color.fromCssColorString(opts.color).withAlpha(opts.alpha ?? 0.35)),
       clampToGround: opts.clampToGround !== false
     }
@@ -129,9 +131,7 @@ export function createPolygonEntity(viewer: Viewer, opts: PolygonEntityOptions):
     id: opts.id,
     name: opts.name,
     polygon: {
-      hierarchy: new PolygonHierarchy(
-        opts.positions.map(p => Cartesian3.fromDegrees(p[0], p[1]))
-      ),
+      hierarchy: new PolygonHierarchy(opts.positions.map(p => Cartesian3.fromDegrees(p[0], p[1]))),
       material: Color.fromCssColorString(opts.color).withAlpha(opts.fillAlpha ?? 0.2),
       outline: true,
       outlineColor: Color.fromCssColorString(opts.color).withAlpha(opts.outlineAlpha ?? 0.95),

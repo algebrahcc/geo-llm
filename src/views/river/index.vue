@@ -18,12 +18,7 @@ import type { SceneToolbarItem } from '@/components/common/scene-toolbar.vue';
 import RiverViewer from './modules/river-viewer.vue';
 import { useDraggable } from '@/composables/use-draggable';
 import type { LayerItem } from './modules/river-layer-panel.vue';
-import type {
-  AiAnalysisStep,
-  CrossingPlanCard,
-  CrossingSettingForm,
-  KnowledgeHitDisplay
-} from './modules/types';
+import type { AiAnalysisStep, CrossingPlanCard, CrossingSettingForm, KnowledgeHitDisplay } from './modules/types';
 
 defineOptions({
   name: 'RiverPage'
@@ -77,9 +72,7 @@ const confidence = ref(0);
 const agentInfo = getAgentByKey('river-support');
 
 // ──── 图层状态 ────
-const activeLayers = ref<LayerItem[]>(
-  riverDefaultLayers.map(l => ({ ...l }))
-);
+const activeLayers = ref<LayerItem[]>(riverDefaultLayers.map(l => ({ ...l })));
 
 function handleToggleLayer(key: string) {
   const layer = activeLayers.value.find(l => l.key === key);
@@ -149,21 +142,17 @@ async function handleSubmitAnalysis() {
     }))
   }));
 
-  const retrieveDesc = totalHits > 0
-    ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk`
-    : '未命中相关文档，使用默认知识模板';
+  const retrieveDesc =
+    totalHits > 0 ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk` : '未命中相关文档，使用默认知识模板';
 
   analysisSteps.value[1].status = 'success';
   analysisSteps.value[1].description = retrieveDesc;
 
   // 构建引用来源
-  references.value = totalHits > 0
-    ? [
-        ...retrievalResults.slice(0, 3).map(r => r.document.name),
-        '运行模板',
-        '智能体默认配置'
-      ]
-    : ['无相关命中文档', '运行模板', '智能体默认配置'];
+  references.value =
+    totalHits > 0
+      ? [...retrievalResults.slice(0, 3).map(r => r.document.name), '运行模板', '智能体默认配置']
+      : ['无相关命中文档', '运行模板', '智能体默认配置'];
 
   // 步骤3：渡场点选择与路线分析
   await runStep(2, '基于知识库匹配结果选择最优渡场点与渡河路线');
@@ -458,67 +447,139 @@ function handleToggleResult() {
 </template>
 
 <style scoped>
-.river-page { height: 100%; background: #0a101e; position: relative; }
-.river-stage { position: relative; height: 100%; overflow: hidden; }
+.river-page {
+  height: 100%;
+  background: #0a101e;
+  position: relative;
+}
+.river-stage {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
 
 /* ──── 左侧按钮组 ──── */
 .left-buttons {
-  position: absolute; top: 18px; left: 18px; z-index: 25;
-  display: flex; flex-direction: column; gap: 8px;
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .side-btn {
-  display: flex; height: 42px; width: 42px; align-items: center; justify-content: center;
-  border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
-  background: rgba(12,18,30,0.92); color: rgba(255,255,255,0.8);
-  cursor: pointer; font-size: 17px;
-  transition: border-color 0.15s, background 0.15s;
+  display: flex;
+  height: 42px;
+  width: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(12, 18, 30, 0.92);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  font-size: 17px;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
-.side-btn:hover { border-color: rgba(94,164,255,0.3); background: rgba(20,30,50,0.95); }
-.side-btn--active { border-color: rgba(94,164,255,0.5); background: rgba(59,130,246,0.1); }
+.side-btn:hover {
+  border-color: rgba(94, 164, 255, 0.3);
+  background: rgba(20, 30, 50, 0.95);
+}
+.side-btn--active {
+  border-color: rgba(94, 164, 255, 0.5);
+  background: rgba(59, 130, 246, 0.1);
+}
 
 /* ──── 右侧工具栏 ──── */
-.right-side { position: absolute; top: 18px; right: 18px; z-index: 20; }
+.right-side {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 20;
+}
 
 /* ──── 侧面板 ──── */
 .side-panel {
-  position: fixed; width: 380px; max-height: calc(100vh - 36px);
-  display: flex; flex-direction: column;
-  background: #0e1626; border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.45);
-  overflow: hidden; z-index: 21;
+  position: fixed;
+  width: 380px;
+  max-height: calc(100vh - 36px);
+  display: flex;
+  flex-direction: column;
+  background: #0e1626;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  z-index: 21;
 }
-.ai-panel-wrapper { width: 420px; }
-.layer-panel-wrapper { width: 300px; }
+.ai-panel-wrapper {
+  width: 420px;
+}
+.layer-panel-wrapper {
+  width: 300px;
+}
 
 /* ──── 底部面板 ──── */
 .bottom-panel {
-  position: fixed; width: calc(100vw - 480px); min-width: 600px;
-  max-height: 70vh; display: flex; flex-direction: column;
-  background: #0e1626; border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.45);
-  overflow: hidden auto; z-index: 21;
+  position: fixed;
+  width: calc(100vw - 480px);
+  min-width: 600px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: #0e1626;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  overflow: hidden auto;
+  z-index: 21;
   transition: max-height 0.25s ease;
 }
 
 /* ──── 拖拽手柄 ──── */
 .panel-drag-handle {
-  display: flex; align-items: center; justify-content: center;
-  gap: 4px; height: 22px; font-size: 10px;
-  color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.02);
-  cursor: grab; user-select: none; flex-shrink: 0; letter-spacing: 0.04em;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 22px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
-.panel-drag-handle:hover { color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.03); }
-.panel-drag-handle:active { cursor: grabbing; }
-.drag-dots { font-size: 14px; line-height: 1; letter-spacing: 2px; }.panel-drag-handle.horizontal .drag-dots { letter-spacing: 4px; }
+.panel-drag-handle:hover {
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.03);
+}
+.panel-drag-handle:active {
+  cursor: grabbing;
+}
+.drag-dots {
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 2px;
+}
+.panel-drag-handle.horizontal .drag-dots {
+  letter-spacing: 4px;
+}
 
 /* ──── 面板内组件去边 ──── */
 .left-panel :deep(.setting-panel),
 .layer-panel-wrapper :deep(.layer-panel),
 .ai-panel-wrapper :deep(.ai-panel),
 .bottom-panel :deep(.result-bar) {
-  width: 100% !important; border: none !important;
-  border-radius: 0 !important; box-shadow: none !important;
+  width: 100% !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 /* ──── 底部方案面板自适应内容高度 ──── */
@@ -537,19 +598,45 @@ function handleToggleResult() {
 /* ──── 过渡 ──── */
 .panel-slide-left-enter-active,
 .panel-slide-right-enter-active,
-.panel-slide-up-enter-active { transition: all 0.2s ease-out; }
+.panel-slide-up-enter-active {
+  transition: all 0.2s ease-out;
+}
 .panel-slide-left-leave-active,
 .panel-slide-right-leave-active,
-.panel-slide-up-leave-active { transition: all 0.15s ease-in; }
-.panel-slide-left-enter-from { transform: translateX(-24px); opacity: 0; }
-.panel-slide-left-leave-to { transform: translateX(-16px); opacity: 0; }
-.panel-slide-right-enter-from { transform: translateX(24px); opacity: 0; }
-.panel-slide-right-leave-to { transform: translateX(16px); opacity: 0; }
-.panel-slide-up-enter-from { transform: translateY(20px); opacity: 0; }
-.panel-slide-up-leave-to { transform: translateY(12px); opacity: 0; }
+.panel-slide-up-leave-active {
+  transition: all 0.15s ease-in;
+}
+.panel-slide-left-enter-from {
+  transform: translateX(-24px);
+  opacity: 0;
+}
+.panel-slide-left-leave-to {
+  transform: translateX(-16px);
+  opacity: 0;
+}
+.panel-slide-right-enter-from {
+  transform: translateX(24px);
+  opacity: 0;
+}
+.panel-slide-right-leave-to {
+  transform: translateX(16px);
+  opacity: 0;
+}
+.panel-slide-up-enter-from {
+  transform: translateY(20px);
+  opacity: 0;
+}
+.panel-slide-up-leave-to {
+  transform: translateY(12px);
+  opacity: 0;
+}
 
 @media (max-width: 1280px) {
-  .side-panel { width: 340px; }
-  .ai-panel-wrapper { width: 380px; }
+  .side-panel {
+    width: 340px;
+  }
+  .ai-panel-wrapper {
+    width: 380px;
+  }
 }
 </style>
