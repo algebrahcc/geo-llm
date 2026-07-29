@@ -129,23 +129,23 @@ export const generatedRoutes: GeneratedRoute[] = [
     },
     children: [
       {
-        name: 'system_user',
-        path: '/system/user',
-        component: 'view.system_user',
+        name: 'system_ai-config',
+        path: '/system/ai-config',
+        component: 'view.system_ai-config',
         meta: {
-          title: '用户管理',
-          icon: 'mdi:account-group',
+          title: 'AI配置',
+          icon: 'mdi:key-chain-variant',
           order: 1
         }
       },
       {
-        name: 'system_role',
-        path: '/system/role',
-        component: 'view.system_role',
+        name: 'system_log',
+        path: '/system/log',
+        component: 'view.system_log',
         meta: {
-          title: '角色管理',
-          icon: 'mdi:shield-account',
-          order: 2
+          title: '日志管理',
+          icon: 'mdi:file-document-multiple',
+          order: 4
         }
       },
       {
@@ -160,16 +160,6 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       },
       {
-        name: 'system_log',
-        path: '/system/log',
-        component: 'view.system_log',
-        meta: {
-          title: '日志管理',
-          icon: 'mdi:file-document-multiple',
-          order: 4
-        }
-      },
-      {
         name: 'system_online',
         path: '/system/online',
         component: 'view.system_online',
@@ -177,6 +167,26 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: '在线用户',
           icon: 'mdi:account-clock',
           order: 5
+        }
+      },
+      {
+        name: 'system_role',
+        path: '/system/role',
+        component: 'view.system_role',
+        meta: {
+          title: '角色管理',
+          icon: 'mdi:shield-account',
+          order: 2
+        }
+      },
+      {
+        name: 'system_user',
+        path: '/system/user',
+        component: 'view.system_user',
+        meta: {
+          title: '用户管理',
+          icon: 'mdi:account-group',
+          order: 1
         }
       }
     ]

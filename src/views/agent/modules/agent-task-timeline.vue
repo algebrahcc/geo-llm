@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AgentRunTask } from '@/mock/agent';
+import type { AgentRunTask } from './types';
 
 defineProps<{
   task: AgentRunTask;

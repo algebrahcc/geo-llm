@@ -2,7 +2,6 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { runKnowledgeRetrieval, type KnowledgeRetrievalResult } from '@/mock/knowledge';
-import { getAgentByKey } from '@/mock/agent';
 import {
   aiAnalysisStepTemplate,
   crossingPlanCards,
@@ -69,7 +68,7 @@ const planCards = ref<CrossingPlanCard[]>([]);
 const confidence = ref(0);
 
 // ──── 智能体信息 ────
-const agentInfo = getAgentByKey('river-support');
+const agentInfo = { status: 'online' as const };
 
 // ──── 图层状态 ────
 const activeLayers = ref<LayerItem[]>(riverDefaultLayers.map(l => ({ ...l })));
@@ -132,7 +131,7 @@ async function handleSubmitAnalysis() {
   // 构建知识库命中展示数据
   knowledgeHits.value = retrievalResults.map(r => ({
     documentName: r.document.name,
-    documentCategory: r.document.category,
+    documentCategory: '',
     documentFormat: r.document.format,
     matchCount: r.matches.length,
     topSnippets: r.matches.slice(0, 3).map(m => ({

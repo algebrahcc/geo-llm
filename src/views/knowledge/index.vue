@@ -4,18 +4,10 @@ import { useRouter } from 'vue-router';
 import { NDataTable, NPagination, NTag, type DataTableColumns } from 'naive-ui';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import {
-  getKnowledgeStatusMeta,
-  knowledgeCollections,
-  knowledgeCategories,
-  removeKnowledgeDocument,
-  updateKnowledgeDocument,
-  type KnowledgeDocument,
-  type KnowledgeEditFormModel
-} from '@/mock/knowledge';
-import KnowledgeCategoryCard from './modules/knowledge-category-card.vue';
+import { getKnowledgeStatusMeta } from './modules/real';
+import type { KnowledgeDocument } from './modules/types';
+import { deleteKbDocument } from '@/service/api/knowledge';
 import KnowledgeCollectionNav from './modules/knowledge-collection-nav.vue';
-import KnowledgeEditDrawer from './modules/knowledge-edit-drawer.vue';
 import KnowledgeToolbar from './modules/knowledge-toolbar.vue';
 import { useKnowledge } from './modules/use-knowledge';
 
@@ -28,39 +20,33 @@ const themeStore = useThemeStore();
 const darkMode = computed(() => themeStore.darkMode);
 
 const {
-  selectedCategory,
   selectedCollection,
   searchKeyword,
   sourceFilter,
   statusFilter,
   sortBy,
-  editVisible,
-  editingDocument,
   sourceOptions,
   statusOptions,
   sortOptions,
-  categorySummary,
   collectionGroups,
   filteredDocuments,
-  openEdit,
-  closeEdit,
-  resetFilters,
-  buildEditForm
+  kbLoading,
+  kbFailed,
+  loadRealDocuments,
+  getCollectionLabel,
+  resetFilters
 } = useKnowledge();
 
-const activeCollectionLabel = computed(
-  () => knowledgeCollections.find(item => item.key === selectedCollection.value)?.label || '全部集合'
-);
+const activeCollectionLabel = computed(() => getCollectionLabel(selectedCollection.value) || '全部集合');
 
 function handleCollectionSelect(key: string) {
   selectedCollection.value = key;
-  selectedCategory.value = 'all';
 }
 
-function goDetail(id: string) {
+function goDetail(id: string, datasetId?: string) {
   router.push({
     name: 'knowledge_detail' as never,
-    query: { id }
+    query: { id, datasetId }
   });
 }
 
@@ -73,30 +59,22 @@ function handleImportImage() {
 }
 
 function handleEdit(document: KnowledgeDocument) {
-  openEdit(document);
-}
-
-function handleEditSubmit(form: KnowledgeEditFormModel) {
-  const updated = updateKnowledgeDocument(form);
-  if (!updated) {
-    window.$message?.error('文档不存在或已被删除');
-    return;
-  }
-
-  closeEdit();
-  window.$message?.success('文档信息已更新');
+  goDetail(document.id, document.collection);
 }
 
 function handleDelete(document: KnowledgeDocument) {
   window.$dialog?.warning({
     title: '删除文档',
-    content: `确认删除"${document.name}"吗？该操作仅影响当前前端演示数据。`,
+    content: `确认从知识库删除"${document.name}"吗？该操作不可恢复。`,
     positiveText: '删除',
     negativeText: '取消',
-    onPositiveClick: () => {
-      const removed = removeKnowledgeDocument(document.id);
-      if (removed) {
+    onPositiveClick: async () => {
+      try {
+        await deleteKbDocument(document.id, document.collection);
+        await loadRealDocuments();
         window.$message?.success('已删除文档');
+      } catch {
+        window.$message?.error('删除文档失败，请稍后重试');
       }
     }
   });
@@ -113,14 +91,6 @@ watch([filteredDocuments, pageSize], () => {
     currentPage.value = totalPages.value;
   }
 });
-
-function getCategoryLabel(key: string) {
-  return knowledgeCategories.find(item => item.key === key)?.label || key;
-}
-
-function getCollectionLabel(key: string) {
-  return knowledgeCollections.find(item => item.key === key)?.label || key;
-}
 
 // ====== NDataTable columns ======
 const columns = computed<DataTableColumns<KnowledgeDocument>>(() => [
@@ -148,14 +118,6 @@ const columns = computed<DataTableColumns<KnowledgeDocument>>(() => [
           ])
         ])
       ]);
-    }
-  },
-  {
-    title: '分类',
-    key: 'category',
-    width: 100,
-    render(row) {
-      return h('span', { class: 'row-text' }, getCategoryLabel(row.category));
     }
   },
   {
@@ -212,7 +174,7 @@ const columns = computed<DataTableColumns<KnowledgeDocument>>(() => [
             type: 'button',
             class: 'action-icon-btn',
             'data-tooltip': '详情',
-            onClick: () => goDetail(row.id)
+            onClick: () => goDetail(row.id, row.collection)
           },
           [h(SvgIcon, { icon: 'mdi:eye-outline', class: 'action-icon-btn__svg' })]
         ),
@@ -289,31 +251,45 @@ const dataTableThemeOverrides = {
           </div>
         </div>
 
-        <!-- Category cards row -->
-        <div class="category-strip">
-          <KnowledgeCategoryCard
-            v-for="item in categorySummary"
-            :key="item.key"
-            :title="item.label"
-            :description="item.description"
-            :count="item.count"
-            :active="selectedCategory === item.key"
-            @select="selectedCategory = item.key"
-          />
-        </div>
-
         <!-- Main table card -->
         <div class="knowledge-main__card">
           <div class="card-head">
-            <div class="card-head__title">文档列表</div>
+            <div class="card-head__title">
+              <SvgIcon icon="mdi:file-document-multiple-outline" class="card-head__title-icon" />
+              文档列表
+            </div>
             <div class="card-head__meta">
               <span>当前集合：{{ activeCollectionLabel }}</span>
               <span>共 {{ filteredDocuments.length }} 条结果</span>
+              <span v-if="kbFailed" class="meta-status meta-status--error">
+                <SvgIcon icon="mdi:alert-circle-outline" />
+                数据加载失败
+              </span>
+              <span v-else-if="kbLoading" class="meta-status meta-status--loading">
+                <SvgIcon icon="mdi:loading" class="is-spin" />
+                加载中…
+              </span>
+              <button
+                type="button"
+                class="meta-refresh"
+                title="刷新列表"
+                :disabled="kbLoading"
+                @click="loadRealDocuments"
+              >
+                <SvgIcon icon="mdi:refresh" :class="{ 'is-spin': kbLoading }" />
+              </button>
             </div>
           </div>
 
           <div class="table-wrap">
+            <div v-if="kbFailed && !filteredDocuments.length" class="table-empty">
+              <SvgIcon icon="mdi:cloud-off-outline" class="table-empty__icon" />
+              <p class="table-empty__text">数据加载失败，请检查网络或后端服务</p>
+              <NButton size="small" secondary @click="loadRealDocuments">重新加载</NButton>
+            </div>
+
             <NDataTable
+              v-else
               :columns="columns"
               :data="filteredDocuments"
               :pagination="false"
@@ -346,14 +322,6 @@ const dataTableThemeOverrides = {
         </div>
       </section>
     </div>
-
-    <KnowledgeEditDrawer
-      :visible="editVisible"
-      :categories="knowledgeCategories"
-      :model-value="editingDocument ? buildEditForm(editingDocument) : null"
-      @update:visible="editVisible = $event"
-      @submit="handleEditSubmit"
-    />
   </div>
 </template>
 
@@ -478,13 +446,6 @@ const dataTableThemeOverrides = {
   width: 100%;
 }
 
-/* Category strip */
-.category-strip {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 8px;
-}
-
 /* Main card */
 .knowledge-main__card {
   flex: 1;
@@ -520,10 +481,18 @@ const dataTableThemeOverrides = {
 }
 
 .card-head__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.3px;
   text-shadow: 0 0 8px rgba(41, 163, 255, 0.1);
+}
+
+.card-head__title-icon {
+  font-size: 17px;
+  color: var(--knowledge-accent);
 }
 
 .card-head__meta {
@@ -534,12 +503,93 @@ const dataTableThemeOverrides = {
   font-size: 12px;
 }
 
+.card-head__meta .meta-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.card-head__meta .meta-status .is-spin,
+.table-empty__icon {
+  animation: meta-spin 0.8s linear infinite;
+}
+
+@keyframes meta-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.meta-status--error {
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff8d8d;
+}
+
+.meta-status--loading {
+  background: rgba(41, 163, 255, 0.1);
+  border: 1px solid rgba(41, 163, 255, 0.25);
+  color: #8cc8ff;
+}
+
+.meta-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid rgba(41, 163, 255, 0.25);
+  background: rgba(41, 163, 255, 0.08);
+  color: #8cc8ff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.meta-refresh:hover:not(:disabled) {
+  background: rgba(41, 163, 255, 0.16);
+  color: #29a3ff;
+}
+
+.meta-refresh:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.meta-refresh .is-spin {
+  animation: meta-spin 0.8s linear infinite;
+}
+
 .table-wrap {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.table-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+}
+
+.table-empty__icon {
+  font-size: 42px;
+  color: rgba(255, 141, 141, 0.6);
+}
+
+.table-empty__text {
+  margin: 0;
+  color: var(--knowledge-text-tertiary);
+  font-size: 13px;
 }
 
 /* ====== NDataTable deep overrides ====== */

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import { knowledgeCategories, knowledgeCollections, runKnowledgeRetrieval } from '@/mock/knowledge';
-import type { KnowledgeRetrievalMatch, ModuleRef } from '@/mock/knowledge';
+import type { KnowledgeRetrievalMatch, ModuleRef } from './modules/types';
+import { fetchKbDatasets, fetchKbDocuments, searchKb } from '@/service/api/knowledge';
+import { asList, extractPayload, getDatasetId, getDatasetName, mapKbSearchResults } from './modules/real';
 
 defineOptions({
   name: 'KnowledgeRetrievalPage'
@@ -18,9 +19,28 @@ const query = ref('台湾 港口 岸线');
 const searchMode = ref<SearchMode>('keyword');
 const loading = ref(false);
 const searched = ref(false);
-const results = ref(runKnowledgeRetrieval(query.value));
+const results = ref<ReturnType<typeof mapKbSearchResults>>([]);
+const documents = ref<Api.Knowledge.Document[]>([]);
+const datasets = ref<Api.Knowledge.Dataset[]>([]);
+const graphCount = ref(0);
 
 const quickQueries = ['台湾 港口 岸线', '堤防 风险 保障', '术语 模板 提示词'];
+
+const retrievalConfigText = computed(() => {
+  const ds = datasets.value[0] as Record<string, unknown> | undefined;
+  if (!ds) return '暂无数据集';
+  const rm = (ds.retrieval_model_dict || ds.retrievalModelDict) as Record<string, unknown> | undefined;
+  if (!rm) return '未配置（默认语义检索）';
+  const methodMap: Record<string, string> = {
+    semantic_search: '语义检索',
+    full_text_search: '关键词检索',
+    hybrid_search: '混合检索'
+  };
+  const method = methodMap[String(rm.search_method)] || String(rm.search_method) || '语义检索';
+  const topK = rm.top_k ?? '-';
+  const threshold = rm.score_threshold_enabled ? (rm.score_threshold ?? 0) : '关闭';
+  return `${method} · TopK ${topK} · 阈值 ${threshold}`;
+});
 
 const resultCount = computed(() => results.value.reduce((total, item) => total + item.matches.length, 0));
 
@@ -43,15 +63,71 @@ const modeLabel = computed(() => {
   }
 });
 
-function runSearch(text: string = query.value) {
+async function loadBaseData() {
+  try {
+    const [docRes, dsRes] = await Promise.all([fetchKbDocuments(), fetchKbDatasets()]);
+    if (docRes.error || dsRes.error) {
+      const err = (docRes.error || dsRes.error) as { response?: { data?: { msg?: string } }; message?: string };
+      window.$message?.error(`加载文档列表失败：${err?.response?.data?.msg || err?.message || '后端错误'}`);
+      return;
+    }
+    documents.value = asList<Api.Knowledge.Document>(extractPayload(docRes));
+    datasets.value = asList<Api.Knowledge.Dataset>(extractPayload(dsRes));
+  } catch {
+    documents.value = [];
+    datasets.value = [];
+  }
+}
+
+async function runSearch(text: string = query.value) {
   query.value = text;
   loading.value = true;
-  const delay = 600 + Math.random() * 900;
-  setTimeout(() => {
+  try {
+    if (!documents.value.length) {
+      await loadBaseData();
+    }
+    // 前端检索模式映射到 Dify 检索方式（本地未启用 pgvector，全部走 Dify /retrieve）
+    const difyMethod =
+      searchMode.value === 'keyword'
+        ? 'full_text_search'
+        : searchMode.value === 'semantic'
+          ? 'semantic_search'
+          : 'hybrid_search';
+    const res = await searchKb({
+      query: text,
+      topN: 12,
+      searchMethod: difyMethod
+    });
+    if (res.error) {
+      const err = res.error as { response?: { data?: { msg?: string } }; message?: string };
+      window.$message?.error(`检索失败：${err?.response?.data?.msg || err?.message || '后端返回错误'}`);
+      searched.value = true;
+      return;
+    }
+    const payload = (extractPayload(res) || { hits: [], graph: [] }) as Api.Knowledge.SearchResp;
     searched.value = true;
-    results.value = runKnowledgeRetrieval(text, searchMode.value);
+    graphCount.value = Array.isArray(payload.graph) ? payload.graph.length : 0;
+    results.value = mapKbSearchResults({
+      query: text,
+      response: {
+        hits: Array.isArray(payload.hits) ? payload.hits : [],
+        graph: Array.isArray(payload.graph) ? payload.graph : []
+      },
+      documents: documents.value,
+      datasets: datasets.value,
+      method: searchMode.value === 'keyword' ? 'bm25' : searchMode.value === 'semantic' ? 'vector' : 'hybrid'
+    });
+    if (results.value.length === 0) {
+      window.$message?.info('未命中任何片段，可尝试更换关键词或检索方式');
+    }
+  } catch {
+    searched.value = true;
+    graphCount.value = 0;
+    results.value = [];
+    window.$message?.error('检索失败，请稍后重试');
+  } finally {
     loading.value = false;
-  }, delay);
+  }
 }
 
 function updateMode(mode: SearchMode) {
@@ -59,12 +135,9 @@ function updateMode(mode: SearchMode) {
   if (searched.value) runSearch();
 }
 
-function getCategoryLabel(key: string) {
-  return knowledgeCategories.find(item => item.key === key)?.label || key;
-}
-
 function getCollectionLabel(key: string) {
-  return knowledgeCollections.find(item => item.key === key)?.label || key;
+  const dataset = datasets.value.find(item => getDatasetId(item) === key);
+  return dataset ? getDatasetName(dataset) : key;
 }
 
 function getSimilarityColor(sim: number): string {
@@ -107,6 +180,11 @@ function renderHighlightedSnippet(snippet: string, ranges: [number, number][]): 
   if (cursor < snippet.length) result += snippet.slice(cursor);
   return result;
 }
+
+onMounted(async () => {
+  await loadBaseData();
+  await runSearch(query.value);
+});
 </script>
 
 <template>
@@ -119,8 +197,12 @@ function renderHighlightedSnippet(snippet: string, ranges: [number, number][]): 
           <NTag size="small" round type="primary" :bordered="false" class="ml-auto">{{ modeLabel }}</NTag>
         </div>
         <div class="panel-body">
-          <div class="section-title">选择检索模式</div>
-          <div class="section-desc">关键词检索基于字面匹配，语义检索基于向量召回，混合检索综合两种方式加权融合。</div>
+          <div class="section-title">测试召回视角</div>
+          <div class="section-desc">
+            检索策略在「集合管理」中按数据集配置：
+            <b>{{ retrievalConfigText }}</b>
+            。下方为本次预览视角，不会修改已配置策略。
+          </div>
 
           <div class="mt-12px flex flex-wrap items-center gap-10px">
             <NRadioGroup :value="searchMode" @update:value="updateMode">
@@ -166,15 +248,26 @@ function renderHighlightedSnippet(snippet: string, ranges: [number, number][]): 
           </NTag>
         </div>
         <div class="panel-body">
-          <NSpin :show="loading" description="语义匹配中…">
+          <div v-if="loading" class="result-skeleton">
+            <div v-for="n in 3" :key="`sk-${n}`" class="result-item result-item--skeleton">
+              <NSkeleton text :repeat="1" :sharp="false" style="max-width: 200px" />
+              <div class="flex flex-col gap-8px mt-10px">
+                <NSkeleton height="56px" :sharp="false" />
+                <NSkeleton height="56px" :sharp="false" />
+              </div>
+            </div>
+          </div>
+
+          <template v-else>
             <div v-if="results.length" class="text-12px text-[rgba(147,196,255,0.5)] mb-10px">
-              已命中 {{ results.length }} 篇文档，{{ resultCount }} 条分块结果。
+              已命中 {{ results.length }} 篇文档，{{ resultCount }} 条分块结果，{{ graphCount }} 个图谱节点。
             </div>
 
             <div v-if="results.length" class="flex flex-col gap-10px">
               <div v-for="item in results" :key="item.document.id" class="result-item">
                 <div class="flex flex-wrap items-start justify-between gap-10px">
                   <div class="flex flex-wrap items-center gap-6px">
+                    <SvgIcon icon="mdi:file-document-outline" class="result-item__icon" />
                     <div class="card-title">{{ item.document.name }}</div>
                     <span
                       v-for="ref in item.document.moduleRefs"
@@ -193,7 +286,6 @@ function renderHighlightedSnippet(snippet: string, ranges: [number, number][]): 
                 </div>
                 <div class="mt-4px flex flex-wrap gap-4px">
                   <NTag size="small" round :bordered="false">{{ getCollectionLabel(item.document.collection) }}</NTag>
-                  <NTag size="small" round :bordered="false">{{ getCategoryLabel(item.document.category) }}</NTag>
                   <NTag size="small" round type="success" :bordered="false">{{ item.document.indexMode }}</NTag>
                 </div>
 
@@ -234,13 +326,13 @@ function renderHighlightedSnippet(snippet: string, ranges: [number, number][]): 
               </div>
             </div>
 
-            <NEmpty v-else-if="!loading && searched" description="未命中可用结果" class="py-20px">
+            <NEmpty v-else-if="searched" description="未命中可用结果" class="py-20px">
               <template #extra>
                 <span class="text-12px text-[rgba(147,196,255,0.45)]">尝试切换为语义检索以扩大召回范围</span>
               </template>
             </NEmpty>
-            <NEmpty v-else-if="!loading && !searched" description="输入关键词开始检索" class="py-20px" />
-          </NSpin>
+            <NEmpty v-else description="输入关键词开始检索" class="py-20px" />
+          </template>
         </div>
       </div>
     </div>
@@ -385,6 +477,30 @@ function renderHighlightedSnippet(snippet: string, ranges: [number, number][]): 
   border-radius: 4px;
   border: 1px solid rgba(25, 95, 176, 0.18);
   background: rgba(6, 20, 38, 0.5);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.result-item:not(.result-item--skeleton):hover {
+  border-color: rgba(41, 163, 255, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(41, 163, 255, 0.3),
+    0 12px 28px rgba(1, 8, 18, 0.4);
+  transform: translateY(-2px);
+}
+
+.result-item__icon {
+  font-size: 15px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.result-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .match-card {

@@ -1,6 +1,6 @@
 ---
-name: 'vue'
-description: 'Use when editing .vue files, creating Vue 3 components/composables, or testing Vue code: Composition API patterns, props/emits, reactivity gotchas.'
+name: "vue"
+description: "Use when editing .vue files, creating Vue 3 components/composables, or testing Vue code: Composition API patterns, props/emits, reactivity gotchas."
 ---
 
 # Vue 3 Development
@@ -32,18 +32,18 @@ For VueUse composables: use vueuse skill.
 
 ## Quick Reference
 
-| Working on...               | Load file                      |
-| --------------------------- | ------------------------------ |
-| `.vue` in `components/`     | `references/components.md`     |
-| File in `composables/`      | `references/composables.md`    |
-| File in `utils/`            | `references/utils-client.md`   |
-| `.spec.ts` / `.test.ts`     | `references/testing.md`        |
-| TypeScript patterns         | `references/typescript.md`     |
-| Vue Router typing           | `references/router.md`         |
-| Reactivity (`ref`, `watch`) | `references/reactivity.md`     |
-| Custom directives           | `references/directives.md`     |
-| Provide/inject              | `references/provide-inject.md` |
-| Edge cases, vue-tsc         | `references/gotchas.md`        |
+| Working on... | Load file |
+| --- | --- |
+| `.vue` in `components/` | `references/components.md` |
+| File in `composables/` | `references/composables.md` |
+| File in `utils/` | `references/utils-client.md` |
+| `.spec.ts` / `.test.ts` | `references/testing.md` |
+| TypeScript patterns | `references/typescript.md` |
+| Vue Router typing | `references/router.md` |
+| Reactivity (`ref`, `watch`) | `references/reactivity.md` |
+| Custom directives | `references/directives.md` |
+| Provide/inject | `references/provide-inject.md` |
+| Edge cases, vue-tsc | `references/gotchas.md` |
 
 ## Loading Files
 
@@ -66,11 +66,13 @@ DO NOT load all files at once. Load only what's relevant to your current task.
 
 ```vue
 <script setup lang="ts">
-const { count = 0 } = defineProps<{ count?: number }>();
-const emit = defineEmits<{ update: [value: number] }>();
+const { count = 0 } = defineProps<{ count?: number }>()
+const emit = defineEmits<{ update: [value: number] }>()
 </script>
 
 <template>
-  <button @click="emit('update', count + 1)">Count: {{ count }}</button>
+  <button @click="emit('update', count + 1)">
+    Count: {{ count }}
+  </button>
 </template>
 ```

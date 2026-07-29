@@ -106,6 +106,15 @@ function createAgentElegantRoute() {
           hideInMenu: true,
           activeMenu: 'agent_workbench'
         }
+      },
+      {
+        name: 'agent_tools',
+        path: '/agent/tools',
+        meta: {
+          title: '工具 / MCP',
+          icon: 'mdi:puzzle-outline',
+          iconFontSize: 18
+        }
       }
     ]
   } satisfies ElegantConstRoute;
@@ -161,6 +170,16 @@ function createAgentVueRoute(): RouteRecordRaw {
           title: '任务详情',
           hideInMenu: true,
           activeMenu: 'agent_workbench'
+        }
+      },
+      {
+        name: 'agent_tools',
+        path: 'tools',
+        component: () => import('@/views/agent/modules/agent-tools-page.vue'),
+        meta: {
+          title: '工具 / MCP',
+          icon: 'mdi:puzzle-outline',
+          iconFontSize: 18
         }
       }
     ]

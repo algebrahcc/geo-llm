@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import type { AgentRunTask } from '@/mock/agent';
+import type { AgentRunTask } from './types';
 
 const props = defineProps<{
   tasks: AgentRunTask[];
@@ -55,102 +55,23 @@ const sortedTasks = computed(() => [...props.tasks]);
 </template>
 
 <style scoped lang="scss">
-.panel-surface {
-  background: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
-  border: 1px solid rgba(43, 131, 255, 0.28);
-  box-shadow:
-    0 0 0 1px rgba(32, 111, 202, 0.22),
-    0 18px 40px rgba(1, 8, 18, 0.45);
-  border-radius: 4px;
-  position: relative;
-}
-
-.panel-surface::before,
-.panel-surface::after {
-  content: '';
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  pointer-events: none;
-  z-index: 2;
-  opacity: 0.35;
-}
-
-.panel-surface::before {
-  top: -1px;
-  left: -1px;
-  border-top: 2px solid #29a3ff;
-  border-left: 2px solid #29a3ff;
-  border-radius: 4px 0 0 0;
-}
-
-.panel-surface::after {
-  bottom: -1px;
-  right: -1px;
-  border-bottom: 2px solid #29a3ff;
-  border-right: 2px solid #29a3ff;
-  border-radius: 0 0 4px 0;
-}
-
-.panel-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 46px;
-  padding: 0 14px;
-  border-bottom: 1px solid rgba(25, 95, 176, 0.35);
-  background: linear-gradient(180deg, rgba(10, 38, 72, 0.96) 0%, rgba(5, 25, 47, 0.96) 100%);
-  position: relative;
-}
-
-.panel-head::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 20%;
-  bottom: 20%;
-  width: 2px;
-  border-radius: 1px;
-  background: linear-gradient(180deg, transparent, #29a3ff, transparent);
-  opacity: 0.5;
-}
-
-.panel-head__icon {
-  font-size: 16px;
-  color: #29a3ff;
-  filter: drop-shadow(0 0 4px rgba(41, 163, 255, 0.25));
-}
-
-.panel-head__title {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: #eaf5ff;
-  text-shadow: 0 0 8px rgba(41, 163, 255, 0.12);
-}
-
-.panel-body {
-  padding: 14px;
-}
-
-.section-desc {
-  font-size: 11px;
-  color: rgba(147, 196, 255, 0.5);
-}
-
 .task-item {
   padding: 12px 14px;
-  border: 1px solid rgba(25, 95, 176, 0.18);
-  border-radius: 4px;
+  border: 1px solid rgba(25, 95, 176, 0.2);
+  border-radius: var(--agent-radius-sm);
   background: rgba(6, 20, 38, 0.5);
   transition:
     background 0.2s ease,
-    border-color 0.2s ease;
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .task-item:hover {
-  background: rgba(33, 116, 212, 0.08);
-  border-color: rgba(61, 166, 255, 0.25);
+  background: rgba(33, 116, 212, 0.1);
+  border-color: rgba(61, 166, 255, 0.3);
+  box-shadow: 0 6px 20px rgba(2, 10, 22, 0.38);
+  transform: translateY(-1px);
 }
 
 .task-title {

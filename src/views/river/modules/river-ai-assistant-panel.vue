@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import type { AiAnalysisStep, ChatMessage, CrossingSettingForm, KnowledgeHitDisplay } from './types';
+import { fetchDifyChatStream } from '@/service/api/dify';
+import { useAuthStore } from '@/store/modules/auth';
 
 const props = defineProps<{
   collapsed: boolean;
@@ -10,6 +12,8 @@ const props = defineProps<{
   knowledgeHits: KnowledgeHitDisplay[];
   references: string[];
   agentOnline: boolean;
+  /** 绑定的 Dify 应用 ID（不传则走后端默认应用） */
+  appId?: number;
 }>();
 
 const emit = defineEmits<{
@@ -40,6 +44,15 @@ const messages = ref<ChatMessage[]>([
     timestamp: Date.now()
   }
 ]);
+
+// ──── 后端 SSE 对话状态 ────
+const authStore = useAuthStore();
+const userId = computed(() => String(authStore.userInfo.userId ?? ''));
+const currentConversationId = ref<string>('');
+const streaming = ref(false);
+let abortController: AbortController | null = null;
+
+onUnmounted(() => abortController?.abort());
 
 const expandedKnowledge = ref<string | null>(null);
 const capabilityTags = ['知识库检索', '方案材料导出', '地图标注'];
@@ -77,11 +90,11 @@ watch(
 const completedStepsCount = () => props.steps.filter(s => s.status === 'success').length;
 const totalStepsCount = () => props.steps.length;
 
-// ──── 发送消息 ────
-function handleSend() {
+// ──── 发送消息（接入后端 Dify SSE 流式对话） ────
+async function handleSend() {
   const text = chatInput.value.trim();
-  if (!text) return;
-  emit('send-message', text);
+  if (!text || streaming.value) return;
+
   messages.value.push({
     id: `user-${Date.now()}`,
     role: 'user',
@@ -89,6 +102,55 @@ function handleSend() {
     timestamp: Date.now()
   });
   chatInput.value = '';
+  emit('send-message', text);
+
+  const assistantId = `assistant-${Date.now()}`;
+  messages.value.push({
+    id: assistantId,
+    role: 'assistant',
+    content: '',
+    timestamp: Date.now(),
+    streaming: true
+  });
+  streaming.value = true;
+  abortController = new AbortController();
+
+  const findMsg = () => messages.value.find(m => m.id === assistantId);
+  const finish = (errorText?: string) => {
+    const msg = findMsg();
+    if (msg) {
+      if (errorText && !msg.content) msg.content = `⚠️ ${errorText}`;
+      msg.streaming = false;
+    }
+    streaming.value = false;
+  };
+
+  try {
+    await fetchDifyChatStream(
+      { appId: props.appId, userId: userId.value, query: text, conversationId: currentConversationId.value },
+      {
+        onDelta: delta => {
+          const msg = findMsg();
+          if (msg) msg.content += delta;
+        },
+        onDone: payload => {
+          const convId = typeof payload === 'string' ? payload : String(payload.conversationId || '');
+          if (convId) currentConversationId.value = convId;
+        },
+        onError: msg => finish(msg)
+      },
+      abortController.signal
+    );
+  } catch {
+    if (!abortController.signal.aborted) finish('请求失败，请稍后重试');
+  } finally {
+    finish();
+  }
+}
+
+// ──── 停止生成 ────
+function handleStop() {
+  abortController?.abort();
 }
 
 function toggleKnowledgeHit(docName: string) {
@@ -293,7 +355,8 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
         <div v-for="msg in messages.slice(1)" :key="msg.id" class="chat-msg" :class="`chat-msg--${msg.role}`">
           <span class="msg-avatar">{{ msg.role === 'user' ? '👤' : '🤖' }}</span>
           <div class="msg-bubble" :class="`msg-bubble--${msg.role}`">
-            {{ msg.content }}
+            <template v-if="msg.role === 'assistant' && msg.streaming && !msg.content">正在思考…</template>
+            <template v-else>{{ msg.content }}</template>
           </div>
         </div>
       </div>
@@ -309,7 +372,10 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
           placeholder="输入消息与助手对话..."
           @keyup.enter="handleSend"
         />
-        <button type="button" class="send-btn" :disabled="!chatInput.trim()" @click="handleSend">
+        <button v-if="streaming" type="button" class="send-btn" title="停止生成" @click="handleStop">
+          <SvgIcon icon="mdi:stop" />
+        </button>
+        <button v-else type="button" class="send-btn" :disabled="!chatInput.trim()" @click="handleSend">
           <SvgIcon icon="mdi:send" />
         </button>
       </div>

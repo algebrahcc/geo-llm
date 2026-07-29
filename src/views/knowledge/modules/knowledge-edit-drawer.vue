@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import type { KnowledgeCategory, KnowledgeEditFormModel } from '@/mock/knowledge';
+import type { KnowledgeEditFormModel } from './types';
 
 interface Props {
   visible: boolean;
-  categories: KnowledgeCategory[];
   modelValue: KnowledgeEditFormModel | null;
 }
 
@@ -18,7 +17,6 @@ const emit = defineEmits<{
 const form = reactive<KnowledgeEditFormModel>({
   id: '',
   name: '',
-  category: '',
   source: '',
   reviewer: '',
   tags: [],
@@ -35,10 +33,6 @@ const tagsText = computed({
   }
 });
 
-const categoryOptions = computed(() =>
-  props.categories.filter(item => item.key !== 'all').map(item => ({ label: item.label, value: item.key }))
-);
-
 watch(
   () => props.modelValue,
   value => {
@@ -46,7 +40,6 @@ watch(
 
     form.id = value.id;
     form.name = value.name;
-    form.category = value.category;
     form.source = value.source;
     form.reviewer = value.reviewer;
     form.tags = [...value.tags];
@@ -56,7 +49,7 @@ watch(
 );
 
 function handleSubmit() {
-  if (!form.id || !form.name || !form.category) {
+  if (!form.id || !form.name) {
     window.$message?.warning('请先补全关键信息');
     return;
   }
@@ -64,7 +57,6 @@ function handleSubmit() {
   emit('submit', {
     id: form.id,
     name: form.name,
-    category: form.category,
     source: form.source,
     reviewer: form.reviewer,
     tags: [...form.tags],
@@ -79,9 +71,6 @@ function handleSubmit() {
       <NForm label-placement="top" :show-feedback="false">
         <NFormItem label="文档名称">
           <NInput v-model:value="form.name" />
-        </NFormItem>
-        <NFormItem label="分类">
-          <NSelect v-model:value="form.category" :options="categoryOptions" />
         </NFormItem>
         <NFormItem label="来源">
           <NInput v-model:value="form.source" />

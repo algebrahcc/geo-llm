@@ -34,6 +34,7 @@
     "dev:prod": "vite --mode prod",
     "fmt": "oxfmt",
     "gen-route": "sa gen-route",
+    "install:local": "pnpm install --store-dir ./.pnpm-store",
     "lint": "oxlint --fix && eslint --fix .",
     "prepare": "simple-git-hooks",
     "preview": "vite preview",

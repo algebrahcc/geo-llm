@@ -81,6 +81,8 @@ export interface ChatMessage {
   role: 'assistant' | 'user' | 'system';
   content: string;
   timestamp: number;
+  /** 是否正在流式输出（后端 SSE 实时补全时置为 true） */
+  streaming?: boolean;
 }
 
 /** 知识库检索结果面板展示项 */

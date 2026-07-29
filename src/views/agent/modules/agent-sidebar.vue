@@ -2,15 +2,20 @@
 import { computed } from 'vue';
 import { NTag } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import { agentDefinitions, getTasksByAgentKey, type AgentKey } from '@/mock/agent';
+import type { AgentDefinition, AgentKey } from './types';
 
-defineProps<{
+const props = defineProps<{
   activeKey: AgentKey;
+  /** 智能体列表：未传时为空 */
+  agents?: AgentDefinition[];
+  /** 是否正在从后端加载真实智能体 */
+  loading?: boolean;
 }>();
 
 const emit = defineEmits<{
   select: [key: AgentKey];
   create: [];
+  refresh: [];
 }>();
 
 const runtimeMeta = {
@@ -19,22 +24,28 @@ const runtimeMeta = {
   draft: { label: '草稿', type: 'default' as const }
 };
 
-const items = computed(() =>
-  agentDefinitions.map(item => ({
-    ...item,
-    taskCount: getTasksByAgentKey(item.key).length
-  }))
-);
+const items = computed(() => props.agents ?? []);
 </script>
 
 <template>
   <div class="sidebar-panel">
-    <div class="sidebar-panel__header">
-      <SvgIcon icon="mdi:robot" class="sidebar-panel__header-icon" />
-      <span class="sidebar-panel__header-title">智能体列表</span>
-      <button type="button" class="header-create-btn" title="新建智能体" @click="emit('create')">
-        <SvgIcon icon="mdi:plus" />
-      </button>
+    <div class="panel-head">
+      <SvgIcon icon="mdi:robot" class="panel-head__icon" />
+      <span class="panel-head__title">智能体列表</span>
+      <div class="panel-head__extra">
+        <button
+          type="button"
+          class="header-create-btn"
+          title="刷新真实数据"
+          :disabled="loading"
+          @click="emit('refresh')"
+        >
+          <SvgIcon icon="mdi:refresh" :class="{ 'is-spin': loading }" />
+        </button>
+        <button type="button" class="header-create-btn" title="新建智能体" @click="emit('create')">
+          <SvgIcon icon="mdi:plus" />
+        </button>
+      </div>
     </div>
     <div class="sidebar-panel__body">
       <div class="flex flex-col gap-8px">
@@ -59,8 +70,8 @@ const items = computed(() =>
               </div>
               <div class="agent-slogan">{{ item.slogan }}</div>
               <div class="agent-meta">
-                <span>{{ item.model }}</span>
-                <span>{{ item.taskCount }} 条任务</span>
+                <span>{{ item.category || '--' }}</span>
+                <span>{{ item.model || 'Dify' }}</span>
               </div>
             </div>
           </div>
@@ -75,43 +86,6 @@ const items = computed(() =>
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.sidebar-panel__header {
-  display: flex;
-  align-items: center;
-  height: 46px;
-  padding: 0 14px;
-  border-bottom: 1px solid rgba(25, 95, 176, 0.35);
-  background: linear-gradient(180deg, rgba(10, 38, 72, 0.96) 0%, rgba(5, 25, 47, 0.96) 100%);
-  position: relative;
-}
-
-.sidebar-panel__header::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 20%;
-  bottom: 20%;
-  width: 2px;
-  border-radius: 1px;
-  background: linear-gradient(180deg, transparent, #29a3ff, transparent);
-  opacity: 0.5;
-}
-
-.sidebar-panel__header-icon {
-  font-size: 16px;
-  color: #29a3ff;
-  filter: drop-shadow(0 0 4px rgba(41, 163, 255, 0.25));
-}
-
-.sidebar-panel__header-title {
-  margin-left: 8px;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: #eaf5ff;
-  text-shadow: 0 0 8px rgba(41, 163, 255, 0.12);
 }
 
 .header-create-btn {
@@ -135,6 +109,16 @@ const items = computed(() =>
   background: rgba(41, 163, 255, 0.15);
   color: #29a3ff;
   box-shadow: 0 0 10px rgba(41, 163, 255, 0.2);
+}
+
+.header-create-btn .is-spin {
+  animation: agent-spin 0.8s linear infinite;
+}
+
+@keyframes agent-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .sidebar-panel__body {

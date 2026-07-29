@@ -1,0 +1,279 @@
+/* =========================================================================
+ * agent-ui.css — 智能体模块统一设计系统（全局，由 global.css @import 引入）
+ * 统一：页面背景、面板(panel-surface)、面板头(panel-head)、角标、区块说明、
+ *       空状态、小卡片、滚动条、入场动效。所有 agent 页面/组件共用，避免重复。
+ * 视觉语言：深空科技蓝 + 青蓝(accent)点缀，柔和圆角、内发光描边、克制光晕。
+ * ========================================================================= */
+
+:root {
+  --agent-page-bg:
+    radial-gradient(circle at top, rgba(0, 153, 255, 0.16) 0%, rgba(0, 0, 0, 0) 38%),
+    linear-gradient(180deg, #04182e 0%, #041323 40%, #03101b 100%);
+  --agent-surface-bg: linear-gradient(180deg, rgba(4, 22, 46, 0.92) 0%, rgba(2, 15, 32, 0.95) 100%);
+  --agent-surface-border: rgba(56, 140, 255, 0.26);
+  --agent-line: rgba(33, 104, 186, 0.34);
+  --agent-accent: #34a8ff;
+  --agent-accent-2: #00d4aa;
+  --agent-accent-soft: rgba(52, 168, 255, 0.12);
+  --agent-text: #eaf5ff;
+  --agent-text-dim: rgba(203, 227, 255, 0.68);
+  --agent-text-mute: rgba(147, 196, 255, 0.5);
+  --agent-radius: 12px;
+  --agent-radius-sm: 8px;
+  --agent-glow: 0 0 18px rgba(52, 168, 255, 0.12);
+}
+
+/* ---------- 面板 ---------- */
+.agent-surface,
+.panel-surface {
+  position: relative;
+  background: var(--agent-surface-bg);
+  border: 1px solid var(--agent-surface-border);
+  border-radius: var(--agent-radius);
+  box-shadow:
+    0 0 0 1px rgba(40, 120, 210, 0.16),
+    0 18px 44px rgba(1, 8, 18, 0.46),
+    inset 0 1px 0 rgba(120, 180, 255, 0.05);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+/* 左上角标 */
+.agent-surface::before,
+.panel-surface::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 14px;
+  height: 14px;
+  border-top: 2px solid var(--agent-accent);
+  border-left: 2px solid var(--agent-accent);
+  border-radius: var(--agent-radius) 0 0 0;
+  opacity: 0.55;
+  filter: drop-shadow(0 0 4px rgba(52, 168, 255, 0.5));
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 右下角标 */
+.agent-surface::after,
+.panel-surface::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 14px;
+  height: 14px;
+  border-bottom: 2px solid var(--agent-accent);
+  border-right: 2px solid var(--agent-accent);
+  border-radius: 0 0 var(--agent-radius) 0;
+  opacity: 0.55;
+  filter: drop-shadow(0 0 4px rgba(52, 168, 255, 0.5));
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ---------- 面板头 ---------- */
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--agent-line);
+  background: linear-gradient(180deg, rgba(11, 42, 80, 0.9) 0%, rgba(5, 25, 47, 0.9) 100%);
+  border-radius: var(--agent-radius) var(--agent-radius) 0 0;
+  position: relative;
+}
+
+.panel-head::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
+  width: 2px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, transparent, var(--agent-accent), transparent);
+  opacity: 0.6;
+}
+
+.panel-head__icon {
+  font-size: 16px;
+  color: var(--agent-accent);
+  filter: drop-shadow(0 0 5px rgba(52, 168, 255, 0.35));
+}
+
+.panel-head__title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--agent-text);
+  text-shadow: 0 0 8px rgba(52, 168, 255, 0.12);
+}
+
+.panel-head .ml-auto {
+  margin-left: auto;
+}
+
+.panel-head__extra {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- 面板体 ---------- */
+.panel-body {
+  padding: 16px;
+}
+
+/* ---------- 区块说明 ---------- */
+.section-desc {
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--agent-text-mute);
+}
+
+.section-desc.warn {
+  color: #ffce8a;
+}
+
+/* ---------- 空状态 ---------- */
+.agent-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 44px 0;
+  color: var(--agent-text-mute);
+}
+
+.agent-empty__icon {
+  font-size: 30px;
+  color: rgba(52, 168, 255, 0.4);
+  filter: drop-shadow(0 0 8px rgba(52, 168, 255, 0.25));
+}
+
+.agent-empty__hint {
+  font-size: 12px;
+  color: var(--agent-text-mute);
+  text-align: center;
+  max-width: 320px;
+  line-height: 20px;
+}
+
+/* ---------- 小卡片（列表项） ---------- */
+.agent-card {
+  padding: 12px 14px;
+  border: 1px solid rgba(25, 95, 176, 0.2);
+  border-radius: var(--agent-radius-sm);
+  background: rgba(6, 20, 38, 0.5);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.agent-card:hover {
+  border-color: rgba(61, 166, 255, 0.32);
+  background: rgba(10, 32, 58, 0.6);
+  box-shadow: 0 6px 20px rgba(2, 10, 22, 0.4);
+  transform: translateY(-1px);
+}
+
+/* ---------- 操作按钮区 ---------- */
+.agent-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ---------- 柔和标签 ---------- */
+.agent-tag-soft {
+  background: var(--agent-accent-soft);
+  border: 1px solid rgba(52, 168, 255, 0.22);
+  color: var(--agent-text-dim);
+}
+
+/* ---------- 入场动效 ---------- */
+@keyframes agent-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.agent-fade-in {
+  animation: agent-fade-in 0.35s ease both;
+}
+
+/* ---------- 滚动条（智能体模块容器） ---------- */
+:where(
+  .agent-page,
+  .agent-domain-page,
+  .task-detail-page,
+  .agent-config,
+  .agent-tools-page,
+  .sidebar-panel__body,
+  .panel-body,
+  .panel,
+  .detail-shell
+) {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(48, 127, 212, 0.5) transparent;
+}
+
+:where(
+  .agent-page,
+  .agent-domain-page,
+  .task-detail-page,
+  .agent-config,
+  .agent-tools-page,
+  .sidebar-panel__body,
+  .panel-body,
+  .panel,
+  .detail-shell
+)::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+:where(
+  .agent-page,
+  .agent-domain-page,
+  .task-detail-page,
+  .agent-config,
+  .agent-tools-page,
+  .sidebar-panel__body,
+  .panel-body,
+  .panel,
+  .detail-shell
+)::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(48, 127, 212, 0.5);
+}
+
+:where(
+  .agent-page,
+  .agent-domain-page,
+  .task-detail-page,
+  .agent-config,
+  .agent-tools-page,
+  .sidebar-panel__body,
+  .panel-body,
+  .panel,
+  .detail-shell
+)::-webkit-scrollbar-track {
+  background: transparent;
+}

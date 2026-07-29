@@ -1,19 +1,20 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import {
-  getKnowledgeDocumentDetailById,
-  getKnowledgeStatusMeta,
-  knowledgeCategories,
-  removeKnowledgeDocument,
-  updateKnowledgeDocument,
-  type KnowledgeEditFormModel
-} from '@/mock/knowledge';
-import { calculateCoverage, type EnvironmentParameter } from '@/mock/knowledge-parameters';
-import type { ModuleRef, KnowledgeReference } from '@/mock/knowledge';
+  deleteKbDocument,
+  fetchKbDatasets,
+  fetchKbDocumentDetail,
+  updateKbDocumentMetadata
+} from '@/service/api/knowledge';
+import { asList, extractPayload, mapKbDetailToKnowledgeDetail, getKnowledgeStatusMeta } from './modules/real';
+import type { ModuleRef, KnowledgeReference, KnowledgeDocumentDetail, KnowledgeChunk } from './modules/types';
+import KnowledgeSegmentEditor from './modules/knowledge-segment-editor.vue';
+import KnowledgeMetadataEditor from './modules/knowledge-metadata-editor.vue';
 import KnowledgeEditDrawer from './modules/knowledge-edit-drawer.vue';
+import type { KnowledgeEditFormModel } from './modules/types';
 
 defineOptions({
   name: 'KnowledgeDetailPage'
@@ -23,55 +24,16 @@ const route = useRoute();
 const router = useRouter();
 const themeStore = useThemeStore();
 const darkMode = computed(() => themeStore.darkMode);
-const editVisible = ref(false);
+const loading = ref(false);
+const detail = ref<KnowledgeDocumentDetail | null>(null);
+const datasets = ref<Api.Knowledge.Dataset[]>([]);
+const pollingTimer = ref<number | null>(null);
 
 const documentId = computed(() => String(route.query.id || ''));
-const detail = computed(() => getKnowledgeDocumentDetailById(documentId.value));
-const categoryLabel = computed(
-  () => knowledgeCategories.find(item => item.key === detail.value?.category)?.label || '--'
-);
-const statusMeta = computed(() => getKnowledgeStatusMeta(detail.value?.status || 'draft'));
+const datasetId = computed(() => String(route.query.datasetId || ''));
+const isPolling = computed(() => detail.value?.status === 'indexing' || detail.value?.status === 'processing');
+const statusMeta = computed(() => getKnowledgeStatusMeta(detail.value?.status || 'ready'));
 const isImageDoc = computed(() => detail.value?.format === 'IMAGE');
-
-const parameters = computed<EnvironmentParameter[]>(() => detail.value?.parameters || []);
-
-const paramCoverage = computed(() => calculateCoverage(parameters.value));
-
-const groupedParams = computed(() => {
-  const groups: Record<string, EnvironmentParameter[]> = { 水文: [], 地形: [], 情报: [], 工程: [] };
-  for (const p of parameters.value) {
-    groups[p.category].push(p);
-  }
-  return groups;
-});
-
-const categoryLabelMap: Record<string, string> = { 水文: '水文', 地形: '地形', 情报: '情报', 工程: '工程' };
-
-function paramConfColor(c: number): string {
-  if (c >= 0.75) return '#5ee8a0';
-  if (c >= 0.5) return '#f1c40f';
-  return '#ff6b6b';
-}
-
-function paramConfBg(c: number): string {
-  if (c >= 0.75) return 'rgba(46,204,113,0.12)';
-  if (c >= 0.5) return 'rgba(241,196,15,0.12)';
-  return 'rgba(255,107,107,0.12)';
-}
-
-const editModel = computed<KnowledgeEditFormModel | null>(() => {
-  if (!detail.value) return null;
-
-  return {
-    id: detail.value.id,
-    name: detail.value.name,
-    category: detail.value.category,
-    source: detail.value.source,
-    reviewer: detail.value.reviewer,
-    tags: [...detail.value.tags],
-    summary: detail.value.summary
-  };
-});
 
 function goBack() {
   router.push({ name: 'knowledge_overview' as never });
@@ -94,25 +56,125 @@ function handleDelete() {
     content: `确认删除"${detail.value.name}"吗？`,
     positiveText: '删除',
     negativeText: '取消',
-    onPositiveClick: () => {
-      const removed = removeKnowledgeDocument(detail.value!.id);
-      if (removed) {
+    onPositiveClick: async () => {
+      try {
+        await deleteKbDocument(detail.value!.id, detail.value!.collection || datasetId.value);
         window.$message?.success('已删除文档');
         goBack();
+      } catch {
+        window.$message?.error('删除文档失败，请稍后重试');
       }
     }
   });
 }
 
-function handleEditSubmit(form: KnowledgeEditFormModel) {
-  const updated = updateKnowledgeDocument(form);
-  if (!updated) {
-    window.$message?.error('文档不存在或已被删除');
+function stopPolling() {
+  if (pollingTimer.value != null) {
+    window.clearInterval(pollingTimer.value);
+    pollingTimer.value = null;
+  }
+}
+
+function ensurePolling() {
+  stopPolling();
+  if (!isPolling.value || !documentId.value || !datasetId.value) return;
+  pollingTimer.value = window.setInterval(() => {
+    loadDetail({ silent: true });
+  }, 5000);
+}
+
+async function loadDetail(options?: { silent?: boolean }) {
+  if (!documentId.value) {
+    detail.value = null;
+    stopPolling();
     return;
   }
 
-  editVisible.value = false;
-  window.$message?.success('文档信息已更新');
+  if (!datasetId.value) {
+    detail.value = null;
+    stopPolling();
+    window.$message?.warning('缺少知识集合标识，无法加载文档详情');
+    return;
+  }
+
+  if (!options?.silent) {
+    loading.value = true;
+  }
+  try {
+    const [docRes, dsRes] = await Promise.all([
+      fetchKbDocumentDetail(documentId.value, datasetId.value),
+      fetchKbDatasets()
+    ]);
+    datasets.value = asList<Api.Knowledge.Dataset>(extractPayload(dsRes));
+    const payload = extractPayload<Api.Knowledge.DocumentDetail>(docRes) as Api.Knowledge.DocumentDetail | null;
+    detail.value = payload ? mapKbDetailToKnowledgeDetail(payload, datasets.value) : null;
+    ensurePolling();
+  } catch {
+    detail.value = null;
+    stopPolling();
+    window.$message?.error('加载文档详情失败');
+  } finally {
+    if (!options?.silent) {
+      loading.value = false;
+    }
+  }
+}
+
+// ── 切片 / 元数据编辑 ──
+const segmentEditorVisible = ref(false);
+const editingSegment = ref<KnowledgeChunk | null>(null);
+const metadataEditorVisible = ref(false);
+
+function openSegmentEditor(chunk: KnowledgeChunk) {
+  editingSegment.value = chunk;
+  segmentEditorVisible.value = true;
+}
+
+function openMetadataEditor() {
+  metadataEditorVisible.value = true;
+}
+
+function reloadAfterEdit() {
+  loadDetail({ silent: true });
+}
+
+// ── 文档信息编辑（持久化到 Dify doc_metadata） ──
+const editDocVisible = ref(false);
+const editDocSnapshot = ref<KnowledgeEditFormModel | null>(null);
+
+function openEditDoc() {
+  if (!detail.value) return;
+  const d = detail.value;
+  editDocSnapshot.value = {
+    id: d.id,
+    name: d.name ?? '',
+    source: d.source ?? '',
+    reviewer: d.reviewer ?? '',
+    tags: Array.isArray(d.tags) ? [...d.tags] : [],
+    summary: d.summary ?? ''
+  };
+  editDocVisible.value = true;
+}
+
+async function handleDocEditSubmit(model: KnowledgeEditFormModel) {
+  if (!datasetId.value || !documentId.value) return;
+  const metadataList = [
+    { name: 'name', value: model.name ?? '' },
+    { name: 'source', value: model.source ?? '' },
+    { name: 'reviewer', value: model.reviewer ?? '' },
+    { name: 'summary', value: model.summary ?? '' },
+    { name: 'tags', value: (model.tags || []).join(',') }
+  ];
+  try {
+    await updateKbDocumentMetadata(datasetId.value, [
+      { document_id: documentId.value, metadata_list: metadataList, partial_update: true }
+    ]);
+    window.$message?.success('文档信息已更新');
+    editDocVisible.value = false;
+    await loadDetail({ silent: true });
+  } catch {
+    window.$message?.error('更新失败，请稍后重试');
+  }
 }
 
 // ── 模块关联 ──
@@ -138,31 +200,66 @@ function navigateToRef(reference: KnowledgeReference) {
     window.$message?.info('路由跳转暂不可用');
   }
 }
+
+watch(documentId, () => {
+  loadDetail();
+});
+
+watch(datasetId, () => {
+  loadDetail();
+});
+
+watch(isPolling, () => {
+  ensurePolling();
+});
+
+onMounted(loadDetail);
+onUnmounted(() => {
+  stopPolling();
+});
 </script>
 
 <template>
   <div class="detail-page" :class="{ 'detail-page--dark': darkMode }">
     <div class="detail-shell">
-      <template v-if="detail">
+      <div v-if="loading" class="panel-surface detail-loading">
+        <NSkeleton text :repeat="2" :sharp="false" class="detail-loading__title" />
+        <div class="detail-loading__grid">
+          <NSkeleton height="120px" :sharp="false" />
+          <NSkeleton height="120px" :sharp="false" />
+        </div>
+        <NSkeleton height="180px" :sharp="false" class="detail-loading__chunk" />
+      </div>
+
+      <template v-else-if="detail">
         <div class="panel-surface detail-hero">
+          <div class="detail-hero__bg" />
           <div class="panel-head">
             <SvgIcon :icon="isImageDoc ? 'mdi:image-outline' : 'mdi:file-document-outline'" class="panel-head__icon" />
             <span class="panel-head__title">{{ isImageDoc ? '图片文档详情' : '文档详情' }}</span>
           </div>
           <div class="panel-body">
             <div class="flex flex-wrap items-start justify-between gap-14px">
-              <div>
+              <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-8px">
                   <NButton quaternary @click="goBack">返回知识库</NButton>
-                  <NTag size="small" round :type="statusMeta.type" :bordered="false">{{ statusMeta.label }}</NTag>
-                  <NTag size="small" round :bordered="false">{{ categoryLabel }}</NTag>
+                  <NTag size="small" round :type="statusMeta.type" :bordered="false">
+                    <template #icon>
+                      <SvgIcon v-if="isPolling" icon="mdi:loading" class="is-spin" />
+                    </template>
+                    {{ statusMeta.label }}
+                  </NTag>
+                  <NTag v-if="isPolling" size="small" round type="warning" :bordered="false">
+                    <template #icon><SvgIcon icon="mdi:radar" /></template>
+                    实时轮询中
+                  </NTag>
                 </div>
                 <div class="doc-title">{{ detail.name }}</div>
                 <div class="doc-summary">{{ detail.summary }}</div>
               </div>
               <div class="flex flex-wrap gap-6px">
                 <NButton secondary @click="handleCopy">复制名称</NButton>
-                <NButton secondary @click="editVisible = true">编辑</NButton>
+                <NButton secondary @click="openEditDoc">编辑文档</NButton>
                 <NButton type="error" secondary @click="handleDelete">删除</NButton>
               </div>
             </div>
@@ -177,6 +274,10 @@ function navigateToRef(reference: KnowledgeReference) {
             </div>
             <div class="panel-body">
               <div class="info-grid">
+                <div class="field">
+                  <span class="field__label">所属集合</span>
+                  <span class="field__value">{{ detail.datasetName || '--' }}</span>
+                </div>
                 <div class="field">
                   <span class="field__label">来源</span>
                   <span class="field__value">{{ detail.source }}</span>
@@ -204,7 +305,7 @@ function navigateToRef(reference: KnowledgeReference) {
                   <span class="field__label">最近更新</span>
                   <span class="field__value">{{ detail.updatedAt }}</span>
                 </div>
-                <div class="field field--full">
+                <div v-if="detail.tags.length" class="field field--full">
                   <span class="field__label">标签</span>
                   <div class="mt-6px flex flex-wrap gap-4px">
                     <NTag v-for="tag in detail.tags" :key="tag" size="small" round :bordered="false" class="detail-tag">
@@ -237,6 +338,18 @@ function navigateToRef(reference: KnowledgeReference) {
                     {{ isImageDoc ? (detail.regionCount ?? detail.chunkCount) : detail.chunkCount }}
                   </span>
                 </div>
+                <div v-if="detail.completedSegments != null && detail.completedSegments > 0" class="metric-row">
+                  <span class="field__label">已完成切片</span>
+                  <span class="field__value">{{ detail.completedSegments }}</span>
+                </div>
+                <div v-if="detail.wordCount != null" class="metric-row">
+                  <span class="field__label">词数</span>
+                  <span class="field__value">{{ detail.wordCount }}</span>
+                </div>
+                <div v-if="detail.tokenCount != null" class="metric-row">
+                  <span class="field__label">Token 数</span>
+                  <span class="field__value">{{ detail.tokenCount }}</span>
+                </div>
                 <div v-if="isImageDoc && detail.segmentModel" class="metric-row">
                   <span class="field__label">分割模型</span>
                   <span class="field__value">{{ detail.segmentModel }}</span>
@@ -253,6 +366,10 @@ function navigateToRef(reference: KnowledgeReference) {
                   <span class="field__label">最近使用</span>
                   <span class="field__value">{{ detail.lastUsedAt }}</span>
                 </div>
+                <div v-if="detail.errorMessage" class="metric-row metric-row--danger">
+                  <span class="field__label">错误信息</span>
+                  <span class="field__value">{{ detail.errorMessage }}</span>
+                </div>
                 <div class="pt-4px">
                   <div class="field__label">处理记录</div>
                   <div class="mt-6px flex flex-col gap-6px">
@@ -261,64 +378,6 @@ function navigateToRef(reference: KnowledgeReference) {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div v-if="parameters.length > 0" class="panel-surface">
-          <div class="panel-head">
-            <SvgIcon icon="mdi:chart-scatter-plot" class="panel-head__icon" />
-            <span class="panel-head__title">结构化参数</span>
-            <span class="param-coverage-badge">
-              {{ paramCoverage.covered }}/{{ paramCoverage.total }} ({{ paramCoverage.rate }}%)
-            </span>
-          </div>
-          <div class="panel-body">
-            <template v-for="(items, cat) in groupedParams" :key="cat">
-              <div v-if="items.length > 0" class="param-category">
-                <div class="param-category__title">
-                  <span class="param-category__dot" :class="`param-category__dot--${cat}`"></span>
-                  {{ categoryLabelMap[cat as string] || cat }}
-                  <span class="param-category__count">({{ items.length }} 项)</span>
-                </div>
-                <div class="param-table">
-                  <div class="param-table__header">
-                    <span class="param-table__col param-table__col--name">参数名</span>
-                    <span class="param-table__col param-table__col--value">参数值</span>
-                    <span class="param-table__col param-table__col--conf">置信度</span>
-                    <span class="param-table__col param-table__col--source">来源</span>
-                  </div>
-                  <div
-                    v-for="p in items"
-                    :key="p.key"
-                    class="param-table__row"
-                    :class="{ 'param-table__row--low': p.confidence < 0.75 }"
-                  >
-                    <span class="param-table__col param-table__col--name">{{ p.label }}</span>
-                    <span class="param-table__col param-table__col--value">
-                      <span class="param-value">{{ p.value }}{{ p.value != null ? ' ' : '' }}{{ p.unit }}</span>
-                    </span>
-                    <span class="param-table__col param-table__col--conf">
-                      <span
-                        class="param-conf"
-                        :style="{
-                          '--conf-color': paramConfColor(p.confidence),
-                          '--conf-bg': paramConfBg(p.confidence),
-                          '--conf-w': (p.confidence * 100).toFixed(0) + '%'
-                        }"
-                      >
-                        {{ (p.confidence * 100).toFixed(0) }}%
-                      </span>
-                    </span>
-                    <span class="param-table__col param-table__col--source">
-                      <span :class="`param-source-tag param-source-tag--${p.source}`">
-                        {{ p.source === 'image-extract' ? '图像提取' : '文本提取' }}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </template>
-            <div v-if="parameters.length === 0" class="param-empty">暂无结构化参数数据</div>
           </div>
         </div>
 
@@ -331,7 +390,13 @@ function navigateToRef(reference: KnowledgeReference) {
             <span class="panel-head__title">{{ isImageDoc ? '区域要素预览' : 'Chunk 预览' }}</span>
           </div>
           <div class="panel-body">
-            <div class="grid gap-10px lg:grid-cols-2">
+            <NEmpty
+              v-if="!detail.chunks.length"
+              :description="
+                detail.status === 'indexing' ? '文档仍在处理中，切片将在完成后自动刷新' : '当前暂无可展示切片'
+              "
+            />
+            <div v-else class="grid gap-10px lg:grid-cols-2">
               <div v-for="chunk in detail.chunks" :key="chunk.id" class="chunk-card">
                 <div class="flex items-center justify-between gap-10px">
                   <div class="flex items-center gap-6px">
@@ -383,7 +448,11 @@ function navigateToRef(reference: KnowledgeReference) {
                       {{ tag }}
                     </NTag>
                   </div>
-                  <div class="text-11px text-[rgba(147,196,255,0.5)]">{{ chunk.length }} 字</div>
+                  <div class="flex items-center gap-8px">
+                    <NTag v-if="chunk.enabled === false" size="small" round :bordered="false" type="error">已停用</NTag>
+                    <NButton size="tiny" tertiary @click="openSegmentEditor(chunk)">编辑</NButton>
+                    <div class="text-11px text-[rgba(147,196,255,0.5)]">{{ chunk.length }} 字</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -393,11 +462,12 @@ function navigateToRef(reference: KnowledgeReference) {
         <div class="panel-surface">
           <div class="panel-head">
             <SvgIcon icon="mdi:link-variant" class="panel-head__icon" />
-            <span class="panel-head__title">引用信息</span>
-            <span class="text-11px text-[rgba(147,196,255,0.4)] ml-auto">关联模块</span>
+            <span class="panel-head__title">关联信息</span>
+            <span class="text-11px text-[rgba(147,196,255,0.4)] ml-auto">实时元数据</span>
           </div>
           <div class="panel-body">
-            <div class="grid gap-10px md:grid-cols-2">
+            <NEmpty v-if="!detail.references.length" description="当前暂无关联信息" />
+            <div v-else class="grid gap-10px md:grid-cols-2">
               <div v-for="item in detail.references" :key="item.id" class="reference-card ref-card--enhanced">
                 <div class="flex items-center gap-6px">
                   <div class="ref-module-icon" :style="{ color: getRefTypeColor(item) }">
@@ -438,9 +508,48 @@ function navigateToRef(reference: KnowledgeReference) {
             </div>
           </div>
         </div>
+
+        <div class="panel-surface">
+          <div class="panel-head">
+            <SvgIcon icon="mdi:tag-multiple-outline" class="panel-head__icon" />
+            <span class="panel-head__title">文档元数据</span>
+            <NButton size="small" secondary class="ml-auto" @click="openMetadataEditor">编辑</NButton>
+          </div>
+          <div class="panel-body">
+            <NEmpty v-if="!detail.metadata?.length" description="当前文档暂无元数据" />
+            <div v-else class="metadata-list">
+              <div v-for="meta in detail.metadata" :key="meta.id || meta.name" class="metadata-item">
+                <span class="metadata-item__name">{{ meta.name }}</span>
+                <span class="metadata-item__value">{{ meta.value || '—' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <KnowledgeSegmentEditor
+          v-model:visible="segmentEditorVisible"
+          :dataset-id="datasetId"
+          :document-id="documentId"
+          :segment="editingSegment"
+          @saved="reloadAfterEdit"
+        />
+        <KnowledgeMetadataEditor
+          v-model:visible="metadataEditorVisible"
+          :dataset-id="datasetId"
+          :document-id="documentId"
+          :metadata="detail.metadata || []"
+          @saved="reloadAfterEdit"
+        />
+
+        <KnowledgeEditDrawer
+          :visible="editDocVisible"
+          :model-value="editDocSnapshot"
+          @update:visible="editDocVisible = $event"
+          @submit="handleDocEditSubmit"
+        />
       </template>
 
-      <div v-else class="panel-surface">
+      <div v-else-if="!loading" class="panel-surface">
         <div class="panel-body">
           <NEmpty description="未找到对应文档详情">
             <template #extra>
@@ -450,14 +559,6 @@ function navigateToRef(reference: KnowledgeReference) {
         </div>
       </div>
     </div>
-
-    <KnowledgeEditDrawer
-      :visible="editVisible"
-      :categories="knowledgeCategories"
-      :model-value="editModel"
-      @update:visible="editVisible = $event"
-      @submit="handleEditSubmit"
-    />
   </div>
 </template>
 
@@ -569,6 +670,45 @@ function navigateToRef(reference: KnowledgeReference) {
   padding: 14px;
 }
 
+.detail-hero {
+  overflow: hidden;
+}
+
+.detail-hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 88% -10%, rgba(41, 163, 255, 0.18) 0%, rgba(0, 0, 0, 0) 42%),
+    radial-gradient(circle at 0% 120%, rgba(98, 228, 255, 0.1) 0%, rgba(0, 0, 0, 0) 40%);
+}
+
+.detail-hero .panel-head,
+.detail-hero .panel-body {
+  position: relative;
+  z-index: 1;
+}
+
+.detail-loading {
+  padding: 14px;
+}
+
+.detail-loading__title {
+  max-width: 320px;
+}
+
+.detail-loading__grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.detail-loading__chunk {
+  margin-top: 10px;
+}
+
 .doc-title {
   margin-top: 14px;
   font-size: 22px;
@@ -620,6 +760,11 @@ function navigateToRef(reference: KnowledgeReference) {
   padding: 8px 10px;
   border-radius: 4px;
   background: rgba(6, 20, 38, 0.5);
+}
+
+.metric-row--danger {
+  background: rgba(255, 107, 107, 0.08);
+  border: 1px solid rgba(255, 107, 107, 0.16);
 }
 
 .detail-tag {
@@ -745,6 +890,36 @@ function navigateToRef(reference: KnowledgeReference) {
 
 .ref-link__arrow {
   font-size: 12px;
+}
+
+/* ── 元数据列表 ── */
+.metadata-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metadata-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: rgba(6, 20, 38, 0.5);
+  border: 1px solid rgba(25, 95, 176, 0.18);
+}
+
+.metadata-item__name {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.metadata-item__value {
+  font-size: 13px;
+  color: var(--text-primary);
+  text-align: right;
+  word-break: break-all;
 }
 
 /* ── Parameter Table ── */

@@ -1,15 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import {
-  createKnowledgeCollection,
-  knowledgeCollections,
-  knowledgeDocuments,
-  removeKnowledgeCollection,
-  updateKnowledgeCollection,
-  type KnowledgeCollectionFormModel
-} from '@/mock/knowledge';
+import type { KnowledgeCollectionFormModel } from './modules/types';
+import { createKbDataset, deleteKbDataset, fetchKbDatasets, updateKbDataset } from '@/service/api/knowledge';
+import { asList, extractPayload, getDatasetDescription, getDatasetId, getDatasetName } from './modules/real';
 
 defineOptions({
   name: 'KnowledgeCollectionsPage'
@@ -20,34 +15,51 @@ const darkMode = computed(() => themeStore.darkMode);
 
 const drawerVisible = ref(false);
 const editingKey = ref('');
+const loading = ref(false);
+const datasets = ref<Api.Knowledge.Dataset[]>([]);
 
 const form = reactive<KnowledgeCollectionFormModel>({
   label: '',
   description: '',
-  group: '区域知识'
+  group: '知识集合',
+  searchMethod: 'semantic_search',
+  topK: 5,
+  scoreThresholdEnabled: false,
+  scoreThreshold: 0
 });
 
-const groupOptions = [
-  { label: '区域知识', value: '区域知识' },
-  { label: '通用能力', value: '通用能力' },
-  { label: '总览', value: '总览' }
-];
-
 const collectionRows = computed(() =>
-  knowledgeCollections.map(item => ({
-    ...item,
-    count:
-      item.key === 'all'
-        ? knowledgeDocuments.length
-        : knowledgeDocuments.filter(doc => doc.collection === item.key).length
+  datasets.value.map(item => ({
+    key: getDatasetId(item),
+    label: getDatasetName(item),
+    description: getDatasetDescription(item) || '暂无集合说明',
+    group: '知识集合',
+    count: Number(item.document_count ?? item.documentCount ?? 0) || 0
   }))
 );
+
+async function loadDatasets() {
+  loading.value = true;
+  try {
+    const res = await fetchKbDatasets();
+    datasets.value = asList<Api.Knowledge.Dataset>(extractPayload(res));
+  } catch {
+    datasets.value = [];
+    window.$message?.error('加载知识集合失败');
+  } finally {
+    loading.value = false;
+  }
+}
 
 function resetForm() {
   editingKey.value = '';
   form.label = '';
   form.description = '';
-  form.group = '区域知识';
+  form.group = '知识集合';
+  form.searchMethod = 'semantic_search';
+  form.topK = 5;
+  form.scoreThresholdEnabled = false;
+  form.scoreThreshold = 0;
 }
 
 function openCreate() {
@@ -56,44 +68,52 @@ function openCreate() {
 }
 
 function openEdit(key: string) {
-  const target = knowledgeCollections.find(item => item.key === key);
+  const target = collectionRows.value.find(item => item.key === key);
   if (!target) return;
+
+  const raw = datasets.value.find(item => getDatasetId(item) === key) as Record<string, unknown> | undefined;
+  const rm = (raw?.retrieval_model_dict || raw?.retrievalModelDict) as Record<string, unknown> | undefined;
 
   editingKey.value = key;
   form.label = target.label;
   form.description = target.description;
   form.group = target.group;
+  form.searchMethod = (rm?.search_method as KnowledgeCollectionFormModel['searchMethod']) || 'semantic_search';
+  form.topK = Number(rm?.top_k ?? 5);
+  form.scoreThresholdEnabled = Boolean(rm?.score_threshold_enabled);
+  form.scoreThreshold = Number(rm?.score_threshold ?? 0);
   drawerVisible.value = true;
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   if (!form.label.trim() || !form.description.trim()) {
     window.$message?.warning('请先填写集合名称和说明');
     return;
   }
 
-  if (editingKey.value) {
-    const updated = updateKnowledgeCollection({
-      key: editingKey.value,
-      label: form.label.trim(),
-      description: form.description.trim(),
-      group: form.group
-    });
-
-    if (updated) {
+  try {
+    if (editingKey.value) {
+      await updateKbDataset(editingKey.value, {
+        name: form.label.trim(),
+        description: form.description.trim(),
+        retrievalModel: {
+          search_method: form.searchMethod,
+          top_k: form.topK,
+          score_threshold_enabled: form.scoreThresholdEnabled,
+          score_threshold: form.scoreThreshold
+        }
+      });
       window.$message?.success('集合信息已更新');
+    } else {
+      await createKbDataset(form.label.trim(), form.description.trim());
+      window.$message?.success('已新建集合');
     }
-  } else {
-    createKnowledgeCollection({
-      label: form.label.trim(),
-      description: form.description.trim(),
-      group: form.group
-    });
-    window.$message?.success('已新建集合');
+    await loadDatasets();
+    drawerVisible.value = false;
+    resetForm();
+  } catch {
+    window.$message?.error(editingKey.value ? '更新集合失败，请稍后重试' : '新建集合失败，请稍后重试');
   }
-
-  drawerVisible.value = false;
-  resetForm();
 }
 
 function handleDelete(key: string, label: string) {
@@ -102,19 +122,19 @@ function handleDelete(key: string, label: string) {
     content: `确认删除"${label}"吗？`,
     positiveText: '删除',
     negativeText: '取消',
-    onPositiveClick: () => {
-      const result = removeKnowledgeCollection(key);
-      if (result.success) {
+    onPositiveClick: async () => {
+      try {
+        await deleteKbDataset(key);
+        await loadDatasets();
         window.$message?.success('集合已删除');
-        return;
-      }
-
-      if (result.reason === 'has-documents') {
-        window.$message?.warning('该集合下仍有文档，暂不能删除');
+      } catch {
+        window.$message?.warning('删除集合失败，可能该集合下仍有关联文档或后端暂不可用');
       }
     }
   });
 }
+
+onMounted(loadDatasets);
 </script>
 
 <template>
@@ -129,38 +149,54 @@ function handleDelete(key: string, label: string) {
         <div class="panel-body">
           <div class="flex flex-wrap items-center justify-between gap-14px">
             <div>
-              <div class="page-title">统一维护知识集合分组</div>
-              <div class="page-desc">分组、说明和文档归属，是知识库总览与检索测试的基础入口。</div>
+              <div class="page-title">统一维护知识集合</div>
+              <div class="page-desc">维护集合名称和说明，作为文档导入、总览筛选和检索测试的基础入口。</div>
             </div>
-            <NButton type="primary" @click="openCreate">新建集合</NButton>
+            <div class="flex items-center gap-8px">
+              <NButton secondary :loading="loading" @click="loadDatasets">刷新</NButton>
+              <NButton type="primary" @click="openCreate">新建集合</NButton>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Collection grid -->
       <div class="collection-grid">
+        <template v-if="loading">
+          <div v-for="n in 4" :key="`sk-${n}`" class="panel-surface collection-card collection-card--skeleton">
+            <NSkeleton text :repeat="2" :sharp="false" />
+            <NSkeleton height="14px" class="mt-12px" :sharp="false" />
+            <NSkeleton height="28px" class="mt-18px" :sharp="false" />
+          </div>
+        </template>
+
+        <div v-else-if="!collectionRows.length" class="panel-surface collection-card collection-card--empty">
+          <SvgIcon icon="mdi:folder-plus-outline" class="empty-icon" />
+          <NEmpty description="暂无知识集合" />
+          <NButton type="primary" ghost class="mt-12px" @click="openCreate">新建第一个集合</NButton>
+        </div>
+
         <div v-for="item in collectionRows" :key="item.key" class="panel-surface collection-card">
+          <div class="card-accent" />
           <div class="flex items-start justify-between gap-12px">
-            <div>
-              <div class="card-title">{{ item.label }}</div>
+            <div class="min-w-0">
+              <div class="card-title">
+                <SvgIcon icon="mdi:folder-cog-outline" class="card-title__icon" />
+                <span class="truncate">{{ item.label }}</span>
+              </div>
               <div class="card-group">{{ item.group }}</div>
             </div>
-            <NTag size="small" round type="primary" :bordered="false">{{ item.count }} 篇</NTag>
+            <NTag size="small" round type="primary" :bordered="false" class="card-count">{{ item.count }} 篇</NTag>
           </div>
           <div class="card-desc">{{ item.description }}</div>
           <div class="card-footer">
-            <div class="card-meta">{{ item.key === 'all' ? '系统默认集合' : '可维护集合' }}</div>
+            <div class="card-meta">
+              <SvgIcon icon="mdi:database-search-outline" class="card-meta__icon" />
+              用于文档归档与检索
+            </div>
             <div class="flex gap-6px">
-              <NButton size="small" secondary :disabled="item.key === 'all'" @click="openEdit(item.key)">编辑</NButton>
-              <NButton
-                size="small"
-                secondary
-                type="error"
-                :disabled="item.key === 'all'"
-                @click="handleDelete(item.key, item.label)"
-              >
-                删除
-              </NButton>
+              <NButton size="small" secondary @click="openEdit(item.key)">编辑</NButton>
+              <NButton size="small" secondary type="error" @click="handleDelete(item.key, item.label)">删除</NButton>
             </div>
           </div>
         </div>
@@ -173,11 +209,34 @@ function handleDelete(key: string, label: string) {
           <NFormItem label="集合名称">
             <NInput v-model:value="form.label" placeholder="例如：两栖方向专题资料" />
           </NFormItem>
-          <NFormItem label="所属分组">
-            <NSelect v-model:value="form.group" :options="groupOptions" />
-          </NFormItem>
           <NFormItem label="集合说明">
             <NInput v-model:value="form.description" type="textarea" :autosize="{ minRows: 4, maxRows: 6 }" />
+          </NFormItem>
+          <NFormItem label="检索方式">
+            <NSelect
+              v-model:value="form.searchMethod"
+              :options="[
+                { label: '语义检索', value: 'semantic_search' },
+                { label: '关键词检索', value: 'full_text_search' },
+                { label: '混合检索', value: 'hybrid_search' }
+              ]"
+            />
+          </NFormItem>
+          <NFormItem label="召回数量 TopK">
+            <NInputNumber v-model:value="form.topK" :min="1" :max="50" />
+          </NFormItem>
+          <NFormItem label="相似度阈值">
+            <div class="flex items-center gap-10px">
+              <NSwitch v-model:checked="form.scoreThresholdEnabled" />
+              <NInputNumber
+                v-model:value="form.scoreThreshold"
+                :min="0"
+                :max="1"
+                :step="0.05"
+                :disabled="!form.scoreThresholdEnabled"
+                class="flex-1"
+              />
+            </div>
           </NFormItem>
         </NForm>
 
@@ -320,18 +379,56 @@ function handleDelete(key: string, label: string) {
 
 .collection-card {
   padding: 14px;
+  overflow: hidden;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.collection-card:not(.collection-card--skeleton):not(.collection-card--empty):hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px rgba(41, 163, 255, 0.4),
+    0 22px 48px rgba(1, 8, 18, 0.55);
+}
+
+.card-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 4px 0 0 4px;
+  background: linear-gradient(180deg, var(--accent), transparent);
+  opacity: 0.55;
 }
 
 .card-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
+.card-title__icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--accent);
+}
+
 .card-group {
   margin-top: 4px;
+  padding-left: 23px;
   font-size: 11px;
   color: rgba(41, 163, 255, 0.7);
+}
+
+.card-count {
+  flex-shrink: 0;
 }
 
 .card-desc {
@@ -350,8 +447,30 @@ function handleDelete(key: string, label: string) {
 }
 
 .card-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   color: var(--text-tertiary);
+}
+
+.card-meta__icon {
+  font-size: 13px;
+}
+
+.collection-card--empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 14px;
+}
+
+.collection-card--empty .empty-icon {
+  font-size: 40px;
+  color: rgba(41, 163, 255, 0.55);
+  margin-bottom: 10px;
 }
 
 /* Scrollbar */

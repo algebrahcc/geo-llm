@@ -154,6 +154,23 @@ const emit = defineEmits<{
   background: linear-gradient(90deg, rgba(19, 95, 182, 0.38) 0%, rgba(9, 46, 92, 0.16) 100%);
   border-color: rgba(61, 166, 255, 0.28);
   box-shadow: inset 2px 0 0 #29a3ff;
+  position: relative;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.nav-item--active::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 11px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #29a3ff;
+  box-shadow: 0 0 6px rgba(41, 163, 255, 0.9);
 }
 
 .nav-item__content {

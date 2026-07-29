@@ -1,6 +1,6 @@
 ---
-name: 'web-design-guidelines'
-description: 'Review UI code for accessibility/UX/performance best practices. Invoke when asked to review UI, check accessibility, audit design/UX, or validate against guidelines.'
+name: "web-design-guidelines"
+description: "Review UI code for accessibility/UX/performance best practices. Invoke when asked to review UI, check accessibility, audit design/UX, or validate against guidelines."
 ---
 
 # Web Interface Guidelines Review

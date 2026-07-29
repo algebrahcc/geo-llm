@@ -1,6 +1,6 @@
 ---
-name: 'frontend-design'
-description: 'Create distinctive, production-grade frontend interfaces with high design quality. Invoke when styling/beautifying UI, designing pages/components, or doing UI polish work.'
+name: "frontend-design"
+description: "Create distinctive, production-grade frontend interfaces with high design quality. Invoke when styling/beautifying UI, designing pages/components, or doing UI polish work."
 ---
 
 # Frontend Design
