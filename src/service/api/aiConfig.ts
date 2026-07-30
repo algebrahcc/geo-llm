@@ -30,17 +30,3 @@ export function importAiAppFromDify(data: Api.AiConfig.AppImportReq) {
     data
   });
 }
-
-export function fetchRemoteAiApps() {
-  return request<Api.AiConfig.RemoteApp[]>({
-    url: '/api/ai-config/apps/remote',
-    method: 'get'
-  });
-}
-
-export function syncRemoteAiApps() {
-  return request<Api.AiConfig.AppSyncResult>({
-    url: '/api/ai-config/apps/sync',
-    method: 'post'
-  });
-}

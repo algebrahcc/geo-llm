@@ -8,10 +8,6 @@ declare namespace Api {
       chatApiKeyDisplay: string;
       workflowApiKeyDisplay: string;
       datasetApiKeyDisplay: string;
-      consoleUrl?: string;
-      consoleApiTokenEnabled?: boolean;
-      consoleApiTokenDisplay?: string;
-      consoleCsrfTokenEnabled?: boolean;
     }
 
     interface ConnectivityResult {
@@ -53,37 +49,6 @@ declare namespace Api {
       mode?: string;
       type: Api.DifyApp.AppType;
       message: string;
-    }
-
-    interface RemoteApp {
-      appId: string;
-      name: string;
-      description?: string;
-      mode: string;
-      type?: Api.DifyApp.AppType;
-      imported: boolean;
-      localId?: number;
-      importable: boolean;
-      importableReason?: string;
-      apiKeyReady: boolean;
-    }
-
-    interface AppSyncItem {
-      appId: string;
-      name: string;
-      action: 'created' | 'updated' | 'skipped' | 'failed';
-      localId?: number;
-      detail?: string;
-      apiKeyReady?: boolean;
-    }
-
-    interface AppSyncResult {
-      total: number;
-      created: number;
-      updated: number;
-      skipped: number;
-      failed: number;
-      items: AppSyncItem[];
     }
   }
 }

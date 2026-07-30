@@ -2,11 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { runKnowledgeRetrieval, type KnowledgeRetrievalResult } from '@/mock/knowledge';
-import {
-  aiAnalysisStepTemplate,
-  crossingPlanCards,
-  defaultCrossingSettingForm
-} from '@/mock/river';
+import { aiAnalysisStepTemplate, crossingPlanCards, defaultCrossingSettingForm } from '@/mock/river';
 import { fetchVectorPage } from '@/service/api/vector';
 import RiverAiAssistantPanel from './modules/river-ai-assistant-panel.vue';
 import RiverLayerPanel from './modules/river-layer-panel.vue';
@@ -184,16 +180,16 @@ async function handleSubmitAnalysis() {
     }))
   }));
 
-  const retrieveDesc = totalHits > 0
-    ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk`
-    : '未命中相关文档，使用默认知识模板';
+  const retrieveDesc =
+    totalHits > 0 ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk` : '未命中相关文档，使用默认知识模板';
 
   analysisSteps.value[1].status = 'success';
   analysisSteps.value[1].description = retrieveDesc;
 
-  references.value = totalHits > 0
-    ? [...retrievalResults.slice(0, 3).map(r => r.document.name), '运行模板', '智能体默认配置']
-    : ['无相关命中文档', '运行模板', '智能体默认配置'];
+  references.value =
+    totalHits > 0
+      ? [...retrievalResults.slice(0, 3).map(r => r.document.name), '运行模板', '智能体默认配置']
+      : ['无相关命中文档', '运行模板', '智能体默认配置'];
 
   await runStep(2, '基于知识库匹配结果选择最优渡场点与渡河路线');
   await runStep(3, '综合水文风险、装备适配性、时间约束进行评估');
@@ -226,9 +222,15 @@ function handleSendMessage(msg: string) {
   console.log('[AI助手] 收到用户消息:', msg);
 }
 
-function handleSettingClose() { settingVisible.value = false; }
-function handleAiClose() { aiPanelVisible.value = false; }
-function handleResultClose() { resultVisible.value = false; }
+function handleSettingClose() {
+  settingVisible.value = false;
+}
+function handleAiClose() {
+  aiPanelVisible.value = false;
+}
+function handleResultClose() {
+  resultVisible.value = false;
+}
 
 function handleLayerClose() {
   layerPanelVisible.value = false;
@@ -252,13 +254,28 @@ function handleRightToolSelect(key: string) {
       handleToggleLayerPanel();
       activeRightTool.value = layerPanelVisible.value ? key : null;
       return;
-    case 'reset': viewer?.resetView(); activeRightTool.value = null; return;
-    case 'pitch': viewer?.pitch(); return;
-    case 'rotate': viewer?.rotate(); return;
-    case 'zoom-in': viewer?.zoomIn(); return;
-    case 'zoom-out': viewer?.zoomOut(); return;
-    case 'screenshot': viewer?.exportScreenshot?.(); return;
-    default: activeRightTool.value = key; return;
+    case 'reset':
+      viewer?.resetView();
+      activeRightTool.value = null;
+      return;
+    case 'pitch':
+      viewer?.pitch();
+      return;
+    case 'rotate':
+      viewer?.rotate();
+      return;
+    case 'zoom-in':
+      viewer?.zoomIn();
+      return;
+    case 'zoom-out':
+      viewer?.zoomOut();
+      return;
+    case 'screenshot':
+      viewer?.exportScreenshot?.();
+      return;
+    default:
+      activeRightTool.value = key;
+      return;
   }
 }
 
@@ -267,21 +284,32 @@ function handleToggle2d3d() {
   is2dMode.value = !is2dMode.value;
 }
 
-function handleBackToMain() { void router.push({ name: 'screen' }); }
+function handleBackToMain() {
+  void router.push({ name: 'screen' });
+}
 
 function handleToggleSetting() {
   if (settingVisible.value) settingCollapsed.value = !settingCollapsed.value;
-  else { settingVisible.value = true; settingCollapsed.value = false; }
+  else {
+    settingVisible.value = true;
+    settingCollapsed.value = false;
+  }
 }
 
 function handleToggleAiPanel() {
   if (aiPanelVisible.value) aiCollapsed.value = !aiCollapsed.value;
-  else { aiPanelVisible.value = true; aiCollapsed.value = false; }
+  else {
+    aiPanelVisible.value = true;
+    aiCollapsed.value = false;
+  }
 }
 
 function handleToggleResult() {
   if (resultVisible.value) resultCollapsed.value = !resultCollapsed.value;
-  else { resultVisible.value = true; resultCollapsed.value = false; }
+  else {
+    resultVisible.value = true;
+    resultCollapsed.value = false;
+  }
 }
 </script>
 
@@ -438,63 +466,185 @@ function handleToggleResult() {
 </template>
 
 <style scoped>
-.river-page { height: 100%; background: #0a101e; position: relative; }
-.river-stage { position: relative; height: 100%; overflow: hidden; }
-
-.left-buttons { position: absolute; top: 18px; left: 18px; z-index: 25; display: flex; flex-direction: column; gap: 8px; }
-.side-btn {
-  display: flex; height: 42px; width: 42px; align-items: center; justify-content: center;
-  border: 1px solid rgba(255,255,255,.1); border-radius: 8px;
-  background: rgba(12,18,30,.92); color: rgba(255,255,255,.8);
-  cursor: pointer; font-size: 17px; transition: border-color .15s, background .15s;
+.river-page {
+  height: 100%;
+  background: #0a101e;
+  position: relative;
 }
-.side-btn:hover { border-color: rgba(94,164,255,.3); background: rgba(20,30,50,.95); }
-.side-btn--active { border-color: rgba(94,164,255,.5); background: rgba(59,130,246,.1); }
+.river-stage {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
 
-.right-side { position: absolute; top: 18px; right: 18px; z-index: 20; }
+.left-buttons {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.side-btn {
+  display: flex;
+  height: 42px;
+  width: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(12, 18, 30, 0.92);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  font-size: 17px;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.side-btn:hover {
+  border-color: rgba(94, 164, 255, 0.3);
+  background: rgba(20, 30, 50, 0.95);
+}
+.side-btn--active {
+  border-color: rgba(94, 164, 255, 0.5);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.right-side {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 20;
+}
 
 .side-panel {
-  position: fixed; width: 380px; max-height: calc(100vh - 36px);
-  display: flex; flex-direction: column; background: #0e1626;
-  border: 1px solid rgba(255,255,255,.08); border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.45); overflow: hidden; z-index: 21;
+  position: fixed;
+  width: 380px;
+  max-height: calc(100vh - 36px);
+  display: flex;
+  flex-direction: column;
+  background: #0e1626;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  z-index: 21;
 }
-.ai-panel-wrapper { width: 420px; }
-.layer-panel-wrapper { width: 300px; }
+.ai-panel-wrapper {
+  width: 420px;
+}
+.layer-panel-wrapper {
+  width: 300px;
+}
 
 .bottom-panel {
-  position: fixed; width: calc(100vw - 480px); min-width: 600px; max-height: 70vh;
-  display: flex; flex-direction: column; background: #0e1626;
-  border: 1px solid rgba(255,255,255,.08); border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.45); overflow: hidden auto; z-index: 21; transition: max-height .25s;
+  position: fixed;
+  width: calc(100vw - 480px);
+  min-width: 600px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: #0e1626;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  overflow: hidden auto;
+  z-index: 21;
+  transition: max-height 0.25s;
 }
 
 .panel-drag-handle {
-  display: flex; align-items: center; justify-content: center; gap: 4px;
-  height: 22px; font-size: 10px; color: rgba(255,255,255,.25);
-  background: rgba(255,255,255,.02); cursor: grab; user-select: none; flex-shrink: 0;
-  letter-spacing: .04em; border-bottom: 1px solid rgba(255,255,255,.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 22px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
-.panel-drag-handle:hover { color: rgba(255,255,255,.45); background: rgba(255,255,255,.03); }
-.panel-drag-handle:active { cursor: grabbing; }
-.drag-dots { font-size: 14px; line-height: 1; letter-spacing: 2px; }
-.panel-drag-handle.horizontal .drag-dots { letter-spacing: 4px; }
+.panel-drag-handle:hover {
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.03);
+}
+.panel-drag-handle:active {
+  cursor: grabbing;
+}
+.drag-dots {
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 2px;
+}
+.panel-drag-handle.horizontal .drag-dots {
+  letter-spacing: 4px;
+}
 
 .left-panel :deep(.setting-panel),
 .layer-panel-wrapper :deep(.layer-panel),
 .ai-panel-wrapper :deep(.ai-panel),
-.bottom-panel :deep(.result-bar) { width: 100% !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; }
-.bottom-panel :deep(.bar-content) { flex: unset; overflow-y: visible; }
-@media (min-height: 900px) { .bottom-panel { max-height: 75vh; } }
+.bottom-panel :deep(.result-bar) {
+  width: 100% !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.bottom-panel :deep(.bar-content) {
+  flex: unset;
+  overflow-y: visible;
+}
+@media (min-height: 900px) {
+  .bottom-panel {
+    max-height: 75vh;
+  }
+}
 
-.panel-slide-left-enter-active, .panel-slide-right-enter-active, .panel-slide-up-enter-active { transition: all .2s ease-out; }
-.panel-slide-left-leave-active, .panel-slide-right-leave-active, .panel-slide-up-leave-active { transition: all .15s ease-in; }
-.panel-slide-left-enter-from { transform: translateX(-24px); opacity: 0; }
-.panel-slide-left-leave-to { transform: translateX(-16px); opacity: 0; }
-.panel-slide-right-enter-from { transform: translateX(24px); opacity: 0; }
-.panel-slide-right-leave-to { transform: translateX(16px); opacity: 0; }
-.panel-slide-up-enter-from { transform: translateY(20px); opacity: 0; }
-.panel-slide-up-leave-to { transform: translateY(12px); opacity: 0; }
+.panel-slide-left-enter-active,
+.panel-slide-right-enter-active,
+.panel-slide-up-enter-active {
+  transition: all 0.2s ease-out;
+}
+.panel-slide-left-leave-active,
+.panel-slide-right-leave-active,
+.panel-slide-up-leave-active {
+  transition: all 0.15s ease-in;
+}
+.panel-slide-left-enter-from {
+  transform: translateX(-24px);
+  opacity: 0;
+}
+.panel-slide-left-leave-to {
+  transform: translateX(-16px);
+  opacity: 0;
+}
+.panel-slide-right-enter-from {
+  transform: translateX(24px);
+  opacity: 0;
+}
+.panel-slide-right-leave-to {
+  transform: translateX(16px);
+  opacity: 0;
+}
+.panel-slide-up-enter-from {
+  transform: translateY(20px);
+  opacity: 0;
+}
+.panel-slide-up-leave-to {
+  transform: translateY(12px);
+  opacity: 0;
+}
 
-@media (max-width: 1280px) { .side-panel { width: 340px; } .ai-panel-wrapper { width: 380px; } }
+@media (max-width: 1280px) {
+  .side-panel {
+    width: 340px;
+  }
+  .ai-panel-wrapper {
+    width: 380px;
+  }
+}
 </style>

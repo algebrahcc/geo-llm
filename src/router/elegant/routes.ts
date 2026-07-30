@@ -188,6 +188,16 @@ export const generatedRoutes: GeneratedRoute[] = [
           icon: 'mdi:account-group',
           order: 1
         }
+      },
+      {
+        name: 'system_vector',
+        path: '/system/vector',
+        component: 'view.system_vector',
+        meta: {
+          title: '矢量数据管理',
+          icon: 'mdi:map-clock',
+          order: 7
+        }
       }
     ]
   }

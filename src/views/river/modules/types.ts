@@ -9,9 +9,9 @@ export type RiverInteractiveTool = 'browse' | 'annotate';
 
 /** 矢量图层（桥接后端 VectorItem + 前端显隐状态） */
 export interface VectorLayerItem {
-  key: string;        // 'vector-{id}'
-  id: string;         // 后端矢量图层 ID
-  label: string;      // vectorName
+  key: string; // 'vector-{id}'
+  id: string; // 后端矢量图层 ID
+  label: string; // vectorName
   sourceType: string; // GeoJSON / Shapefile
   featureCount: number;
   visible: boolean;

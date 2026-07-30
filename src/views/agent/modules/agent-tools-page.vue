@@ -55,7 +55,7 @@ async function load() {
   proxyMissing.value = false;
   try {
     const [allRes, boundRes, mcpRes] = await Promise.all([
-      fetchDifyTools(),
+      fetchDifyTools(currentAppId.value ?? undefined),
       fetchDifyAppTools(currentAppId.value),
       fetchDifyMcpServers()
     ]);
@@ -133,7 +133,7 @@ async function handleDelete() {
 <template>
   <div class="agent-config">
     <AgentSidebar
-      :agent-list="agentList"
+      :agents="agentList"
       :active-key="agentKey"
       class="agent-config__sidebar"
       @select="updateAgentQuery"

@@ -52,10 +52,7 @@ export function importVectorFromPath(data: Api.Vector.ImportFromPathReq) {
 }
 
 /** 上传矢量文件导入（GeoJSON/Shapefile.zip） */
-export function uploadVectorFile(
-  file: File,
-  onProgress?: (percent: number) => void
-) {
+export function uploadVectorFile(file: File, onProgress?: (percent: number) => void) {
   const fd = new FormData();
   fd.append('file', file);
   return request<void>({
@@ -63,23 +60,19 @@ export function uploadVectorFile(
     method: 'post',
     data: fd,
     headers: { 'Content-Type': 'multipart/form-data' },
-    onUploadProgress: onProgress
-      ? (e) => onProgress(Math.round((e.progress ?? 0) * 100))
-      : undefined
+    onUploadProgress: onProgress ? e => onProgress(Math.round((e.progress ?? 0) * 100)) : undefined
   });
 }
 
 /** 生成 MVT 瓦片 URL */
-export function getVectorTileUrl(
-  vectorId: string | number,
-  sourceType: string
-): string | null {
+export function getVectorTileUrl(vectorId: string | number, _sourceType: string): string | null {
   if (!vectorId) return null;
   // 瓦片由 OpenLayers 直接请求，不走 axios request 代理，需要完整后端地址
   // eslint-disable-next-line no-underscore-dangle
-  const baseUrl = window.__APP_CONFIG__?.VITE_SERVICE_REAL_BASE_URL
-    || import.meta.env.VITE_SERVICE_REAL_BASE_URL
-    || 'http://localhost:8000';
+  const baseUrl =
+    window['__APP_CONFIG__']?.VITE_SERVICE_REAL_BASE_URL ||
+    import.meta.env.VITE_SERVICE_REAL_BASE_URL ||
+    'http://localhost:8000';
   return `${baseUrl}/system/vector/tile/${vectorId}/{z}/{x}/{y}.pbf`;
 }
 

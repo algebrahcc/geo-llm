@@ -76,7 +76,9 @@ function vectorColor(index: number) {
       </div>
 
       <div v-if="vectorLayers.length === 0 && !vectorLoading" class="layer-empty">
-        暂无矢量图层，请先在 <a href="/#/system/vector" target="_blank">矢量数据管理</a> 上传数据
+        暂无矢量图层，请先在
+        <a href="/#/system/vector" target="_blank">矢量数据管理</a>
+        上传数据
       </div>
 
       <label
@@ -154,7 +156,9 @@ function vectorColor(index: number) {
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   font-size: 16px;
-  transition: background 0.18s, color 0.18s;
+  transition:
+    background 0.18s,
+    color 0.18s;
 }
 
 .action-btn:hover {
@@ -171,9 +175,16 @@ function vectorColor(index: number) {
   scrollbar-color: rgba(141, 184, 255, 0.24) transparent;
 }
 
-.panel-content::-webkit-scrollbar { width: 5px; }
-.panel-content::-webkit-scrollbar-track { background: transparent; }
-.panel-content::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(141, 184, 255, 0.24); }
+.panel-content::-webkit-scrollbar {
+  width: 5px;
+}
+.panel-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.panel-content::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(141, 184, 255, 0.24);
+}
 
 /* ──── Section 标题 ──── */
 .layer-section-title {
@@ -203,7 +214,9 @@ function vectorColor(index: number) {
   color: #62c4ff;
   text-decoration: none;
 }
-.layer-empty a:hover { text-decoration: underline; }
+.layer-empty a:hover {
+  text-decoration: underline;
+}
 
 /* ──── 图层列表项 ──── */
 .layer-item {
@@ -214,10 +227,17 @@ function vectorColor(index: number) {
   border-radius: 8px;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
-.layer-item:hover { background: rgba(43, 107, 255, 0.06); }
-.layer-item--active { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.06); }
+.layer-item:hover {
+  background: rgba(43, 107, 255, 0.06);
+}
+.layer-item--active {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
 
 .layer-check {
   display: flex;
@@ -237,7 +257,9 @@ function vectorColor(index: number) {
   height: 10px;
   border-radius: 2px;
 }
-.layer-color--basemap { background: #22c55e; }
+.layer-color--basemap {
+  background: #22c55e;
+}
 
 .layer-info {
   display: flex;

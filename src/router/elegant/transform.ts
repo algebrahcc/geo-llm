@@ -165,11 +165,10 @@ const routeMap: RouteMap = {
   "not-found": "/:pathMatch(.*)*",
   "screen-fullscreen": "/screen-fullscreen",
   "globe-fullscreen": "/globe-fullscreen",
-    "agent_workbench": "/agent/workbench",
-    "agent_config": "/agent/config",
-    "agent_test": "/agent/test",
-    "agent_task_detail": "/agent/task-detail",
-    "agent_tools": "/agent/tools",
+  "agent_workbench": "/agent/workbench",
+  "agent_config": "/agent/config",
+  "agent_test": "/agent/test",
+  "agent_task_detail": "/agent/task-detail",
   "knowledge_overview": "/knowledge/overview",
   "knowledge_collections": "/knowledge/collections",
   "knowledge_retrieval": "/knowledge/retrieval",
@@ -191,7 +190,8 @@ const routeMap: RouteMap = {
   "system_menu": "/system/menu",
   "system_online": "/system/online",
   "system_role": "/system/role",
-  "system_user": "/system/user"
+  "system_user": "/system/user",
+  "system_vector": "/system/vector"
 };
 
 /**

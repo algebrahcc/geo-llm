@@ -32,6 +32,15 @@ const customRoutes = [
       title: '渡河保障方案',
       hideInMenu: true
     }
+  },
+  {
+    name: 'system_vector_map',
+    path: '/system/vector/map',
+    component: 'layout.blank$view.system_vector_map',
+    meta: {
+      title: '矢量地图预览',
+      hideInMenu: true
+    }
   }
 ] as unknown as CustomRoute[];
 

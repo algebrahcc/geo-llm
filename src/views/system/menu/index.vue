@@ -310,13 +310,25 @@ const statusOptions = [
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .system-page {
+  --sys-surface: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
+  --sys-border: rgba(43, 131, 255, 0.28);
+  --sys-line: rgba(25, 95, 176, 0.35);
+  --sys-text: #eaf5ff;
+  --sys-text2: rgba(203, 227, 255, 0.72);
+  --sys-text3: rgba(147, 196, 255, 0.62);
+  --sys-accent: #29a3ff;
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 16px;
-  gap: 12px;
+  padding: 12px 14px;
+  gap: 10px;
+  background:
+    radial-gradient(circle at top, rgba(0, 153, 255, 0.14) 0%, transparent 36%),
+    linear-gradient(180deg, #041528 0%, #041120 38%, #03101b 100%);
+  color: var(--sys-text);
+  box-sizing: border-box;
 }
 .toolbar {
   display: flex;
@@ -325,8 +337,40 @@ const statusOptions = [
 .tree-wrapper {
   flex: 1;
   overflow: auto;
-  border: 1px solid var(--n-border-color);
+  border: 1px solid var(--sys-border);
   border-radius: 4px;
   padding: 8px;
+  background: var(--sys-surface);
+  box-shadow:
+    0 0 0 1px rgba(32, 111, 202, 0.22),
+    0 18px 40px rgba(1, 8, 18, 0.45);
+}
+
+// Tree dark theme
+.tree-wrapper :deep(.n-tree) {
+  --n-node-text-color: rgba(203, 227, 255, 0.85);
+  --n-node-text-color-active: #fff;
+  --n-node-text-color-hover: #fff;
+  --n-node-color-active: rgba(41, 163, 255, 0.14);
+  --n-arrow-color: rgba(147, 196, 255, 0.6);
+  background: transparent;
+}
+
+// Button
+.toolbar :deep(.n-button--primary-type) {
+  --n-color: linear-gradient(180deg, rgba(23, 131, 240, 0.96) 0%, rgba(8, 83, 171, 0.96) 100%);
+  --n-color-hover: linear-gradient(180deg, rgba(43, 151, 255, 0.98) 0%, rgba(13, 93, 186, 0.98) 100%);
+  --n-text-color: #e9f5ff;
+  --n-text-color-hover: #fff;
+  --n-border: 1px solid rgba(96, 191, 255, 0.32);
+  --n-border-hover: 1px solid rgba(96, 191, 255, 0.5);
+  --n-border-radius: 8px;
+  --n-font-size: 13px;
+  --n-height: 36px;
+  font-weight: 600;
+}
+:deep(.n-modal-mask) {
+  background: rgba(2, 8, 18, 0.62);
+  backdrop-filter: blur(2px);
 }
 </style>

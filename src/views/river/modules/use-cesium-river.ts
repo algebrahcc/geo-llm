@@ -156,12 +156,24 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
 
   function syncLayerVisibility() {
     const { imageryLayers } = base;
-    imageryLayers.forEach(layer => { layer.show = layerVisibility.imagery; });
-    staticEntities.channel.forEach(e => { e.show = layerVisibility.imagery; });
-    staticEntities.assembly.forEach(e => { e.show = layerVisibility.imagery; });
-    planEntities.route.forEach(e => { e.show = layerVisibility.imagery; });
-    planEntities.risk.forEach(e => { e.show = layerVisibility.imagery; });
-    [...planEntities.mark, ...dynamicMarkEntities].forEach(e => { e.show = layerVisibility.imagery; });
+    imageryLayers.forEach(layer => {
+      layer.show = layerVisibility.imagery;
+    });
+    staticEntities.channel.forEach(e => {
+      e.show = layerVisibility.imagery;
+    });
+    staticEntities.assembly.forEach(e => {
+      e.show = layerVisibility.imagery;
+    });
+    planEntities.route.forEach(e => {
+      e.show = layerVisibility.imagery;
+    });
+    planEntities.risk.forEach(e => {
+      e.show = layerVisibility.imagery;
+    });
+    [...planEntities.mark, ...dynamicMarkEntities].forEach(e => {
+      e.show = layerVisibility.imagery;
+    });
     base.requestRender();
   }
 
@@ -210,16 +222,14 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
 
       // 飞到数据范围
       try {
-        const result: any = await fetchVectorExtent(vectorId);
-        const extent = (result?.data ?? result?.response?.data) as number[] | null;
+        const extentResult: any = await fetchVectorExtent(vectorId);
+        const extent = (extentResult?.data ?? extentResult?.response?.data) as number[] | null;
         if (extent && extent.length === 4) {
-          base.flyToLocation(
-            (extent[0] + extent[2]) / 2,
-            (extent[1] + extent[3]) / 2,
-            12000
-          );
+          base.flyToLocation((extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2, 12000);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       base.requestRender();
     } catch (e: any) {

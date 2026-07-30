@@ -94,11 +94,12 @@ export function fetchDifyAppTools(appId: number) {
   });
 }
 
-/** 可用工具列表（Dify /tools） */
-export function fetchDifyTools() {
+/** 可用工具列表（复用公共 API model-config agent_mode.tools; 不传 appId 返回空） */
+export function fetchDifyTools(appId?: number) {
   return request<Array<Record<string, unknown>>>({
     url: '/api/dify/tools',
-    method: 'get'
+    method: 'get',
+    ...(appId != null ? { params: { appId } } : {})
   });
 }
 

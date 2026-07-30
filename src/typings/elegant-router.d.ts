@@ -23,7 +23,6 @@ declare module "@elegant-router/types" {
     "agent_config": "/agent/config";
     "agent_test": "/agent/test";
     "agent_task_detail": "/agent/task-detail";
-    "agent_tools": "/agent/tools";
     "knowledge_overview": "/knowledge/overview";
     "knowledge_collections": "/knowledge/collections";
     "knowledge_retrieval": "/knowledge/retrieval";
@@ -46,6 +45,7 @@ declare module "@elegant-router/types" {
     "system_online": "/system/online";
     "system_role": "/system/role";
     "system_user": "/system/user";
+    "system_vector": "/system/vector";
   };
 
   /**
@@ -142,6 +142,7 @@ declare module "@elegant-router/types" {
     | "system_online"
     | "system_role"
     | "system_user"
+    | "system_vector"
   >;
 
   /**
