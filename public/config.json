@@ -23,17 +23,6 @@
       "rectangle": null
     }
   },
-  "BASEMAP": {
-    "mode": "local",
-    "local": {
-      "url": "google satellite-z0-8.yocMFTJvR/{z}/{x}/{y}.jpg",
-      "maxZoom": 8
-    },
-    "online": {
-      "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      "maxZoom": 18
-    }
-  },
   "TERRAIN": {
     "enabled": true,
     "url": "http://192.168.12.211:19091/terrain/{z}/{x}/{y}.terrain",

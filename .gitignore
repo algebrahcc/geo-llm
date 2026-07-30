@@ -40,3 +40,4 @@ yarn.lock
 
 .VSCodeCounter
 src-tauri/target
+top/
