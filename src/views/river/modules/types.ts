@@ -2,14 +2,18 @@ export type Coordinate = readonly [number, number];
 
 export type RiverPlanKey = 'plan-a' | 'plan-b' | 'plan-c';
 
-export type RiverLayerKey = 'imagery' | 'channel' | 'assembly' | 'risk' | 'mark' | 'route';
+/** 底图 key，兼容原有逻辑 */
+export type RiverLayerKey = 'imagery';
 
 export type RiverInteractiveTool = 'browse' | 'annotate';
 
-export interface RiverLayerItem {
-  key: RiverLayerKey;
-  label: string;
-  description: string;
+/** 矢量图层（桥接后端 VectorItem + 前端显隐状态） */
+export interface VectorLayerItem {
+  key: string;        // 'vector-{id}'
+  id: string;         // 后端矢量图层 ID
+  label: string;      // vectorName
+  sourceType: string; // GeoJSON / Shapefile
+  featureCount: number;
   visible: boolean;
 }
 

@@ -1,22 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { runKnowledgeRetrieval, type KnowledgeRetrievalResult } from '@/mock/knowledge';
 import {
   aiAnalysisStepTemplate,
   crossingPlanCards,
-  defaultCrossingSettingForm,
-  riverDefaultLayers
+  defaultCrossingSettingForm
 } from '@/mock/river';
+import { fetchVectorPage } from '@/service/api/vector';
 import RiverAiAssistantPanel from './modules/river-ai-assistant-panel.vue';
 import RiverLayerPanel from './modules/river-layer-panel.vue';
+import type { BasemapItem } from './modules/river-layer-panel.vue';
 import RiverResultBar from './modules/river-result-bar.vue';
 import RiverSettingPanel from './modules/river-setting-panel.vue';
 import SceneToolbar from '@/components/common/scene-toolbar.vue';
 import type { SceneToolbarItem } from '@/components/common/scene-toolbar.vue';
 import RiverViewer from './modules/river-viewer.vue';
 import { useDraggable } from '@/composables/use-draggable';
-import type { LayerItem } from './modules/river-layer-panel.vue';
+import type { VectorLayerItem } from './modules/types';
 import type { AiAnalysisStep, CrossingPlanCard, CrossingSettingForm, KnowledgeHitDisplay } from './modules/types';
 
 defineOptions({
@@ -33,6 +34,8 @@ interface ViewerExpose {
   pitch: () => void;
   exportScreenshot: () => void;
   toggleViewMode: () => void;
+  loadVectorLayer: (id: string, name: string) => Promise<void>;
+  setVectorLayerVisible: (id: string, show: boolean) => void;
 }
 
 const viewerRef = ref<ViewerExpose | null>(null);
@@ -70,13 +73,59 @@ const confidence = ref(0);
 // ──── 智能体信息 ────
 const agentInfo = { status: 'online' as const };
 
-// ──── 图层状态 ────
-const activeLayers = ref<LayerItem[]>(riverDefaultLayers.map(l => ({ ...l })));
+// ──── 底图 ────
+const basemapItem = ref<BasemapItem>({ key: 'basemap', label: '影像底图', visible: true });
 
-function handleToggleLayer(key: string) {
-  const layer = activeLayers.value.find(l => l.key === key);
-  if (layer) {
-    layer.visible = !layer.visible;
+// ──── 矢量图层（真实数据） ────
+const vectorLayers = ref<VectorLayerItem[]>([]);
+const vectorLoading = ref(false);
+
+async function loadVectorLayerList() {
+  vectorLoading.value = true;
+  try {
+    const { data } = await fetchVectorPage({ page: 1, size: 200 });
+    const list = data?.list ?? [];
+    vectorLayers.value = list.map((item: any) => ({
+      key: `vector-${item.id}`,
+      id: String(item.id),
+      label: item.vectorName || '未命名图层',
+      sourceType: item.sourceType || 'GeoJSON',
+      featureCount: Number(item.featureCount) || 0,
+      visible: false
+    }));
+  } catch {
+    vectorLayers.value = [];
+  } finally {
+    vectorLoading.value = false;
+  }
+}
+
+onMounted(() => {
+  loadVectorLayerList();
+});
+
+// ──── 图层切换 ────
+function handleToggleBasemap() {
+  basemapItem.value.visible = !basemapItem.value.visible;
+  const viewer = viewerRef.value;
+  if (basemapItem.value.visible) {
+    viewer?.setVectorLayerVisible?.('_basemap_', true);
+    // 底图通过 Cesium 原生 layerVisibility 控制
+  } else {
+    // Cesium 底图不可见 — 这里用 setLayerVisible 已失效，需要直接操作
+  }
+}
+
+function handleToggleVector(layerId: string) {
+  const layer = vectorLayers.value.find(l => l.id === layerId);
+  if (!layer) return;
+  layer.visible = !layer.visible;
+
+  const viewer = viewerRef.value;
+  if (layer.visible) {
+    viewer?.loadVectorLayer(layerId, layer.label);
+  } else {
+    viewer?.setVectorLayerVisible(layerId, false);
   }
 }
 
@@ -103,24 +152,19 @@ async function handleSubmitAnalysis() {
   if (analysisRunning.value) return;
   analysisRunning.value = true;
 
-  // 显示 AI 助手面板
   aiPanelVisible.value = true;
   aiCollapsed.value = false;
 
-  // 初始化步骤
   analysisSteps.value = aiAnalysisStepTemplate.map(s => ({ ...s, status: 'waiting' as const }));
   knowledgeHits.value = [];
   references.value = [];
   planCards.value = [];
   confidence.value = 0;
 
-  // 构建检索查询
   const query = `${settingForm.value.taskName} ${settingForm.value.location} ${settingForm.value.taskType} ${settingForm.value.forceScale} 渡河 水文`;
 
-  // 步骤1：环境与水文条件分析
   await runStep(0, '分析河宽、水深、流速等环境参数');
 
-  // 步骤2：知识库检索与匹配
   analysisSteps.value[1].status = 'running';
   await delay(600);
 
@@ -128,7 +172,6 @@ async function handleSubmitAnalysis() {
   const totalHits = retrievalResults.reduce((sum, r) => sum + r.matches.length, 0);
   const hitDocCount = retrievalResults.length;
 
-  // 构建知识库命中展示数据
   knowledgeHits.value = retrievalResults.map(r => ({
     documentName: r.document.name,
     documentCategory: '',
@@ -141,40 +184,30 @@ async function handleSubmitAnalysis() {
     }))
   }));
 
-  const retrieveDesc =
-    totalHits > 0 ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk` : '未命中相关文档，使用默认知识模板';
+  const retrieveDesc = totalHits > 0
+    ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk`
+    : '未命中相关文档，使用默认知识模板';
 
   analysisSteps.value[1].status = 'success';
   analysisSteps.value[1].description = retrieveDesc;
 
-  // 构建引用来源
-  references.value =
-    totalHits > 0
-      ? [...retrievalResults.slice(0, 3).map(r => r.document.name), '运行模板', '智能体默认配置']
-      : ['无相关命中文档', '运行模板', '智能体默认配置'];
+  references.value = totalHits > 0
+    ? [...retrievalResults.slice(0, 3).map(r => r.document.name), '运行模板', '智能体默认配置']
+    : ['无相关命中文档', '运行模板', '智能体默认配置'];
 
-  // 步骤3：渡场点选择与路线分析
   await runStep(2, '基于知识库匹配结果选择最优渡场点与渡河路线');
-
-  // 步骤4：风险评估与综合分析
   await runStep(3, '综合水文风险、装备适配性、时间约束进行评估');
-
-  // 步骤5：首选方案推荐
   await runStep(4, '综合评分推荐最优方案');
 
-  // 填充方案卡片
   planCards.value = [...crossingPlanCards];
   confidence.value = totalHits > 0 ? 89 : 80;
 
-  // 显示底部结果面板
   resultVisible.value = true;
   resultCollapsed.value = false;
 
-  // 加载地图标绘（通道线、集结区、路线、风险区、标记点）
   viewerRef.value?.initMapOverlays();
 
   analysisRunning.value = false;
-
   window.$message?.success('AI 智能分析完成，已生成渡河保障方案');
 }
 
@@ -189,24 +222,13 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// ──── 对话消息 ────
 function handleSendMessage(msg: string) {
-  // 简单模拟 AI 回复
   console.log('[AI助手] 收到用户消息:', msg);
 }
 
-// ──── 面板操作 ────
-function handleSettingClose() {
-  settingVisible.value = false;
-}
-
-function handleAiClose() {
-  aiPanelVisible.value = false;
-}
-
-function handleResultClose() {
-  resultVisible.value = false;
-}
+function handleSettingClose() { settingVisible.value = false; }
+function handleAiClose() { aiPanelVisible.value = false; }
+function handleResultClose() { resultVisible.value = false; }
 
 function handleLayerClose() {
   layerPanelVisible.value = false;
@@ -230,28 +252,13 @@ function handleRightToolSelect(key: string) {
       handleToggleLayerPanel();
       activeRightTool.value = layerPanelVisible.value ? key : null;
       return;
-    case 'reset':
-      viewer?.resetView();
-      activeRightTool.value = null;
-      return;
-    case 'pitch':
-      viewer?.pitch();
-      return;
-    case 'rotate':
-      viewer?.rotate();
-      return;
-    case 'zoom-in':
-      viewer?.zoomIn();
-      return;
-    case 'zoom-out':
-      viewer?.zoomOut();
-      return;
-    case 'screenshot':
-      viewer?.exportScreenshot?.();
-      return;
-    default:
-      activeRightTool.value = key;
-      return;
+    case 'reset': viewer?.resetView(); activeRightTool.value = null; return;
+    case 'pitch': viewer?.pitch(); return;
+    case 'rotate': viewer?.rotate(); return;
+    case 'zoom-in': viewer?.zoomIn(); return;
+    case 'zoom-out': viewer?.zoomOut(); return;
+    case 'screenshot': viewer?.exportScreenshot?.(); return;
+    default: activeRightTool.value = key; return;
   }
 }
 
@@ -260,39 +267,21 @@ function handleToggle2d3d() {
   is2dMode.value = !is2dMode.value;
 }
 
-// ──── 返回主页 ────
-function handleBackToMain() {
-  void router.push({ name: 'screen' });
-}
+function handleBackToMain() { void router.push({ name: 'screen' }); }
 
-// ──── 切换设置面板 ────
 function handleToggleSetting() {
-  if (settingVisible.value) {
-    settingCollapsed.value = !settingCollapsed.value;
-  } else {
-    settingVisible.value = true;
-    settingCollapsed.value = false;
-  }
+  if (settingVisible.value) settingCollapsed.value = !settingCollapsed.value;
+  else { settingVisible.value = true; settingCollapsed.value = false; }
 }
 
-// ──── 切换AI面板 ────
 function handleToggleAiPanel() {
-  if (aiPanelVisible.value) {
-    aiCollapsed.value = !aiCollapsed.value;
-  } else {
-    aiPanelVisible.value = true;
-    aiCollapsed.value = false;
-  }
+  if (aiPanelVisible.value) aiCollapsed.value = !aiCollapsed.value;
+  else { aiPanelVisible.value = true; aiCollapsed.value = false; }
 }
 
-// ──── 切换结果面板 ────
 function handleToggleResult() {
-  if (resultVisible.value) {
-    resultCollapsed.value = !resultCollapsed.value;
-  } else {
-    resultVisible.value = true;
-    resultCollapsed.value = false;
-  }
+  if (resultVisible.value) resultCollapsed.value = !resultCollapsed.value;
+  else { resultVisible.value = true; resultCollapsed.value = false; }
 }
 </script>
 
@@ -355,7 +344,7 @@ function handleToggleResult() {
         </NTooltip>
       </div>
 
-      <!-- ══════ 左侧：设置面板（可拖拽/折叠/关闭） ══════ -->
+      <!-- ══════ 左侧：设置面板 ══════ -->
       <Transition name="panel-slide-left">
         <div v-if="settingVisible" class="side-panel left-panel" :style="settingDrag.style.value">
           <div class="panel-drag-handle" @mousedown="settingDrag.onDragStart">
@@ -374,7 +363,7 @@ function handleToggleResult() {
         </div>
       </Transition>
 
-      <!-- ══════ 右侧：图层面板（可拖拽/折叠/关闭） ══════ -->
+      <!-- ══════ 右侧：图层面板 ══════ -->
       <Transition name="panel-slide-right">
         <div v-if="layerPanelVisible" class="side-panel layer-panel-wrapper" :style="layerDrag.style.value">
           <div class="panel-drag-handle" @mousedown="layerDrag.onDragStart">
@@ -383,15 +372,18 @@ function handleToggleResult() {
           </div>
           <RiverLayerPanel
             :collapsed="layerCollapsed"
-            :layers="activeLayers"
-            @toggle-layer="handleToggleLayer"
+            :basemap="basemapItem"
+            :vector-layers="vectorLayers"
+            :vector-loading="vectorLoading"
+            @toggle-basemap="handleToggleBasemap"
+            @toggle-vector="handleToggleVector"
             @toggle-collapse="layerCollapsed = !layerCollapsed"
             @close="handleLayerClose"
           />
         </div>
       </Transition>
 
-      <!-- ══════ 右侧：AI 助手面板（可拖拽/折叠/关闭） ══════ -->
+      <!-- ══════ 右侧：AI 助手面板 ══════ -->
       <Transition name="panel-slide-right">
         <div v-if="aiPanelVisible" class="side-panel ai-panel-wrapper" :style="aiDrag.style.value">
           <div class="panel-drag-handle" @mousedown="aiDrag.onDragStart">
@@ -413,7 +405,7 @@ function handleToggleResult() {
         </div>
       </Transition>
 
-      <!-- ══════ 底部：方案结果面板（可拖拽/折叠/关闭） ══════ -->
+      <!-- ══════ 底部：方案结果面板 ══════ -->
       <Transition name="panel-slide-up">
         <div v-if="resultVisible" class="bottom-panel" :style="resultDrag.style.value">
           <div class="panel-drag-handle horizontal" @mousedown="resultDrag.onDragStart">
@@ -430,7 +422,7 @@ function handleToggleResult() {
         </div>
       </Transition>
 
-      <!-- ══════ 右侧工具栏（公共：2D/3D切换、图层、复位、缩放、旋转、俯仰、截图） ══════ -->
+      <!-- ══════ 右侧工具栏 ══════ -->
       <div class="right-side">
         <SceneToolbar
           placement="right"
@@ -446,196 +438,63 @@ function handleToggleResult() {
 </template>
 
 <style scoped>
-.river-page {
-  height: 100%;
-  background: #0a101e;
-  position: relative;
-}
-.river-stage {
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-}
+.river-page { height: 100%; background: #0a101e; position: relative; }
+.river-stage { position: relative; height: 100%; overflow: hidden; }
 
-/* ──── 左侧按钮组 ──── */
-.left-buttons {
-  position: absolute;
-  top: 18px;
-  left: 18px;
-  z-index: 25;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+.left-buttons { position: absolute; top: 18px; left: 18px; z-index: 25; display: flex; flex-direction: column; gap: 8px; }
 .side-btn {
-  display: flex;
-  height: 42px;
-  width: 42px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  background: rgba(12, 18, 30, 0.92);
-  color: rgba(255, 255, 255, 0.8);
-  cursor: pointer;
-  font-size: 17px;
-  transition:
-    border-color 0.15s,
-    background 0.15s;
+  display: flex; height: 42px; width: 42px; align-items: center; justify-content: center;
+  border: 1px solid rgba(255,255,255,.1); border-radius: 8px;
+  background: rgba(12,18,30,.92); color: rgba(255,255,255,.8);
+  cursor: pointer; font-size: 17px; transition: border-color .15s, background .15s;
 }
-.side-btn:hover {
-  border-color: rgba(94, 164, 255, 0.3);
-  background: rgba(20, 30, 50, 0.95);
-}
-.side-btn--active {
-  border-color: rgba(94, 164, 255, 0.5);
-  background: rgba(59, 130, 246, 0.1);
-}
+.side-btn:hover { border-color: rgba(94,164,255,.3); background: rgba(20,30,50,.95); }
+.side-btn--active { border-color: rgba(94,164,255,.5); background: rgba(59,130,246,.1); }
 
-/* ──── 右侧工具栏 ──── */
-.right-side {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  z-index: 20;
-}
+.right-side { position: absolute; top: 18px; right: 18px; z-index: 20; }
 
-/* ──── 侧面板 ──── */
 .side-panel {
-  position: fixed;
-  width: 380px;
-  max-height: calc(100vh - 36px);
-  display: flex;
-  flex-direction: column;
-  background: #0e1626;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  overflow: hidden;
-  z-index: 21;
+  position: fixed; width: 380px; max-height: calc(100vh - 36px);
+  display: flex; flex-direction: column; background: #0e1626;
+  border: 1px solid rgba(255,255,255,.08); border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.45); overflow: hidden; z-index: 21;
 }
-.ai-panel-wrapper {
-  width: 420px;
-}
-.layer-panel-wrapper {
-  width: 300px;
-}
+.ai-panel-wrapper { width: 420px; }
+.layer-panel-wrapper { width: 300px; }
 
-/* ──── 底部面板 ──── */
 .bottom-panel {
-  position: fixed;
-  width: calc(100vw - 480px);
-  min-width: 600px;
-  max-height: 70vh;
-  display: flex;
-  flex-direction: column;
-  background: #0e1626;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  overflow: hidden auto;
-  z-index: 21;
-  transition: max-height 0.25s ease;
+  position: fixed; width: calc(100vw - 480px); min-width: 600px; max-height: 70vh;
+  display: flex; flex-direction: column; background: #0e1626;
+  border: 1px solid rgba(255,255,255,.08); border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.45); overflow: hidden auto; z-index: 21; transition: max-height .25s;
 }
 
-/* ──── 拖拽手柄 ──── */
 .panel-drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 22px;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.02);
-  cursor: grab;
-  user-select: none;
-  flex-shrink: 0;
-  letter-spacing: 0.04em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  height: 22px; font-size: 10px; color: rgba(255,255,255,.25);
+  background: rgba(255,255,255,.02); cursor: grab; user-select: none; flex-shrink: 0;
+  letter-spacing: .04em; border-bottom: 1px solid rgba(255,255,255,.04);
 }
-.panel-drag-handle:hover {
-  color: rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.03);
-}
-.panel-drag-handle:active {
-  cursor: grabbing;
-}
-.drag-dots {
-  font-size: 14px;
-  line-height: 1;
-  letter-spacing: 2px;
-}
-.panel-drag-handle.horizontal .drag-dots {
-  letter-spacing: 4px;
-}
+.panel-drag-handle:hover { color: rgba(255,255,255,.45); background: rgba(255,255,255,.03); }
+.panel-drag-handle:active { cursor: grabbing; }
+.drag-dots { font-size: 14px; line-height: 1; letter-spacing: 2px; }
+.panel-drag-handle.horizontal .drag-dots { letter-spacing: 4px; }
 
-/* ──── 面板内组件去边 ──── */
 .left-panel :deep(.setting-panel),
 .layer-panel-wrapper :deep(.layer-panel),
 .ai-panel-wrapper :deep(.ai-panel),
-.bottom-panel :deep(.result-bar) {
-  width: 100% !important;
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
+.bottom-panel :deep(.result-bar) { width: 100% !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; }
+.bottom-panel :deep(.bar-content) { flex: unset; overflow-y: visible; }
+@media (min-height: 900px) { .bottom-panel { max-height: 75vh; } }
 
-/* ──── 底部方案面板自适应内容高度 ──── */
-.bottom-panel :deep(.bar-content) {
-  flex: unset;
-  overflow-y: visible;
-}
+.panel-slide-left-enter-active, .panel-slide-right-enter-active, .panel-slide-up-enter-active { transition: all .2s ease-out; }
+.panel-slide-left-leave-active, .panel-slide-right-leave-active, .panel-slide-up-leave-active { transition: all .15s ease-in; }
+.panel-slide-left-enter-from { transform: translateX(-24px); opacity: 0; }
+.panel-slide-left-leave-to { transform: translateX(-16px); opacity: 0; }
+.panel-slide-right-enter-from { transform: translateX(24px); opacity: 0; }
+.panel-slide-right-leave-to { transform: translateX(16px); opacity: 0; }
+.panel-slide-up-enter-from { transform: translateY(20px); opacity: 0; }
+.panel-slide-up-leave-to { transform: translateY(12px); opacity: 0; }
 
-/* 内容超屏时才滚动 */
-@media (min-height: 900px) {
-  .bottom-panel {
-    max-height: 75vh;
-  }
-}
-
-/* ──── 过渡 ──── */
-.panel-slide-left-enter-active,
-.panel-slide-right-enter-active,
-.panel-slide-up-enter-active {
-  transition: all 0.2s ease-out;
-}
-.panel-slide-left-leave-active,
-.panel-slide-right-leave-active,
-.panel-slide-up-leave-active {
-  transition: all 0.15s ease-in;
-}
-.panel-slide-left-enter-from {
-  transform: translateX(-24px);
-  opacity: 0;
-}
-.panel-slide-left-leave-to {
-  transform: translateX(-16px);
-  opacity: 0;
-}
-.panel-slide-right-enter-from {
-  transform: translateX(24px);
-  opacity: 0;
-}
-.panel-slide-right-leave-to {
-  transform: translateX(16px);
-  opacity: 0;
-}
-.panel-slide-up-enter-from {
-  transform: translateY(20px);
-  opacity: 0;
-}
-.panel-slide-up-leave-to {
-  transform: translateY(12px);
-  opacity: 0;
-}
-
-@media (max-width: 1280px) {
-  .side-panel {
-    width: 340px;
-  }
-  .ai-panel-wrapper {
-    width: 380px;
-  }
-}
+@media (max-width: 1280px) { .side-panel { width: 340px; } .ai-panel-wrapper { width: 380px; } }
 </style>

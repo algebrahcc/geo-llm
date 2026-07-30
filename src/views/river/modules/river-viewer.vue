@@ -31,7 +31,10 @@ const {
   exportScreenshot,
   showPlan,
   is2dMode,
-  toggleViewMode
+  toggleViewMode,
+  loadVectorLayer,
+  setVectorLayerVisible,
+  removeVectorLayer
 } = useCesiumRiver({
   onStatusChange(status) {
     emit('statusChange', status);
@@ -60,7 +63,11 @@ defineExpose({
   exportScreenshot,
   showPlan,
   is2dMode,
-  toggleViewMode
+  toggleViewMode,
+  /** 加载矢量图层（首次加载时请求 GeoJSON，后续只切换 show） */
+  loadVectorLayer: (vectorId: string, vectorName: string) => loadVectorLayer(vectorId, vectorName),
+  setVectorLayerVisible: (vectorId: string, show: boolean) => setVectorLayerVisible(vectorId, show),
+  removeVectorLayer: (vectorId: string) => removeVectorLayer(vectorId)
 });
 </script>
 
