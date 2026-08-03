@@ -129,7 +129,9 @@ async function initMap() {
   // 自动定位到数据范围
   try {
     const result: any = await fetchVectorExtent(vectorId);
-    const extent = (result?.data ?? result?.response?.data) as number[] | null;
+    const extent = (result?.data?.data ?? result?.data ?? result?.response?.data?.data ?? result?.response?.data) as
+      | number[]
+      | null;
     if (extent && extent.length === 4) {
       const [minLng, minLat, maxLng, maxLat] = extent;
       console.log('[VectorMap] auto-fit extent (4326):', extent);
@@ -155,7 +157,9 @@ async function handleFitExtent() {
   if (!vectorId || !olMap) return;
   try {
     const result: any = await fetchVectorExtent(vectorId);
-    const extent = (result?.data ?? result?.response?.data) as number[] | null;
+    const extent = (result?.data?.data ?? result?.data ?? result?.response?.data?.data ?? result?.response?.data) as
+      | number[]
+      | null;
     if (extent && extent.length === 4) {
       const [minLng, minLat, maxLng, maxLat] = extent;
       olMap.getView().fit(transformExtent([minLng, minLat, maxLng, maxLat], 'EPSG:4326', 'EPSG:3857'), {

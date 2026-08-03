@@ -277,15 +277,13 @@ watch(
             </div>
 
             <div v-show="activeTab === 'base'" class="cfg-panel">
-              <div class="section-desc">
-                维护应用基础信息、类型、描述与启用状态；模型与连接凭据请在「AI 配置」中管理。
-              </div>
+              <div class="section-desc">维护应用基础信息、类型、描述与启用状态；模型与连接凭据由系统自动管理。</div>
               <AgentConfigForm v-model:loading="saving" :agent-key="agentKey" @submit="handleSubmit" />
             </div>
 
             <div v-show="activeTab === 'model'" class="cfg-panel">
               <div class="section-desc">
-                配置生成模型的采样参数。模型与供应商需在「AI 配置 → 模型供应商」中设置（本期后端暂未代理该能力）。
+                配置生成模型的采样参数。模型与供应商由系统自动关联（本期后端暂未代理该能力）。
               </div>
               <div v-if="modelLoading" class="section-desc">加载中…</div>
               <template v-else>

@@ -351,7 +351,7 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
         viewer.scene.globe.depthTestAgainstTerrain = false;
         viewer.scene.requestRenderMode = true;
         viewer.camera.percentageChanged = 0.01;
-        viewer.scene.screenSpaceCameraController.zoomFactor = 1.18;
+        viewer.scene.screenSpaceCameraController.zoomFactor = 2.2;
         viewer.scene.screenSpaceCameraController.inertiaZoom = 0.35;
       },
       afterImagery() {

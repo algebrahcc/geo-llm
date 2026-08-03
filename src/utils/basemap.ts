@@ -1,74 +1,50 @@
 /**
  * OpenLayers 底图配置工具
  *
- * 从 public/config.json 的 BASEMAP 配置中读取底图模式与参数，
- * 提供给矢量地图组件使用。
+ * 沿用 public/config.json 的 IMAGERY 配置（与 Cesium 影像共用同一份配置），
+ * 提供给矢量地图组件生成 OpenLayers XYZ 底图图层。
  *
- * 部署后可直接修改 dist/config.json 切换本地/在线/无底图，无需重新打包。
- */
-import type { OLBasemapConfig } from '@/typings/global';
-
-/** 默认底图配置（无底图） */
-const DEFAULT_BASEMAP: OLBasemapConfig = {
-  mode: 'none',
-  local: { url: '', maxZoom: 18 },
-  online: { url: '', maxZoom: 18 }
-};
-
-/**
- * 获取运行时底图配置
- *
- * 优先使用 window.__APP_CONFIG__.BASEMAP，
- * 不可用时回退到无底图。
- */
-export function getBasemapConfig(): OLBasemapConfig {
-  // eslint-disable-next-line no-underscore-dangle
-  const config = window.__APP_CONFIG__?.BASEMAP;
-  if (!config) return DEFAULT_BASEMAP;
-  return {
-    mode: config.mode || DEFAULT_BASEMAP.mode,
-    local: { ...DEFAULT_BASEMAP.local, ...config.local },
-    online: { ...DEFAULT_BASEMAP.online, ...config.online }
-  };
-}
-
-/**
- * 获取底图瓦片 URL
- *
- * - local 模式：拼接 BASE_URL + local.url
+ * - local 模式：使用 local.globalUrl（拼接 BASE_URL）
  * - online 模式：直接使用 online.url
- * - none 模式：返回 null
+ *
+ * 部署后可直接修改 dist/config.json 切换本地/在线影像，无需重新打包。
+ */
+import { getImageryConfig } from './imagery';
+
+/**
+ * 获取 OpenLayers 底图瓦片 URL
+ *
+ * 读取 IMAGERY 配置：
+ * - local 模式：拼接 BASE_URL + local.globalUrl
+ * - online 模式：直接使用 online.url
  */
 export function getBasemapUrl(): string | null {
-  const config = getBasemapConfig();
-  if (config.mode === 'none') return null;
-  if (config.mode === 'online') return config.online.url;
+  const config = getImageryConfig();
+  if (config.mode === 'online') {
+    return config.online.url || null;
+  }
   // local
-  const url = config.local.url;
+  const url = config.local.globalUrl;
   if (!url) return null;
   return `${import.meta.env.BASE_URL}${url}`;
 }
 
 /**
- * 获取底图最大缩放级别
+ * 获取 OpenLayers 底图最大缩放级别
+ *
+ * 读取 IMAGERY 配置：
+ * - online 模式：online.maximumLevel
+ * - local 模式：local.globalMaxLevel
  */
 export function getBasemapMaxZoom(): number {
-  const config = getBasemapConfig();
-  if (config.mode === 'online') return config.online.maxZoom;
-  if (config.mode === 'local') return config.local.maxZoom;
-  return 18;
+  const config = getImageryConfig();
+  if (config.mode === 'online') return config.online.maximumLevel;
+  return config.local.globalMaxLevel;
 }
 
 /**
  * 判断当前是否使用在线底图
  */
 export function isOnlineBasemap(): boolean {
-  return getBasemapConfig().mode === 'online';
-}
-
-/**
- * 判断当前是否无底图
- */
-export function isNoBasemap(): boolean {
-  return getBasemapConfig().mode === 'none';
+  return getImageryConfig().mode === 'online';
 }

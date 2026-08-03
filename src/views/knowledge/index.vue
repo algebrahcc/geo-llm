@@ -86,10 +86,20 @@ const pageSize = ref(10);
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredDocuments.value.length / pageSize.value)));
 
+// 当前页数据切片：分页按钮真正生效，且表格仅渲染当前页，避免文档较多时渲染过慢
+const pagedDocuments = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredDocuments.value.slice(start, start + pageSize.value);
+});
+
+// 过滤条件/集合变化时回到第一页
 watch([filteredDocuments, pageSize], () => {
   if (currentPage.value > totalPages.value) {
     currentPage.value = totalPages.value;
   }
+});
+watch([searchKeyword, sourceFilter, statusFilter, sortBy, selectedCollection], () => {
+  currentPage.value = 1;
 });
 
 // ====== NDataTable columns ======
@@ -291,7 +301,7 @@ const dataTableThemeOverrides = {
             <NDataTable
               v-else
               :columns="columns"
-              :data="filteredDocuments"
+              :data="pagedDocuments"
               :pagination="false"
               :row-key="(row: KnowledgeDocument) => row.id"
               :theme-overrides="dataTableThemeOverrides"

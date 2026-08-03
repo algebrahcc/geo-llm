@@ -26,7 +26,6 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   planning: () => import("@/views/planning/index.vue"),
   river: () => import("@/views/river/index.vue"),
   screen: () => import("@/views/screen/index.vue"),
-  "system_ai-config": () => import("@/views/system/ai-config/index.vue"),
   system_log: () => import("@/views/system/log/index.vue"),
   system_menu: () => import("@/views/system/menu/index.vue"),
   system_online: () => import("@/views/system/online/index.vue"),

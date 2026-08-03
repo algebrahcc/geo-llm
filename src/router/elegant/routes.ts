@@ -129,16 +129,6 @@ export const generatedRoutes: GeneratedRoute[] = [
     },
     children: [
       {
-        name: 'system_ai-config',
-        path: '/system/ai-config',
-        component: 'view.system_ai-config',
-        meta: {
-          title: 'AI配置',
-          icon: 'mdi:key-chain-variant',
-          order: 1
-        }
-      },
-      {
         name: 'system_log',
         path: '/system/log',
         component: 'view.system_log',

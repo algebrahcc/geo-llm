@@ -52,7 +52,8 @@ const layerCollapsed = ref(false);
 // ──── 面板拖拽 ────
 const settingDrag = useDraggable({ anchor: 'left', initialX: 72, initialY: 72 });
 const aiDrag = useDraggable({ anchor: 'right', initialX: 18, initialY: 18 });
-const resultDrag = useDraggable({ anchor: 'bottom', initialX: 200, initialY: 18 });
+// 结果面板：中间偏右竖向浮动面板（参考路线规划页）
+const resultDrag = useDraggable({ anchor: 'right', initialX: 460, initialY: 72 });
 const layerDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 18 });
 
 // ──── 表单数据 ────
@@ -433,11 +434,11 @@ function handleToggleResult() {
         </div>
       </Transition>
 
-      <!-- ══════ 底部：方案结果面板 ══════ -->
-      <Transition name="panel-slide-up">
-        <div v-if="resultVisible" class="bottom-panel" :style="resultDrag.style.value">
-          <div class="panel-drag-handle horizontal" @mousedown="resultDrag.onDragStart">
-            <span class="drag-dots">⋯</span>
+      <!-- ══════ 中部：方案结果面板（竖向浮动） ══════ -->
+      <Transition name="panel-slide-right">
+        <div v-if="resultVisible" class="result-panel" :style="resultDrag.style.value">
+          <div class="panel-drag-handle" @mousedown="resultDrag.onDragStart">
+            <span class="drag-dots">⠿</span>
             <span>方案结果</span>
           </div>
           <RiverResultBar
@@ -538,18 +539,18 @@ function handleToggleResult() {
   width: 300px;
 }
 
-.bottom-panel {
+.result-panel {
   position: fixed;
-  width: calc(100vw - 480px);
-  min-width: 600px;
-  max-height: 70vh;
+  width: 380px;
+  max-width: 420px;
+  max-height: 76vh;
   display: flex;
   flex-direction: column;
   background: #0e1626;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  overflow: hidden auto;
+  overflow: hidden;
   z-index: 21;
   transition: max-height 0.25s;
 }
@@ -581,26 +582,26 @@ function handleToggleResult() {
   line-height: 1;
   letter-spacing: 2px;
 }
-.panel-drag-handle.horizontal .drag-dots {
-  letter-spacing: 4px;
-}
 
 .left-panel :deep(.setting-panel),
 .layer-panel-wrapper :deep(.layer-panel),
 .ai-panel-wrapper :deep(.ai-panel),
-.bottom-panel :deep(.result-bar) {
+.result-panel :deep(.result-bar) {
   width: 100% !important;
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
-.bottom-panel :deep(.bar-content) {
-  flex: unset;
-  overflow-y: visible;
+.result-panel :deep(.result-bar) {
+  height: 100%;
+}
+.result-panel :deep(.bar-content) {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 @media (min-height: 900px) {
-  .bottom-panel {
-    max-height: 75vh;
+  .result-panel {
+    max-height: 76vh;
   }
 }
 

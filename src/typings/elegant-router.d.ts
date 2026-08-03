@@ -39,7 +39,6 @@ declare module "@elegant-router/types" {
     "river": "/river";
     "screen": "/screen";
     "system": "/system";
-    "system_ai-config": "/system/ai-config";
     "system_log": "/system/log";
     "system_menu": "/system/menu";
     "system_online": "/system/online";
@@ -136,7 +135,6 @@ declare module "@elegant-router/types" {
     | "planning"
     | "river"
     | "screen"
-    | "system_ai-config"
     | "system_log"
     | "system_menu"
     | "system_online"

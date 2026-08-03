@@ -82,14 +82,11 @@ function getSafetyColor(safety: string): string {
             v-for="plan in plans"
             :key="plan.rank"
             class="plan-card"
-            :class="{
-              'plan-card--recommended': plan.isRecommended,
-              'plan-card--expanded': allExpanded || expandedCard === plan.rank
-            }"
+            :class="{ 'plan-card--recommended': plan.isRecommended }"
           >
-            <!-- ══ 卡片内侧容器（展开时切换为行布局） ══ -->
-            <div class="card-body" :class="{ 'card-body--row': allExpanded || expandedCard === plan.rank }">
-              <!-- ══ 卡片头部（始终可见，折叠态在左侧） ══ -->
+            <!-- ══ 卡片内侧容器（竖向排列，展开时详情向下展开） ══ -->
+            <div class="card-body">
+              <!-- ══ 卡片头部 ══ -->
               <div class="card-header" @click="toggleCard(plan.rank)">
                 <div class="card-header-top">
                   <div class="card-identity">
@@ -338,36 +335,23 @@ function getSafetyColor(safety: string): string {
   color: #8db8ff;
 }
 
-/* ──── 卡片横排 ──── */
+/* ──── 卡片竖排 ──── */
 .plan-cards {
   display: flex;
+  flex-direction: column;
   gap: 10px;
-  overflow-x: auto;
   padding-bottom: 6px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(141, 184, 255, 0.16) transparent;
-}
-
-.plan-cards::-webkit-scrollbar {
-  height: 4px;
-}
-
-.plan-cards::-webkit-scrollbar-thumb {
-  border-radius: 2px;
-  background: rgba(141, 184, 255, 0.16);
 }
 
 .plan-card {
-  min-width: 280px;
-  max-width: 320px;
+  width: 100%;
+  min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   overflow: hidden;
   transition:
     border-color 0.25s,
-    box-shadow 0.25s,
-    min-width 0.3s,
-    max-width 0.3s;
+    box-shadow 0.25s;
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.015);
 }
@@ -385,20 +369,11 @@ function getSafetyColor(safety: string): string {
   border-color: rgba(34, 197, 94, 0.4);
 }
 
-.plan-card--expanded {
-  min-width: 600px;
-  max-width: 640px;
-}
-
 /* ──── 卡片 body（弹性容器） ──── */
 .card-body {
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.card-body--row {
-  flex-direction: row;
 }
 
 /* ──── 卡片头部 ──── */
@@ -407,11 +382,6 @@ function getSafetyColor(safety: string): string {
   cursor: pointer;
   transition: background 0.15s;
   flex-shrink: 0;
-}
-
-.card-body--row .card-header {
-  width: 280px;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .card-header:hover {
@@ -551,14 +521,6 @@ function getSafetyColor(safety: string): string {
   flex: 1;
   overflow-y: auto;
   min-width: 0;
-}
-
-.card-body--row .card-detail-wrapper {
-  flex: 1;
-  min-width: 0;
-  max-height: none !important;
-  overflow-y: auto;
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .detail-grid {

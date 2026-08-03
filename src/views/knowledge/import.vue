@@ -46,10 +46,12 @@ const indexModeOptions = [
 ];
 
 /** 将页面“索引方式”映射为 Dify 的索引模式与切片规则
- *  - 语义分段依赖 embedding 模型（high_quality）
+ *  - 语义分段 / 图片分割依赖 embedding 模型（high_quality；图片还需知识库配置多模态 embedding 模型）
  *  - 其余统一 economy（无需 embedding）；economy 暂不支持自定义分块规则，手动分块按自动处理 */
 function mapIndexMode(mode: string): { indexingTechnique: string; processMode: string } {
-  if (mode === '语义分段') return { indexingTechnique: 'high_quality', processMode: 'automatic' };
+  if (mode === '语义分段' || mode === '图片分割') {
+    return { indexingTechnique: 'high_quality', processMode: 'automatic' };
+  }
   return { indexingTechnique: 'economy', processMode: 'automatic' };
 }
 

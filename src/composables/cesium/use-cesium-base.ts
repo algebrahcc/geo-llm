@@ -304,11 +304,11 @@ export function useCesiumBase(): CesiumBaseReturn {
     });
   }
 
-  function zoomIn(amount = 1200) {
+  function zoomIn(amount = 3000) {
     viewerRef.value?.camera.zoomIn(amount);
   }
 
-  function zoomOut(amount = 1200) {
+  function zoomOut(amount = 3000) {
     viewerRef.value?.camera.zoomOut(amount);
   }
 

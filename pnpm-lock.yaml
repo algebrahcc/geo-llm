@@ -34,7 +34,7 @@ importers:
         version: 14.3.0(vue@3.5.34(typescript@6.0.3))
       cesium:
         specifier: ^1.141.0
-        version: 1.141.0
+        version: 1.143.0
       clipboard:
         specifier: 2.0.11
         version: 2.0.11
@@ -152,7 +152,7 @@ importers:
         version: 8.0.12(@types/node@25.7.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(tsx@4.21.0)(yaml@2.9.0)
       vite-plugin-cesium:
         specifier: ^1.2.23
-        version: 1.2.23(cesium@1.141.0)(rollup@2.80.0)(vite@8.0.12(@types/node@25.7.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(tsx@4.21.0)(yaml@2.9.0))
+        version: 1.2.23(cesium@1.143.0)(rollup@2.80.0)(vite@8.0.12(@types/node@25.7.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(tsx@4.21.0)(yaml@2.9.0))
       vite-plugin-progress:
         specifier: 0.0.7
         version: 0.0.7(vite@8.0.12(@types/node@25.7.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(tsx@4.21.0)(yaml@2.9.0))
@@ -481,15 +481,15 @@ packages:
   '@better-scroll/shared-utils@2.5.1':
     resolution: {integrity: sha512-AplkfSjXVYP9LZiD6JsKgmgQJ/mG4uuLmBuwLz8W5OsYc7AYTfN8kw6GqZ5OwCGoXkVhBGyd8NeC4xwYItp0aw==}
 
-  '@cesium/engine@25.0.0':
-    resolution: {integrity: sha512-vJZfgAAB7WTvUPsI8dFV+wKleweCZgpJj1ckcTIERnC+NWvJ9bjlAx0xPl0We57NoQKcdMDy+6UiFjOvPB/yGg==}
+  '@cesium/engine@26.1.0':
+    resolution: {integrity: sha512-WzeJEcmGD7/htBJ8JEZt95OgZjErPwUHqyAlJY/mCzmDm7hfwpuucLBSUhiynWW3khqBT1C7dhibjb7tdic7oA==}
     engines: {node: '>=22.0.0'}
 
   '@cesium/wasm-splats@0.1.0-alpha.2':
     resolution: {integrity: sha512-t9pMkknv31hhIbLpMa8yPvmqfpvs5UkUjgqlQv9SeO8VerCXOYnyP8/486BDaFrztM0A7FMbRjsXtNeKvqQghA==}
 
-  '@cesium/widgets@15.0.0':
-    resolution: {integrity: sha512-a0udi+EKEeCyM4F+pxp9Qx8HXgh2eWVQrksxGO4lSu3f35XWc+eKdYiJBEP2t1d4tjw2MxOsjbVyMj7VQZ4JDw==}
+  '@cesium/widgets@16.1.0':
+    resolution: {integrity: sha512-c+jt8F3YIZs2x6+X+HS4q0S9nd2jVcbPVShUmlrDK1s+C7IlEvXceDGrkjivHRElAVCzfaWEEwY1g7Lg5HCGmA==}
     engines: {node: '>=22.0.0'}
 
   '@css-render/plugin-bem@0.15.14':
@@ -1938,8 +1938,8 @@ packages:
   caniuse-lite@1.0.30001793:
     resolution: {integrity: sha512-iwSsYWaCOoh26cV8NwNRViHlrfUvYsHDfRVcbtmw0Kg6PJIZZXwMkj1442FYLBGkeUf1juAsU3DTfxW579mrPA==}
 
-  cesium@1.141.0:
-    resolution: {integrity: sha512-bRwgABDjsXRqNLjeJAxSlCrWCTvAt/yWJD30fY5CbqtoEKR6g/YCOcJW37vk4w/Gq3uMW7sF1uP74ajRrktjEw==}
+  cesium@1.143.0:
+    resolution: {integrity: sha512-EHz61NBp/2UPYE4iWCZ+YK9Jcb0d2hzRfqkj4DRaUM3cJmA9hE2FTmcPPZ2iL7w+W0YUScI0gc9XeSTXlPIQtA==}
     engines: {node: '>=22.0.0'}
 
   chalk@1.1.3:
@@ -3413,6 +3413,9 @@ packages:
   pako@2.1.0:
     resolution: {integrity: sha512-w+eufiZ1WuJYgPXbV/PO3NCMEc3xqylkKHzp8bxp1uW4qaSNQUkwmLLEc3kKsfz8lpV1F8Ht3U1Cm+9Srog2ug==}
 
+  pako@3.0.1:
+    resolution: {integrity: sha512-GupotUUI0mlhugKjUs4bjOwLt3nrehy9Ys2dxC0GtgVef5cnKggkDMmf2bq2poCCuVXopWPmqsc9VDT2iJUy+w==}
+
   parse-headers@2.0.6:
     resolution: {integrity: sha512-Tz11t3uKztEW5FEVZnj1ox8GKblWn+PvHY9TmJV5Mll2uHEwRdR/5Li1OlXoECjLYkApdhWy44ocONwXLiKO5A==}
 
@@ -3579,8 +3582,8 @@ packages:
     resolution: {integrity: sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==}
     engines: {node: '>=0.4.0'}
 
-  protobufjs@8.4.2:
-    resolution: {integrity: sha512-64rfNzkWOZAIazXzpBFPWq6F9up6gMvTzjE2oWIzApx2N/dqVUEE7+bCn2+40780dFVtKOUab8QfxJ6KJDWbqA==}
+  protobufjs@8.7.1:
+    resolution: {integrity: sha512-agdGHrXNTv0IrYscJPDou/PlEJk1c/hBZ9o/B5NH2i/nSPtPqacNxzgwf1CebXxFMjMrZH5sqv9uQuw96aGt/A==}
     engines: {node: '>=12.0.0'}
 
   protocol-buffers-schema@3.6.1:
@@ -4707,7 +4710,7 @@ snapshots:
 
   '@better-scroll/shared-utils@2.5.1': {}
 
-  '@cesium/engine@25.0.0':
+  '@cesium/engine@26.1.0':
     dependencies:
       '@cesium/wasm-splats': 0.1.0-alpha.2
       '@spz-loader/core': 0.3.1
@@ -4725,17 +4728,17 @@ snapshots:
       lerc: 2.0.0
       mersenne-twister: 1.1.0
       meshoptimizer: 1.1.1
-      pako: 2.1.0
-      protobufjs: 8.4.2
+      pako: 3.0.1
+      protobufjs: 8.7.1
       rbush: 4.0.1
       topojson-client: 3.1.0
       urijs: 1.19.11
 
   '@cesium/wasm-splats@0.1.0-alpha.2': {}
 
-  '@cesium/widgets@15.0.0':
+  '@cesium/widgets@16.1.0':
     dependencies:
-      '@cesium/engine': 25.0.0
+      '@cesium/engine': 26.1.0
       nosleep.js: 0.12.0
 
   '@css-render/plugin-bem@0.15.14(css-render@0.15.14)':
@@ -6059,10 +6062,11 @@ snapshots:
 
   caniuse-lite@1.0.30001793: {}
 
-  cesium@1.141.0:
+  cesium@1.143.0:
     dependencies:
-      '@cesium/engine': 25.0.0
-      '@cesium/widgets': 15.0.0
+      '@cesium/engine': 26.1.0
+      '@cesium/widgets': 16.1.0
+      protobufjs: 8.7.1
 
   chalk@1.1.3:
     dependencies:
@@ -7654,6 +7658,8 @@ snapshots:
 
   pako@2.1.0: {}
 
+  pako@3.0.1: {}
+
   parse-headers@2.0.6: {}
 
   parse-ms@4.0.0: {}
@@ -7799,7 +7805,7 @@ snapshots:
 
   progress@2.0.3: {}
 
-  protobufjs@8.4.2:
+  protobufjs@8.7.1:
     dependencies:
       long: 5.3.2
 
@@ -8561,9 +8567,9 @@ snapshots:
     dependencies:
       vite: 8.0.12(@types/node@25.7.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(tsx@4.21.0)(yaml@2.9.0)
 
-  vite-plugin-cesium@1.2.23(cesium@1.141.0)(rollup@2.80.0)(vite@8.0.12(@types/node@25.7.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(tsx@4.21.0)(yaml@2.9.0)):
+  vite-plugin-cesium@1.2.23(cesium@1.143.0)(rollup@2.80.0)(vite@8.0.12(@types/node@25.7.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(tsx@4.21.0)(yaml@2.9.0)):
     dependencies:
-      cesium: 1.141.0
+      cesium: 1.143.0
       fs-extra: 9.1.0
       rollup-plugin-external-globals: 0.6.1(rollup@2.80.0)
       serve-static: 1.16.3

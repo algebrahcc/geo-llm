@@ -54,26 +54,6 @@ export interface ImageryConfig {
   online: ImageryOnlineConfig;
 }
 
-/** OpenLayers 底图配置 */
-export interface OLBasemapConfig {
-  /** 模式：'local' 本地离线 / 'online' 在线瓦片 / 'none' 无底图 */
-  mode: 'local' | 'online' | 'none';
-  /** 本地离线底图配置 */
-  local: {
-    /** 瓦片 URL 模板（相对于 BASE_URL，支持 {z}/{x}/{y}） */
-    url: string;
-    /** 最大缩放级别 */
-    maxZoom: number;
-  };
-  /** 在线底图配置 */
-  online: {
-    /** 瓦片服务 URL 模板，支持 {z}/{x}/{y} */
-    url: string;
-    /** 最大缩放级别 */
-    maxZoom: number;
-  };
-}
-
 /** 高程（地形）配置 */
 export interface TerrainConfig {
   /** 是否启用高程数据 */
@@ -102,8 +82,6 @@ export interface AppRuntimeConfig {
   IMAGERY: ImageryConfig;
   /** Cesium 高程（地形）配置 */
   TERRAIN?: TerrainConfig;
-  /** OpenLayers 底图配置 */
-  BASEMAP?: OLBasemapConfig;
 }
 
 declare global {

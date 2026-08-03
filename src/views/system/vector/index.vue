@@ -49,9 +49,11 @@ const typeOptions: SelectOption[] = [
 
 function statusConfig(status?: number | string) {
   const s = typeof status === 'string' ? Number(status) : status;
-  if (s === 0 || String(status) === 'IMPORTING') return { text: '导入中', type: 'warning' };
-  if (s === 1 || String(status) === 'SUCCESS') return { text: '已完成', type: 'success' };
-  if (s === 2 || String(status) === 'FAILED') return { text: '失败', type: 'danger' };
+  // 对齐后端 VectorImportStatusEnum：0=WAITING 待导入, 1=IMPORTING 导入中, 2=SUCCESS 成功, 3=FAILED 失败
+  if (s === 0 || String(status) === 'WAITING') return { text: '待导入', type: 'default' };
+  if (s === 1 || String(status) === 'IMPORTING') return { text: '导入中', type: 'warning' };
+  if (s === 2 || String(status) === 'SUCCESS') return { text: '已完成', type: 'success' };
+  if (s === 3 || String(status) === 'FAILED') return { text: '失败', type: 'danger' };
   return { text: '未知', type: 'default' };
 }
 
@@ -200,7 +202,9 @@ async function initMap() {
 
   try {
     const result: any = await fetchVectorExtent(vectorId);
-    const extent = (result?.data ?? result?.response?.data) as number[] | null;
+    const extent = (result?.data?.data ?? result?.data ?? result?.response?.data?.data ?? result?.response?.data) as
+      | number[]
+      | null;
     if (extent && extent.length === 4) {
       const [minLng, minLat, maxLng, maxLat] = extent;
       setTimeout(() => {
@@ -230,7 +234,9 @@ async function handleFitExtent() {
   if (!mapRow.value || !olMap) return;
   try {
     const result: any = await fetchVectorExtent(mapRow.value.id);
-    const extent = (result?.data ?? result?.response?.data) as number[] | null;
+    const extent = (result?.data?.data ?? result?.data ?? result?.response?.data?.data ?? result?.response?.data) as
+      | number[]
+      | null;
     if (extent && extent.length === 4) {
       const [minLng, minLat, maxLng, maxLat] = extent;
       olMap.getView().fit(transformExtent([minLng, minLat, maxLng, maxLat], 'EPSG:4326', 'EPSG:3857'), {
