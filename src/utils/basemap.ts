@@ -41,10 +41,3 @@ export function getBasemapMaxZoom(): number {
   if (config.mode === 'online') return config.online.maximumLevel;
   return config.local.globalMaxLevel;
 }
-
-/**
- * 判断当前是否使用在线底图
- */
-export function isOnlineBasemap(): boolean {
-  return getImageryConfig().mode === 'online';
-}

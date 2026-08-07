@@ -1,16 +1,5 @@
 import { reactive } from 'vue';
 
-// 类型定义已迁移至 src/views/knowledge/modules/types.ts，此处 re-export 保持向后兼容
-export type {
-  KnowledgeDocument,
-  KnowledgeChunk,
-  KnowledgeReference,
-  KnowledgeDocumentDetail,
-  KnowledgeImportFormModel,
-  KnowledgeRetrievalMatch,
-  ModuleRef
-} from '@/views/knowledge/modules/types';
-
 import type {
   KnowledgeDocument,
   KnowledgeChunk,

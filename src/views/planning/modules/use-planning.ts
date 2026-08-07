@@ -1,10 +1,9 @@
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 import {
   planningAnalysisSteps as mockAnalysisSteps,
   planningDefaultLayers,
   planningDefaultMissionForm,
   planningDefaultTaskForm,
-  planningPlanResults,
   planningRouteSummaries
 } from '@/mock/planning';
 import { runKnowledgeRetrieval } from '@/mock/knowledge';
@@ -91,15 +90,6 @@ export function usePlanning() {
     currentRoute: planningRouteSummaries[currentRoute.value].label,
     planningState: '待规划'
   });
-
-  // ──── 计算属性 ────
-  const currentSummary = computed(() => planningRouteSummaries[currentRoute.value]);
-  const currentPlanResult = computed(() => planningPlanResults.find(p => p.key === selectedPlan.value));
-  const missionResultSummary = computed(() => ({
-    totalPlans: planningPlanResults.length,
-    bestPlan: '方案一',
-    bestScore: 92.3
-  }));
 
   // ──── 路线规划模式方法 ────
   function updateForm(nextForm: PlanningTaskForm) {
@@ -290,10 +280,6 @@ export function usePlanning() {
     knowledgeHits.value = null;
   }
 
-  function updateStatus(nextStatus: PlanningStatusInfo) {
-    status.value = nextStatus;
-  }
-
   // 组件卸载时取消所有正在等待的 sleep，防止异步步骤动画继续修改已卸载组件的状态
   onBeforeUnmount(() => {
     sleepCancellers.forEach(cancel => cancel());
@@ -307,7 +293,6 @@ export function usePlanning() {
     // 路线规划
     taskForm,
     currentRoute,
-    currentSummary,
     updateForm,
     setCurrentRoute,
     startPlanning,
@@ -315,14 +300,11 @@ export function usePlanning() {
     // 机动方案
     missionForm,
     selectedPlan,
-    currentPlanResult,
     missionRunning,
     analysisSteps,
     analysisProgress,
     analysisStatusText,
-    missionResultSummary,
     knowledgeHits,
-    planResults: planningPlanResults,
     updateMissionForm,
     addWaypoint,
     removeWaypoint,
@@ -335,7 +317,6 @@ export function usePlanning() {
     layerItems,
     planningState,
     status,
-    updateStatus,
     setPickedPoint,
     setLayerVisible,
     setPlanningState

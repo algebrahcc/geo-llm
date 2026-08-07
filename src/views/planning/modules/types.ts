@@ -72,17 +72,6 @@ export interface PlanningMissionWaypoint extends PlanningWaypoint {
   order: number;
 }
 
-// ──── 路线路段 ────
-export interface PlanningRouteSegment {
-  id: string;
-  index: number;
-  section: string;
-  roadName: string;
-  distance: number;
-  duration: string;
-  roadCondition: string;
-}
-
 // ──── 路线场景 ────
 export interface PlanningRouteScene {
   route: PlanningLineOverlay;
@@ -257,27 +246,6 @@ export interface PlanningMissionForm {
   vehicleType: string;
   vehicleCount: number;
   formationType: string;
-}
-
-// ──── 机动任务结果汇总 ────
-export interface PlanningMissionResultSummary {
-  totalPlans: number;
-  bestPlan: string;
-  bestScore: number;
-}
-
-// ──── 方案结果项 ────
-export interface PlanningPlanResult {
-  key: string;
-  label: string;
-  description?: string;
-  score: number;
-  tag?: string;
-  tagType?: 'success' | 'info' | 'warning' | 'error';
-  metrics?: Array<{ label: string; value: string; unit?: string }>;
-  routeDescription?: string;
-  mainRoads?: string;
-  isRecommended?: boolean;
 }
 
 // ──── 方案选项 ────

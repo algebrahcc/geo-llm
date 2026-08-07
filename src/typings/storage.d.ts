@@ -1,13 +1,6 @@
 /** The storage namespace */
 declare namespace StorageType {
-  interface Session {
-    /** The theme color */
-    themeColor: string;
-    // /**
-    //  * the theme settings
-    //  */
-    // themeSettings: App.Theme.ThemeSetting;
-  }
+  interface Session {}
 
   interface Local {
     /** The token */

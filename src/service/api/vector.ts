@@ -42,15 +42,6 @@ export function fetchVectorDelete(ids: (string | number)[]) {
   });
 }
 
-/** 从服务端路径导入矢量文件 */
-export function importVectorFromPath(data: Api.Vector.ImportFromPathReq) {
-  return request<void>({
-    url: '/system/vector/save',
-    method: 'post',
-    data
-  });
-}
-
 /** 上传矢量文件导入（GeoJSON/Shapefile.zip） */
 export function uploadVectorFile(file: File, onProgress?: (percent: number) => void) {
   const fd = new FormData();
@@ -91,12 +82,5 @@ export function fetchVectorFeaturesInBbox(
   return request<any>({
     url: `/system/vector/${vectorId}/features`,
     params
-  });
-}
-
-/** 获取完整 GeoJSON FeatureCollection（供 Cesium GeoJsonDataSource 加载） */
-export function fetchVectorGeoJson(vectorId: string | number) {
-  return request<any>({
-    url: `/system/vector/${vectorId}/geojson`
   });
 }

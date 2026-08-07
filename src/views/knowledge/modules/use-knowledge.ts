@@ -1,6 +1,6 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { filterKnowledgeDocuments } from './real';
-import type { KnowledgeDocument, KnowledgeEditFormModel } from './types';
+import type { KnowledgeDocument } from './types';
 import { fetchKbDatasets, fetchKbDocuments } from '@/service/api/knowledge';
 import {
   asList,
@@ -80,9 +80,6 @@ export function useKnowledge() {
   });
   const sortBy = ref<'recent' | 'hits' | 'chunks'>('recent');
 
-  const editVisible = ref(false);
-  const editingDocument = ref<KnowledgeDocument | null>(null);
-
   const docsByCollection = computed(() =>
     selectedCollection.value === 'all'
       ? allDocuments.value
@@ -129,10 +126,6 @@ export function useKnowledge() {
     return key;
   }
 
-  function isRealDoc(id: string): boolean {
-    return realDocuments.value.some(d => d.id === id);
-  }
-
   const collectionGroups = computed(() => {
     const grouped = new Map<string, typeof collectionSummary.value>();
 
@@ -161,16 +154,6 @@ export function useKnowledge() {
     )
   );
 
-  function openEdit(document: KnowledgeDocument) {
-    editingDocument.value = document;
-    editVisible.value = true;
-  }
-
-  function closeEdit() {
-    editVisible.value = false;
-    editingDocument.value = null;
-  }
-
   function resetFilters() {
     selectedCollection.value = 'all';
     searchKeyword.value = '';
@@ -179,39 +162,22 @@ export function useKnowledge() {
     sortBy.value = 'recent';
   }
 
-  function buildEditForm(document: KnowledgeDocument): KnowledgeEditFormModel {
-    return {
-      id: document.id,
-      name: document.name,
-      source: document.source,
-      reviewer: document.reviewer,
-      tags: [...document.tags],
-      summary: document.summary
-    };
-  }
-
   return {
     selectedCollection,
     searchKeyword,
     sourceFilter,
     statusFilter,
     sortBy,
-    editVisible,
-    editingDocument,
     sourceOptions,
     statusOptions,
     sortOptions,
     collectionSummary,
     collectionGroups,
     getCollectionLabel,
-    isRealDoc,
     filteredDocuments,
     kbLoading,
     kbFailed,
     loadRealDocuments,
-    openEdit,
-    closeEdit,
-    resetFilters,
-    buildEditForm
+    resetFilters
   };
 }

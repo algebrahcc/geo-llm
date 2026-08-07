@@ -105,6 +105,7 @@ export interface KnowledgeHitDisplay {
 /** 底部方案卡片 */
 export interface CrossingPlanCard {
   rank: number;
+  key: RiverPlanKey;
   label: string;
   title: string;
   isRecommended: boolean;

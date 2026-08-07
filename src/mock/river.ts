@@ -1,14 +1,5 @@
 import type { AiAnalysisStep, CrossingPlanCard, CrossingSettingForm } from '@/views/river/modules/types';
 
-export const riverDefaultLayers = [
-  { key: 'imagery', label: '影像底图', description: '全球 0-8', visible: true },
-  { key: 'channel', label: '渡河通道', description: '展示渡河主通道与浮渡方向', visible: true },
-  { key: 'assembly', label: '集结区', description: '显示我方与保障单元集结范围', visible: true },
-  { key: 'risk', label: '风险区', description: '展示火力、涉水与阻绝风险区', visible: true },
-  { key: 'mark', label: '关键点位', description: '桥位、观察点、登陆点等关键标注', visible: true },
-  { key: 'route', label: '方案路线', description: '当前方案机动与保障路线', visible: true }
-] as const;
-
 export const riverFlowTemplate = [
   { key: 'env', label: '环境分析', description: '河道宽度、水面状态与周边地形分析' },
   { key: 'surface', label: '面源评估分析', description: '涉水面、岸滩条件与可展开区评估' },
@@ -340,6 +331,7 @@ export const aiAnalysisStepTemplate: AiAnalysisStep[] = [
 export const crossingPlanCards: CrossingPlanCard[] = [
   {
     rank: 1,
+    key: 'plan-a',
     label: '方案一',
     title: '两栖快速渡河方案',
     isRecommended: true,
@@ -356,6 +348,7 @@ export const crossingPlanCards: CrossingPlanCard[] = [
   },
   {
     rank: 2,
+    key: 'plan-b',
     label: '方案二',
     title: '浮桥分段渡河方案',
     isRecommended: false,
@@ -372,6 +365,7 @@ export const crossingPlanCards: CrossingPlanCard[] = [
   },
   {
     rank: 3,
+    key: 'plan-c',
     label: '方案三',
     title: '冲锋舟突击渡河方案',
     isRecommended: false,

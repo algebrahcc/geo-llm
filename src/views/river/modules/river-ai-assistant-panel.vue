@@ -815,16 +815,6 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   color: rgba(255, 255, 255, 0.3);
 }
 
-@keyframes tagPulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.55;
-  }
-}
-
 .step-tool {
   font-size: 11px;
   color: #8db8ff;

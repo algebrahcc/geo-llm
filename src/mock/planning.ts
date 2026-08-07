@@ -2,14 +2,11 @@ import type {
   PlanningAnalysisStep,
   PlanningLayerItem,
   PlanningMissionForm,
-  PlanningMissionResultSummary,
   PlanningOption,
-  PlanningPlanResult,
   PlanningPreset,
   PlanningRouteKey,
   PlanningRouteResultCard,
   PlanningRouteScene,
-  PlanningRouteSegment,
   PlanningRouteSettingsForm,
   PlanningRouteSummary,
   PlanningSupportResultCard,
@@ -65,56 +62,11 @@ export const planningDefaultLayers = [
   }
 ] as const satisfies readonly PlanningLayerItem[];
 
-// ──── 路线偏好选项 ────
-export const planningPreferenceOptions = [
-  { label: '最快到达', icon: 'mdi:speedometer', value: 'fastest' },
-  { label: '距离最短', icon: 'mdi:ruler', value: 'shortest' },
-  { label: '风险最低', icon: 'mdi:shield-check', value: 'safest' }
-] as const satisfies readonly PlanningOption[];
-
-export const planningConstraintOptions = [
-  { label: '避开威胁区', icon: 'mdi:radar', value: 'avoid-threat' },
-  { label: '避开桥梁瓶颈', icon: 'mdi:bridge', value: 'avoid-bridge' },
-  { label: '控制坡度', icon: 'mdi:hill', value: 'slope-limit' },
-  { label: '优先主干道', icon: 'mdi:road-variant', value: 'prefer-main-road' }
-] as const satisfies readonly PlanningOption[];
-
 // ──── 机动方案专用选项 ────
-export const planningPriorityOptions = [
-  { label: '用时最短', icon: 'mdi:clock-fast', value: 'time' },
-  { label: '距离最短', icon: 'mdi:ruler', value: 'distance' },
-  { label: '风险最低', icon: 'mdi:shield-check', value: 'risk' }
-] as const satisfies readonly PlanningOption[];
-
-export const planningRoadTypeOptions = [
-  { label: '高速公路', icon: 'mdi:road', value: 'highway' },
-  { label: '国道', icon: 'mdi:road-variant', value: 'national' },
-  { label: '省道', icon: 'mdi:sign-direction', value: 'provincial' },
-  { label: '乡道', icon: 'mdi:road', value: 'rural' }
-] as const satisfies readonly PlanningOption[];
-
-export const planningTerrainOptions = [
-  { label: '平原/丘陵优先', icon: 'mdi:terrain', value: 'flat' },
-  { label: '山区优先', icon: 'mdi:mountain', value: 'mountain' },
-  { label: '无偏好', icon: 'mdi:earth', value: 'none' }
-] as const satisfies readonly PlanningOption[];
-
-export const planningAvoidanceOptions = [
-  { label: '避开拥堵路段', icon: 'mdi:car-brake-alert', value: 'congestion' },
-  { label: '避开施工路段', icon: 'mdi:construction', value: 'construction' },
-  { label: '远离高风险区域', icon: 'mdi:shield-alert', value: 'high-risk' }
-] as const satisfies readonly PlanningOption[];
-
 export const planningVehicleTypeOptions = [
   { label: '轮式车辆', icon: 'mdi:car', value: 'wheeled' },
   { label: '履带车辆', icon: 'mdi:tractor', value: 'tracked' },
   { label: '混合编队', icon: 'mdi:car-multiple', value: 'mixed' }
-] as const satisfies readonly PlanningOption[];
-
-export const planningFormationOptions = [
-  { label: '分队编组', icon: 'mdi:account-group', value: 'squad' },
-  { label: '单车行进', icon: 'mdi:car', value: 'single' },
-  { label: '纵队编组', icon: 'mdi:order-bool-ascending', value: 'column' }
 ] as const satisfies readonly PlanningOption[];
 
 // ──── 路线规划默认表单 ────
@@ -162,13 +114,6 @@ export const planningPresets = {
     height: 4500000
   }
 } as const satisfies Record<'task', PlanningPreset>;
-
-// ──── 路线选项（路线规划模式） ────
-export const planningRouteOptions = [
-  { key: 'route-a', label: '路线一', subtitle: '快速通达' },
-  { key: 'route-b', label: '路线二', subtitle: '均衡保障' },
-  { key: 'route-c', label: '路线三', subtitle: '低风险机动' }
-] as const;
 
 // ──── 路线摘要（路线规划模式） ────
 // 指标数据来自 OSRM 真实路网计算
@@ -309,65 +254,6 @@ export const planningRouteScenes = {
   }
 } as const satisfies Record<PlanningRouteKey, PlanningRouteScene>;
 
-// ──── 机动方案 - 3个推荐方案 ────
-export const planningPlanResults: readonly PlanningPlanResult[] = [
-  {
-    key: 'plan-a',
-    label: '方案一',
-    tag: '用时最短',
-    tagType: 'success',
-    score: 92.3,
-    metrics: [
-      { label: '总里程', value: '1,758', unit: 'km' },
-      { label: '预计耗时', value: '18时42分', unit: '' },
-      { label: '平均速度', value: '94', unit: 'km/h' },
-      { label: '油耗估算', value: '2,850', unit: 'L' }
-    ],
-    routeDescription: '北京某基地 → 武汉 → 长沙 → 赣州 → 厦门某区域',
-    mainRoads: '京港澳高速 → 沪昆高速 → 厦蓉高速 → 鹏光高速',
-    isRecommended: true
-  },
-  {
-    key: 'plan-b',
-    label: '方案二',
-    tag: '距离最短',
-    tagType: 'info',
-    score: 88.1,
-    metrics: [
-      { label: '总里程', value: '1,612', unit: 'km' },
-      { label: '预计耗时', value: '20时35分', unit: '' },
-      { label: '平均速度', value: '78', unit: 'km/h' },
-      { label: '油耗估算', value: '2,610', unit: 'L' }
-    ],
-    routeDescription: '北京某基地 → 合肥 → 南昌 → 赣州 → 厦门某区域',
-    mainRoads: '京台高速 → 沪昆高速 → 吕赣高速 → 鹏光高速',
-    isRecommended: false
-  },
-  {
-    key: 'plan-c',
-    label: '方案三',
-    tag: '风险最低',
-    tagType: 'warning',
-    score: 85.7,
-    metrics: [
-      { label: '总里程', value: '1,892', unit: 'km' },
-      { label: '预计耗时', value: '21时18分', unit: '' },
-      { label: '平均速度', value: '89', unit: 'km/h' },
-      { label: '油耗估算', value: '2,920', unit: 'L' }
-    ],
-    routeDescription: '北京某基地 → 郑州 → 武汉 → 长沙 → 厦门某区域',
-    mainRoads: '京港澳高速 → 沪渝高速 → 长张高速 → 厦蓉高速',
-    isRecommended: false
-  }
-];
-
-// ──── 机动方案 - 方案结果汇总 ────
-export const planningMissionResultSummary: PlanningMissionResultSummary = {
-  totalPlans: 3,
-  bestPlan: '方案一',
-  bestScore: 92.3
-};
-
 // ──── 机动方案 - 分析步骤 ────
 export const planningAnalysisSteps: readonly PlanningAnalysisStep[] = [
   { id: 'step-0', label: '知识库检索', icon: 'mdi:book-search-outline', status: 'pending' },
@@ -378,67 +264,6 @@ export const planningAnalysisSteps: readonly PlanningAnalysisStep[] = [
   { id: 'step-5', label: '方案生成与优化', icon: 'mdi:file-cog-outline', status: 'pending' },
   { id: 'step-6', label: '结果输出', icon: 'mdi:export-variant', status: 'pending' }
 ];
-
-// ──── 机动方案 - 方案一详细路段 ────
-export const planningPlanADetailSegments: readonly PlanningRouteSegment[] = [
-  {
-    id: 'seg-1',
-    index: 1,
-    section: '京港澳高速（北京段）',
-    roadName: '京港澳高速',
-    distance: 278,
-    duration: '02:45',
-    roadCondition: '畅通'
-  },
-  {
-    id: 'seg-2',
-    index: 2,
-    section: '京港澳高速（湖北段）',
-    roadName: '京港澳高速',
-    distance: 342,
-    duration: '03:18',
-    roadCondition: '畅通'
-  },
-  {
-    id: 'seg-3',
-    index: 3,
-    section: '京港澳高速（湖南段）',
-    roadName: '京港澳高速',
-    distance: 510,
-    duration: '05:32',
-    roadCondition: '畅通'
-  },
-  {
-    id: 'seg-4',
-    index: 4,
-    section: '沪昆高速（江西段）',
-    roadName: '沪昆高速',
-    distance: 286,
-    duration: '03:35',
-    roadCondition: '缓行'
-  },
-  {
-    id: 'seg-5',
-    index: 5,
-    section: '厦蓉高速（江西段）',
-    roadName: '厦蓉高速',
-    distance: 244,
-    duration: '02:48',
-    roadCondition: '畅通'
-  },
-  {
-    id: 'seg-6',
-    index: 6,
-    section: '鹏光高速（赣州-厦门）',
-    roadName: '鹏光高速',
-    distance: 98,
-    duration: '01:04',
-    roadCondition: '畅通'
-  }
-];
-
-export const planningPlanATotalDistance = 1758;
-export const planningPlanATotalDuration = '18:42';
 
 // ──── 机动规划 - 推进区域选项 ────
 export const planningAdvanceAreaOptions = [

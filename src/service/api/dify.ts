@@ -131,17 +131,6 @@ export function fetchDifySuggestedQuestions(params: { appId?: number; messageId:
 }
 
 /**
- * Dify 删除会话
- */
-export function deleteDifyConversation(params: { appId?: number; userId: string; conversationId: string }) {
-  return request({
-    url: `/api/dify/conversations/${params.conversationId}`,
-    method: 'delete',
-    params: { appId: params.appId, userId: params.userId }
-  });
-}
-
-/**
  * 会话重命名
  */
 export function renameDifyConversation(conversationId: string, data: Api.Dify.ConversationRenameReq) {

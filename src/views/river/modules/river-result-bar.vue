@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { CrossingPlanCard } from './types';
+import type { CrossingPlanCard, RiverPlanKey } from './types';
 
 const props = defineProps<{
   collapsed: boolean;
   plans: CrossingPlanCard[];
   confidence: number;
+  activeKey?: RiverPlanKey;
 }>();
 
 const emit = defineEmits<{
   (e: 'toggle-collapse'): void;
   (e: 'close'): void;
+  (e: 'select', planKey: RiverPlanKey): void;
 }>();
 
 const expandedCard = ref<number | null>(null);
@@ -82,12 +84,18 @@ function getSafetyColor(safety: string): string {
             v-for="plan in plans"
             :key="plan.rank"
             class="plan-card"
-            :class="{ 'plan-card--recommended': plan.isRecommended }"
+            :class="{ 'plan-card--recommended': plan.isRecommended, 'plan-card--active': plan.key === props.activeKey }"
           >
             <!-- ══ 卡片内侧容器（竖向排列，展开时详情向下展开） ══ -->
             <div class="card-body">
               <!-- ══ 卡片头部 ══ -->
-              <div class="card-header" @click="toggleCard(plan.rank)">
+              <div
+                class="card-header"
+                @click="
+                  toggleCard(plan.rank);
+                  emit('select', plan.key);
+                "
+              >
                 <div class="card-header-top">
                   <div class="card-identity">
                     <span class="plan-badge" :class="{ 'plan-badge--gold': plan.isRecommended }">
@@ -367,6 +375,21 @@ function getSafetyColor(safety: string): string {
 
 .plan-card--recommended:hover {
   border-color: rgba(34, 197, 94, 0.4);
+}
+
+.plan-card--active {
+  border-color: rgba(94, 164, 255, 0.6);
+  box-shadow:
+    0 0 0 1px rgba(94, 164, 255, 0.35),
+    0 4px 16px rgba(94, 164, 255, 0.15);
+  background: rgba(94, 164, 255, 0.04);
+}
+
+.plan-card--active.plan-card--recommended {
+  border-color: rgba(34, 197, 94, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(34, 197, 94, 0.35),
+    0 4px 16px rgba(34, 197, 94, 0.15);
 }
 
 /* ──── 卡片 body（弹性容器） ──── */

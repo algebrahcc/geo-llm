@@ -14,7 +14,13 @@ import type { SceneToolbarItem } from '@/components/common/scene-toolbar.vue';
 import RiverViewer from './modules/river-viewer.vue';
 import { useDraggable } from '@/composables/use-draggable';
 import type { VectorLayerItem } from './modules/types';
-import type { AiAnalysisStep, CrossingPlanCard, CrossingSettingForm, KnowledgeHitDisplay } from './modules/types';
+import type {
+  AiAnalysisStep,
+  CrossingPlanCard,
+  CrossingSettingForm,
+  KnowledgeHitDisplay,
+  RiverPlanKey
+} from './modules/types';
 
 defineOptions({
   name: 'RiverPage'
@@ -32,6 +38,7 @@ interface ViewerExpose {
   toggleViewMode: () => void;
   loadVectorLayer: (id: string, name: string) => Promise<void>;
   setVectorLayerVisible: (id: string, show: boolean) => void;
+  showPlan: (planKey: RiverPlanKey) => void;
 }
 
 const viewerRef = ref<ViewerExpose | null>(null);
@@ -66,6 +73,9 @@ const knowledgeHits = ref<KnowledgeHitDisplay[]>([]);
 const references = ref<string[]>([]);
 const planCards = ref<CrossingPlanCard[]>([]);
 const confidence = ref(0);
+
+// ──── 当前标绘方案 ────
+const activePlanKey = ref<RiverPlanKey>('plan-a');
 
 // ──── 智能体信息 ────
 const agentInfo = { status: 'online' as const };
@@ -104,13 +114,6 @@ onMounted(() => {
 // ──── 图层切换 ────
 function handleToggleBasemap() {
   basemapItem.value.visible = !basemapItem.value.visible;
-  const viewer = viewerRef.value;
-  if (basemapItem.value.visible) {
-    viewer?.setVectorLayerVisible?.('_basemap_', true);
-    // 底图通过 Cesium 原生 layerVisibility 控制
-  } else {
-    // Cesium 底图不可见 — 这里用 setLayerVisible 已失效，需要直接操作
-  }
 }
 
 function handleToggleVector(layerId: string) {
@@ -203,6 +206,9 @@ async function handleSubmitAnalysis() {
   resultCollapsed.value = false;
 
   viewerRef.value?.initMapOverlays();
+  const recommended = crossingPlanCards.find(p => p.isRecommended) ?? crossingPlanCards[0];
+  activePlanKey.value = recommended.key;
+  viewerRef.value?.showPlan(recommended.key);
 
   analysisRunning.value = false;
   window.$message?.success('AI 智能分析完成，已生成渡河保障方案');
@@ -219,12 +225,15 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function handleSendMessage(msg: string) {
-  console.log('[AI助手] 收到用户消息:', msg);
-}
-
 function handleSettingClose() {
   settingVisible.value = false;
+}
+
+// ──── 方案切换：重绘标绘路线 ────
+function handlePlanSelect(planKey: RiverPlanKey) {
+  if (planKey === activePlanKey.value) return;
+  activePlanKey.value = planKey;
+  viewerRef.value?.showPlan(planKey);
 }
 function handleAiClose() {
   aiPanelVisible.value = false;
@@ -247,7 +256,6 @@ function handleToggleLayerPanel() {
   }
 }
 
-// ──── 右侧工具栏 ────
 function handleRightToolSelect(key: string) {
   const viewer = viewerRef.value;
   switch (key) {
@@ -429,7 +437,7 @@ function handleToggleResult() {
             :agent-online="agentInfo.status === 'online' || agentInfo.status === 'busy'"
             @toggle-collapse="aiCollapsed = !aiCollapsed"
             @close="handleAiClose"
-            @send-message="handleSendMessage"
+            @setting-close="handleSettingClose"
           />
         </div>
       </Transition>
@@ -445,6 +453,8 @@ function handleToggleResult() {
             :collapsed="resultCollapsed"
             :plans="planCards"
             :confidence="confidence"
+            :active-key="activePlanKey"
+            @select="handlePlanSelect"
             @toggle-collapse="resultCollapsed = !resultCollapsed"
             @close="handleResultClose"
           />

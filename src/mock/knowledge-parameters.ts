@@ -1,4 +1,4 @@
-import type { KnowledgeDocument, KnowledgeChunk } from './knowledge';
+import type { KnowledgeDocument, KnowledgeChunk } from '@/views/knowledge/modules/types';
 
 export interface EnvironmentParameter {
   key: string;

@@ -77,8 +77,6 @@ async function initMap() {
   await nextTick();
   if (!mapContainer.value) return;
 
-  console.log('[VectorMap] tile URL:', tileUrl);
-
   // 矢量瓦片源
   const vectorSource = new VectorTileSource({
     format: new MVT(),
@@ -90,7 +88,7 @@ async function initMap() {
     console.warn('[VectorMap] tile load error');
   });
   vectorSource.on('tileloadend', () => {
-    console.log('[VectorMap] tile loaded');
+    // tile loaded
   });
 
   const vectorLayer = new VectorTileLayer({
@@ -134,7 +132,6 @@ async function initMap() {
       | null;
     if (extent && extent.length === 4) {
       const [minLng, minLat, maxLng, maxLat] = extent;
-      console.log('[VectorMap] auto-fit extent (4326):', extent);
       setTimeout(() => {
         olMap!.getView().fit(transformExtent([minLng, minLat, maxLng, maxLat], 'EPSG:4326', 'EPSG:3857'), {
           padding: [40, 40, 40, 40],

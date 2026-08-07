@@ -140,16 +140,6 @@ export function isTabInTabs(tabId: string, tabs: App.Global.Tab[]) {
 }
 
 /**
- * Filter tabs by id
- *
- * @param tabId
- * @param tabs
- */
-export function filterTabsById(tabId: string, tabs: App.Global.Tab[]) {
-  return tabs.filter(tab => tab.id !== tabId);
-}
-
-/**
  * Filter tabs by ids
  *
  * @param tabIds
