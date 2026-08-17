@@ -77,8 +77,13 @@ async function toggleBind(d: Api.Knowledge.Dataset, next: boolean) {
     }
     boundIds.value = nextIds;
     window.$message?.success(next ? '已绑定知识库' : '已解绑知识库');
-  } catch {
-    window.$message?.error('操作失败，请确认后端已代理「应用-知识库」绑定接口');
+  } catch (e) {
+    const msg = (e as { message?: string })?.message;
+    if (msg && /Agent|Workflow|编排|原生/i.test(msg)) {
+      window.$message?.error(msg || '该应用类型不支持接口绑定知识库，请在 Dify 控制台「编排」页中配置');
+    } else {
+      window.$message?.error(msg || '操作失败，请确认后端已代理「应用-知识库」绑定接口');
+    }
   } finally {
     saving.value = false;
   }
@@ -98,8 +103,9 @@ async function saveRetrieval() {
       retrievalModel: retrievalForm.retrievalModel
     });
     window.$message?.success('检索参数已保存');
-  } catch {
-    window.$message?.error('保存检索参数失败');
+  } catch (e) {
+    const msg = (e as { message?: string })?.message;
+    window.$message?.error(msg || '保存检索参数失败');
   } finally {
     retrievalSaving.value = false;
   }

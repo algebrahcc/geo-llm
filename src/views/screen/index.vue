@@ -23,7 +23,7 @@ defineOptions({
 });
 
 const globeRef = ref<InstanceType<typeof ScreenGlobeViewer> | null>(null);
-const activeSceneMode = ref<SceneModeKey>('3d');
+const activeSceneMode = ref<SceneModeKey>('2d');
 
 const sceneModeOptions: { key: SceneModeKey; label: string }[] = [
   { key: '3d', label: '3D' },

@@ -128,11 +128,9 @@ async function handleSubmit() {
     <NFormItem v-else-if="!backendAvailable">
       <NAlert type="warning" :show-icon="true" title="无法连接后端服务">
         网络状态不佳。请检查后端服务状态后重试。
-        <template #default>
-          <div class="mt-1">
-            <NButton text type="primary" size="small" :loading="captchaLoading" @click="refreshCaptcha">重试</NButton>
-          </div>
-        </template>
+        <div class="mt-1">
+          <NButton text type="primary" size="small" :loading="captchaLoading" @click="refreshCaptcha">重试</NButton>
+        </div>
       </NAlert>
     </NFormItem>
     <NSpace vertical :size="24">

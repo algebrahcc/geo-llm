@@ -190,6 +190,11 @@ const strategyForm = reactive({
   prompt: ''
 });
 
+// API 访问（Dify /apps/{id}/api-keys）；声明提前到 watch(currentAppId) 之前，避免 no-use-before-define
+const apiKeysLoading = ref(false);
+const apiKeyCreating = ref(false);
+const apiKeys = ref<Api.Dify.DifyAppApiKey[]>([]);
+
 async function loadStrategyConfig() {
   if (currentAppId.value == null) return;
   strategyLoading.value = true;
@@ -242,6 +247,10 @@ watch(
     modelConfig.value = null;
     strategyConfig.value = null;
     apiKeys.value = [];
+    // 工作流/chatflow 应用无知识库绑定能力，切换时若停留在知识库页则退回基础页
+    if (activeTab.value === 'knowledge' && isWorkflow.value) {
+      activeTab.value = 'base';
+    }
     if (activeTab.value === 'model' && !isWorkflow.value) loadModelConfig();
     if (activeTab.value === 'strategy') loadStrategyConfig();
     if (activeTab.value === 'api') loadApiKeys();
@@ -249,10 +258,6 @@ watch(
 );
 
 // ===== API 访问（Dify /apps/{id}/api-keys） =====
-const apiKeysLoading = ref(false);
-const apiKeyCreating = ref(false);
-const apiKeys = ref<Api.Dify.DifyAppApiKey[]>([]);
-
 async function loadApiKeys() {
   if (currentAppId.value == null) return;
   apiKeysLoading.value = true;
@@ -389,6 +394,7 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
                 Agent 策略
               </button>
               <button
+                v-if="!isWorkflow"
                 class="cfg-tab"
                 :class="{ 'cfg-tab--active': activeTab === 'knowledge' }"
                 type="button"
