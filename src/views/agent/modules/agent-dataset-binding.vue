@@ -40,7 +40,9 @@ async function load() {
     // 后端 /api/kb/documents/datasets 返回分页结构 { data: [...], total, page, ... }，
     // 需解包 data.data；兼容直接返回数组的场景。
     const kbRaw = kbRes?.data as unknown;
-    available.value = (Array.isArray(kbRaw) ? kbRaw : ((kbRaw as { data?: unknown })?.data ?? [])) as Api.Knowledge.Dataset[];
+    available.value = (
+      Array.isArray(kbRaw) ? kbRaw : ((kbRaw as { data?: unknown })?.data ?? [])
+    ) as Api.Knowledge.Dataset[];
     const raw = appRes?.data as unknown;
     const payload = (Array.isArray(raw) ? raw : ((raw as { data?: unknown })?.data ?? [])) as Array<
       Record<string, unknown>
@@ -69,7 +71,11 @@ async function toggleBind(d: Api.Knowledge.Dataset, next: boolean) {
         props.appId,
         nextIds,
         nextIds.length
-          ? { topK: retrievalForm.topK, scoreThreshold: retrievalForm.scoreThreshold, retrievalModel: retrievalForm.retrievalModel }
+          ? {
+              topK: retrievalForm.topK,
+              scoreThreshold: retrievalForm.scoreThreshold,
+              retrievalModel: retrievalForm.retrievalModel
+            }
           : undefined
       );
     } else {

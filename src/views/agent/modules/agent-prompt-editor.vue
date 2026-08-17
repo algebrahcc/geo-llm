@@ -45,8 +45,7 @@ function insertVariable(token: string) {
   if (textarea && typeof textarea.selectionStart === 'number') {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    promptTemplate.value =
-      promptTemplate.value.slice(0, start) + token + promptTemplate.value.slice(end);
+    promptTemplate.value = promptTemplate.value.slice(0, start) + token + promptTemplate.value.slice(end);
     // 光标移到插入内容之后
     requestAnimationFrame(() => {
       const pos = start + token.length;
@@ -160,7 +159,9 @@ function removeVar(index: number) {
             placeholder="例如：你是一名地理空间分析助手，回答需引用知识库中的地理数据……"
           />
           <div class="field__hint">
-            点击上方按钮在光标处插入高级变量；知识库检索结果会注入 <code>{{ contextToken }}</code>。
+            点击上方按钮在光标处插入高级变量；知识库检索结果会注入
+            <code>{{ contextToken }}</code>
+            。
           </div>
         </div>
 

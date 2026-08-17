@@ -337,7 +337,11 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
     key: 'actions',
     width: 110,
     render: row =>
-      h(NButton, { size: 'small', text: true, type: 'primary', onClick: () => copyApiToken(row.token) }, { default: () => '复制' })
+      h(
+        NButton,
+        { size: 'small', text: true, type: 'primary', onClick: () => copyApiToken(row.token) },
+        { default: () => '复制' }
+      )
   }
 ];
 </script>

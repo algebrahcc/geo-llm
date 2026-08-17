@@ -94,7 +94,12 @@ export function updateDifyAdvancedModel(appId: string | number, body: Api.Dify.A
 /**
  * Dify 会话列表
  */
-export function fetchDifyConversations(params: { appId?: string | number; userId: string; limit?: number; sortBy?: string }) {
+export function fetchDifyConversations(params: {
+  appId?: string | number;
+  userId: string;
+  limit?: number;
+  sortBy?: string;
+}) {
   return request<Api.Dify.ConversationList>({
     url: '/api/dify/conversations',
     method: 'get',
