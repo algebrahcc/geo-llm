@@ -6,9 +6,9 @@ declare namespace Api {
       total: number;
     }
 
-    /** 通用 ID 响应（新增后返回） */
+    /** 通用 ID 响应（新增后返回；后端雪花 Long 序列化为字符串） */
     interface IdResp {
-      id: number;
+      id: string;
     }
 
     // ==================== 用户管理 ====================

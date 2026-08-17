@@ -73,14 +73,3 @@ export function fetchVectorExtent(vectorId: string | number) {
     url: `/system/vector/extent/${vectorId}`
   });
 }
-
-/** 按视口 bbox 获取矢量要素 GeoJSON（含点聚合/线面简化） */
-export function fetchVectorFeaturesInBbox(
-  vectorId: string | number,
-  params: { minLng: number; minLat: number; maxLng: number; maxLat: number; zoom: number }
-) {
-  return request<any>({
-    url: `/system/vector/${vectorId}/features`,
-    params
-  });
-}

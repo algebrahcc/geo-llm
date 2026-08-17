@@ -9,7 +9,7 @@ const props = defineProps<{
 }>();
 
 export interface AgentConfigFormModel {
-  id: number;
+  id: string;
   name: string;
   type: Api.DifyApp.AppType;
   description: string;
@@ -24,7 +24,7 @@ const emit = defineEmits<{
 const loading = defineModel<boolean>('loading', { default: false });
 
 const form = reactive<AgentConfigFormModel>({
-  id: 0,
+  id: '',
   name: '',
   type: 2,
   description: '',
@@ -42,7 +42,7 @@ async function loadConfig() {
   if (!props.agentKey) return;
   loading.value = true;
   try {
-    const res = await fetchDifyAppDetail(Number(props.agentKey));
+    const res = await fetchDifyAppDetail(props.agentKey);
     const app = res?.data || null;
     if (app) {
       Object.assign(form, {

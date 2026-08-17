@@ -19,8 +19,8 @@ declare namespace Api {
 
     /** 发起对话请求体（阻塞 / 流式共用） */
     interface ChatReq {
-      /** 应用 ID，不传则用默认应用 */
-      appId?: number;
+      /** 应用 ID（本地 dify_app 主键雪花 ID，字符串避免精度丢失），不传则用默认应用 */
+      appId?: string | number;
       /** Dify 用户标识（建议用当前登录 userId） */
       userId: string;
       /** 用户输入 */
@@ -145,6 +145,8 @@ declare namespace Api {
       strategy?: 'function_call' | 'react';
       tools?: Array<Record<string, unknown>>;
       max_iteration?: number;
+      /** 引入/推理提示词 */
+      prompt?: string;
       summary_model?: Record<string, unknown>;
       [key: string]: unknown;
     }
@@ -219,7 +221,7 @@ declare namespace Api {
 
     /** Workflow 阻塞运行响应（Dify 原生 outputs） */
     interface WorkflowRunReq {
-      appId?: number;
+      appId?: string | number;
       userId: string;
       inputs?: Record<string, unknown>;
       files?: MessageFile[];
@@ -240,7 +242,7 @@ declare namespace Api {
 
     /** 消息反馈请求 */
     interface FeedbackReq {
-      appId?: number;
+      appId?: string | number;
       messageId: string;
       userId: string;
       rating: 'like' | 'dislike';
@@ -248,7 +250,7 @@ declare namespace Api {
     }
 
     interface ConversationRenameReq {
-      appId?: number;
+      appId?: string | number;
       userId: string;
       name?: string;
       autoGenerateName?: boolean;
@@ -323,6 +325,8 @@ declare namespace Api {
       opening_statement?: string;
       suggested_questions?: string[];
       features?: Record<string, unknown>;
+      /** 输入变量表单定义（对齐 Dify user_input_form，每项为 { type: schema }） */
+      user_input_form?: Array<Record<string, unknown>>;
       [key: string]: unknown;
     }
 
@@ -352,6 +356,17 @@ declare namespace Api {
       name?: string;
       description?: string;
       tools?: Array<Record<string, unknown>>;
+      [key: string]: unknown;
+    }
+
+    /** 应用 API 访问密钥（Dify /apps/{id}/api-keys） */
+    interface DifyAppApiKey {
+      id?: string;
+      type?: string;
+      token?: string;
+      created_at?: number;
+      last_used_at?: number;
+      last_used_ip?: string;
       [key: string]: unknown;
     }
   }

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch, h } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { NButton, NTag, type DataTableColumns } from 'naive-ui';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import { fetchDifyAppUpdate } from '@/service/api/difyApp';
+import { fetchDifyAppUpdate, fetchDifyAppApiKeys, createDifyAppApiKey } from '@/service/api/difyApp';
 import {
   fetchDifyModelConfig,
   updateDifyModelConfig,
@@ -26,9 +27,18 @@ const route = useRoute();
 const router = useRouter();
 const themeStore = useThemeStore();
 const darkMode = computed(() => themeStore.darkMode);
-const { resolveAgent, agentList, loading: agentLoading, loadRealApps, deleteAgent } = useDifyApps();
+const { resolveAgent, agentList, loading: agentLoading, loadRealApps, deleteAgent, buildConsoleUrl } = useDifyApps();
 const { agentKey, selectedAgent, updateAgentQuery } = useAgentSelection(route, router, resolveAgent, agentList);
 const saving = ref(false);
+
+function handleOpenConsole() {
+  const url = buildConsoleUrl(selectedAgent.value);
+  if (!url) {
+    window.$message?.warning('该应用未关联 Dify 远端 ID，请先在 Dify 控制台创建或同步该应用');
+    return;
+  }
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
 
 function handleSelect(key: typeof agentKey.value) {
   updateAgentQuery(key);
@@ -55,8 +65,8 @@ async function handleSubmit(config: AgentConfigFormModel) {
 
 async function handleDelete() {
   const target = selectedAgent.value;
-  const appId = Number(target.key);
-  if (!appId || Number.isNaN(appId)) return;
+  const appId = target.key;
+  if (!appId) return;
   window.$dialog?.warning({
     title: '删除智能体',
     content: `确定要删除「${target.name}」吗？删除后无法恢复。`,
@@ -79,12 +89,12 @@ function navigateToSubPage(name: 'agent_test' | 'agent_tools') {
 }
 
 // ===== 模型参数（Dify /model-config） =====
-const activeTab = ref<'base' | 'model' | 'strategy' | 'knowledge' | 'prompt'>('base');
+const activeTab = ref<'base' | 'model' | 'strategy' | 'knowledge' | 'prompt' | 'api'>('base');
 const isAgent = computed(() => (selectedAgent.value?.appType ?? 0) === 2);
-const currentAppId = computed(() => {
-  const key = selectedAgent.value?.key;
-  return key ? Number(key) : null;
-});
+/** 是否工作流应用（Dify 编排为节点画布，无工作流级 model_config） */
+const isWorkflow = computed(() => (selectedAgent.value?.appType ?? 0) === 3);
+/** 当前智能体的本地 dify_app 主键 id（后端 Long 雪花序列化为字符串，必须保留字符串避免精度丢失） */
+const currentAppId = computed(() => selectedAgent.value?.key || null);
 
 const modelLoading = ref(false);
 const modelSaving = ref(false);
@@ -95,7 +105,11 @@ const modelForm = reactive({
   topP: 1,
   maxTokens: 1000,
   presencePenalty: 0,
-  frequencyPenalty: 0
+  frequencyPenalty: 0,
+  /** 停止序列（数组），UI 上用逗号分隔字符串编辑 */
+  stop: '',
+  /** 响应格式：text / json_object */
+  responseFormat: 'text'
 });
 
 async function loadModelConfig() {
@@ -114,6 +128,11 @@ async function loadModelConfig() {
     modelForm.maxTokens = Number(cp.max_tokens ?? 1000);
     modelForm.presencePenalty = Number(cp.presence_penalty ?? 0);
     modelForm.frequencyPenalty = Number(cp.frequency_penalty ?? 0);
+    const stopArr = Array.isArray(cp.stop) ? (cp.stop as unknown[]).map(String) : [];
+    modelForm.stop = stopArr.join(',');
+    const respFormat = cp.response_format as Record<string, unknown> | string | undefined;
+    const respType = respFormat && typeof respFormat === 'object' ? String(respFormat.type ?? '') : '';
+    modelForm.responseFormat = respType || String(respFormat ?? '') || 'text';
   } catch {
     window.$message?.warning('加载模型配置失败（后端可能未代理 model-config）');
   } finally {
@@ -126,16 +145,27 @@ async function saveModelConfig() {
   modelSaving.value = true;
   try {
     const base = (modelConfig.value?.model ?? {}) as Record<string, unknown>;
+    const completionParams: Record<string, unknown> = {
+      temperature: modelForm.temperature,
+      top_p: modelForm.topP,
+      max_tokens: modelForm.maxTokens,
+      presence_penalty: modelForm.presencePenalty,
+      frequency_penalty: modelForm.frequencyPenalty
+    };
+    const stopList = modelForm.stop
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    if (stopList.length) {
+      completionParams.stop = stopList;
+    }
+    if (modelForm.responseFormat && modelForm.responseFormat !== 'text') {
+      completionParams.response_format = { type: modelForm.responseFormat };
+    }
     const payload: Api.Dify.ModelConfigPayload = {
       model: {
         ...base,
-        completion_params: {
-          temperature: modelForm.temperature,
-          top_p: modelForm.topP,
-          max_tokens: modelForm.maxTokens,
-          presence_penalty: modelForm.presencePenalty,
-          frequency_penalty: modelForm.frequencyPenalty
-        }
+        completion_params: completionParams
       }
     };
     await updateDifyModelConfig(currentAppId.value, payload);
@@ -155,7 +185,9 @@ const strategyConfig = ref<Api.Dify.AdvancedModel | null>(null);
 const strategyForm = reactive({
   enabled: true,
   strategy: 'function_call' as 'function_call' | 'react',
-  maxIteration: 5
+  maxIteration: 5,
+  /** 引入/推理提示词（Dify agent_mode.prompt，增强推理引导） */
+  prompt: ''
 });
 
 async function loadStrategyConfig() {
@@ -169,6 +201,7 @@ async function loadStrategyConfig() {
     strategyForm.enabled = Boolean(am.enabled ?? true);
     strategyForm.strategy = (am.strategy as 'function_call' | 'react') || 'function_call';
     strategyForm.maxIteration = Number(am.max_iteration ?? 5);
+    strategyForm.prompt = String(am.prompt ?? '');
   } catch {
     window.$message?.warning('加载 Agent 策略失败（后端可能未代理 advanced-model）');
   } finally {
@@ -184,7 +217,8 @@ async function saveStrategyConfig() {
       agent_mode: {
         enabled: strategyForm.enabled,
         strategy: strategyForm.strategy,
-        max_iteration: strategyForm.maxIteration
+        max_iteration: strategyForm.maxIteration,
+        ...(strategyForm.prompt.trim() ? { prompt: strategyForm.prompt } : {})
       }
     };
     await updateDifyAdvancedModel(currentAppId.value, payload);
@@ -198,7 +232,7 @@ async function saveStrategyConfig() {
 }
 
 watch(activeTab, tab => {
-  if (tab === 'model' && !modelConfig.value && !modelLoading.value) loadModelConfig();
+  if (tab === 'model' && !isWorkflow.value && !modelConfig.value && !modelLoading.value) loadModelConfig();
   if (tab === 'strategy' && isAgent.value && !strategyConfig.value && !strategyLoading.value) loadStrategyConfig();
 });
 
@@ -207,10 +241,100 @@ watch(
   () => {
     modelConfig.value = null;
     strategyConfig.value = null;
-    if (activeTab.value === 'model') loadModelConfig();
+    apiKeys.value = [];
+    if (activeTab.value === 'model' && !isWorkflow.value) loadModelConfig();
     if (activeTab.value === 'strategy') loadStrategyConfig();
+    if (activeTab.value === 'api') loadApiKeys();
   }
 );
+
+// ===== API 访问（Dify /apps/{id}/api-keys） =====
+const apiKeysLoading = ref(false);
+const apiKeyCreating = ref(false);
+const apiKeys = ref<Api.Dify.DifyAppApiKey[]>([]);
+
+async function loadApiKeys() {
+  if (currentAppId.value == null) return;
+  apiKeysLoading.value = true;
+  try {
+    const res = await fetchDifyAppApiKeys(currentAppId.value);
+    apiKeys.value = (res?.data ?? []) as Api.Dify.DifyAppApiKey[];
+  } catch {
+    window.$message?.warning('加载 API 访问密钥失败（后端可能未代理 api-keys）');
+  } finally {
+    apiKeysLoading.value = false;
+  }
+}
+
+async function handleCreateApiKey() {
+  if (currentAppId.value == null) return;
+  apiKeyCreating.value = true;
+  try {
+    const res = await createDifyAppApiKey(currentAppId.value);
+    const created = res?.data as Api.Dify.DifyAppApiKey | undefined;
+    if (created?.token) {
+      window.$dialog?.info({
+        title: '新密钥已创建',
+        content: `请立即复制保存，密钥仅展示一次：${created.token}`,
+        positiveText: '复制并关闭',
+        onPositiveClick: () => {
+          window.navigator.clipboard?.writeText(created.token ?? '');
+          window.$message?.success('已复制到剪贴板');
+        }
+      });
+    }
+    await loadApiKeys();
+    window.$message?.success('API Key 已创建');
+  } catch {
+    window.$message?.error('创建 API Key 失败');
+  } finally {
+    apiKeyCreating.value = false;
+  }
+}
+
+function copyApiToken(token?: string) {
+  if (!token) return;
+  window.navigator.clipboard?.writeText(token);
+  window.$message?.success('已复制到剪贴板');
+}
+
+function formatTime(ts?: number) {
+  return ts ? new Date(ts * 1000).toLocaleString() : '—';
+}
+
+const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
+  {
+    title: '类型',
+    key: 'type',
+    width: 120,
+    render: row => h(NTag, { size: 'small', bordered: false }, { default: () => row.type || 'app' })
+  },
+  {
+    title: 'Token',
+    key: 'token',
+    ellipsis: { tooltip: true },
+    render: row => (row.token ? String(row.token) : '—')
+  },
+  {
+    title: '最近使用',
+    key: 'last_used_at',
+    width: 180,
+    render: row => formatTime(Number(row.last_used_at ?? 0) || undefined)
+  },
+  {
+    title: '创建时间',
+    key: 'created_at',
+    width: 180,
+    render: row => formatTime(Number(row.created_at ?? 0) || undefined)
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 110,
+    render: row =>
+      h(NButton, { size: 'small', text: true, type: 'primary', onClick: () => copyApiToken(row.token) }, { default: () => '复制' })
+  }
+];
 </script>
 
 <template>
@@ -226,6 +350,12 @@ watch(
             <SvgIcon :icon="selectedAgent.icon" class="panel-head__icon" />
             <span class="panel-head__title">{{ selectedAgent.name }}配置中心</span>
             <div class="ml-auto flex gap-6px">
+              <NButton secondary size="small" @click="handleOpenConsole">
+                <template #icon>
+                  <SvgIcon icon="mdi:open-in-new" />
+                </template>
+                在 Dify 中编排
+              </NButton>
               <NButton secondary size="small" @click="navigateToSubPage('agent_test')">测试</NButton>
               <NButton secondary size="small" @click="navigateToSubPage('agent_tools')">工具</NButton>
               <NButton secondary size="small" type="error" @click="handleDelete">删除</NButton>
@@ -274,6 +404,14 @@ watch(
               >
                 提示词编排
               </button>
+              <button
+                class="cfg-tab"
+                :class="{ 'cfg-tab--active': activeTab === 'api' }"
+                type="button"
+                @click="activeTab = 'api'"
+              >
+                API 访问
+              </button>
             </div>
 
             <div v-show="activeTab === 'base'" class="cfg-panel">
@@ -285,7 +423,17 @@ watch(
               <div class="section-desc">
                 配置生成模型的采样参数。模型与供应商由系统自动关联（本期后端暂未代理该能力）。
               </div>
-              <div v-if="modelLoading" class="section-desc">加载中…</div>
+              <div v-if="isWorkflow" class="cfg-workflow-hint">
+                <p>工作流应用的模型参数按节点独立配置，不存在工作流级统一参数。</p>
+                <p>请在 Dify 控制台的工作流画布中，分别对每个 LLM 节点设置模型与采样参数。</p>
+                <NButton type="primary" size="small" @click="handleOpenConsole">
+                  前往 Dify 编排
+                  <template #icon>
+                    <SvgIcon icon="mdi:open-in-new" />
+                  </template>
+                </NButton>
+              </div>
+              <div v-else-if="modelLoading" class="section-desc">加载中…</div>
               <template v-else>
                 <div class="kv-row">
                   <span class="kv-label">当前模型</span>
@@ -335,6 +483,30 @@ watch(
                     />
                   </div>
                 </div>
+                <div class="cfg-field">
+                  <label class="cfg-field__label">Stop 序列</label>
+                  <div class="cfg-field__control">
+                    <NInput
+                      v-model:value="modelForm.stop"
+                      class="w-280px"
+                      placeholder="多个停止词用英文逗号分隔，如：END,###"
+                    />
+                    <span class="field-tip">遇到该序列即停止生成，逗号分隔</span>
+                  </div>
+                </div>
+                <div class="cfg-field">
+                  <label class="cfg-field__label">响应格式</label>
+                  <div class="cfg-field__control">
+                    <NSelect
+                      v-model:value="modelForm.responseFormat"
+                      class="w-200px"
+                      :options="[
+                        { label: '文本 (text)', value: 'text' },
+                        { label: 'JSON 对象 (json_object)', value: 'json_object' }
+                      ]"
+                    />
+                  </div>
+                </div>
                 <div class="cfg-actions">
                   <NButton type="primary" :loading="modelSaving" @click="saveModelConfig">保存模型参数</NButton>
                 </div>
@@ -370,6 +542,18 @@ watch(
                     <NInputNumber v-model:value="strategyForm.maxIteration" :min="1" :max="20" class="w-200px" />
                   </div>
                 </div>
+                <div class="cfg-field cfg-field--top">
+                  <label class="cfg-field__label">引入提示词</label>
+                  <div class="cfg-field__control">
+                    <NInput
+                      v-model:value="strategyForm.prompt"
+                      type="textarea"
+                      :autosize="{ minRows: 3, maxRows: 8 }"
+                      class="w-420px"
+                      placeholder="用于引导 Agent 的推理策略与工具选择（可空）"
+                    />
+                  </div>
+                </div>
                 <div class="cfg-actions">
                   <NButton type="primary" :loading="strategySaving" @click="saveStrategyConfig">保存策略</NButton>
                 </div>
@@ -382,6 +566,27 @@ watch(
 
             <div v-if="activeTab === 'prompt'" class="cfg-panel">
               <AgentPromptEditor :app-id="currentAppId" />
+            </div>
+
+            <div v-if="activeTab === 'api'" class="cfg-panel">
+              <div class="section-desc">
+                管理该应用的 API 访问密钥，供外部系统通过 Service API 调用。密钥完整值仅创建时展示一次，请妥善保存。
+              </div>
+              <div class="api-actions">
+                <NButton type="primary" :loading="apiKeyCreating" @click="handleCreateApiKey">新建 API Key</NButton>
+              </div>
+              <div v-if="apiKeysLoading" class="section-desc">加载中…</div>
+              <template v-else>
+                <NEmpty v-if="!apiKeys.length" description="暂无 API 访问密钥" size="small" class="mt-16px" />
+                <NDataTable
+                  v-else
+                  class="api-key-table mt-16px"
+                  :columns="apiKeyColumns"
+                  :data="apiKeys"
+                  :row-key="(row: Api.Dify.DifyAppApiKey) => String(row.id ?? '')"
+                  :bordered="false"
+                />
+              </template>
             </div>
           </div>
         </div>
@@ -463,6 +668,22 @@ watch(
   padding-top: 4px;
 }
 
+.cfg-workflow-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px dashed rgba(203, 227, 255, 0.25);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(203, 227, 255, 0.75);
+}
+
+.cfg-workflow-hint p {
+  margin: 0;
+}
+
 .cfg-field {
   display: flex;
   align-items: center;
@@ -474,6 +695,13 @@ watch(
   width: 120px;
   color: rgba(203, 227, 255, 0.6);
   font-size: 13px;
+}
+.cfg-field--top {
+  align-items: flex-start;
+}
+.w-420px {
+  width: 420px;
+  max-width: 100%;
 }
 
 .cfg-field__control {
@@ -509,6 +737,18 @@ watch(
 
 .w-240px {
   width: 240px;
+}
+
+.api-actions {
+  margin-bottom: 4px;
+}
+
+.api-key-table {
+  max-width: 720px;
+}
+
+.mt-16px {
+  margin-top: 16px;
 }
 
 @media (max-width: 1199px) {

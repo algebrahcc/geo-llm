@@ -15,7 +15,7 @@ export function fetchDifyChat(data: Api.Dify.ChatReq) {
 /**
  * Dify 应用元信息（名称/描述/输入表单等）
  */
-export function fetchDifyInfo(appId?: number) {
+export function fetchDifyInfo(appId?: string | number) {
   return request<Api.Dify.AppInfo>({
     url: '/api/dify/info',
     method: 'get',
@@ -26,7 +26,7 @@ export function fetchDifyInfo(appId?: number) {
 /**
  * Dify 应用参数
  */
-export function fetchDifyParameters(appId?: number) {
+export function fetchDifyParameters(appId?: string | number) {
   return request<Api.Dify.AppParameters>({
     url: '/api/dify/parameters',
     method: 'get',
@@ -37,7 +37,7 @@ export function fetchDifyParameters(appId?: number) {
 /**
  * Dify 应用元数据
  */
-export function fetchDifyMeta(appId?: number) {
+export function fetchDifyMeta(appId?: string | number) {
   return request<Api.Dify.AppMeta>({
     url: '/api/dify/meta',
     method: 'get',
@@ -48,7 +48,7 @@ export function fetchDifyMeta(appId?: number) {
 /**
  * Dify 模型配置（model/temperature 等），对应 GET /v1/model-config
  */
-export function fetchDifyModelConfig(appId?: number) {
+export function fetchDifyModelConfig(appId?: string | number) {
   return request<Api.Dify.ModelConfig>({
     url: '/api/dify/model-config',
     method: 'get',
@@ -59,7 +59,7 @@ export function fetchDifyModelConfig(appId?: number) {
 /**
  * 更新 Dify 模型配置，对应 POST /v1/model-config
  */
-export function updateDifyModelConfig(appId: number, body: Api.Dify.ModelConfigPayload) {
+export function updateDifyModelConfig(appId: string | number, body: Api.Dify.ModelConfigPayload) {
   return request<Api.Dify.ModelConfig>({
     url: '/api/dify/model-config',
     method: 'post',
@@ -71,7 +71,7 @@ export function updateDifyModelConfig(appId: number, body: Api.Dify.ModelConfigP
 /**
  * Dify Agent 策略配置，对应 GET /v1/advanced-model
  */
-export function fetchDifyAdvancedModel(appId?: number) {
+export function fetchDifyAdvancedModel(appId?: string | number) {
   return request<Api.Dify.AdvancedModel>({
     url: '/api/dify/advanced-model',
     method: 'get',
@@ -82,7 +82,7 @@ export function fetchDifyAdvancedModel(appId?: number) {
 /**
  * 更新 Dify Agent 策略配置，对应 POST /v1/advanced-model
  */
-export function updateDifyAdvancedModel(appId: number, body: Api.Dify.AdvancedModelPayload) {
+export function updateDifyAdvancedModel(appId: string | number, body: Api.Dify.AdvancedModelPayload) {
   return request<Api.Dify.AdvancedModel>({
     url: '/api/dify/advanced-model',
     method: 'post',
@@ -94,7 +94,7 @@ export function updateDifyAdvancedModel(appId: number, body: Api.Dify.AdvancedMo
 /**
  * Dify 会话列表
  */
-export function fetchDifyConversations(params: { appId?: number; userId: string; limit?: number; sortBy?: string }) {
+export function fetchDifyConversations(params: { appId?: string | number; userId: string; limit?: number; sortBy?: string }) {
   return request<Api.Dify.ConversationList>({
     url: '/api/dify/conversations',
     method: 'get',
@@ -106,7 +106,7 @@ export function fetchDifyConversations(params: { appId?: number; userId: string;
  * Dify 会话消息历史
  */
 export function fetchDifyConversationMessages(params: {
-  appId?: number;
+  appId?: string | number;
   userId: string;
   conversationId: string;
   lastId?: string;
@@ -122,7 +122,7 @@ export function fetchDifyConversationMessages(params: {
 /**
  * 获取建议问题
  */
-export function fetchDifySuggestedQuestions(params: { appId?: number; messageId: string; userId: string }) {
+export function fetchDifySuggestedQuestions(params: { appId?: string | number; messageId: string; userId: string }) {
   return request<Api.Dify.SuggestedQuestionsResp>({
     url: `/api/dify/messages/${params.messageId}/suggested`,
     method: 'get',
@@ -155,7 +155,7 @@ export function fetchDifyFeedback(params: Api.Dify.FeedbackReq) {
 /**
  * Dify 停止流式生成
  */
-export function fetchDifyStop(params: { appId?: number; taskId: string; userId: string }) {
+export function fetchDifyStop(params: { appId?: string | number; taskId: string; userId: string }) {
   return request({
     url: `/api/dify/chat-messages/${params.taskId}/stop`,
     method: 'post',
@@ -166,7 +166,7 @@ export function fetchDifyStop(params: { appId?: number; taskId: string; userId: 
 /**
  * Dify 文件上传（multipart）
  */
-export function fetchDifyFileUpload(appId: number | undefined, userId: string, file: File) {
+export function fetchDifyFileUpload(appId: string | number | undefined, userId: string, file: File) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('userId', userId);
@@ -339,7 +339,7 @@ export async function fetchDifyWorkflowStream(
 /**
  * Workflow 执行详情
  */
-export function fetchDifyWorkflowRunDetail(params: { appId?: number; workflowRunId: string }) {
+export function fetchDifyWorkflowRunDetail(params: { appId?: string | number; workflowRunId: string }) {
   return request<Api.Dify.WorkflowRunDetail>({
     url: `/api/dify/workflow/run/${params.workflowRunId}`,
     method: 'get',
@@ -351,7 +351,7 @@ export function fetchDifyWorkflowRunDetail(params: { appId?: number; workflowRun
  * Workflow 运行日志
  */
 export function fetchDifyWorkflowLogs(params: {
-  appId?: number;
+  appId?: string | number;
   keyword?: string;
   status?: string;
   page?: number;
@@ -367,7 +367,7 @@ export function fetchDifyWorkflowLogs(params: {
 /**
  * 停止 Workflow 流式执行
  */
-export function fetchDifyWorkflowStop(params: { appId?: number; taskId: string; userId: string }) {
+export function fetchDifyWorkflowStop(params: { appId?: string | number; taskId: string; userId: string }) {
   return request<void>({
     url: `/api/dify/workflow/tasks/${params.taskId}/stop`,
     method: 'post',

@@ -1,6 +1,6 @@
 import { computed, onMounted, ref } from 'vue';
 import type { AgentDefinition } from './types';
-import { fetchDifyAppDelete, fetchDifyAppList } from '@/service/api/difyApp';
+import { fetchDifyAppDelete, fetchDifyAppBaseUrl, fetchDifyAppList } from '@/service/api/difyApp';
 import { mapDifyAppToAgent } from './real';
 
 /**
@@ -11,6 +11,8 @@ export function useDifyApps() {
   const realApps = ref<AgentDefinition[]>([]);
   const loading = ref(false);
   const failed = ref(false);
+  /** 全局 Dify 根地址（dify.url），应用未单独配置 baseUrl 时回退使用 */
+  const globalBaseUrl = ref('');
 
   async function loadRealApps() {
     loading.value = true;
@@ -24,6 +26,35 @@ export function useDifyApps() {
     } finally {
       loading.value = false;
     }
+  }
+
+  /** 加载全局 Dify 根地址（供拼接控制台编排页 URL 使用） */
+  async function loadGlobalBaseUrl() {
+    if (globalBaseUrl.value) return;
+    try {
+      const res = await fetchDifyAppBaseUrl();
+      globalBaseUrl.value = res?.data?.baseUrl || '';
+    } catch {
+      globalBaseUrl.value = '';
+    }
+  }
+
+  /**
+   * 构建 Dify 控制台编排页 URL（方案 A：新标签跳转 Dify 原生编排）
+   * 优先应用单独配置的 baseUrl，否则回退全局 dify.url。
+   * 工作流应用（appType=3）的编排页是 /app/{id}/workflow 画布，
+   * 其余类型（聊天助手/智能体）是 /apps/{id}/configuration。
+   * @returns 编排页完整 URL；若缺少 difyAppId 或根地址则返回空字符串
+   */
+  function buildConsoleUrl(agent: AgentDefinition): string {
+    const difyAppId = agent.difyAppId?.trim();
+    if (!difyAppId) return '';
+    const base = (agent.baseUrl || globalBaseUrl.value).trim().replace(/\/+$/, '');
+    if (!base) return '';
+    if (agent.appType === 3) {
+      return `${base}/app/${difyAppId}/workflow`;
+    }
+    return `${base}/apps/${difyAppId}/configuration`;
   }
 
   const agentList = computed<AgentDefinition[]>(() => realApps.value);
@@ -53,7 +84,7 @@ export function useDifyApps() {
     return FALLBACK_AGENT;
   }
 
-  async function deleteAgent(appId: number) {
+  async function deleteAgent(appId: string | number) {
     const { error } = await fetchDifyAppDelete([appId]);
     if (error) {
       window.$message?.error('删除智能体失败，请稍后重试');
@@ -64,7 +95,21 @@ export function useDifyApps() {
     return true;
   }
 
-  onMounted(loadRealApps);
+  onMounted(() => {
+    loadRealApps();
+    loadGlobalBaseUrl();
+  });
 
-  return { agentList, realApps, loading, failed, loadRealApps, resolveAgent, deleteAgent };
+  return {
+    agentList,
+    realApps,
+    loading,
+    failed,
+    globalBaseUrl,
+    loadRealApps,
+    loadGlobalBaseUrl,
+    buildConsoleUrl,
+    resolveAgent,
+    deleteAgent
+  };
 }

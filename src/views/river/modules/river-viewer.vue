@@ -64,8 +64,9 @@ defineExpose({
   showPlan,
   is2dMode,
   toggleViewMode,
-  /** 加载矢量图层（首次加载时请求 GeoJSON，后续只切换 show） */
-  loadVectorLayer: (vectorId: string, vectorName: string) => loadVectorLayer(vectorId, vectorName),
+  /** 加载矢量图层（通过 mvt-imagery-provider 渲染后端 MVT 瓦片，后续只切换 show） */
+  loadVectorLayer: (vectorId: string, vectorName: string, sourceType?: string) =>
+    loadVectorLayer(vectorId, vectorName, sourceType),
   setVectorLayerVisible: (vectorId: string, show: boolean) => setVectorLayerVisible(vectorId, show),
   removeVectorLayer: (vectorId: string) => removeVectorLayer(vectorId)
 });

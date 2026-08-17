@@ -28,9 +28,17 @@ export function fetchDifyAppList(params?: { name?: string }) {
 }
 
 /** 应用详情（后端 GET /dify/app/{id}） */
-export function fetchDifyAppDetail(id: number) {
+export function fetchDifyAppDetail(id: string | number) {
   return request<Api.DifyApp.DifyAppResp>({
     url: `/dify/app/${id}`
+  });
+}
+
+/** 全局 Dify 根地址（后端 GET /dify/app/base-url，返回 { baseUrl }），用于拼接控制台编排页 URL */
+export function fetchDifyAppBaseUrl() {
+  return request<{ baseUrl?: string }>({
+    url: '/dify/app/base-url',
+    method: 'get'
   });
 }
 
@@ -44,7 +52,7 @@ export function fetchDifyAppCreate(data: Api.DifyApp.DifyAppReq) {
 }
 
 /** 编辑应用（后端 PUT /dify/app/{id}） */
-export function fetchDifyAppUpdate(id: number, data: Api.DifyApp.DifyAppReq) {
+export function fetchDifyAppUpdate(id: string | number, data: Api.DifyApp.DifyAppReq) {
   return request<void>({
     url: `/dify/app/${id}`,
     method: 'put',
@@ -53,7 +61,7 @@ export function fetchDifyAppUpdate(id: number, data: Api.DifyApp.DifyAppReq) {
 }
 
 /** 删除应用（批量，后端 DELETE /dify/app，body: { ids }） */
-export function fetchDifyAppDelete(ids: number[]) {
+export function fetchDifyAppDelete(ids: Array<string | number>) {
   return request<void>({
     url: '/dify/app',
     method: 'delete',
@@ -62,24 +70,33 @@ export function fetchDifyAppDelete(ids: number[]) {
 }
 
 /** 智能体已绑定的知识库数据集（Dify /apps/{id}/datasets） */
-export function fetchDifyAppDatasets(appId: number) {
+export function fetchDifyAppDatasets(appId: string | number) {
   return request<Array<Record<string, unknown>>>({
     url: `/api/dify/apps/${appId}/datasets`,
     method: 'get'
   });
 }
 
-/** 绑定知识库数据集到智能体（Dify /apps/{id}/datasets，body: { dataset_ids }，整体覆盖） */
-export function bindDifyAppDatasets(appId: number, datasetIds: string[]) {
+/** 绑定知识库数据集到智能体（Dify /apps/{id}/datasets，body: { dataset_ids, top_k, score_threshold, retrieval_model }，整体覆盖） */
+export function bindDifyAppDatasets(
+  appId: string | number,
+  datasetIds: string[],
+  retrieval?: { topK?: number; scoreThreshold?: number; retrievalModel?: string }
+) {
   return request<unknown>({
     url: `/api/dify/apps/${appId}/datasets`,
     method: 'post',
-    data: { dataset_ids: datasetIds }
+    data: {
+      dataset_ids: datasetIds,
+      ...(retrieval?.topK != null ? { top_k: retrieval.topK } : {}),
+      ...(retrieval?.scoreThreshold != null ? { score_threshold: retrieval.scoreThreshold } : {}),
+      ...(retrieval?.retrievalModel ? { retrieval_model: retrieval.retrievalModel } : {})
+    }
   });
 }
 
 /** 解绑单个知识库数据集（Dify /apps/{id}/datasets/{datasetId}） */
-export function unbindDifyAppDataset(appId: number, datasetId: string) {
+export function unbindDifyAppDataset(appId: string | number, datasetId: string) {
   return request<unknown>({
     url: `/api/dify/apps/${appId}/datasets/${datasetId}`,
     method: 'delete'
@@ -87,7 +104,7 @@ export function unbindDifyAppDataset(appId: number, datasetId: string) {
 }
 
 /** 智能体已启用的工具（Dify /apps/{id}/tools） */
-export function fetchDifyAppTools(appId: number) {
+export function fetchDifyAppTools(appId: string | number) {
   return request<Array<Record<string, unknown>>>({
     url: `/api/dify/apps/${appId}/tools`,
     method: 'get'
@@ -95,7 +112,7 @@ export function fetchDifyAppTools(appId: number) {
 }
 
 /** 可用工具列表（复用公共 API model-config agent_mode.tools; 不传 appId 返回空） */
-export function fetchDifyTools(appId?: number) {
+export function fetchDifyTools(appId?: string | number) {
   return request<Array<Record<string, unknown>>>({
     url: '/api/dify/tools',
     method: 'get',
@@ -112,7 +129,7 @@ export function fetchDifyMcpServers() {
 }
 
 /** 绑定工具到智能体（Dify /apps/{id}/tools，body: { tool_ids }，整体覆盖） */
-export function bindDifyAppTools(appId: number, toolIds: string[]) {
+export function bindDifyAppTools(appId: string | number, toolIds: string[]) {
   return request<unknown>({
     url: `/api/dify/apps/${appId}/tools`,
     method: 'post',
@@ -121,7 +138,7 @@ export function bindDifyAppTools(appId: number, toolIds: string[]) {
 }
 
 /** 解绑单个工具（Dify /apps/{id}/tools/{toolId}） */
-export function unbindDifyAppTool(appId: number, toolId: string) {
+export function unbindDifyAppTool(appId: string | number, toolId: string) {
   return request<unknown>({
     url: `/api/dify/apps/${appId}/tools/${toolId}`,
     method: 'delete'
@@ -129,7 +146,7 @@ export function unbindDifyAppTool(appId: number, toolId: string) {
 }
 
 /** 提示词编排配置（Dify /apps/{id}/model-config，含 prompt/orchestration） */
-export function fetchDifyAppOrchestration(appId: number) {
+export function fetchDifyAppOrchestration(appId: string | number) {
   return request<Api.Dify.OrchestrationConfig>({
     url: `/api/dify/apps/${appId}/model-config`,
     method: 'get'
@@ -137,10 +154,26 @@ export function fetchDifyAppOrchestration(appId: number) {
 }
 
 /** 更新提示词编排配置（Dify /apps/{id}/model-config） */
-export function updateDifyAppOrchestration(appId: number, body: Api.Dify.OrchestrationPayload) {
+export function updateDifyAppOrchestration(appId: string | number, body: Api.Dify.OrchestrationPayload) {
   return request<Api.Dify.OrchestrationConfig>({
     url: `/api/dify/apps/${appId}/model-config`,
     method: 'post',
     data: body
+  });
+}
+
+/** 应用 API 访问密钥列表（Dify /apps/{id}/api-keys，控制台） */
+export function fetchDifyAppApiKeys(appId: string | number) {
+  return request<Api.Dify.DifyAppApiKey[]>({
+    url: `/api/dify/apps/${appId}/api-keys`,
+    method: 'get'
+  });
+}
+
+/** 创建应用 API 访问密钥（Dify /apps/{id}/api-keys，控制台） */
+export function createDifyAppApiKey(appId: string | number) {
+  return request<Api.Dify.DifyAppApiKey>({
+    url: `/api/dify/apps/${appId}/api-keys`,
+    method: 'post'
   });
 }

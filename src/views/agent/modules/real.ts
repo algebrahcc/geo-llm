@@ -272,6 +272,8 @@ export function mapDifyAppToAgent(app: Api.DifyApp.DifyAppResp): AgentDefinition
     slogan: app.description || `${typeName}应用`,
     description: app.description || '',
     appType: app.type,
+    difyAppId: app.difyAppId || '',
+    baseUrl: app.baseUrl || '',
     category: typeName,
     status: app.status === 1 ? 'online' : 'draft',
     model: app.baseUrl ? 'Dify 自定义地址' : 'Dify',

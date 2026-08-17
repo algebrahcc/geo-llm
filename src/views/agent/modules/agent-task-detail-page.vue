@@ -49,10 +49,8 @@ const suggestedQuestions = ref<string[]>([]);
 const renameValue = ref('');
 const agent = computed(() => resolveAgent(agentKey.value));
 const activeAgentKey = computed(() => agent.value.key || agentKey.value);
-const currentAppId = computed(() => {
-  const value = Number(activeAgentKey.value);
-  return Number.isFinite(value) && value > 0 ? value : undefined;
-});
+/** 当前智能体的本地 dify_app 主键 id（雪花 Long 序列化为字符串，必须保留字符串避免精度丢失） */
+const currentAppId = computed(() => activeAgentKey.value || undefined);
 
 function goBack() {
   router.push({

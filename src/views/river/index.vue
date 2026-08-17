@@ -36,7 +36,7 @@ interface ViewerExpose {
   pitch: () => void;
   exportScreenshot: () => void;
   toggleViewMode: () => void;
-  loadVectorLayer: (id: string, name: string) => Promise<void>;
+  loadVectorLayer: (id: string, name: string, sourceType?: string) => Promise<void>;
   setVectorLayerVisible: (id: string, show: boolean) => void;
   showPlan: (planKey: RiverPlanKey) => void;
 }
@@ -123,7 +123,7 @@ function handleToggleVector(layerId: string) {
 
   const viewer = viewerRef.value;
   if (layer.visible) {
-    viewer?.loadVectorLayer(layerId, layer.label);
+    viewer?.loadVectorLayer(layerId, layer.label, layer.sourceType);
   } else {
     viewer?.setVectorLayerVisible(layerId, false);
   }

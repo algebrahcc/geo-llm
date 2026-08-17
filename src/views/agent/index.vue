@@ -48,10 +48,8 @@ const { agentKey, selectedAgent, updateAgentQuery } = useAgentSelection(route, r
 const authStore = useAuthStore();
 const userId = computed(() => String(authStore.userInfo.userId ?? ''));
 const activeAgentKey = computed(() => selectedAgent.value.key || agentKey.value);
-const currentAppId = computed(() => {
-  const value = Number(activeAgentKey.value);
-  return Number.isFinite(value) && value > 0 ? value : undefined;
-});
+/** 当前智能体的本地 dify_app 主键 id（雪花 Long 序列化为字符串，必须保留字符串避免精度丢失） */
+const currentAppId = computed(() => activeAgentKey.value || undefined);
 
 type PageMode = 'workbench' | 'create';
 const pageMode = ref<PageMode>('workbench');
@@ -359,8 +357,8 @@ function navigateToSubPage(name: 'agent_config' | 'agent_test' | 'agent_tools') 
 
 async function handleDelete() {
   const target = selectedAgent.value;
-  const appId = Number(target.key);
-  if (!appId || Number.isNaN(appId)) return;
+  const appId = target.key;
+  if (!appId) return;
   window.$dialog?.warning({
     title: '删除智能体',
     content: `确定要删除「${target.name}」吗？删除后无法恢复。`,

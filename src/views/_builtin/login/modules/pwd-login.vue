@@ -27,18 +27,24 @@ const captchaImg = ref('');
 const captchaUuid = ref('');
 const captchaEnabled = ref(false);
 const captchaLoading = ref(false);
+/** 后端是否可访问，用于在无验证码且后端不可用时给出明确提示 */
+const backendAvailable = ref(true);
 
 async function refreshCaptcha() {
   captchaLoading.value = true;
   try {
     const { data, error } = await fetchCaptchaImage();
     if (!error && data) {
+      backendAvailable.value = true;
       captchaEnabled.value = data.isEnabled;
       if (data.isEnabled) {
         captchaImg.value = data.img;
         captchaUuid.value = data.uuid;
         model.captcha = '';
       }
+    } else {
+      // 验证码接口请求失败（多为后端不可达），标记为不可用以提示用户
+      backendAvailable.value = false;
     }
   } finally {
     captchaLoading.value = false;
@@ -118,6 +124,16 @@ async function handleSubmit() {
           <span v-else>获取验证码</span>
         </NButton>
       </div>
+    </NFormItem>
+    <NFormItem v-else-if="!backendAvailable">
+      <NAlert type="warning" :show-icon="true" title="无法连接后端服务">
+        网络状态不佳。请检查后端服务状态后重试。
+        <template #default>
+          <div class="mt-1">
+            <NButton text type="primary" size="small" :loading="captchaLoading" @click="refreshCaptcha">重试</NButton>
+          </div>
+        </template>
+      </NAlert>
     </NFormItem>
     <NSpace vertical :size="24">
       <div class="flex-y-center justify-between">

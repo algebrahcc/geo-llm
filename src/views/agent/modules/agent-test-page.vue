@@ -46,10 +46,8 @@ const { agentKey, selectedAgent, updateAgentQuery } = useAgentSelection(route, r
 const authStore = useAuthStore();
 const userId = computed(() => String(authStore.userInfo.userId ?? ''));
 const activeAgentKey = computed(() => selectedAgent.value.key || agentKey.value);
-const currentAppId = computed(() => {
-  const value = Number(activeAgentKey.value);
-  return Number.isFinite(value) && value > 0 ? value : undefined;
-});
+/** 当前智能体的本地 dify_app 主键 id（雪花 Long 序列化为字符串，必须保留字符串避免精度丢失） */
+const currentAppId = computed(() => activeAgentKey.value || undefined);
 
 const testing = ref(false);
 const latestRecord = ref<ReturnType<typeof buildTestRecord> | null>(null);

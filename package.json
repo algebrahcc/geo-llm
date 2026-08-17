@@ -12,16 +12,16 @@
     "naive-ui-admin",
     "vue-admin-template"
   ],
-  "homepage": "",
+  "homepage": "https://github.com/algebrahcc/geo-llm",
   "bugs": {
-    "url": ""
+    "url": "https://github.com/algebrahcc/geo-llm/issues"
   },
   "license": "MIT",
   "author": {
     "name": "Geo-LLM"
   },
   "repository": {
-    "url": ""
+    "url": "https://github.com/algebrahcc/geo-llm.git"
   },
   "type": "module",
   "scripts": {
@@ -59,6 +59,7 @@
     "echarts-wordcloud": "^2.1.0",
     "jsencrypt": "^3.5.4",
     "json5": "2.2.3",
+    "mvt-imagery-provider": "^1.0.3",
     "naive-ui": "2.44.1",
     "nprogress": "0.2.0",
     "ol": "^10.9.0",

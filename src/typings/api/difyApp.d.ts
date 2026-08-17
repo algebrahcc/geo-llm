@@ -14,7 +14,8 @@ declare namespace Api {
 
     /** 应用列表项 / 详情（对应后端 DifyAppResp） */
     interface DifyAppResp {
-      id: number;
+      /** 本地 dify_app 主键 id（后端 Long 雪花 ID 序列化为字符串，避免前端精度丢失） */
+      id: string;
       difyAppId?: string;
       name: string;
       type: AppType;

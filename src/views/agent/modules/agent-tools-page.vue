@@ -19,7 +19,7 @@ const router = useRouter();
 const { resolveAgent, agentList, deleteAgent } = useDifyApps();
 const { agentKey, selectedAgent, updateAgentQuery } = useAgentSelection(route, router, resolveAgent, agentList);
 
-const appId = computed(() => (selectedAgent.value.key ? Number(selectedAgent.value.key) : null));
+const appId = computed(() => selectedAgent.value.key || null);
 const currentAppId = computed(() => appId.value);
 
 const loading = ref(false);
@@ -38,6 +38,15 @@ function toolName(t: Record<string, unknown>) {
 }
 function toolType(t: Record<string, unknown>) {
   return String(t.type ?? '');
+}
+function toolProvider(t: Record<string, unknown>) {
+  return String(t.provider_name ?? t.provider ?? '');
+}
+function toolCategory(t: Record<string, unknown>) {
+  return String(t.category ?? '');
+}
+function toolDescription(t: Record<string, unknown>) {
+  return String(t.description ?? '');
 }
 function mcpName(m: Record<string, unknown>) {
   return String(m.name ?? '未命名 MCP 服务');
@@ -113,8 +122,8 @@ function navigateToSubPage(name: 'agent_config' | 'agent_test') {
 
 async function handleDelete() {
   const target = selectedAgent.value;
-  const id = Number(target.key);
-  if (!id || Number.isNaN(id)) return;
+  const id = target.key;
+  if (!id) return;
   window.$dialog?.warning({
     title: '删除智能体',
     content: `确定要删除「${target.name}」吗？删除后无法恢复。`,
@@ -171,6 +180,9 @@ async function handleDelete() {
                       <div class="tool-item__name">{{ toolName(t) }}</div>
                       <div class="tool-item__sub">
                         <NTag v-if="toolType(t)" size="small" round>{{ toolType(t) }}</NTag>
+                        <NTag v-if="toolProvider(t)" size="small" round type="info">{{ toolProvider(t) }}</NTag>
+                        <NTag v-if="toolCategory(t)" size="small" round type="warning">{{ toolCategory(t) }}</NTag>
+                        <span v-if="toolDescription(t)" class="tool-item__desc">{{ toolDescription(t) }}</span>
                       </div>
                     </div>
                   </div>
