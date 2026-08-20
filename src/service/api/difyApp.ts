@@ -51,6 +51,15 @@ export function fetchDifyAppCreate(data: Api.DifyApp.DifyAppReq) {
   });
 }
 
+/** 在 Dify 控制台真正创建应用并绑定回本地（后端 POST /dify/app/create-console） */
+export function fetchDifyAppCreateFromConsole(data: { name: string; type: Api.DifyApp.AppType; description?: string }) {
+  return request<Api.DifyApp.DifyAppCreateResp>({
+    url: '/dify/app/create-console',
+    method: 'post',
+    data
+  });
+}
+
 /** 编辑应用（后端 PUT /dify/app/{id}） */
 export function fetchDifyAppUpdate(id: string | number, data: Api.DifyApp.DifyAppReq) {
   return request<void>({

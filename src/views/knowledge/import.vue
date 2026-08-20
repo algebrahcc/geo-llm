@@ -1,16 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import type { UploadFileInfo } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { useThemeStore } from '@/store/modules/theme';
-import type { KnowledgeImportFormModel } from './modules/types';
 import { fetchKbDatasets, uploadKbDocument } from '@/service/api/knowledge';
 import { asList, extractPayload, getDatasetId, getDatasetName } from './modules/real';
 
 defineOptions({ name: 'KnowledgeImportPage' });
 
-const route = useRoute();
 const router = useRouter();
 const themeStore = useThemeStore();
 const darkMode = computed(() => themeStore.darkMode);
@@ -19,17 +17,24 @@ const datasetLoading = ref(false);
 const datasets = ref<Api.Knowledge.Dataset[]>([]);
 const uploadFiles = ref<UploadFileInfo[]>([]);
 
-const importType = ref<'document' | 'image'>((route.query.type as string) === 'image' ? 'image' : 'document');
+const datasetId = ref('');
+const segmentMode = ref<'automatic' | 'custom'>('automatic');
+/** 拖拽悬停态，用于上传区高亮反馈 */
+const dragActive = ref(false);
 
-const form = reactive({
-  name: '',
-  datasetId: '',
-  source: '人工整理',
-  tagsText: '',
-  indexMode: '混合切分' as KnowledgeImportFormModel['indexMode'],
-  note: '',
-  imageFiles: [] as { name: string; size: number }[]
-});
+/** 三步向导：1 选择数据源 → 2 文本分段与清洗 → 3 处理并完成（对齐 Dify 添加知识） */
+const currentStep = ref(1);
+const steps = [
+  { key: 1, title: '选择数据源', desc: '上传文件' },
+  { key: 2, title: '文本分段与清洗', desc: '分段规则与知识库' },
+  { key: 3, title: '处理并完成', desc: '确认并开始处理' }
+];
+function nextStep() {
+  if (currentStep.value < 3) currentStep.value += 1;
+}
+function prevStep() {
+  if (currentStep.value > 1) currentStep.value -= 1;
+}
 
 const datasetOptions = computed(() =>
   datasets.value.map(item => ({
@@ -37,22 +42,23 @@ const datasetOptions = computed(() =>
     value: getDatasetId(item)
   }))
 );
-const hasDataset = computed(() => datasetOptions.value.length > 0);
 
-const indexModeOptions = [
-  { label: '混合切分', value: '混合切分' },
-  { label: '语义分段', value: '语义分段' },
-  { label: '手动分块', value: '手动分块' }
-];
+/** 支持的上传格式（对齐 Dify 文档上传） */
+const ACCEPT_FORMATS = '.pdf,.docx,.md,.markdown,.txt,.csv,.xlsx,.xls,.html,.htm';
+const ACCEPT_HINT = 'PDF · Word · Markdown · TXT · CSV · Excel · HTML';
 
-/** 将页面“索引方式”映射为 Dify 的索引模式与切片规则
- *  - 语义分段 / 图片分割依赖 embedding 模型（high_quality；图片还需知识库配置多模态 embedding 模型）
- *  - 其余统一 economy（无需 embedding）；economy 暂不支持自定义分块规则，手动分块按自动处理 */
-function mapIndexMode(mode: string): { indexingTechnique: string; processMode: string } {
-  if (mode === '语义分段' || mode === '图片分割') {
-    return { indexingTechnique: 'high_quality', processMode: 'automatic' };
+/** 将分段方式映射为 Dify 的索引模式与切片规则 */
+function mapSegmentMode(mode: string): { indexingTechnique: string; processMode: string } {
+  if (mode === 'custom') {
+    return { indexingTechnique: 'high_quality', processMode: 'custom' };
   }
-  return { indexingTechnique: 'economy', processMode: 'automatic' };
+  return { indexingTechnique: 'high_quality', processMode: 'automatic' };
+}
+
+/** 根据集合 id 取集合名称（Step 3 确认展示） */
+function getDatasetLabel(id: string): string {
+  const ds = datasets.value.find(item => getDatasetId(item) === id);
+  return ds ? getDatasetName(ds) : id || '—';
 }
 
 async function loadDatasets() {
@@ -60,8 +66,8 @@ async function loadDatasets() {
   try {
     const res = await fetchKbDatasets();
     datasets.value = asList<Api.Knowledge.Dataset>(extractPayload(res));
-    if (!form.datasetId) {
-      form.datasetId = datasetOptions.value[0]?.value || '';
+    if (!datasetId.value) {
+      datasetId.value = datasetOptions.value[0]?.value || '';
     }
   } catch {
     datasets.value = [];
@@ -71,16 +77,6 @@ async function loadDatasets() {
   }
 }
 
-watch(importType, type => {
-  if (type === 'image') {
-    form.source = '图片上传';
-    form.indexMode = '图片分割';
-  } else {
-    form.source = '人工整理';
-    form.indexMode = '混合切分';
-  }
-});
-
 onMounted(loadDatasets);
 
 function goBack() {
@@ -89,15 +85,10 @@ function goBack() {
 
 function handleFileChange(options: { fileList: UploadFileInfo[] }) {
   uploadFiles.value = options.fileList;
-  form.imageFiles = options.fileList.filter(f => f.file).map(f => ({ name: f.name, size: f.file?.size || 0 }));
-  if (!form.name && options.fileList.length === 1) {
-    form.name = options.fileList[0]?.name?.replace(/\.[^.]+$/, '') || '';
-  }
 }
 
 function handleFileRemove(options: { file: UploadFileInfo; fileList: UploadFileInfo[] }) {
   uploadFiles.value = options.fileList;
-  form.imageFiles = options.fileList.filter(f => f.file).map(f => ({ name: f.name, size: f.file?.size || 0 }));
 }
 
 function formatSize(bytes: number): string {
@@ -107,61 +98,70 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
+function fileName(f: UploadFileInfo): string {
+  return f.name || f.file?.name || '';
+}
+
+/** 按扩展名返回对应的文件类型图标（提升文件辨识度） */
+function fileIcon(f: UploadFileInfo): string {
+  const name = fileName(f).toLowerCase();
+  if (name.endsWith('.pdf')) return 'mdi:file-pdf-box';
+  if (name.endsWith('.docx') || name.endsWith('.doc')) return 'mdi:file-word-outline';
+  if (name.endsWith('.md') || name.endsWith('.markdown')) return 'mdi:file-code-outline';
+  if (name.endsWith('.csv') || name.endsWith('.xlsx') || name.endsWith('.xls')) return 'mdi:file-excel-outline';
+  if (name.endsWith('.html') || name.endsWith('.htm')) return 'mdi:file-code-outline';
+  return 'mdi:file-document-outline';
+}
+
+/** 按扩展名返回文件类型的主题色 */
+function fileColor(f: UploadFileInfo): string {
+  const name = fileName(f).toLowerCase();
+  if (name.endsWith('.pdf')) return '#ff6b6b';
+  if (name.endsWith('.docx') || name.endsWith('.doc')) return '#4d9fff';
+  if (name.endsWith('.md') || name.endsWith('.markdown') || name.endsWith('.html') || name.endsWith('.htm'))
+    return '#9d8cff';
+  if (name.endsWith('.csv') || name.endsWith('.xlsx') || name.endsWith('.xls')) return '#46cc8e';
+  return '#29a3ff';
+}
+
+/** 对齐 Dify：一次可上传多个文件，逐个提交到知识库，文档名取自文件名 */
 async function handleSubmit() {
-  if (!form.name) {
-    window.$message?.warning('请填写文档名称');
+  if (!uploadFiles.value.length) {
+    window.$message?.warning('请至少上传一个文档');
     return;
   }
-  if (!form.datasetId) {
+  if (!datasetId.value) {
     window.$message?.warning('请选择所属知识集合');
     return;
   }
-  if (importType.value === 'document' && !form.source) {
-    window.$message?.warning('请填写来源');
-    return;
-  }
-  if (!uploadFiles.value.length) {
-    window.$message?.warning(importType.value === 'image' ? '请上传至少一张图片' : '请上传至少一个文档');
+
+  const files = uploadFiles.value.map(item => item.file).filter((file): file is File => Boolean(file));
+  if (!files.length) {
+    window.$message?.warning('未检测到可上传的文件');
     return;
   }
 
-  const tags = form.tagsText
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+  const { indexingTechnique, processMode } = mapSegmentMode(segmentMode.value);
+  const total = files.length;
+  let okCount = 0;
 
   try {
     submitting.value = true;
-    const files = uploadFiles.value.map(item => item.file).filter((file): file is File => Boolean(file));
-
     for (const [index, file] of files.entries()) {
-      const resolvedName = importType.value === 'image' && files.length > 1 ? file.name : form.name || file.name;
-      const summaryTags = tags.length ? tags.join(',') : undefined;
-      const source =
-        importType.value === 'image'
-          ? [form.source || '图片上传', summaryTags, form.note].filter(Boolean).join(' | ')
-          : [form.source, summaryTags, form.note].filter(Boolean).join(' | ');
-
-      const { indexingTechnique, processMode } = mapIndexMode(form.indexMode);
-      await uploadKbDocument(
-        form.datasetId,
-        file,
-        files.length > 1 ? `${resolvedName}` : resolvedName,
-        importType.value === 'image' ? 'image' : 'file',
-        source || undefined,
-        indexingTechnique,
-        processMode
-      );
-
-      if (files.length > 1) {
-        window.$message?.success(`已提交 ${index + 1}/${files.length} 个文件`);
+      await uploadKbDocument(datasetId.value, file, undefined, 'file', undefined, indexingTechnique, processMode);
+      okCount += 1;
+      if (total > 1) {
+        window.$message?.success(`已上传 ${index + 1}/${total}`);
       }
     }
-
-    window.$message?.success(importType.value === 'image' ? '图片已提交到知识库' : '文档已提交到知识库');
+    window.$message?.success(`成功上传 ${okCount} 个文档到知识库`);
     goBack();
   } catch {
-    window.$message?.error('提交导入失败，请稍后重试');
+    if (okCount > 0) {
+      window.$message?.warning(`已上传 ${okCount}/${total} 个文档，后续文件失败`);
+    } else {
+      window.$message?.error('上传失败，请稍后重试');
+    }
   } finally {
     submitting.value = false;
   }
@@ -178,206 +178,204 @@ async function handleSubmit() {
       </button>
       <div class="import-header__title">
         <SvgIcon icon="mdi:upload-outline" class="import-header__icon" />
-        <span>{{ importType === 'image' ? '导入图片' : '导入文档' }}</span>
-      </div>
-      <div class="import-header__badge">
-        {{ importType === 'image' ? '分割 → 提取 → 入库' : '解析 → 分块 → 索引' }}
+        <span>导入文档</span>
       </div>
     </div>
 
-    <!-- Mode switch -->
-    <div class="mode-tabs">
-      <button
-        class="mode-tab"
-        :class="{ 'mode-tab--active': importType === 'document' }"
-        @click="importType = 'document'"
+    <!-- Step indicator (对齐 Dify 添加知识三步) -->
+    <div class="step-indicator">
+      <div
+        v-for="(s, i) in steps"
+        :key="s.key"
+        class="step"
+        :class="{ 'step--active': currentStep === s.key, 'step--done': currentStep > s.key }"
       >
-        <SvgIcon icon="mdi:file-document-outline" class="mode-tab__icon" />
-        <div class="mode-tab__text">
-          <div class="mode-tab__title">文档导入</div>
-          <div class="mode-tab__desc">PDF / DOCX / MD / TXT</div>
+        <div class="step__badge">
+          <SvgIcon v-if="currentStep > s.key" icon="mdi:check" />
+          <span v-else>{{ i + 1 }}</span>
         </div>
-      </button>
-      <button class="mode-tab" :class="{ 'mode-tab--active': importType === 'image' }" @click="importType = 'image'">
-        <SvgIcon icon="mdi:image-outline" class="mode-tab__icon" />
-        <div class="mode-tab__text">
-          <div class="mode-tab__title">图片导入</div>
-          <div class="mode-tab__desc">PNG / JPG / TIFF / SAR</div>
+        <div class="step__text">
+          <div class="step__title">{{ s.title }}</div>
+          <div class="step__desc">{{ s.desc }}</div>
         </div>
-      </button>
+      </div>
     </div>
 
-    <!-- Form body -->
-    <div class="import-body">
-      <!-- Left: upload / model area -->
-      <div class="import-left">
-        <!-- Document mode: file upload placeholder -->
-        <template v-if="importType === 'document'">
-          <NUpload
-            accept=".pdf,.doc,.docx,.md,.txt"
-            :max="1"
-            :default-upload="false"
-            @change="handleFileChange"
-            @remove="handleFileRemove"
-          >
-            <div class="upload-zone">
-              <div class="upload-zone__inner">
-                <SvgIcon icon="mdi:cloud-upload-outline" class="upload-zone__icon" />
-                <div class="upload-zone__title">拖拽文档到此处，或点击上传</div>
-                <div class="upload-zone__hint">支持 PDF / DOCX / MD / TXT，单个文件最大 50MB</div>
-                <div class="upload-zone__formats">
-                  <span class="format-tag">PDF</span>
-                  <span class="format-tag">DOCX</span>
-                  <span class="format-tag">MD</span>
-                  <span class="format-tag">TXT</span>
-                </div>
-              </div>
-            </div>
-          </NUpload>
+    <!-- Step 1: 选择数据源 -->
+    <div v-if="currentStep === 1" class="source-step">
+      <div class="source-step__head">
+        <div class="source-step__title">选择数据源</div>
+        <div class="source-step__desc">选择要导入知识库的文件类型，支持一次上传多个文档</div>
+      </div>
+      <div class="source-tabs">
+        <button type="button" class="source-card source-card--active" @click="nextStep">
+          <div class="source-card__icon">
+            <SvgIcon icon="mdi:file-upload-outline" />
+          </div>
+          <div class="source-card__text">
+            <div class="source-card__title">上传文件</div>
+            <div class="source-card__desc">PDF · Word · Markdown · TXT · CSV · Excel · HTML</div>
+          </div>
+          <SvgIcon icon="mdi:chevron-right" class="source-card__arrow" />
+        </button>
+      </div>
+    </div>
 
-          <Transition name="file-fade">
-            <div v-if="uploadFiles.length" class="file-list">
-              <div class="file-list__head">
-                <SvgIcon icon="mdi:file-check-outline" />
-                <span>已选择 {{ uploadFiles.length }} 个文件</span>
-              </div>
-              <div v-for="f in uploadFiles" :key="f.id" class="file-item">
-                <SvgIcon icon="mdi:file-document-outline" class="file-item__icon" />
-                <span class="file-item__name">{{ f.name }}</span>
-                <span v-if="f.file?.size" class="file-item__size">{{ formatSize(f.file.size) }}</span>
-              </div>
+    <!-- Step 2: 文本分段与清洗 -->
+    <div v-if="currentStep === 2" class="import-body">
+      <div class="settings-card">
+        <div class="settings-card__title">
+          <SvgIcon icon="mdi:upload-multiple-outline" class="settings-card__title-icon" />
+          上传文件
+        </div>
+        <NUpload
+          multiple
+          class="upload-zone"
+          :max="20"
+          :default-upload="false"
+          :accept="ACCEPT_FORMATS"
+          :file-list="uploadFiles"
+          @change="handleFileChange"
+          @remove="handleFileRemove"
+          @dragover.prevent="dragActive = true"
+          @dragleave.prevent="dragActive = false"
+        >
+          <div class="upload-drop" :class="{ 'upload-drop--active': dragActive }">
+            <div class="upload-drop__icon">
+              <SvgIcon icon="mdi:cloud-upload-outline" />
             </div>
-          </Transition>
+            <div class="upload-drop__title">{{ dragActive ? '松开鼠标上传文件' : '点击选择或拖拽文件到此处' }}</div>
+            <div class="upload-drop__hint">支持 {{ ACCEPT_HINT }}，最多 20 个文件</div>
+          </div>
+        </NUpload>
 
-          <!-- Index mode -->
-          <div class="config-card">
-            <div class="config-card__head">
-              <SvgIcon icon="mdi:cog-outline" class="config-card__head-icon" />
-              <span>处理配置</span>
-            </div>
-            <div class="config-card__body">
-              <div class="config-row">
-                <span class="config-row__label">索引方式</span>
-                <NSelect
-                  v-model:value="form.indexMode"
-                  :options="indexModeOptions"
-                  class="config-select"
-                  size="small"
-                />
-                <NAlert v-if="form.indexMode === '语义分段'" type="warning" :show-icon="true" class="mt-8px">
-                  语义分段使用向量索引，需先在 Dify 配置 embedding 模型，否则导入会失败。
-                </NAlert>
+        <Transition name="file-fade">
+          <div v-if="uploadFiles.length" class="upload-list">
+            <div v-for="f in uploadFiles" :key="f.id" class="upload-item">
+              <div class="upload-item__icon" :style="{ color: fileColor(f) }">
+                <SvgIcon :icon="fileIcon(f)" />
               </div>
-              <div class="config-row">
-                <span class="config-row__label">来源</span>
-                <NInput v-model:value="form.source" class="config-input" size="small" placeholder="例如：人工整理" />
+              <div class="upload-item__main">
+                <div class="upload-item__name">{{ fileName(f) }}</div>
+                <div class="upload-item__size">{{ formatSize(f.file?.size || 0) }}</div>
               </div>
-              <div class="config-row">
-                <span class="config-row__label">所属集合</span>
-                <NSelect
-                  v-model:value="form.datasetId"
-                  :options="datasetOptions"
-                  :loading="datasetLoading"
-                  class="config-select"
-                  size="small"
-                  placeholder="请选择集合"
-                />
-              </div>
+              <button
+                type="button"
+                class="upload-item__remove"
+                title="移除"
+                @click="handleFileRemove({ file: f, fileList: uploadFiles.filter(x => x.id !== f.id) })"
+              >
+                <SvgIcon icon="mdi:close" />
+              </button>
             </div>
           </div>
-        </template>
-
-        <!-- Image mode: upload area + model config -->
-        <template v-if="importType === 'image'">
-          <!-- Image upload -->
-          <NUpload
-            accept=".png,.jpg,.jpeg,.tiff,.tif,.sar"
-            :max="10"
-            :default-upload="false"
-            multiple
-            @change="handleFileChange"
-            @remove="handleFileRemove"
-          >
-            <div class="upload-zone upload-zone--image">
-              <div class="upload-zone__inner">
-                <SvgIcon icon="mdi:image-plus-outline" class="upload-zone__icon upload-zone__icon--image" />
-                <div class="upload-zone__title">点击或拖拽上传图片</div>
-                <div class="upload-zone__hint">支持 PNG / JPG / TIFF / SAR，最多 10 张</div>
-                <div class="upload-zone__formats">
-                  <span class="format-tag format-tag--image">PNG</span>
-                  <span class="format-tag format-tag--image">JPG</span>
-                  <span class="format-tag format-tag--image">TIFF</span>
-                  <span class="format-tag format-tag--image">SAR</span>
-                </div>
-              </div>
-            </div>
-          </NUpload>
-
-          <Transition name="file-fade">
-            <div v-if="uploadFiles.length" class="file-list">
-              <div class="file-list__head">
-                <SvgIcon icon="mdi:image-multiple-outline" />
-                <span>已选择 {{ uploadFiles.length }} 张图片</span>
-              </div>
-              <div v-for="f in uploadFiles" :key="f.id" class="file-item">
-                <SvgIcon icon="mdi:file-image-outline" class="file-item__icon" />
-                <span class="file-item__name">{{ f.name }}</span>
-                <span v-if="f.file?.size" class="file-item__size">{{ formatSize(f.file.size) }}</span>
-              </div>
-            </div>
-          </Transition>
-        </template>
+        </Transition>
       </div>
 
-      <!-- Right: metadata form -->
-      <div class="import-right">
-        <div class="form-card">
-          <div class="form-card__head">
-            <SvgIcon icon="mdi:information-outline" class="form-card__head-icon" />
-            <span>{{ importType === 'image' ? '图片信息' : '文档信息' }}</span>
-          </div>
-          <div class="form-card__body">
-            <NForm label-placement="top" :show-feedback="false">
-              <NFormItem label="文档名称" required>
-                <NInput v-model:value="form.name" placeholder="例如：台湾港口岸线专题资料" />
-              </NFormItem>
-              <NFormItem label="所属集合" required>
-                <NSelect
-                  v-model:value="form.datasetId"
-                  :options="datasetOptions"
-                  :loading="datasetLoading"
-                  placeholder="请选择集合"
-                />
-              </NFormItem>
-              <NFormItem label="标签">
-                <NInput v-model:value="form.tagsText" placeholder="多个标签用英文逗号分隔" />
-              </NFormItem>
-              <NFormItem label="补充说明">
-                <NInput
-                  v-model:value="form.note"
-                  type="textarea"
-                  :autosize="{ minRows: 4, maxRows: 6 }"
-                  placeholder="补充文档背景、用途等说明信息"
-                />
-              </NFormItem>
-            </NForm>
+      <div class="settings-card">
+        <div class="settings-card__title">
+          <SvgIcon icon="mdi:card-text-outline" class="settings-card__title-icon" />
+          分段与归属
+        </div>
 
-            <NAlert v-if="!hasDataset && !datasetLoading" type="warning" :show-icon="false" class="mb-16px">
-              当前还没有可用集合，请先到“集合管理”中创建集合后再导入文档。
-            </NAlert>
+        <div class="setting-row">
+          <span class="setting-row__label">所属知识集合</span>
+          <NSelect
+            v-model:value="datasetId"
+            :options="datasetOptions"
+            :loading="datasetLoading"
+            class="setting-row__control"
+            placeholder="请选择知识集合"
+          />
+        </div>
 
-            <div class="form-actions">
-              <NButton @click="goBack">取消</NButton>
-              <NButton type="primary" :loading="submitting" :disabled="!hasDataset" @click="handleSubmit">
-                <template #icon>
-                  <SvgIcon icon="mdi:check" />
-                </template>
-                提交导入
-              </NButton>
+        <div class="setting-row">
+          <span class="setting-row__label">分段方式</span>
+          <div class="setting-row__control">
+            <div class="segment-tabs">
+              <button
+                type="button"
+                class="segment-tab"
+                :class="{ 'segment-tab--active': segmentMode === 'automatic' }"
+                @click="segmentMode = 'automatic'"
+              >
+                自动分段
+              </button>
+              <button
+                type="button"
+                class="segment-tab"
+                :class="{ 'segment-tab--active': segmentMode === 'custom' }"
+                @click="segmentMode = 'custom'"
+              >
+                自定义分块
+              </button>
+            </div>
+            <div v-if="segmentMode === 'custom'" class="setting-hint">
+              自定义分块规则需知识库已配置 embedding 模型，暂以高质量模式处理
             </div>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Step 3: 处理并完成 -->
+    <div v-if="currentStep === 3" class="import-body">
+      <div class="confirm-card">
+        <div class="confirm-card__title">
+          <SvgIcon icon="mdi:clipboard-check-outline" class="confirm-card__title-icon" />
+          确认信息
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-row__label">上传文件</span>
+          <span class="confirm-row__value">{{ uploadFiles.length }} 个文档</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-row__label">所属知识集合</span>
+          <span class="confirm-row__value">{{ getDatasetLabel(datasetId) }}</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-row__label">分段方式</span>
+          <span class="confirm-row__value">{{ segmentMode === 'custom' ? '自定义分块' : '自动分段' }}</span>
+        </div>
+        <div class="confirm-files">
+          <div v-for="f in uploadFiles" :key="f.id" class="confirm-file">
+            <SvgIcon icon="mdi:file-document-outline" class="confirm-file__icon" />
+            <span class="confirm-file__name">{{ fileName(f) }}</span>
+            <span class="confirm-file__size">{{ formatSize(f.file?.size || 0) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="step-nav">
+      <NButton secondary @click="goBack">取消</NButton>
+      <div class="flex-1" />
+      <NButton v-if="currentStep > 1" secondary @click="prevStep">
+        <SvgIcon icon="mdi:arrow-left" />
+        上一步
+      </NButton>
+      <NButton
+        v-if="currentStep === 1 || currentStep === 2"
+        type="primary"
+        :disabled="currentStep === 2 && !uploadFiles.length"
+        @click="nextStep"
+      >
+        下一步
+        <SvgIcon icon="mdi:arrow-right" />
+      </NButton>
+      <NButton
+        v-else
+        type="primary"
+        :loading="submitting"
+        :disabled="!uploadFiles.length || !datasetId"
+        @click="handleSubmit"
+      >
+        <template #icon>
+          <SvgIcon icon="mdi:check" />
+        </template>
+        保存并处理
+      </NButton>
     </div>
   </div>
 </template>
@@ -450,6 +448,12 @@ async function handleSubmit() {
   color: var(--accent);
 }
 
+.import-header__sub {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-left: 4px;
+}
+
 .import-header__badge {
   padding: 4px 14px;
   border-radius: 20px;
@@ -458,6 +462,87 @@ async function handleSubmit() {
   font-size: 12px;
   color: var(--text-tertiary);
   letter-spacing: 0.5px;
+}
+
+/* ====== Step indicator ====== */
+.step-indicator {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  flex: 1;
+  border-radius: 8px;
+  background: rgba(3, 19, 41, 0.5);
+  border: 1px solid rgba(43, 131, 255, 0.12);
+  transition: all 0.25s ease;
+
+  &__badge {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: rgba(41, 163, 255, 0.1);
+    border: 1px solid rgba(41, 163, 255, 0.25);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  &__desc {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+  }
+
+  &--active {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, rgba(10, 46, 92, 0.94) 0%, rgba(5, 28, 58, 0.94) 100%);
+    box-shadow: 0 0 0 1px rgba(41, 163, 255, 0.18);
+
+    .step__badge {
+      color: #fff;
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(41, 163, 255, 0.4);
+    }
+
+    .step__title {
+      color: #fff;
+    }
+  }
+
+  &--done {
+    .step__badge {
+      color: var(--accent-green);
+      background: rgba(70, 204, 142, 0.12);
+      border-color: rgba(70, 204, 142, 0.3);
+    }
+  }
+}
+
+/* ====== Step nav ====== */
+.step-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
 }
 
 /* ====== Mode tabs ====== */
@@ -517,10 +602,10 @@ async function handleSubmit() {
 
 /* ====== Body layout ====== */
 .import-body {
-  display: grid;
-  grid-template-columns: 1fr 420px;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  align-items: start;
+  max-width: 860px;
 }
 
 .import-left {
@@ -532,6 +617,215 @@ async function handleSubmit() {
 .import-right {
   position: sticky;
   top: 20px;
+}
+
+/* ====== Upload card ====== */
+.upload-card {
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.upload-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 44px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &__icon {
+    font-size: 46px;
+    color: rgba(41, 163, 255, 0.5);
+    transition: transform 0.25s ease;
+  }
+
+  &__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__hint {
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+
+  &:hover {
+    background: rgba(41, 163, 255, 0.05);
+
+    .upload-drop__icon {
+      transform: translateY(-4px);
+      color: var(--accent);
+    }
+  }
+
+  &--active {
+    background: rgba(41, 163, 255, 0.1);
+    border: 2px dashed var(--accent);
+    border-radius: 8px;
+
+    .upload-drop__icon {
+      transform: translateY(-4px);
+      color: var(--accent);
+    }
+  }
+}
+
+.upload-zone {
+  :deep(.n-upload-trigger) {
+    width: 100%;
+  }
+}
+
+.upload-list {
+  border-top: 1px solid var(--line);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upload-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid rgba(25, 95, 176, 0.25);
+  border-radius: 8px;
+  background: rgba(7, 28, 52, 0.4);
+
+  &__icon {
+    font-size: 20px;
+    color: var(--accent);
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__size {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+  }
+
+  &__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-size: 16px;
+
+    &:hover {
+      background: rgba(255, 122, 122, 0.12);
+      color: #ff7a7a;
+    }
+  }
+}
+
+/* ====== Settings card ====== */
+.settings-card {
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  &__title-icon {
+    color: var(--accent);
+  }
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  &__label {
+    width: 104px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  &__control {
+    flex: 1;
+  }
+}
+
+.segment-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(6, 20, 38, 0.6);
+  border: 1px solid rgba(25, 95, 176, 0.2);
+}
+
+.segment-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+
+  &--active {
+    background: rgba(41, 163, 255, 0.18);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px rgba(41, 163, 255, 0.35);
+  }
+}
+
+.setting-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* ====== Upload actions ====== */
+.upload-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
 }
 
 /* ====== Upload zone ====== */
@@ -771,6 +1065,278 @@ async function handleSubmit() {
   }
   .import-right {
     position: static;
+  }
+}
+
+/* ====== Step indicator ====== */
+.step-indicator {
+  display: flex;
+  gap: 12px;
+  margin: 4px 0 24px;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  flex: 1;
+  border-radius: 10px;
+  background: rgba(3, 19, 41, 0.5);
+  border: 1px solid rgba(43, 131, 255, 0.12);
+  transition: all 0.25s ease;
+
+  &__badge {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: rgba(41, 163, 255, 0.1);
+    border: 1px solid rgba(41, 163, 255, 0.25);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  &__desc {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+  }
+
+  &--active {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, rgba(10, 46, 92, 0.94) 0%, rgba(5, 28, 58, 0.94) 100%);
+    box-shadow: 0 0 0 1px rgba(41, 163, 255, 0.18);
+
+    .step__badge {
+      color: #fff;
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(41, 163, 255, 0.4);
+    }
+
+    .step__title {
+      color: #fff;
+    }
+  }
+
+  &--done {
+    .step__badge {
+      color: var(--accent-green, #46cc8e);
+      background: rgba(70, 204, 142, 0.12);
+      border-color: rgba(70, 204, 142, 0.3);
+    }
+  }
+}
+
+/* ====== Source (Step 1) ====== */
+.source-step {
+  max-width: 860px;
+
+  &__head {
+    margin-bottom: 16px;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  &__desc {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--text-tertiary);
+  }
+}
+
+.source-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  max-width: 860px;
+}
+
+.source-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 18px;
+  border: 1px solid rgba(41, 163, 255, 0.3);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(10, 46, 92, 0.94), rgba(5, 28, 58, 0.94));
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(2, 10, 22, 0.5);
+    border-color: var(--accent);
+
+    .source-card__arrow {
+      transform: translateX(3px);
+      color: var(--accent);
+    }
+  }
+
+  &__icon {
+    font-size: 30px;
+    color: var(--accent);
+  }
+
+  &__text {
+    flex: 1;
+  }
+
+  &__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  &__desc {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 3px;
+  }
+
+  &__arrow {
+    color: var(--text-tertiary);
+    font-size: 20px;
+  }
+}
+
+/* ====== Confirm (Step 3) ====== */
+.confirm-card {
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 18px 20px;
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+
+  &__title-icon {
+    color: var(--accent);
+  }
+}
+
+.confirm-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px dashed rgba(25, 95, 176, 0.15);
+
+  &__label {
+    width: 104px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  &__value {
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+}
+
+.confirm-files {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.confirm-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(7, 28, 52, 0.4);
+
+  &__icon {
+    color: var(--accent);
+    font-size: 18px;
+  }
+
+  &__name {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__size {
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+}
+
+/* ====== Step nav ====== */
+.step-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  max-width: 860px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+/* ====== Step content transition ====== */
+.step-indicator {
+  .step {
+    position: relative;
+
+    &:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: -12px;
+      width: 12px;
+      height: 1px;
+      background: rgba(41, 163, 255, 0.25);
+    }
+  }
+}
+
+.import-body,
+.source-tabs,
+.confirm-card {
+  animation: step-fade-in 0.3s ease;
+}
+
+@keyframes step-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>

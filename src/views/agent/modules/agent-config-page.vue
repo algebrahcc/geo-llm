@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch, h } from 'vue';
+import { computed, reactive, ref, watch, h, type ComputedRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { NButton, NTag, type DataTableColumns } from 'naive-ui';
 import { useThemeStore } from '@/store/modules/theme';
@@ -34,14 +34,10 @@ const saving = ref(false);
 function handleOpenConsole() {
   const url = buildConsoleUrl(selectedAgent.value);
   if (!url) {
-    window.$message?.warning('该应用未关联 Dify 远端 ID，请先在 Dify 控制台创建或同步该应用');
+    window.$message?.warning('该应用未关联远端应用 ID，请先在编排控制台创建或同步该应用');
     return;
   }
   window.open(url, '_blank', 'noopener,noreferrer');
-}
-
-function handleSelect(key: typeof agentKey.value) {
-  updateAgentQuery(key);
 }
 
 async function handleSubmit(config: AgentConfigFormModel) {
@@ -75,7 +71,7 @@ async function handleDelete() {
     onPositiveClick: async () => {
       const ok = await deleteAgent(appId);
       if (ok) {
-        router.push({ name: 'agent_workbench' as never });
+        router.push({ name: 'agent_index' as never });
       }
     }
   });
@@ -88,11 +84,52 @@ function navigateToSubPage(name: 'agent_test' | 'agent_tools') {
   });
 }
 
+function handleSelect(key: typeof agentKey.value) {
+  updateAgentQuery(key);
+}
+
 // ===== 模型参数（Dify /model-config） =====
-const activeTab = ref<'base' | 'model' | 'strategy' | 'knowledge' | 'prompt' | 'api'>('base');
+type CfgTabKey = 'base' | 'model' | 'strategy' | 'knowledge' | 'prompt' | 'api';
+const activeTab = ref<CfgTabKey>('base');
 const isAgent = computed(() => (selectedAgent.value?.appType ?? 0) === 2);
-/** 是否工作流应用（Dify 编排为节点画布，无工作流级 model_config） */
+/** 是否工作流应用（编排为节点画布，无工作流级 model_config） */
 const isWorkflow = computed(() => (selectedAgent.value?.appType ?? 0) === 3);
+
+interface CfgTabItem {
+  key: CfgTabKey;
+  label: string;
+  icon: string;
+}
+
+/** 各 Tab 在编排配置中的可见性（按应用类型裁剪，对齐不同应用类型的配置形态） */
+const visibleTabs: ComputedRef<CfgTabItem[]> = computed(() => {
+  const wf = isWorkflow.value;
+  const agent = isAgent.value;
+  const tabs: CfgTabItem[] = [
+    { key: 'base', label: '基础信息', icon: 'mdi:form-textbox' },
+    { key: 'model', label: '模型参数', icon: 'mdi:tune' },
+    { key: 'strategy', label: 'Agent 策略', icon: 'mdi:brain' },
+    { key: 'knowledge', label: '知识库', icon: 'mdi:database' },
+    { key: 'prompt', label: '提示词编排', icon: 'mdi:card-text-outline' },
+    { key: 'api', label: 'API 访问', icon: 'mdi:key-outline' }
+  ];
+  return tabs.filter(t => {
+    if (t.key === 'model' || t.key === 'knowledge' || t.key === 'prompt') return !wf;
+    if (t.key === 'strategy') return agent;
+    return true;
+  });
+});
+
+const typeLabel = computed(() => {
+  if (isWorkflow.value) return '工作流';
+  if (isAgent.value) return 'Agent';
+  return '聊天助手';
+});
+const typeColor = computed(() => {
+  if (isWorkflow.value) return '#34d399';
+  if (isAgent.value) return '#8b5cf6';
+  return '#38bdf8';
+});
 /** 当前智能体的本地 dify_app 主键 id（后端 Long 雪花序列化为字符串，必须保留字符串避免精度丢失） */
 const currentAppId = computed(() => selectedAgent.value?.key || null);
 
@@ -247,8 +284,10 @@ watch(
     modelConfig.value = null;
     strategyConfig.value = null;
     apiKeys.value = [];
-    // 工作流/chatflow 应用无知识库绑定能力，切换时若停留在知识库页则退回基础页
-    if (activeTab.value === 'knowledge' && isWorkflow.value) {
+    // 按应用类型裁剪 Tab：工作流无 模型参数/Agent 策略/知识库/提示词编排，停留到这些页时退回基础页
+    if (isWorkflow.value && activeTab.value !== 'base' && activeTab.value !== 'api') {
+      activeTab.value = 'base';
+    } else if (activeTab.value === 'strategy' && !isAgent.value) {
       activeTab.value = 'base';
     }
     if (activeTab.value === 'model' && !isWorkflow.value) loadModelConfig();
@@ -357,13 +396,22 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
         <div class="panel-surface">
           <div class="panel-head">
             <SvgIcon :icon="selectedAgent.icon" class="panel-head__icon" />
-            <span class="panel-head__title">{{ selectedAgent.name }}配置中心</span>
+            <span class="panel-head__title">{{ selectedAgent.name }}</span>
+            <NTag
+              size="small"
+              round
+              :bordered="false"
+              class="type-tag"
+              :style="{ color: typeColor, borderColor: typeColor + '66', background: typeColor + '1a' }"
+            >
+              {{ typeLabel }}
+            </NTag>
             <div class="ml-auto flex gap-6px">
               <NButton secondary size="small" @click="handleOpenConsole">
                 <template #icon>
                   <SvgIcon icon="mdi:open-in-new" />
                 </template>
-                在 Dify 中编排
+                前往编排
               </NButton>
               <NButton secondary size="small" @click="navigateToSubPage('agent_test')">测试</NButton>
               <NButton secondary size="small" @click="navigateToSubPage('agent_tools')">工具</NButton>
@@ -371,56 +419,32 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
             </div>
           </div>
           <div class="panel-body">
+            <div v-if="isWorkflow" class="wf-banner">
+              <div class="wf-banner__text">
+                <div class="wf-banner__title">工作流应用</div>
+                <div class="wf-banner__desc">
+                  工作流的模型、提示词、节点与知识库均在编排画布中按节点独立配置，不存在应用级统一配置。
+                </div>
+              </div>
+              <NButton type="primary" size="small" @click="handleOpenConsole">
+                <template #icon>
+                  <SvgIcon icon="mdi:workflow" />
+                </template>
+                前往编排画布
+              </NButton>
+            </div>
+
             <div class="cfg-tabs">
               <button
+                v-for="tab in visibleTabs"
+                :key="tab.key"
                 class="cfg-tab"
-                :class="{ 'cfg-tab--active': activeTab === 'base' }"
+                :class="{ 'cfg-tab--active': activeTab === tab.key }"
                 type="button"
-                @click="activeTab = 'base'"
+                @click="activeTab = tab.key"
               >
-                基础信息
-              </button>
-              <button
-                class="cfg-tab"
-                :class="{ 'cfg-tab--active': activeTab === 'model' }"
-                type="button"
-                @click="activeTab = 'model'"
-              >
-                模型参数
-              </button>
-              <button
-                v-if="isAgent"
-                class="cfg-tab"
-                :class="{ 'cfg-tab--active': activeTab === 'strategy' }"
-                type="button"
-                @click="activeTab = 'strategy'"
-              >
-                Agent 策略
-              </button>
-              <button
-                v-if="!isWorkflow"
-                class="cfg-tab"
-                :class="{ 'cfg-tab--active': activeTab === 'knowledge' }"
-                type="button"
-                @click="activeTab = 'knowledge'"
-              >
-                知识库
-              </button>
-              <button
-                class="cfg-tab"
-                :class="{ 'cfg-tab--active': activeTab === 'prompt' }"
-                type="button"
-                @click="activeTab = 'prompt'"
-              >
-                提示词编排
-              </button>
-              <button
-                class="cfg-tab"
-                :class="{ 'cfg-tab--active': activeTab === 'api' }"
-                type="button"
-                @click="activeTab = 'api'"
-              >
-                API 访问
+                <SvgIcon :icon="tab.icon" class="cfg-tab__icon" />
+                {{ tab.label }}
               </button>
             </div>
 
@@ -435,9 +459,9 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
               </div>
               <div v-if="isWorkflow" class="cfg-workflow-hint">
                 <p>工作流应用的模型参数按节点独立配置，不存在工作流级统一参数。</p>
-                <p>请在 Dify 控制台的工作流画布中，分别对每个 LLM 节点设置模型与采样参数。</p>
+                <p>请在编排控制台的工作流画布中，分别对每个 LLM 节点设置模型与采样参数。</p>
                 <NButton type="primary" size="small" @click="handleOpenConsole">
-                  前往 Dify 编排
+                  前往编排
                   <template #icon>
                     <SvgIcon icon="mdi:open-in-new" />
                   </template>
@@ -643,6 +667,35 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
   color: rgba(203, 227, 255, 0.65);
 }
 
+.type-tag {
+  margin-left: 8px;
+}
+
+.wf-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 8px;
+  background: rgba(6, 20, 38, 0.5);
+
+  &__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #eaf5ff;
+  }
+
+  &__desc {
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: rgba(203, 227, 255, 0.6);
+  }
+}
+
 .cfg-tabs {
   display: flex;
   gap: 8px;
@@ -652,6 +705,9 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
 
 .cfg-tab {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: transparent;
   border: none;
   padding: 8px 14px;
@@ -663,6 +719,10 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
   transition:
     color 0.2s,
     border-color 0.2s;
+
+  &__icon {
+    font-size: 16px;
+  }
 }
 
 .cfg-tab:hover {
@@ -672,6 +732,10 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
 .cfg-tab--active {
   color: var(--agent-accent);
   border-bottom-color: var(--agent-accent);
+
+  .cfg-tab__icon {
+    color: var(--agent-accent);
+  }
 }
 
 .cfg-panel {

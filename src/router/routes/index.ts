@@ -81,12 +81,21 @@ function createAgentElegantRoute() {
     },
     children: [
       {
-        name: 'agent_workbench',
-        path: '/agent/workbench',
+        name: 'agent_index',
+        path: '/agent',
         meta: {
-          title: '工作台',
+          title: '应用列表',
           icon: 'mdi:view-grid-plus-outline',
           iconFontSize: 18
+        }
+      },
+      {
+        name: 'agent_task_detail',
+        path: '/agent/task/:id',
+        meta: {
+          title: '任务详情',
+          hideInMenu: true,
+          activeMenu: 'agent_index'
         }
       },
       {
@@ -95,7 +104,8 @@ function createAgentElegantRoute() {
         meta: {
           title: '配置',
           icon: 'mdi:tune-variant',
-          iconFontSize: 18
+          iconFontSize: 18,
+          activeMenu: 'agent_index'
         }
       },
       {
@@ -104,16 +114,8 @@ function createAgentElegantRoute() {
         meta: {
           title: '测试',
           icon: 'mdi:flask-outline',
-          iconFontSize: 18
-        }
-      },
-      {
-        name: 'agent_task_detail',
-        path: '/agent/task-detail',
-        meta: {
-          title: '任务详情',
-          hideInMenu: true,
-          activeMenu: 'agent_workbench'
+          iconFontSize: 18,
+          activeMenu: 'agent_index'
         }
       },
       {
@@ -122,7 +124,18 @@ function createAgentElegantRoute() {
         meta: {
           title: '工具 / MCP',
           icon: 'mdi:puzzle-outline',
-          iconFontSize: 18
+          iconFontSize: 18,
+          activeMenu: 'agent_index'
+        }
+      },
+      {
+        name: 'agent_monitor',
+        path: '/agent/monitor',
+        meta: {
+          title: '运行监控',
+          icon: 'mdi:chart-line',
+          iconFontSize: 18,
+          activeMenu: 'agent_index'
         }
       }
     ]
@@ -134,7 +147,7 @@ function createAgentVueRoute(): RouteRecordRaw {
     name: 'agent',
     path: '/agent',
     component: BaseLayout,
-    redirect: { name: 'agent_workbench' },
+    redirect: { name: 'agent_index' },
     meta: {
       title: 'AI Agent',
       order: 8,
@@ -142,13 +155,23 @@ function createAgentVueRoute(): RouteRecordRaw {
     },
     children: [
       {
-        name: 'agent_workbench',
-        path: 'workbench',
+        name: 'agent_index',
+        path: '',
         component: () => import('@/views/agent/index.vue'),
         meta: {
-          title: '工作台',
+          title: '应用列表',
           icon: 'mdi:view-grid-plus-outline',
           iconFontSize: 18
+        }
+      },
+      {
+        name: 'agent_task_detail',
+        path: 'task/:id',
+        component: () => import('@/views/agent/modules/agent-task-detail-page.vue'),
+        meta: {
+          title: '任务详情',
+          hideInMenu: true,
+          activeMenu: 'agent_index'
         }
       },
       {
@@ -158,7 +181,8 @@ function createAgentVueRoute(): RouteRecordRaw {
         meta: {
           title: '配置',
           icon: 'mdi:tune-variant',
-          iconFontSize: 18
+          iconFontSize: 18,
+          activeMenu: 'agent_index'
         }
       },
       {
@@ -168,17 +192,8 @@ function createAgentVueRoute(): RouteRecordRaw {
         meta: {
           title: '测试',
           icon: 'mdi:flask-outline',
-          iconFontSize: 18
-        }
-      },
-      {
-        name: 'agent_task_detail',
-        path: 'task-detail',
-        component: () => import('@/views/agent/modules/agent-task-detail-page.vue'),
-        meta: {
-          title: '任务详情',
-          hideInMenu: true,
-          activeMenu: 'agent_workbench'
+          iconFontSize: 18,
+          activeMenu: 'agent_index'
         }
       },
       {
@@ -188,7 +203,19 @@ function createAgentVueRoute(): RouteRecordRaw {
         meta: {
           title: '工具 / MCP',
           icon: 'mdi:puzzle-outline',
-          iconFontSize: 18
+          iconFontSize: 18,
+          activeMenu: 'agent_index'
+        }
+      },
+      {
+        name: 'agent_monitor',
+        path: 'monitor',
+        component: () => import('@/views/agent/modules/agent-monitor-page.vue'),
+        meta: {
+          title: '运行监控',
+          icon: 'mdi:chart-line',
+          iconFontSize: 18,
+          activeMenu: 'agent_index'
         }
       }
     ]

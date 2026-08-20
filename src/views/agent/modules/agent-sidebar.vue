@@ -71,7 +71,7 @@ const items = computed(() => props.agents ?? []);
               <div class="agent-slogan">{{ item.slogan }}</div>
               <div class="agent-meta">
                 <span>{{ item.category || '--' }}</span>
-                <span>{{ item.model || 'Dify' }}</span>
+                <span>{{ item.model || '默认引擎' }}</span>
               </div>
             </div>
           </div>

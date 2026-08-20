@@ -51,5 +51,15 @@ declare namespace Api {
       size?: number;
       name?: string;
     }
+
+    /** 在 Dify 控制台创建应用的结果（对应后端 AiAppImportResp） */
+    interface DifyAppCreateResp {
+      id: string;
+      created: boolean;
+      name: string;
+      mode: string;
+      type: AppType;
+      message: string;
+    }
   }
 }

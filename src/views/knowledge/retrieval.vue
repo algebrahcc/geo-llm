@@ -23,6 +23,12 @@ const results = ref<ReturnType<typeof mapKbSearchResults>>([]);
 const documents = ref<Api.Knowledge.Document[]>([]);
 const datasets = ref<Api.Knowledge.Dataset[]>([]);
 const graphCount = ref(0);
+/** 目标知识集合（空 = 全库检索） */
+const selectedDataset = ref<string>('');
+/** 返回条数 TopK */
+const topK = ref(12);
+/** 是否启用 Score 阈值过滤 */
+const useThreshold = ref(false);
 
 const quickQueries = ['台湾 港口 岸线', '堤防 风险 保障', '术语 模板 提示词'];
 
@@ -37,9 +43,9 @@ const retrievalConfigText = computed(() => {
     hybrid_search: '混合检索'
   };
   const method = methodMap[String(rm.search_method)] || String(rm.search_method) || '语义检索';
-  const topK = rm.top_k ?? '-';
+  const rmTopK = rm.top_k ?? '-';
   const threshold = rm.score_threshold_enabled ? (rm.score_threshold ?? 0) : '关闭';
-  return `${method} · TopK ${topK} · 阈值 ${threshold}`;
+  return `${method} · TopK ${rmTopK} · 阈值 ${threshold}`;
 });
 
 const resultCount = computed(() => results.value.reduce((total, item) => total + item.matches.length, 0));
@@ -48,6 +54,15 @@ const placeholderText = computed(() => {
   if (searchMode.value === 'semantic') return '请输入自然语言问题，例如：有哪些与渡河相关的水文保障资料？';
   if (searchMode.value === 'hybrid') return '输入关键词或自然语言问题…';
   return '请输入问题，例如：台湾方向有哪些港口岸线保障资料？';
+});
+
+/** 知识集合下拉选项（含"全部知识库"） */
+const datasetOptions = computed(() => {
+  const opts = datasets.value.map(ds => ({
+    label: getDatasetName(ds),
+    value: String(getDatasetId(ds))
+  }));
+  return [{ label: '全部知识库', value: '' }, ...opts];
 });
 
 const modeLabel = computed(() => {
@@ -95,7 +110,8 @@ async function runSearch(text: string = query.value) {
           : 'hybrid_search';
     const res = await searchKb({
       query: text,
-      topN: 12,
+      datasetId: selectedDataset.value || undefined,
+      topN: topK.value,
       searchMethod: difyMethod
     });
     if (res.error) {
@@ -221,6 +237,37 @@ onMounted(async () => {
               @keydown.enter="runSearch()"
             />
             <NButton type="primary" :loading="loading" @click="runSearch()">开始检索</NButton>
+          </div>
+
+          <!-- 检索范围与调参（对齐 Dify 命中测试） -->
+          <div class="mt-10px flex flex-wrap items-center gap-10px">
+            <div class="param-group">
+              <span class="param-label">知识集合</span>
+              <NSelect
+                v-model:value="selectedDataset"
+                :options="datasetOptions"
+                placeholder="全部知识库"
+                clearable
+                size="small"
+                class="param-dataset"
+              />
+            </div>
+            <div class="param-group">
+              <span class="param-label">TopK</span>
+              <NInputNumber v-model:value="topK" :min="1" :max="50" size="small" class="param-topk" />
+            </div>
+            <div class="param-group">
+              <span class="param-label">Score 阈值</span>
+              <NSwitch
+                v-model:value="useThreshold"
+                size="small"
+                :disabled="true"
+                title="需后端启用 Score 阈值能力，暂不可用"
+              />
+            </div>
+            <span v-if="selectedDataset" class="mode-hint">
+              仅在「{{ getCollectionLabel(selectedDataset) }}」集合内检索
+            </span>
           </div>
 
           <div class="mt-10px flex flex-wrap gap-6px">
@@ -528,6 +575,27 @@ onMounted(async () => {
   font-size: 11px;
   color: rgba(147, 196, 255, 0.45);
   font-style: italic;
+}
+
+/* ── 检索范围与调参 ── */
+.param-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.param-label {
+  font-size: 12px;
+  color: rgba(203, 227, 255, 0.7);
+  flex-shrink: 0;
+}
+
+.param-dataset {
+  width: 160px;
+}
+
+.param-topk {
+  width: 80px;
 }
 
 /* ── 关联模块徽章 ── */

@@ -53,8 +53,9 @@ const activeAgentKey = computed(() => agent.value.key || agentKey.value);
 const currentAppId = computed(() => activeAgentKey.value || undefined);
 
 function goBack() {
+  const from = String(route.query.from || '');
   router.push({
-    name: 'agent_workbench' as never,
+    name: (from === 'monitor' ? 'agent_monitor' : 'agent_test') as never,
     query: {
       agent: activeAgentKey.value,
       input: detail.value?.input

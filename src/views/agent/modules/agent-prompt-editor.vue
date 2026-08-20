@@ -16,7 +16,7 @@ const openingStatement = ref('');
 const suggestedQuestions = ref<string[]>([]);
 const variableForm = ref<Array<Record<string, unknown>>>([]);
 
-/** 高级变量（Dify 编排中常用占位符），点击插入到系统提示词 */
+/** 高级变量（编排中常用占位符），点击插入到系统提示词 */
 const ADVANCED_VARIABLES: Array<{ label: string; token: string }> = [
   { label: '知识库上下文', token: '{{#context#}}' },
   { label: '当前问题', token: '{{#query#}}' },
@@ -225,7 +225,7 @@ function removeVar(index: number) {
               <NButton text size="small" type="error" class="var-remove" @click="removeVar(i)">移除</NButton>
             </div>
           </div>
-          <div class="field__hint">变量表单修改后会随编排一并保存到 Dify model-config 的 user_input_form。</div>
+          <div class="field__hint">变量表单修改后会随编排一并保存到编排平台的模型配置 user_input_form。</div>
         </div>
 
         <div class="actions">

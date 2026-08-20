@@ -19,10 +19,12 @@ declare module "@elegant-router/types" {
     "not-found": "/:pathMatch(.*)*";
     "screen-fullscreen": "/screen-fullscreen";
     "globe-fullscreen": "/globe-fullscreen";
-    "agent_workbench": "/agent/workbench";
+    "agent_index": "/agent";
     "agent_config": "/agent/config";
     "agent_test": "/agent/test";
-    "agent_task_detail": "/agent/task-detail";
+    "agent_tools": "/agent/tools";
+    "agent_monitor": "/agent/monitor";
+    "agent_task_detail": "/agent/task/:id";
     "knowledge_overview": "/knowledge/overview";
     "knowledge_collections": "/knowledge/collections";
     "knowledge_retrieval": "/knowledge/retrieval";
@@ -66,9 +68,11 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "screen-fullscreen"
     | "globe-fullscreen"
-    | "agent_workbench"
+    | "agent_index"
     | "agent_config"
     | "agent_test"
+    | "agent_tools"
+    | "agent_monitor"
     | "agent_task_detail"
     | "knowledge_overview"
     | "knowledge_collections"
@@ -109,9 +113,11 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "screen-fullscreen"
     | "globe-fullscreen"
-    | "agent_workbench"
+    | "agent_index"
     | "agent_config"
     | "agent_test"
+    | "agent_tools"
+    | "agent_monitor"
     | "agent_task_detail"
     | "knowledge_overview"
     | "knowledge_collections"
@@ -152,9 +158,11 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "screen-fullscreen"
     | "globe-fullscreen"
-    | "agent_workbench"
+    | "agent_index"
     | "agent_config"
     | "agent_test"
+    | "agent_tools"
+    | "agent_monitor"
     | "agent_task_detail"
     | "knowledge_overview"
     | "knowledge_collections"

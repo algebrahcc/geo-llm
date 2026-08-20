@@ -250,7 +250,7 @@ function extractConversationSteps(messages: Api.Dify.ConversationMessage[], answ
       description: answer ? `已生成 ${answer.length} 字回复内容` : '已完成回复生成',
       status: 'success',
       duration: '--',
-      tool: 'Dify'
+      tool: '智能体引擎'
     },
     {
       key: 'output',
@@ -276,7 +276,7 @@ export function mapDifyAppToAgent(app: Api.DifyApp.DifyAppResp): AgentDefinition
     baseUrl: app.baseUrl || '',
     category: typeName,
     status: app.status === 1 ? 'online' : 'draft',
-    model: app.baseUrl ? 'Dify 自定义地址' : 'Dify',
+    model: app.baseUrl ? '自定义服务' : '默认引擎',
     version: app.updateTime ? '已配置' : '待配置',
     confidence: 0,
     avgDuration: '--',

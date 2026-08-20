@@ -9,7 +9,7 @@ export interface AgentDefinition {
   slogan: string;
   description: string;
   appType?: Api.DifyApp.AppType;
-  /** Dify 远端应用 ID（UUID），用于拼接 Dify 控制台编排页 URL */
+  /** 远端应用 ID（UUID），用于拼接编排控制台编排页 URL */
   difyAppId?: string;
   /** 应用单独配置的 Dify 服务地址；为空则回退全局 dify.url */
   baseUrl?: string;
@@ -85,9 +85,5 @@ export interface AgentTestRecord {
 export interface AgentCreateModel {
   name: string;
   type: Api.DifyApp.AppType;
-  description: string;
-  baseUrl: string;
-  apiKey: string;
-  sort: number;
-  status: Api.DifyApp.AppStatus;
+  description?: string;
 }

@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import type { UploadFileInfo } from 'naive-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import {
   fetchDifyChatStream,
+  fetchDifyConversations,
+  fetchDifyConversationMessages,
   fetchDifyFileUpload,
   fetchDifyParameters,
   fetchDifyStop,
@@ -63,6 +65,48 @@ let currentController: AbortController | null = null;
 
 const prompt = ref('');
 const parameterValues = reactive<Record<string, unknown>>({});
+
+type ChatMsg = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  time: string;
+  suggested?: string[];
+};
+const messages = ref<ChatMsg[]>([]);
+const messageArea = ref<HTMLElement | null>(null);
+/** 是否保留对话上下文（多轮调试）。关闭时每轮独立会话，对齐调试平台「单轮/多轮」开关 */
+const keepContext = ref(true);
+const currentConversationId = ref('');
+/** 输入框聚焦态，用于视觉高亮 */
+const inputFocused = ref(false);
+
+function pushMessage(role: ChatMsg['role'], content = '') {
+  const msg: ChatMsg = {
+    id: `${Date.now()}-${Math.random()}`,
+    role,
+    content,
+    time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  };
+  messages.value.push(msg);
+  return msg;
+}
+
+function copyMessage(msg: ChatMsg) {
+  const text = msg.content || '';
+  if (!text) return;
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(() => window.$message?.success('已复制'));
+  } else {
+    window.$message?.info('当前环境不支持复制');
+  }
+}
+
+function scrollMessageArea() {
+  nextTick(() => {
+    messageArea.value?.scrollTo({ top: messageArea.value.scrollHeight, behavior: 'smooth' });
+  });
+}
 
 const isWorkflow = computed(() => selectedAgent.value.appType === 3);
 const parameterFields = computed(() => normalizeParameterFields(parameters.value));
@@ -191,10 +235,6 @@ async function collectRuntimeFiles() {
   return files;
 }
 
-function handleSelect(key: typeof agentKey.value) {
-  updateAgentQuery(key);
-}
-
 function handleLocalFileChange(options: { fileList: UploadFileInfo[] }) {
   uploadFiles.value = options.fileList.slice(0, fileCapability.value.limit);
 }
@@ -219,18 +259,52 @@ async function loadParameters() {
   }
 }
 
+/** 加载最近一次会话的历史消息，便于进入测试页时延续上下文（原运行页能力并入） */
+async function loadHistory() {
+  if (isWorkflow.value || !currentAppId.value || !userId.value) return;
+  try {
+    const res = await fetchDifyConversations({ appId: currentAppId.value, userId: userId.value });
+    const list = (res as unknown as Api.Dify.ConversationList)?.data ?? [];
+    if (!list.length) return;
+    const first = list[0];
+    currentConversationId.value = first.id;
+    const msgRes = await fetchDifyConversationMessages({
+      appId: currentAppId.value,
+      userId: userId.value,
+      conversationId: first.id
+    });
+    const msgs = (msgRes as unknown as Api.Dify.ConversationMessages)?.data ?? [];
+    messages.value = msgs
+      .filter(m => m.query || m.answer)
+      .map(m => ({
+        id: m.id || `${Date.now()}-${Math.random()}`,
+        role: (m.query ? 'user' : 'assistant') as ChatMsg['role'],
+        content: m.query || m.answer || '',
+        time: ''
+      }));
+    if (messages.value.length) {
+      nextTick(() => messageArea.value?.scrollTo({ top: messageArea.value.scrollHeight }));
+    }
+  } catch {
+    // 历史加载失败不阻塞，仍可从空开始测试
+  }
+}
+
 watch(
   agentKey,
   async () => {
     prompt.value = selectedAgent.value.defaultInput;
+    messages.value = [];
     streamOutput.value = '';
     streamEvents.value = [];
     suggestedQuestions.value = [];
     currentTaskId.value = '';
     currentMessageId.value = '';
+    currentConversationId.value = '';
     uploadFiles.value = [];
     remoteFileUrls.value = '';
     await loadParameters();
+    await loadHistory();
   },
   { immediate: true }
 );
@@ -264,6 +338,25 @@ async function handleStop() {
   }
 }
 
+function handleSelect(key: typeof agentKey.value) {
+  updateAgentQuery(key);
+}
+
+function clearChat() {
+  messages.value = [];
+  streamOutput.value = '';
+  streamEvents.value = [];
+  suggestedQuestions.value = [];
+  latestRecord.value = null;
+  currentConversationId.value = '';
+}
+
+function onKeepContextChange(value: boolean) {
+  keepContext.value = value;
+  // 切换时重置上下文，避免脏会话污染下一轮
+  currentConversationId.value = '';
+}
+
 async function handleRun(targetPrompt?: string) {
   if (!currentAppId.value || !userId.value) {
     window.$message?.warning('请先选择智能体');
@@ -288,6 +381,16 @@ async function handleRun(targetPrompt?: string) {
     const runtimePrompt = (targetPrompt || prompt.value).trim();
     const inputs = buildRuntimeInputs();
     const files = await collectRuntimeFiles();
+
+    // 把用户消息与待生成的助手消息推入对话气泡
+    const userMsg = pushMessage('user', runtimePrompt);
+    userMsg.suggested = undefined;
+    prompt.value = '';
+    const botMsg = pushMessage('assistant');
+    const appendBot = (text: string) => {
+      botMsg.content += text;
+      scrollMessageArea();
+    };
     appendEvent('请求发起', isWorkflow.value ? '已发送工作流流式请求' : '已发送会话流式请求');
 
     if (isWorkflow.value) {
@@ -309,11 +412,14 @@ async function handleRun(targetPrompt?: string) {
             }
           },
           onDone: outputsJson => {
-            streamOutput.value = stringifyOutput(JSON.parse(outputsJson));
+            const output = stringifyOutput(JSON.parse(outputsJson));
+            streamOutput.value = output;
+            botMsg.content = output;
+            scrollMessageArea();
             latestRecord.value = buildTestRecord({
               agent: selectedAgent.value,
               prompt: runtimePrompt || '工作流运行',
-              answer: streamOutput.value,
+              answer: output,
               taskId: currentTaskId.value,
               mode: 'workflow'
             });
@@ -333,11 +439,13 @@ async function handleRun(targetPrompt?: string) {
           query: runtimePrompt,
           inputs,
           files,
-          autoGenerateName: true
+          autoGenerateName: true,
+          conversationId: keepContext.value ? currentConversationId.value || undefined : undefined
         },
         {
           onDelta: text => {
             streamOutput.value += text;
+            appendBot(text);
           },
           onThought: payload => {
             appendEvent('思考过程', stringifyOutput(payload));
@@ -353,6 +461,9 @@ async function handleRun(targetPrompt?: string) {
             const donePayload = typeof payload === 'string' ? { conversationId: payload } : payload;
             currentTaskId.value = donePayload.taskId || currentTaskId.value;
             currentMessageId.value = donePayload.messageId || currentMessageId.value;
+            if (donePayload.conversationId) {
+              currentConversationId.value = donePayload.conversationId;
+            }
             if (currentMessageId.value) {
               try {
                 const res = await fetchDifySuggestedQuestions({
@@ -378,6 +489,8 @@ async function handleRun(targetPrompt?: string) {
               mode: 'chat',
               suggestedQuestions: suggestedQuestions.value
             });
+            botMsg.suggested = suggestedQuestions.value;
+            scrollMessageArea();
           },
           onError: message => {
             appendEvent('错误', message);
@@ -406,182 +519,280 @@ async function handleRun(targetPrompt?: string) {
       </aside>
 
       <section class="agent-main">
-        <div class="panel-surface">
+        <!-- 对话型主区：底部固定输入框 + 气泡流 -->
+        <div v-if="!isWorkflow" class="chat-panel panel-surface">
           <div class="panel-head">
             <SvgIcon :icon="selectedAgent.icon" class="panel-head__icon" />
-            <span class="panel-head__title">{{ selectedAgent.name }}测试台</span>
+            <span class="panel-head__title">{{ selectedAgent.name }}</span>
+            <NTag size="small" round :bordered="false" class="mode-tag">对话</NTag>
             <div class="ml-auto flex gap-8px">
-              <NButton secondary :disabled="!testing" @click="handleStop">停止</NButton>
-              <NButton type="primary" :loading="testing" @click="handleRun()">开始测试</NButton>
+              <NButton text size="small" :disabled="!messages.length || testing" @click="clearChat">
+                <template #icon>
+                  <SvgIcon icon="mdi:delete-sweep-outline" />
+                </template>
+                清空
+              </NButton>
+              <NButton secondary size="small" :disabled="!testing" @click="handleStop">
+                <template #icon>
+                  <SvgIcon icon="mdi:stop" />
+                </template>
+                停止
+              </NButton>
             </div>
           </div>
-          <div class="panel-body">
-            <div class="section-desc">直接以流式方式验证参数、附件、过程事件与最终输出。</div>
-          </div>
-        </div>
 
-        <div class="grid gap-10px xl:grid-cols-[1.1fr_0.9fr]">
-          <div class="panel-surface">
-            <div class="panel-head">
-              <SvgIcon icon="mdi:play-circle-outline" class="panel-head__icon" />
-              <span class="panel-head__title">测试输入</span>
-            </div>
-            <div class="panel-body">
-              <NForm label-placement="top" :show-feedback="false">
-                <NFormItem :label="isWorkflow ? '执行说明' : '输入内容'">
-                  <NInput v-model:value="prompt" type="textarea" :autosize="{ minRows: 4, maxRows: 8 }" />
-                </NFormItem>
-
-                <template v-if="parameterFields.length">
-                  <div class="runtime-section__title">动态参数</div>
-                  <div class="grid gap-10px md:grid-cols-2">
-                    <NFormItem
-                      v-for="field in parameterFields"
-                      :key="field.name"
-                      :label="field.label"
-                      :required="field.required"
-                    >
-                      <NInput
-                        v-if="field.kind === 'text'"
-                        :value="getFieldStringValue(field.name)"
-                        :placeholder="field.placeholder"
-                        @update:value="value => updateFieldValue(field.name, value)"
-                      />
-                      <NInput
-                        v-else-if="field.kind === 'textarea'"
-                        :value="getFieldStringValue(field.name)"
-                        type="textarea"
-                        :placeholder="field.placeholder"
-                        :autosize="{ minRows: 3, maxRows: 6 }"
-                        @update:value="value => updateFieldValue(field.name, value)"
-                      />
-                      <NInputNumber
-                        v-else-if="field.kind === 'number'"
-                        class="w-full"
-                        :value="getFieldNumberValue(field.name)"
-                        @update:value="value => updateFieldValue(field.name, value)"
-                      />
-                      <NSelect
-                        v-else-if="field.kind === 'select'"
-                        :value="getFieldSelectValue(field.name)"
-                        :options="field.options || []"
-                        clearable
-                        @update:value="value => updateFieldValue(field.name, value)"
-                      />
-                      <NSwitch
-                        v-else
-                        :value="getFieldSwitchValue(field.name)"
-                        @update:value="value => updateFieldValue(field.name, value)"
-                      />
-                    </NFormItem>
-                  </div>
-                </template>
-
-                <template v-if="fileCapability.enabled">
-                  <div class="runtime-section__title">附件输入</div>
-                  <NFormItem v-if="fileCapability.supportLocalFile" label="本地文件">
-                    <NUpload
-                      multiple
-                      :max="fileCapability.limit"
-                      :file-list="uploadFiles"
-                      :default-upload="false"
-                      :accept="fileCapability.accept === '*' ? undefined : fileCapability.accept"
-                      @change="handleLocalFileChange"
-                      @remove="handleLocalFileRemove"
-                    >
-                      <NButton secondary>
-                        <template #icon>
-                          <SvgIcon icon="mdi:paperclip" />
-                        </template>
-                        选择文件
-                      </NButton>
-                    </NUpload>
-                  </NFormItem>
-                  <NFormItem v-if="fileCapability.supportRemoteUrl" label="远程文件 URL">
-                    <NInput
-                      v-model:value="remoteFileUrls"
-                      type="textarea"
-                      placeholder="每行一个 URL，可直接引用远程文件"
-                      :autosize="{ minRows: 2, maxRows: 4 }"
-                    />
-                  </NFormItem>
-                </template>
-              </NForm>
-
-              <div class="mt-10px flex flex-wrap gap-4px">
-                <NTag
+          <div ref="messageArea" class="chat-messages">
+            <div v-if="!messages.length" class="chat-welcome">
+              <SvgIcon icon="mdi:message-processing-outline" class="chat-welcome__icon" />
+              <div class="chat-welcome__title">开始调试</div>
+              <div class="chat-welcome__desc">在下方输入消息，模拟对话测试应用，流式返回结果。</div>
+              <div v-if="quickPrompts.length" class="chat-welcome__prompts">
+                <button
                   v-for="item in quickPrompts"
                   :key="item"
-                  size="small"
-                  round
-                  :bordered="false"
-                  class="quick-tag"
+                  type="button"
+                  class="prompt-chip"
                   @click="handleRun(item)"
                 >
                   {{ item }}
-                </NTag>
+                </button>
+              </div>
+            </div>
+
+            <div v-for="msg in messages" :key="msg.id" class="chat-row" :class="msg.role">
+              <div class="chat-avatar" :class="msg.role">
+                <SvgIcon :icon="msg.role === 'user' ? 'mdi:account-outline' : selectedAgent.icon" />
+              </div>
+              <div class="chat-bubble" :class="msg.role">
+                <div v-if="msg.content" class="chat-bubble__text">{{ msg.content }}</div>
+                <div v-else-if="testing" class="chat-bubble__loading">
+                  <span class="dot" />
+                  <span class="dot" />
+                  <span class="dot" />
+                </div>
+                <div v-if="msg.content" class="chat-bubble__meta">
+                  <span class="chat-bubble__time">{{ msg.time }}</span>
+                  <button type="button" class="copy-btn" title="复制内容" @click="copyMessage(msg)">
+                    <SvgIcon icon="mdi:content-copy" />
+                  </button>
+                </div>
+                <div v-if="msg.suggested?.length" class="chat-bubble__suggested">
+                  <button v-for="q in msg.suggested" :key="q" type="button" class="prompt-chip" @click="handleRun(q)">
+                    {{ q }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="panel-surface">
-            <div class="panel-head">
-              <SvgIcon icon="mdi:text-box-check-outline" class="panel-head__icon" />
-              <span class="panel-head__title">实时输出</span>
-            </div>
-            <div class="panel-body">
-              <div v-if="streamOutput" class="result-block">{{ streamOutput }}</div>
-              <NEmpty v-else description="等待测试结果" class="py-20px" />
-              <div v-if="suggestedQuestions.length" class="mt-12px flex flex-wrap gap-4px">
-                <NTag
-                  v-for="item in suggestedQuestions"
-                  :key="item"
-                  size="small"
-                  round
-                  :bordered="false"
-                  class="quick-tag"
+          <div class="chat-input" :class="{ 'chat-input--focused': inputFocused }">
+            <NInput
+              v-model:value="prompt"
+              type="textarea"
+              :autosize="{ minRows: 1, maxRows: 5 }"
+              placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+              :disabled="testing"
+              @focus="inputFocused = true"
+              @blur="inputFocused = false"
+              @keydown.enter.prevent="handleRun()"
+            />
+            <div class="chat-input__toolbar">
+              <div class="flex items-center gap-2px">
+                <NUpload
+                  v-if="fileCapability.supportLocalFile"
+                  multiple
+                  :max="fileCapability.limit"
+                  :file-list="uploadFiles"
+                  :default-upload="false"
+                  :accept="fileCapability.accept === '*' ? undefined : fileCapability.accept"
+                  class="inline-block"
+                  @change="handleLocalFileChange"
+                  @remove="handleLocalFileRemove"
                 >
-                  {{ item }}
-                </NTag>
+                  <button type="button" class="icon-btn" title="上传文件">
+                    <SvgIcon icon="mdi:paperclip" />
+                  </button>
+                </NUpload>
+                <span v-if="testing" class="chat-input__status">
+                  <span class="pulse-dot" />
+                  生成中…
+                </span>
+              </div>
+              <div class="flex items-center gap-6px">
+                <span v-if="prompt.trim() && !testing" class="chat-input__hint">Enter 发送</span>
+                <NButton type="primary" size="small" :loading="testing" :disabled="!prompt.trim()" @click="handleRun()">
+                  <template #icon>
+                    <SvgIcon icon="mdi:send" />
+                  </template>
+                  发送
+                </NButton>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="grid gap-10px xl:grid-cols-[0.9fr_1.1fr]">
-          <div class="panel-surface">
-            <div class="panel-head">
-              <SvgIcon icon="mdi:timeline-text-outline" class="panel-head__icon" />
-              <span class="panel-head__title">过程事件</span>
+        <!-- 工作流主区：单轮运行（输入表单 + 运行结果） -->
+        <div v-else class="wf-panel panel-surface">
+          <div class="panel-head">
+            <SvgIcon :icon="selectedAgent.icon" class="panel-head__icon" />
+            <span class="panel-head__title">{{ selectedAgent.name }}</span>
+            <NTag size="small" round :bordered="false" class="mode-tag">工作流</NTag>
+            <div class="ml-auto flex gap-8px">
+              <NButton secondary size="small" :disabled="!testing" @click="handleStop">
+                <template #icon>
+                  <SvgIcon icon="mdi:stop" />
+                </template>
+                停止
+              </NButton>
+              <NButton type="primary" size="small" :loading="testing" :disabled="!prompt.trim()" @click="handleRun()">
+                <template #icon>
+                  <SvgIcon icon="mdi:play" />
+                </template>
+                运行
+              </NButton>
             </div>
-            <div class="panel-body">
-              <div v-if="streamEvents.length" class="flex flex-col gap-8px">
+          </div>
+
+          <div class="wf-panel__body">
+            <div class="wf-run-form">
+              <div class="wf-run-form__desc">
+                填写运行参数，点击「运行」执行工作流，下方展示节点执行过程与最终输出。
+              </div>
+
+              <NFormItem label="执行说明">
+                <NInput
+                  v-model:value="prompt"
+                  type="textarea"
+                  placeholder="输入执行说明，作为工作流输入"
+                  :autosize="{ minRows: 2, maxRows: 4 }"
+                />
+              </NFormItem>
+
+              <template v-if="parameterFields.length">
+                <div class="runtime-section__title">工作流变量</div>
+                <div class="flex flex-col gap-6px">
+                  <NFormItem
+                    v-for="field in parameterFields"
+                    :key="field.name"
+                    :label="field.label"
+                    :required="field.required"
+                  >
+                    <NInput
+                      v-if="field.kind === 'text'"
+                      :value="getFieldStringValue(field.name)"
+                      :placeholder="field.placeholder"
+                      @update:value="value => updateFieldValue(field.name, value)"
+                    />
+                    <NInput
+                      v-else-if="field.kind === 'textarea'"
+                      :value="getFieldStringValue(field.name)"
+                      type="textarea"
+                      :placeholder="field.placeholder"
+                      :autosize="{ minRows: 3, maxRows: 6 }"
+                      @update:value="value => updateFieldValue(field.name, value)"
+                    />
+                    <NInputNumber
+                      v-else-if="field.kind === 'number'"
+                      class="w-full"
+                      :value="getFieldNumberValue(field.name)"
+                      @update:value="value => updateFieldValue(field.name, value)"
+                    />
+                    <NSelect
+                      v-else-if="field.kind === 'select'"
+                      :value="getFieldSelectValue(field.name)"
+                      :options="field.options || []"
+                      clearable
+                      @update:value="value => updateFieldValue(field.name, value)"
+                    />
+                    <NSwitch
+                      v-else
+                      :value="getFieldSwitchValue(field.name)"
+                      @update:value="value => updateFieldValue(field.name, value)"
+                    />
+                  </NFormItem>
+                </div>
+              </template>
+
+              <div v-if="quickPrompts.length" class="wf-run-form__prompts">
+                <button
+                  v-for="item in quickPrompts"
+                  :key="item"
+                  type="button"
+                  class="prompt-chip"
+                  @click="handleRun(item)"
+                >
+                  {{ item }}
+                </button>
+              </div>
+            </div>
+
+            <div class="wf-run-result">
+              <div class="wf-run-result__head">运行结果</div>
+              <div v-if="streamOutput" class="wf-output">{{ streamOutput }}</div>
+              <div v-else class="wf-run-result__empty">运行后在此查看输出</div>
+
+              <div v-if="streamEvents.length" class="wf-run-result__logs">
+                <div class="wf-run-result__logtitle">节点执行过程</div>
+                <div class="flex flex-col gap-6px">
+                  <div v-for="item in streamEvents" :key="item.id" class="step-card">
+                    <div class="step-label">{{ item.label }}</div>
+                    <div class="step-detail">{{ item.detail }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧设置面板 -->
+        <div class="side-panel panel-surface">
+          <div class="panel-head">
+            <SvgIcon icon="mdi:sliders-horizontal" class="panel-head__icon" />
+            <span class="panel-head__title">运行设置</span>
+          </div>
+          <div class="panel-body">
+            <NForm label-placement="top" :show-feedback="false">
+              <div v-if="!isWorkflow" class="setting-group">
+                <div class="setting-group__label">对话模式</div>
+                <div class="setting-row">
+                  <div class="setting-row__info">
+                    <div class="setting-row__label">保留对话上下文</div>
+                    <div class="setting-row__desc">
+                      {{ keepContext ? '多轮：延续历史对话继续追问' : '单轮：每轮独立会话' }}
+                    </div>
+                  </div>
+                  <NSwitch :value="keepContext" @update:value="onKeepContextChange" />
+                </div>
+              </div>
+
+              <template v-if="fileCapability.supportRemoteUrl">
+                <div class="setting-group">
+                  <div class="setting-group__label">附件</div>
+                  <div class="setting-row">
+                    <div class="setting-row__info">
+                      <div class="setting-row__label">远程文件 URL</div>
+                      <div class="setting-row__desc">每行一个 URL，随请求发送</div>
+                    </div>
+                  </div>
+                  <NInput
+                    v-model:value="remoteFileUrls"
+                    type="textarea"
+                    placeholder="每行一个 URL"
+                    :autosize="{ minRows: 2, maxRows: 4 }"
+                  />
+                </div>
+              </template>
+
+              <div v-if="streamEvents.length && !isWorkflow" class="setting-group">
+                <div class="setting-group__label">运行日志</div>
+              </div>
+              <div v-if="streamEvents.length && !isWorkflow" class="flex flex-col gap-6px">
                 <div v-for="item in streamEvents" :key="item.id" class="step-card">
                   <div class="step-label">{{ item.label }}</div>
                   <div class="step-detail">{{ item.detail }}</div>
                 </div>
               </div>
-              <NEmpty v-else description="暂无过程事件" class="py-20px" />
-            </div>
-          </div>
-
-          <div class="panel-surface">
-            <div class="panel-head">
-              <SvgIcon icon="mdi:history" class="panel-head__icon" />
-              <span class="panel-head__title">最近结果</span>
-            </div>
-            <div class="panel-body">
-              <div v-if="latestRecord" class="flex flex-col gap-10px">
-                <div class="result-block">{{ latestRecord.response }}</div>
-                <div class="flex flex-col gap-6px">
-                  <div v-for="step in latestRecord.steps" :key="step.label" class="step-card">
-                    <div class="step-label">{{ step.label }}</div>
-                    <div class="step-detail">{{ step.detail }}</div>
-                  </div>
-                </div>
-              </div>
-              <NEmpty v-else description="暂无测试结果" class="py-20px" />
-            </div>
+            </NForm>
           </div>
         </div>
       </section>
@@ -616,15 +827,380 @@ async function handleRun(targetPrompt?: string) {
 }
 
 .agent-main {
-  display: flex;
+  display: grid;
   min-width: 0;
-  flex-direction: column;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: 1fr;
   gap: 10px;
+  min-height: 0;
+  height: 100%;
 }
 
-.section-desc {
-  font-size: 12px;
-  color: rgba(203, 227, 255, 0.65);
+/* 对话主区 */
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 工作流主区 */
+.wf-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+
+  &__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px 18px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+}
+
+.wf-run-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &__desc {
+    font-size: 12px;
+    color: rgba(203, 227, 255, 0.55);
+    margin-bottom: 6px;
+  }
+
+  &__prompts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+}
+
+.wf-run-result {
+  margin-top: 4px;
+
+  &__head {
+    font-size: 13px;
+    font-weight: 700;
+    color: #eaf5ff;
+    margin-bottom: 8px;
+  }
+
+  &__empty {
+    font-size: 12px;
+    color: rgba(203, 227, 255, 0.4);
+    padding: 16px 0;
+    text-align: center;
+    border: 1px dashed rgba(25, 95, 176, 0.25);
+    border-radius: 6px;
+  }
+
+  &__logs {
+    margin-top: 14px;
+  }
+
+  &__logtitle {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(203, 227, 255, 0.7);
+    margin-bottom: 6px;
+  }
+}
+
+.wf-output {
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: rgba(6, 20, 38, 0.5);
+  border: 1px solid rgba(25, 95, 176, 0.18);
+  color: rgba(41, 163, 255, 0.9);
+  font-size: 13px;
+  line-height: 22px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.mode-tag {
+  background: rgba(41, 163, 255, 0.12);
+  border: 1px solid rgba(41, 163, 255, 0.25);
+  color: rgba(41, 163, 255, 0.95);
+  margin-left: 8px;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.chat-welcome {
+  margin: auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: rgba(203, 227, 255, 0.6);
+
+  &__icon {
+    font-size: 46px;
+    color: rgba(41, 163, 255, 0.35);
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #eaf5ff;
+  }
+
+  &__desc {
+    font-size: 12px;
+    max-width: 420px;
+    line-height: 1.6;
+  }
+
+  &__prompts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    max-width: 420px;
+  }
+}
+
+.chat-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  animation: chat-in 0.25s ease;
+
+  &.user {
+    flex-direction: row-reverse;
+  }
+}
+
+@keyframes chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-size: 16px;
+  color: #fff;
+
+  &.user {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  }
+
+  &.assistant {
+    background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+  }
+}
+
+.chat-bubble {
+  max-width: 76%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  &.user {
+    background: linear-gradient(135deg, rgba(19, 95, 182, 0.55), rgba(9, 46, 92, 0.55));
+    border: 1px solid rgba(61, 166, 255, 0.35);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  &.assistant {
+    background: rgba(6, 20, 38, 0.5);
+    border: 1px solid rgba(25, 95, 176, 0.22);
+    color: #d6eaff;
+    border-bottom-left-radius: 4px;
+  }
+
+  &__loading {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px 0;
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(41, 163, 255, 0.6);
+      animation: chat-blink 1.2s infinite;
+
+      &:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      &:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+    }
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &:hover &__meta {
+    opacity: 1;
+  }
+
+  &__time {
+    font-size: 11px;
+    color: rgba(203, 227, 255, 0.4);
+  }
+
+  &__suggested {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+}
+
+.copy-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: rgba(203, 227, 255, 0.45);
+  cursor: pointer;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+
+  &:hover {
+    color: #29a3ff;
+  }
+}
+
+@keyframes chat-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+
+  40% {
+    opacity: 1;
+  }
+}
+
+.chat-input {
+  padding: 10px 14px;
+  border-top: 1px solid var(--agent-line);
+  transition: box-shadow 0.2s ease;
+
+  &--focused {
+    box-shadow: 0 -2px 16px rgba(41, 163, 255, 0.08);
+  }
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: rgba(41, 163, 255, 0.85);
+  }
+
+  &__hint {
+    font-size: 11px;
+    color: rgba(203, 227, 255, 0.4);
+  }
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #29a3ff;
+  animation: pulse-dot 1s infinite;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(41, 163, 255, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(41, 163, 255, 0);
+  }
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(203, 227, 255, 0.7);
+  cursor: pointer;
+  font-size: 17px;
+
+  &:hover {
+    background: rgba(41, 163, 255, 0.12);
+    color: #29a3ff;
+  }
+}
+
+/* 右侧设置 */
+.side-panel {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.side-panel .panel-body {
+  overflow-y: auto;
+  flex: 1;
 }
 
 .runtime-section__title {
@@ -634,22 +1210,60 @@ async function handleRun(targetPrompt?: string) {
   color: rgba(203, 227, 255, 0.82);
 }
 
-.quick-tag {
-  cursor: pointer;
-  background: rgba(41, 163, 255, 0.1);
-  border: 1px solid rgba(41, 163, 255, 0.22);
-  color: rgba(203, 227, 255, 0.82);
+.setting-group {
+  margin-bottom: 4px;
+
+  &__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(41, 163, 255, 0.85);
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(25, 95, 176, 0.15);
+  }
 }
 
-.result-block {
-  padding: 10px 12px;
-  border-radius: 4px;
-  background: rgba(6, 20, 38, 0.5);
-  border: 1px solid rgba(25, 95, 176, 0.18);
-  color: rgba(41, 163, 255, 0.85);
-  font-size: 13px;
-  line-height: 22px;
-  white-space: pre-wrap;
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+
+  &__info {
+    min-width: 0;
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #eaf5ff;
+  }
+
+  &__desc {
+    font-size: 11px;
+    line-height: 1.4;
+    color: rgba(203, 227, 255, 0.5);
+    margin-top: 2px;
+  }
+}
+
+.prompt-chip {
+  font-size: 12px;
+  padding: 5px 12px;
+  border: 1px solid rgba(41, 163, 255, 0.25);
+  border-radius: 999px;
+  background: rgba(41, 163, 255, 0.08);
+  color: rgba(203, 227, 255, 0.85);
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: #29a3ff;
+    background: rgba(41, 163, 255, 0.16);
+    color: #29a3ff;
+  }
 }
 
 .step-card {
@@ -678,8 +1292,16 @@ async function handleRun(targetPrompt?: string) {
     grid-template-columns: 1fr;
   }
 
+  .agent-main {
+    grid-template-columns: 1fr;
+  }
+
   .agent-sidebar {
     max-height: 280px;
+  }
+
+  .chat-bubble {
+    max-width: 92%;
   }
 }
 </style>

@@ -86,7 +86,7 @@ async function toggleBind(d: Api.Knowledge.Dataset, next: boolean) {
   } catch (e) {
     const msg = (e as { message?: string })?.message;
     if (msg && /Agent|Workflow|编排|原生/i.test(msg)) {
-      window.$message?.error(msg || '该应用类型不支持接口绑定知识库，请在 Dify 控制台「编排」页中配置');
+      window.$message?.error(msg || '该应用类型不支持接口绑定知识库，请在编排控制台中配置');
     } else {
       window.$message?.error(msg || '操作失败，请确认后端已代理「应用-知识库」绑定接口');
     }
