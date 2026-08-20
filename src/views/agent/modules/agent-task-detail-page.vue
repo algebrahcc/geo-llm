@@ -18,12 +18,12 @@ import { useAuthStore } from '@/store/modules/auth';
 import AgentTaskTimeline from './agent-task-timeline.vue';
 import { useDifyApps } from './use-dify-app';
 import {
+  asList,
   buildConversationTask,
   buildWorkflowTaskFromDetail,
   normalizeSuggestedQuestions,
   stringifyOutput
 } from './real';
-import { asList, extractPayload } from '../../knowledge/modules/real';
 
 defineOptions({
   name: 'AgentTaskDetailPage'
@@ -76,7 +76,7 @@ async function loadSuggestedQuestions(messageId: string) {
       userId: userId.value
     });
     suggestedQuestions.value = normalizeSuggestedQuestions(
-      (extractPayload<Api.Dify.SuggestedQuestionsResp>(res) as Api.Dify.SuggestedQuestionsResp | null) || undefined
+      (res.data as Api.Dify.SuggestedQuestionsResp | null) || undefined
     );
   } catch {
     suggestedQuestions.value = [];
@@ -103,8 +103,8 @@ async function loadChatDetail() {
     })
   ]);
 
-  const conversations = asList<Api.Dify.ConversationItem>(extractPayload(convRes));
-  const messages = asList<Api.Dify.ConversationMessage>(extractPayload(msgRes));
+  const conversations = asList<Api.Dify.ConversationItem>(convRes.data);
+  const messages = asList<Api.Dify.ConversationMessage>(msgRes.data);
   const conversation = conversations.find(item => item.id === taskId.value) || {
     id: taskId.value,
     name: `${agent.value.name}会话`,
@@ -135,7 +135,7 @@ async function loadWorkflowDetail() {
     appId: currentAppId.value,
     workflowRunId: taskId.value
   });
-  const payload = (extractPayload<Api.Dify.WorkflowRunDetail>(res) as Api.Dify.WorkflowRunDetail | null) || null;
+  const payload = (res.data as Api.Dify.WorkflowRunDetail | null) || null;
   if (!payload) {
     detail.value = null;
     return;
@@ -224,7 +224,7 @@ async function handleRerun(nextInput?: string) {
         userId: userId.value,
         inputs: detail.value.rawInputs || (nextInput ? { query: nextInput } : {})
       });
-      const payload = extractPayload<Api.Dify.WorkflowRunResp>(res) as Api.Dify.WorkflowRunResp | null;
+      const payload = res.data as Api.Dify.WorkflowRunResp | null;
       const workflowRunId = String(
         payload?.workflow_run_id || payload?.data?.workflow_run_id || payload?.data?.id || ''
       );
@@ -250,7 +250,7 @@ async function handleRerun(nextInput?: string) {
       inputs: detail.value.rawInputs || {},
       autoGenerateName: true
     });
-    const payload = extractPayload<Api.Dify.ChatResp>(res) as Api.Dify.ChatResp | null;
+    const payload = res.data as Api.Dify.ChatResp | null;
     if (!payload?.conversationId) {
       window.$message?.warning('后端未返回新的会话 ID');
       return;

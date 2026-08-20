@@ -150,15 +150,20 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     const { data: info, error } = await fetchGetUserInfo();
 
     if (!error && info) {
-      // 映射后端字段到前端结构
-      // 后端: { id, username, nickname, permissions, roles }
-      // 前端: { userId, userName, nickname, roles, buttons }
+      const record = info as Api.Auth.UserInfo & Record<string, unknown>;
+      // 映射后端字段到前端结构，兼容两种字段命名：
+      // - ContiNew 后端: { id, username, nickname, permissions, roles }
+      // - 前端统一:     { userId, userName, nickname, roles, buttons }
+      // 避免 userId/userName 取不到导致业务（如发送对话）误判为“未选择智能体”。
+      const id = record.userId ?? (record.id as string | undefined) ?? '';
+      const name = record.userName || (record.username as string | undefined) || '';
+
       Object.assign(userInfo, {
-        userId: String(info.userId ?? ''),
-        userName: info.userName || '',
-        nickname: info.nickname || info.userName || '',
-        roles: info.roles || [],
-        buttons: info.buttons || []
+        userId: String(id ?? ''),
+        userName: name,
+        nickname: record.nickname || name,
+        roles: record.roles || [],
+        buttons: record.buttons || []
       });
 
       return true;

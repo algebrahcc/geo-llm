@@ -9,7 +9,7 @@ import {
   fetchKbDocumentDetail,
   updateKbDocumentMetadata
 } from '@/service/api/knowledge';
-import { asList, extractPayload, mapKbDetailToKnowledgeDetail, getKnowledgeStatusMeta } from './modules/real';
+import { asList, mapKbDetailToKnowledgeDetail, getKnowledgeStatusMeta } from './modules/real';
 import type { ModuleRef, KnowledgeReference, KnowledgeDocumentDetail, KnowledgeChunk } from './modules/types';
 import KnowledgeSegmentEditor from './modules/knowledge-segment-editor.vue';
 import KnowledgeMetadataEditor from './modules/knowledge-metadata-editor.vue';
@@ -105,8 +105,8 @@ async function loadDetail(options?: { silent?: boolean }) {
       fetchKbDocumentDetail(documentId.value, datasetId.value),
       fetchKbDatasets()
     ]);
-    datasets.value = asList<Api.Knowledge.Dataset>(extractPayload(dsRes));
-    const payload = extractPayload<Api.Knowledge.DocumentDetail>(docRes) as Api.Knowledge.DocumentDetail | null;
+    datasets.value = asList<Api.Knowledge.Dataset>(dsRes.data);
+    const payload = docRes.data as Api.Knowledge.DocumentDetail | null;
     detail.value = payload ? mapKbDetailToKnowledgeDetail(payload, datasets.value) : null;
     ensurePolling();
   } catch {

@@ -433,7 +433,7 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
     case 'download':
       fetchCatalogDownloadUrl(item.id)
         .then(res => {
-          const url = extractData<string>(res);
+          const url = res.data;
           if (url) window.open(url, '_blank');
           else window.$message?.warning('该数据无下载地址');
         })
@@ -533,24 +533,6 @@ function adaptItem(raw: Api.Catalog.CatalogItem): CatalogItem {
   } as CatalogItem;
 }
 
-/**
- * 从 request 的 FlatResponse 结果中解包真正的业务数据。
- *
- * 后端 controller 返回 mica `R.success(data)` = `{code, data}`，再被全局响应包装成
- * `{code:"0", data:{code, data}}`，故需递归取 data：res.data 若是 mica R（含 data 字段）
- * 则继续取 res.data.data。
- */
-function extractData<T>(result: unknown): T | null {
-  if (!result) return null;
-  const r = result as { data?: unknown | null; response?: { data?: unknown } };
-  let v = r.data != null ? r.data : r.response?.data;
-  // mica R 嵌套：data 为 { code, data: 业务 } 时再取一层
-  if (v != null && typeof v === 'object' && 'data' in (v as object)) {
-    v = (v as { data?: unknown }).data;
-  }
-  return (v as T) ?? null;
-}
-
 /** 构建后端查询参数（后端分页 + 筛选） */
 function buildPageParams() {
   const params: Api.Catalog.CatalogQuery = {
@@ -573,7 +555,7 @@ async function loadData() {
   isLoading.value = true;
   try {
     const res = await fetchCatalogPage(buildPageParams());
-    const pageData = extractData<unknown>(res);
+    const pageData = res.data;
     const pageResult = Array.isArray(pageData)
       ? (pageData as unknown as Api.Catalog.PageResult<Api.Catalog.CatalogItem>)
       : (pageData as Api.Catalog.PageResult<Api.Catalog.CatalogItem>);
@@ -594,7 +576,7 @@ async function loadData() {
 async function loadStatistics() {
   try {
     const res = await fetchCatalogPage({ page: 1, size: 1000 });
-    const pageData = extractData<unknown>(res);
+    const pageData = res.data;
     const records = Array.isArray(pageData)
       ? pageData
       : ((pageData as { records?: Api.Catalog.CatalogItem[] })?.records ?? []);
@@ -607,7 +589,7 @@ async function loadStatistics() {
 async function loadCategoryTree() {
   try {
     const res = await fetchCategoryTree();
-    const payload = extractData<unknown>(res);
+    const payload = res.data;
     categoryTree.value = Array.isArray(payload) ? (payload as Api.Catalog.CategoryNode[]) : [];
   } catch {
     categoryTree.value = [];

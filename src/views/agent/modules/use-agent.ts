@@ -22,7 +22,11 @@ export function useAgentSelection(
 ) {
   const agentKey = computed<AgentKey>(() => {
     const key = typeof route.query.agent === 'string' ? route.query.agent : '';
-    return agentList.value.some(item => item.key === key) ? key : (agentList.value[0]?.key ?? '');
+    if (!key) return agentList.value[0]?.key ?? '';
+    // 列表加载完成且命中则直接用；列表异步加载尚未完成或暂时未匹配到时，
+    // 仍优先保留 URL 上用户明确指定的 agent，避免竞态导致发送时 currentAppId 为空而报“请先选择智能体”。
+    if (agentList.value.length && agentList.value.some(item => item.key === key)) return key;
+    return key;
   });
 
   const selectedAgent = computed(() => resolve(agentKey.value));

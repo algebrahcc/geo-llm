@@ -2,6 +2,7 @@ import { BACKEND_ERROR_CODE, createFlatRequest, type AxiosResponse } from '@sa/a
 import { useAuthStore } from '@/store/modules/auth';
 import { getAuthorization, showErrorMsg } from './shared';
 import type { RequestInstanceState } from './type';
+import { unwrapEnvelope } from './envelope';
 
 /**
  * 真实后端请求实例
@@ -26,11 +27,7 @@ export const request = createFlatRequest(
       refreshTokenPromise: null
     } as RequestInstanceState,
     transform(response: AxiosResponse<App.Service.Response<any>>) {
-      const responseData = response.data;
-      if (!responseData || typeof responseData !== 'object') {
-        return null;
-      }
-      return responseData.data ?? null;
+      return unwrapEnvelope(response.data);
     },
     async onRequest(config) {
       const Authorization = getAuthorization();

@@ -27,7 +27,6 @@ import {
   normalizeSuggestedQuestions,
   stringifyOutput
 } from './real';
-import { extractPayload } from '../../knowledge/modules/real';
 
 defineOptions({
   name: 'AgentTestPage'
@@ -38,6 +37,32 @@ type EventLine = {
   label: string;
   detail: string;
 };
+
+/** 把包含 <think>...</think> 的流式文本拆分为 reasoning（思考）与 content（正文） */
+function splitThink(raw: string): { reasoning: string; content: string } {
+  const reasoningParts: string[] = [];
+  const contentParts: string[] = [];
+  let pos = 0;
+  while (true) {
+    const start = raw.indexOf('<think>', pos);
+    if (start === -1) {
+      contentParts.push(raw.slice(pos));
+      break;
+    }
+    contentParts.push(raw.slice(pos, start));
+    const end = raw.indexOf('</think>', start);
+    if (end === -1) {
+      // 思考块尚未闭合（流式中），剩余部分视为思考内容
+      reasoningParts.push(raw.slice(start));
+      break;
+    }
+    reasoningParts.push(raw.slice(start + 7, end));
+    pos = end + 8;
+  }
+  const reasoning = reasoningParts.join('').trim();
+  const content = contentParts.join('').trim();
+  return { reasoning, content };
+}
 
 const route = useRoute();
 const router = useRouter();
@@ -70,6 +95,10 @@ type ChatMsg = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /** AI 思考过程（从 <think>...</think> 中拆出），供折叠展示 */
+  reasoning?: string;
+  /** 是否正在流式生成中（用于显示打字机光标 / 思考中状态） */
+  streaming?: boolean;
   time: string;
   suggested?: string[];
 };
@@ -77,6 +106,8 @@ const messages = ref<ChatMsg[]>([]);
 const messageArea = ref<HTMLElement | null>(null);
 /** 是否保留对话上下文（多轮调试）。关闭时每轮独立会话，对齐调试平台「单轮/多轮」开关 */
 const keepContext = ref(true);
+/** 思考过程面板完成后是否默认折叠（对齐 Dify：进行中展开，完成后收起） */
+const reasoningPanelClosed = ref(true);
 const currentConversationId = ref('');
 /** 输入框聚焦态，用于视觉高亮 */
 const inputFocused = ref(false);
@@ -89,7 +120,10 @@ function pushMessage(role: ChatMsg['role'], content = '') {
     time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
   };
   messages.value.push(msg);
-  return msg;
+  // 关键：返回数组里的响应式代理对象（而非原始对象）。
+  // ref 数组 push 后，元素会被 Vue 代理；若返回原始对象，
+  // 后续增量修改 msg.content 不会触发 UI 更新，导致流式回答不显示。
+  return messages.value[messages.value.length - 1];
 }
 
 function copyMessage(msg: ChatMsg) {
@@ -207,7 +241,7 @@ async function collectRuntimeFiles() {
 
   for (const file of localFiles) {
     const res = await fetchDifyFileUpload(currentAppId.value, userId.value, file);
-    const payload = extractPayload<Api.Dify.FileUploadResp>(res) as Api.Dify.FileUploadResp | null;
+    const payload = res.data as Api.Dify.FileUploadResp | null;
     const fileId = String(payload?.id || '');
     if (fileId) {
       files.push({
@@ -251,7 +285,7 @@ async function loadParameters() {
   }
   try {
     const res = await fetchDifyParameters(currentAppId.value);
-    parameters.value = (extractPayload<Api.Dify.AppParameters>(res) as Api.Dify.AppParameters | null) || null;
+    parameters.value = (res.data as Api.Dify.AppParameters | null) || null;
   } catch {
     parameters.value = null;
   } finally {
@@ -358,8 +392,12 @@ function onKeepContextChange(value: boolean) {
 }
 
 async function handleRun(targetPrompt?: string) {
-  if (!currentAppId.value || !userId.value) {
+  if (!currentAppId.value) {
     window.$message?.warning('请先选择智能体');
+    return;
+  }
+  if (!userId.value) {
+    window.$message?.error('当前登录用户信息缺失，请刷新页面或重新登录后重试');
     return;
   }
 
@@ -367,6 +405,9 @@ async function handleRun(targetPrompt?: string) {
     window.$message?.warning('请输入测试内容');
     return;
   }
+
+  /** 当前助手消息，try 内创建，finally 中需要清理流式标记 */
+  let botMsg: ChatMsg | null = null;
 
   try {
     testing.value = true;
@@ -386,9 +427,20 @@ async function handleRun(targetPrompt?: string) {
     const userMsg = pushMessage('user', runtimePrompt);
     userMsg.suggested = undefined;
     prompt.value = '';
-    const botMsg = pushMessage('assistant');
+    botMsg = pushMessage('assistant');
+    botMsg.streaming = true;
+    const msg = botMsg;
+    // 累积原始流，避免 <think> 标签被 SSE 块截断导致拆分错误
+    let rawBuffer = '';
+    /**
+     * 追加流式增量：把 <think>...</think> 从正文中拆出，分别更新 reasoning / content。
+     * 由于流式块可能把一个标签拆成多段，这里每次对「累积原始流」整体重新解析。
+     */
     const appendBot = (text: string) => {
-      botMsg.content += text;
+      rawBuffer += text;
+      const split = splitThink(rawBuffer);
+      msg.reasoning = split.reasoning;
+      msg.content = split.content;
       scrollMessageArea();
     };
     appendEvent('请求发起', isWorkflow.value ? '已发送工作流流式请求' : '已发送会话流式请求');
@@ -412,9 +464,10 @@ async function handleRun(targetPrompt?: string) {
             }
           },
           onDone: outputsJson => {
+            msg.streaming = false;
             const output = stringifyOutput(JSON.parse(outputsJson));
             streamOutput.value = output;
-            botMsg.content = output;
+            msg.content = output;
             scrollMessageArea();
             latestRecord.value = buildTestRecord({
               agent: selectedAgent.value,
@@ -425,6 +478,7 @@ async function handleRun(targetPrompt?: string) {
             });
           },
           onError: message => {
+            msg.streaming = false;
             appendEvent('错误', message);
             window.$message?.error(message);
           }
@@ -458,6 +512,7 @@ async function handleRun(targetPrompt?: string) {
             }
           },
           onDone: async payload => {
+            msg.streaming = false;
             const donePayload = typeof payload === 'string' ? { conversationId: payload } : payload;
             currentTaskId.value = donePayload.taskId || currentTaskId.value;
             currentMessageId.value = donePayload.messageId || currentMessageId.value;
@@ -472,8 +527,7 @@ async function handleRun(targetPrompt?: string) {
                   userId: userId.value
                 });
                 suggestedQuestions.value = normalizeSuggestedQuestions(
-                  (extractPayload<Api.Dify.SuggestedQuestionsResp>(res) as Api.Dify.SuggestedQuestionsResp | null) ||
-                    undefined
+                  (res.data as Api.Dify.SuggestedQuestionsResp | null) || undefined
                 );
               } catch {
                 suggestedQuestions.value = [];
@@ -489,10 +543,11 @@ async function handleRun(targetPrompt?: string) {
               mode: 'chat',
               suggestedQuestions: suggestedQuestions.value
             });
-            botMsg.suggested = suggestedQuestions.value;
+            msg.suggested = suggestedQuestions.value;
             scrollMessageArea();
           },
           onError: message => {
+            msg.streaming = false;
             appendEvent('错误', message);
             window.$message?.error(message);
           }
@@ -506,6 +561,7 @@ async function handleRun(targetPrompt?: string) {
     }
   } finally {
     testing.value = false;
+    if (botMsg) botMsg.streaming = false;
     currentController = null;
   }
 }
@@ -564,13 +620,25 @@ async function handleRun(targetPrompt?: string) {
                 <SvgIcon :icon="msg.role === 'user' ? 'mdi:account-outline' : selectedAgent.icon" />
               </div>
               <div class="chat-bubble" :class="msg.role">
-                <div v-if="msg.content" class="chat-bubble__text">{{ msg.content }}</div>
-                <div v-else-if="testing" class="chat-bubble__loading">
+                <!-- 思考过程折叠面板（参考 Dify：进行中默认展开，结束后默认折叠） -->
+                <details v-if="msg.reasoning" class="think-panel" :open="msg.streaming || !reasoningPanelClosed">
+                  <summary class="think-panel__summary">
+                    <span class="think-panel__chevron">▸</span>
+                    <span v-if="msg.streaming" class="think-panel__label think-panel__label--active">思考中…</span>
+                    <span v-else class="think-panel__label">思考过程</span>
+                  </summary>
+                  <div class="think-panel__body">{{ msg.reasoning }}</div>
+                </details>
+                <div v-if="msg.content" class="chat-bubble__text">
+                  {{ msg.content }}
+                  <span v-if="msg.streaming" class="type-cursor">▍</span>
+                </div>
+                <div v-else-if="msg.streaming && !msg.reasoning" class="chat-bubble__loading">
                   <span class="dot" />
                   <span class="dot" />
                   <span class="dot" />
                 </div>
-                <div v-if="msg.content" class="chat-bubble__meta">
+                <div v-if="msg.content || !msg.streaming" class="chat-bubble__meta">
                   <span class="chat-bubble__time">{{ msg.time }}</span>
                   <button type="button" class="copy-btn" title="复制内容" @click="copyMessage(msg)">
                     <SvgIcon icon="mdi:content-copy" />
@@ -1092,6 +1160,82 @@ async function handleRun(targetPrompt?: string) {
     flex-wrap: wrap;
     gap: 6px;
     margin-top: 8px;
+  }
+}
+
+/* 思考过程折叠面板（对齐 Dify 折叠设计） */
+.think-panel {
+  margin-bottom: 8px;
+  border: 1px solid rgba(25, 95, 176, 0.22);
+  border-radius: 6px;
+  background: rgba(12, 38, 72, 0.35);
+  font-size: 12px;
+
+  &__summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    color: rgba(147, 196, 255, 0.75);
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+  }
+
+  &__chevron {
+    display: inline-block;
+    font-size: 10px;
+    transition: transform 0.25s ease;
+    color: rgba(41, 163, 255, 0.85);
+  }
+
+  &[open] &__chevron {
+    transform: rotate(90deg);
+  }
+
+  &__label {
+    font-weight: 600;
+    color: rgba(203, 227, 255, 0.75);
+
+    &--active {
+      color: rgba(41, 163, 255, 0.95);
+    }
+  }
+
+  &__body {
+    margin: 0 8px 8px 8px;
+    padding: 8px 10px;
+    border-left: 2px solid rgba(41, 163, 255, 0.4);
+    background: rgba(6, 20, 38, 0.45);
+    border-radius: 0 4px 4px 0;
+    color: rgba(203, 227, 255, 0.62);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+}
+
+/* 打字机光标 */
+.type-cursor {
+  display: inline-block;
+  margin-left: 1px;
+  color: rgba(41, 163, 255, 0.9);
+  animation: type-cursor-blink 0.9s steps(1) infinite;
+}
+
+@keyframes type-cursor-blink {
+  0%,
+  60% {
+    opacity: 1;
+  }
+
+  61%,
+  100% {
+    opacity: 0;
   }
 }
 

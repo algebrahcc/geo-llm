@@ -5,7 +5,7 @@ import type { UploadFileInfo } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { useThemeStore } from '@/store/modules/theme';
 import { fetchKbDatasets, uploadKbDocument } from '@/service/api/knowledge';
-import { asList, extractPayload, getDatasetId, getDatasetName } from './modules/real';
+import { asList, getDatasetId, getDatasetName } from './modules/real';
 
 defineOptions({ name: 'KnowledgeImportPage' });
 
@@ -65,7 +65,7 @@ async function loadDatasets() {
   datasetLoading.value = true;
   try {
     const res = await fetchKbDatasets();
-    datasets.value = asList<Api.Knowledge.Dataset>(extractPayload(res));
+    datasets.value = asList<Api.Knowledge.Dataset>(res.data);
     if (!datasetId.value) {
       datasetId.value = datasetOptions.value[0]?.value || '';
     }

@@ -8,22 +8,6 @@ import type {
   KnowledgeDocumentStatus
 } from './types';
 
-type FlatResult<T = unknown> =
-  | {
-      data?: T | null;
-      error?: unknown;
-      response?: {
-        data?: unknown;
-      };
-    }
-  | null
-  | undefined;
-
-export function extractPayload<T = unknown>(result: FlatResult<T>): T | unknown | null {
-  if (result?.data != null) return result.data;
-  return result?.response?.data ?? null;
-}
-
 export function asList<T>(payload: unknown): T[] {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload as T[];

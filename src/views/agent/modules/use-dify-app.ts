@@ -81,6 +81,9 @@ export function useDifyApps() {
     const fromReal = realApps.value.find(item => item.key === key);
     if (fromReal) return fromReal;
     if (realApps.value.length) return realApps.value[0];
+    // 列表尚未加载完成、但 URL 已明确指定了 agent（key 非空）时，
+    // 返回一个携带该 key 的占位对象，使发送时能带上正确的 appId，待列表加载后再被真实数据覆盖。
+    if (key) return { ...FALLBACK_AGENT, key };
     return FALLBACK_AGENT;
   }
 

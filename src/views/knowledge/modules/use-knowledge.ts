@@ -5,7 +5,6 @@ import { fetchKbDatasets, fetchKbDocuments } from '@/service/api/knowledge';
 import {
   asList,
   buildDatasetCollections,
-  extractPayload,
   getDatasetDocumentCount,
   getDatasetId,
   getDatasetName,
@@ -27,7 +26,7 @@ export function useKnowledge() {
   async function loadDatasets() {
     try {
       const dsRes = await fetchKbDatasets();
-      kbDatasets.value = asList<Api.Knowledge.Dataset>(extractPayload(dsRes));
+      kbDatasets.value = asList<Api.Knowledge.Dataset>(dsRes.data);
       if (dsRes?.error && kbDatasets.value.length === 0) {
         kbFailed.value = true;
       }
@@ -48,7 +47,7 @@ export function useKnowledge() {
       if (selectedCollection.value === 'all') {
         const datasetIds = kbDatasets.value.map(getDatasetId).filter(Boolean);
         const responses = await Promise.all(datasetIds.map(datasetId => fetchKbDocuments({ datasetId })));
-        const aggregated = responses.flatMap(res => asList<Api.Knowledge.Document>(extractPayload(res)));
+        const aggregated = responses.flatMap(res => asList<Api.Knowledge.Document>(res.data));
         const unique = new Map<string, Api.Knowledge.Document>();
         aggregated.forEach(item => {
           const key = String(item.difyDocumentId || item.id || '');
@@ -57,7 +56,7 @@ export function useKnowledge() {
         docs = Array.from(unique.values());
       } else {
         const docRes = await fetchKbDocuments({ datasetId: selectedCollection.value });
-        docs = asList<Api.Knowledge.Document>(extractPayload(docRes));
+        docs = asList<Api.Knowledge.Document>(docRes.data);
         if (docRes?.error && docs.length === 0) {
           kbFailed.value = true;
         }

@@ -15,6 +15,7 @@ coverage
 *.local
 .trae
 .codebuddy
+.codex
 .pnpm-store
 .playwright-cli
 

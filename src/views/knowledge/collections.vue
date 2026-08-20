@@ -4,7 +4,7 @@ import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import type { KnowledgeCollectionFormModel } from './modules/types';
 import { createKbDataset, deleteKbDataset, fetchKbDatasets, updateKbDataset } from '@/service/api/knowledge';
-import { asList, extractPayload, getDatasetDescription, getDatasetId, getDatasetName } from './modules/real';
+import { asList, getDatasetDescription, getDatasetId, getDatasetName } from './modules/real';
 
 defineOptions({
   name: 'KnowledgeCollectionsPage'
@@ -42,7 +42,7 @@ async function loadDatasets() {
   loading.value = true;
   try {
     const res = await fetchKbDatasets();
-    datasets.value = asList<Api.Knowledge.Dataset>(extractPayload(res));
+    datasets.value = asList<Api.Knowledge.Dataset>(res.data);
   } catch {
     datasets.value = [];
     window.$message?.error('加载知识集合失败');

@@ -4,7 +4,7 @@ import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import type { KnowledgeRetrievalMatch, ModuleRef } from './modules/types';
 import { fetchKbDatasets, fetchKbDocuments, searchKb } from '@/service/api/knowledge';
-import { asList, extractPayload, getDatasetId, getDatasetName, mapKbSearchResults } from './modules/real';
+import { asList, getDatasetId, getDatasetName, mapKbSearchResults } from './modules/real';
 
 defineOptions({
   name: 'KnowledgeRetrievalPage'
@@ -86,8 +86,8 @@ async function loadBaseData() {
       window.$message?.error(`加载文档列表失败：${err?.response?.data?.msg || err?.message || '后端错误'}`);
       return;
     }
-    documents.value = asList<Api.Knowledge.Document>(extractPayload(docRes));
-    datasets.value = asList<Api.Knowledge.Dataset>(extractPayload(dsRes));
+    documents.value = asList<Api.Knowledge.Document>(docRes.data);
+    datasets.value = asList<Api.Knowledge.Dataset>(dsRes.data);
   } catch {
     documents.value = [];
     datasets.value = [];
@@ -120,7 +120,7 @@ async function runSearch(text: string = query.value) {
       searched.value = true;
       return;
     }
-    const payload = (extractPayload(res) || { hits: [], graph: [] }) as Api.Knowledge.SearchResp;
+    const payload = (res.data || { hits: [], graph: [] }) as Api.Knowledge.SearchResp;
     searched.value = true;
     graphCount.value = Array.isArray(payload.graph) ? payload.graph.length : 0;
     results.value = mapKbSearchResults({

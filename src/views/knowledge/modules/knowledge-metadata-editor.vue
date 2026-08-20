@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue';
 import { NButton, NInput, NModal, NSpin, NTag, NText, useMessage } from 'naive-ui';
 import { fetchKbDatasetMetadata, updateKbDocumentMetadata } from '@/service/api/knowledge';
-import { extractPayload, mapKbDatasetMetadata } from './real';
+import { mapKbDatasetMetadata } from './real';
 import type { KnowledgeDatasetMetadata, KnowledgeDocumentMetadata } from './types';
 
 defineOptions({
@@ -41,7 +41,7 @@ async function loadFields() {
   loading.value = true;
   try {
     const res = await fetchKbDatasetMetadata(props.datasetId);
-    const payload = extractPayload<Api.Knowledge.DatasetMetadata[]>(res);
+    const payload = res.data;
     let list: KnowledgeDatasetMetadata[] = [];
     if (Array.isArray(payload)) {
       list = mapKbDatasetMetadata(payload);

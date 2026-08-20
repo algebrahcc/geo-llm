@@ -264,30 +264,46 @@ export async function fetchDifyChatStream(
 
     if (!data) return;
 
-    let payload: Record<string, unknown> = {};
+    let payload: unknown = {};
     try {
-      payload = JSON.parse(data) as Record<string, unknown>;
+      payload = JSON.parse(data);
     } catch {
       handlers.onDelta?.(data);
       return;
     }
 
+    // 后端 SseEmitter 会把 String 类型的 data 再序列化一次，导致多包一层引号，
+    // JSON.parse 得到的是字符串而非对象，需要二次解析才能拿到真正的消息对象。
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload);
+      } catch {
+        handlers.onDelta?.(data);
+        return;
+      }
+    }
+    if (!payload || typeof payload !== 'object') {
+      handlers.onDelta?.(data);
+      return;
+    }
+    const eventPayload = payload as Record<string, unknown>;
+
     if (eventName === 'agent_message') {
       hasAgentMessageDelta = true;
-      const text = String(payload.answer || '');
+      const text = String(eventPayload.answer || '');
       if (text) handlers.onDelta?.(text);
     }
 
     if (eventName === 'message' && !hasAgentMessageDelta) {
-      const text = String(payload.answer || '');
+      const text = String(eventPayload.answer || '');
       if (text) handlers.onDelta?.(text);
     }
 
     if (eventName === 'agent_thought') {
-      handlers.onThought?.(payload);
+      handlers.onThought?.(eventPayload);
     }
 
-    handlers.onEvent?.(eventName, payload);
+    handlers.onEvent?.(eventName, eventPayload);
   });
 }
 
