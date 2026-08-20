@@ -95,7 +95,7 @@ function createAgentElegantRoute() {
         meta: {
           title: '任务详情',
           hideInMenu: true,
-          activeMenu: 'agent_index'
+          activeMenu: 'agent'
         }
       },
       {
@@ -105,7 +105,7 @@ function createAgentElegantRoute() {
           title: '配置',
           icon: 'mdi:tune-variant',
           iconFontSize: 18,
-          activeMenu: 'agent_index'
+          activeMenu: 'agent'
         }
       },
       {
@@ -115,7 +115,7 @@ function createAgentElegantRoute() {
           title: '测试',
           icon: 'mdi:flask-outline',
           iconFontSize: 18,
-          activeMenu: 'agent_index'
+          activeMenu: 'agent'
         }
       },
       {
@@ -125,7 +125,7 @@ function createAgentElegantRoute() {
           title: '工具 / MCP',
           icon: 'mdi:puzzle-outline',
           iconFontSize: 18,
-          activeMenu: 'agent_index'
+          activeMenu: 'agent'
         }
       },
       {
@@ -135,7 +135,7 @@ function createAgentElegantRoute() {
           title: '运行监控',
           icon: 'mdi:chart-line',
           iconFontSize: 18,
-          activeMenu: 'agent_index'
+          activeMenu: 'agent'
         }
       }
     ]
@@ -171,7 +171,7 @@ function createAgentVueRoute(): RouteRecordRaw {
         meta: {
           title: '任务详情',
           hideInMenu: true,
-          activeMenu: 'agent_index'
+          activeMenu: 'agent'
         }
       },
       {
@@ -182,7 +182,7 @@ function createAgentVueRoute(): RouteRecordRaw {
           title: '配置',
           icon: 'mdi:tune-variant',
           iconFontSize: 18,
-          activeMenu: 'agent_index'
+          activeMenu: 'agent'
         }
       },
       {
@@ -193,7 +193,7 @@ function createAgentVueRoute(): RouteRecordRaw {
           title: '测试',
           icon: 'mdi:flask-outline',
           iconFontSize: 18,
-          activeMenu: 'agent_index'
+          activeMenu: 'agent'
         }
       },
       {
@@ -204,7 +204,7 @@ function createAgentVueRoute(): RouteRecordRaw {
           title: '工具 / MCP',
           icon: 'mdi:puzzle-outline',
           iconFontSize: 18,
-          activeMenu: 'agent_index'
+          activeMenu: 'agent'
         }
       },
       {
@@ -215,7 +215,7 @@ function createAgentVueRoute(): RouteRecordRaw {
           title: '运行监控',
           icon: 'mdi:chart-line',
           iconFontSize: 18,
-          activeMenu: 'agent_index'
+          activeMenu: 'agent'
         }
       }
     ]

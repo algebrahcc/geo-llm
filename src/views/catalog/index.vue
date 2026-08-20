@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import type { SelectOption } from 'naive-ui';
 import {
   NButton,
@@ -15,7 +15,16 @@ import {
 } from 'naive-ui';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import { agentLabelMap, catalogCategories, catalogData, type AgentKey, type CatalogItem } from '@/mock/catalog';
+import { agentLabelMap, type CatalogItem } from '@/mock/catalog';
+import {
+  fetchCatalogPage,
+  fetchCategoryTree,
+  publishCatalog,
+  deleteCatalog,
+  fetchCatalogDownloadUrl
+} from '@/service/api/catalog';
+import CatalogCategoryManage from './modules/catalog-category-manage.vue';
+import CatalogUploadModal from './modules/catalog-upload-modal.vue';
 import { getGlobalImageryUrl, getOnlineImageryConfig, isOnlineImagery } from '@/utils/imagery';
 import Map from 'ol/Map';
 import View from 'ol/View';
@@ -52,10 +61,11 @@ defineOptions({
 const activeTab = ref('总览');
 const selectedCategory = ref<string | null>(null);
 const searchKeyword = ref('');
-const selectedType = ref('');
+const selectedType = ref<string>('');
 const isLoading = ref(false);
 const expandedKeys = ref<string[]>([]);
-const dataList = ref<CatalogItem[]>([...catalogData]);
+const dataList = ref<CatalogItem[]>([]);
+const categoryTree = ref<Api.Catalog.CategoryNode[]>([]);
 const themeStore = useThemeStore();
 const darkMode = computed(() => themeStore.darkMode);
 const currentPage = ref(1);
@@ -70,55 +80,31 @@ const analysisMapContainer = ref<HTMLElement | null>(null);
 const analysisMap = shallowRef<Map | null>(null);
 const analysisVectorLayer = shallowRef<VectorLayer<VectorSource> | null>(null);
 
-const categoryCountMap = computed<Record<string, number>>(() => {
-  return dataList.value.reduce<Record<string, number>>((acc, item) => {
-    const typeToKeys: Record<string, string[]> = {
-      遥感影像: ['img', 'img-optical', 'img-sar', 'img-aerial', 'img-multi'],
-      数字高程: ['dem', 'dem-dem', 'dem-dsm', 'dem-derived'],
-      倾斜摄影: ['oblique', 'oblique-city', 'oblique-single', 'oblique-3dtiles'],
-      气象水文: ['hydro', 'hydro-rain', 'hydro-river', 'hydro-lake', 'hydro-station'],
-      地下管网: ['pipe', 'pipe-water', 'pipe-other', 'pipe-elec'],
-      矢量基础: ['vec', 'vec-dlg', 'vec-building', 'vec-traffic', 'vec-admin', 'vec-landuse'],
-      地名地址: ['poi', 'poi-strategic', 'poi-target', 'poi-facility'],
-      战场专题: ['battlefield', 'bf-climate', 'bf-geology', 'bf-em', 'bf-pop'],
-      障碍物与目标: ['obstacle', 'obs-urban', 'obs-traffic', 'obs-defense'],
-      多模态语料: ['corpus', 'corpus-text', 'corpus-image', 'corpus-media'],
-      历史方案: ['plan', 'plan-river', 'plan-route', 'plan-building']
-    };
-    const keys = typeToKeys[item.type];
-    if (keys) {
-      for (const k of keys) {
-        acc[k] = (acc[k] || 0) + 1;
-      }
-    }
-    return acc;
-  }, {});
-});
+// ====== 上传弹窗（独立组件 CatalogUploadModal）======
+const uploadVisible = ref(false);
+const categoryManageVisible = ref(false);
 
+/** 分类管理变更后刷新分类树与列表 */
+function handleCategoryChanged() {
+  loadCategoryTree().then(() => loadData());
+}
+
+/** 左侧分类树选项（基于后端真实 data_category 树，含每类计数；key 为雪花 ID 字符串） */
 const treeOptions = computed(() =>
-  catalogCategories.map(cat => ({
-    label: `${cat.label} (${categoryCountMap.value[cat.key] || 0})`,
-    key: cat.key,
+  categoryTree.value.map(cat => ({
+    label: `${cat.name} (${cat.count || 0})`,
+    key: String(cat.id),
     children: cat.children?.map(child => ({
-      label: `${child.label} (${categoryCountMap.value[child.key] || 0})`,
-      key: child.key
+      label: `${child.name} (${child.count || 0})`,
+      key: String(child.id)
     }))
   }))
 );
 
+/** 顶部"数据类型"下拉（取分类树一级节点，即大类） */
 const typeOptions = computed<SelectOption[]>(() => [
   { label: '全部', value: '' },
-  { label: '遥感影像', value: '遥感影像' },
-  { label: '数字高程', value: '数字高程' },
-  { label: '倾斜摄影', value: '倾斜摄影' },
-  { label: '气象水文', value: '气象水文' },
-  { label: '地下管网', value: '地下管网' },
-  { label: '矢量基础', value: '矢量基础' },
-  { label: '地名地址', value: '地名地址' },
-  { label: '战场专题', value: '战场专题' },
-  { label: '障碍物与目标', value: '障碍物与目标' },
-  { label: '多模态语料', value: '多模态语料' },
-  { label: '历史方案', value: '历史方案' }
+  ...categoryTree.value.map(cat => ({ label: cat.name, value: String(cat.id) }))
 ]);
 
 const selectedAgent = ref('');
@@ -141,108 +127,26 @@ const scenarioOptions = computed<SelectOption[]>(() => [
   { label: '预案生成', value: '预案生成' }
 ]);
 
-const filteredData = computed(() => {
-  let filtered = [...dataList.value];
-
-  // Tab 过滤 — 新 11 类映射
-  const TAB_TO_TYPE: Record<string, string[]> = {
-    遥感影像: ['遥感影像'],
-    数字高程: ['数字高程'],
-    倾斜摄影: ['倾斜摄影'],
-    气象水文: ['气象水文'],
-    地下管网: ['地下管网'],
-    矢量基础: ['矢量基础'],
-    地名地址: ['地名地址'],
-    战场专题: ['战场专题'],
-    障碍物与目标: ['障碍物与目标'],
-    多模态语料: ['多模态语料'],
-    历史方案: ['历史方案']
-  };
-
-  if (activeTab.value && activeTab.value !== '总览') {
-    const types = TAB_TO_TYPE[activeTab.value];
-    if (types) {
-      filtered = filtered.filter(item => types.includes(item.type));
-    }
-  }
-
-  if (selectedCategory.value) {
-    const TYPE_TO_CATEGORY: Record<string, string[]> = {
-      遥感影像: ['img', 'img-optical', 'img-sar', 'img-aerial', 'img-multi'],
-      数字高程: ['dem', 'dem-dem', 'dem-dsm', 'dem-derived'],
-      倾斜摄影: ['oblique', 'oblique-city', 'oblique-single', 'oblique-3dtiles'],
-      气象水文: ['hydro', 'hydro-rain', 'hydro-river', 'hydro-lake', 'hydro-station'],
-      地下管网: ['pipe', 'pipe-water', 'pipe-other', 'pipe-elec'],
-      矢量基础: ['vec', 'vec-dlg', 'vec-building', 'vec-traffic', 'vec-admin', 'vec-landuse'],
-      地名地址: ['poi', 'poi-strategic', 'poi-target', 'poi-facility'],
-      战场专题: ['battlefield', 'bf-climate', 'bf-geology', 'bf-em', 'bf-pop'],
-      障碍物与目标: ['obstacle', 'obs-urban', 'obs-traffic', 'obs-defense'],
-      多模态语料: ['corpus', 'corpus-text', 'corpus-image', 'corpus-media'],
-      历史方案: ['plan', 'plan-river', 'plan-route', 'plan-building']
-    };
-    filtered = filtered.filter(item => {
-      const cats = TYPE_TO_CATEGORY[item.type];
-      return cats ? cats.includes(selectedCategory.value!) : false;
-    });
-  }
-
-  if (selectedAgent.value) {
-    filtered = filtered.filter(item => item.agentBinding?.includes(selectedAgent.value as AgentKey));
-  }
-
-  if (selectedScenario.value) {
-    filtered = filtered.filter(item => item.scenarioTags?.includes(selectedScenario.value as any));
-  }
-
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase();
-    filtered = filtered.filter(
-      item =>
-        item.name.toLowerCase().includes(keyword) ||
-        item.range.toLowerCase().includes(keyword) ||
-        item.source.toLowerCase().includes(keyword) ||
-        item.tags?.some(t => t.toLowerCase().includes(keyword)) ||
-        item.agentBinding?.some(a => agentLabelMap[a]?.toLowerCase().includes(keyword)) ||
-        item.scenarioTags?.some(s => s.toLowerCase().includes(keyword))
-    );
-  }
-
-  if (selectedType.value) {
-    filtered = filtered.filter(item => item.type === selectedType.value);
-  }
-  return filtered;
-});
-
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredData.value.length / pageSize.value)));
-const pageItems = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredData.value.slice(start, start + pageSize.value);
-});
+/**
+ * 总览统计：基于一次全量加载（statDataList，仅用于顶部指标统计）。
+ * 列表本身走后端分页（dataList 只含当前页）。
+ */
+const statDataList = ref<CatalogItem[]>([]);
+const total = ref(0);
 
 const summaryMetrics = computed(() => {
-  const total = dataList.value.length;
-  const published = dataList.value.filter(item => item.status === 'published').length;
-  const draft = dataList.value.filter(item => item.status === 'draft').length;
-  const totalSize = dataList.value.reduce((sum, item) => sum + normalizeSize(item.size), 0);
+  const published = statDataList.value.filter(item => item.status === 'published').length;
+  const draft = statDataList.value.filter(item => item.status === 'draft').length;
+  const totalSize = statDataList.value.reduce((sum, item) => sum + normalizeSize(item.size), 0);
   return {
-    total,
     published,
     draft,
     totalSize: `${totalSize.toFixed(2)} GB`
   };
 });
 
-watch(filteredData, () => {
-  if (currentPage.value !== 1) {
-    currentPage.value = 1;
-  }
-});
-
-watch(pageSize, () => {
-  if (currentPage.value > totalPages.value) {
-    currentPage.value = totalPages.value;
-  }
-});
+/** 当前页展示数据 = 后端分页返回的当前页 records */
+const pageItems = computed(() => dataList.value);
 
 type CatalogActionKey = 'publish' | 'download' | 'delete' | 'refresh' | 'detail' | 'analysis';
 
@@ -458,22 +362,25 @@ function formatBbox(bbox?: [number, number, number, number]) {
   return `${bbox[0].toFixed(2)}°E, ${bbox[1].toFixed(2)}°N → ${bbox[2].toFixed(2)}°E, ${bbox[3].toFixed(2)}°N`;
 }
 
-function handleCategorySelect(keys: string[]) {
-  selectedCategory.value = keys.length > 0 ? keys[0] : null;
+function handleCategorySelect(keys: Array<string | number>) {
+  const first = keys[0];
+  selectedCategory.value = first != null ? String(first) : null;
   currentPage.value = 1;
 }
 
 function togglePublish(item: CatalogItem) {
   const idx = dataList.value.findIndex(d => d.id === item.id);
-  if (idx !== -1) {
-    if (dataList.value[idx].status === 'published') {
-      dataList.value[idx].status = 'offline';
-      window.$message?.warning(`${item.name} 已下线`);
-    } else {
-      dataList.value[idx].status = 'published';
-      window.$message?.success(`${item.name} 已发布`);
-    }
-  }
+  if (idx === -1) return;
+  // mock status 字符串 -> 后端数字（0草稿/1已发布/2已下线）
+  const current = dataList.value[idx].status;
+  const target = current === 'published' ? 2 : 1;
+  publishCatalog(item.id, target)
+    .then(() => {
+      dataList.value[idx].status = target === 2 ? 'offline' : 'published';
+      if (target === 2) window.$message?.warning(`${item.name} 已下线`);
+      else window.$message?.success(`${item.name} 已发布`);
+    })
+    .catch(() => window.$message?.error('操作失败'));
 }
 
 function handleDelete(item: CatalogItem) {
@@ -483,17 +390,25 @@ function handleDelete(item: CatalogItem) {
     positiveText: '删除',
     negativeText: '取消',
     onPositiveClick: () => {
-      const idx = dataList.value.findIndex(d => d.id === item.id);
-      if (idx !== -1) {
-        dataList.value.splice(idx, 1);
-        window.$message?.success('删除成功');
-      }
+      deleteCatalog(item.id)
+        .then(() => {
+          const idx = dataList.value.findIndex(d => d.id === item.id);
+          if (idx !== -1) dataList.value.splice(idx, 1);
+          window.$message?.success('删除成功');
+        })
+        .catch(() => window.$message?.error('删除失败'));
     }
   });
 }
 
 function showImport() {
-  window.$message?.info('数据入库功能开发中...');
+  uploadVisible.value = true;
+}
+
+/** 上传成功后刷新列表 */
+function handleUploadSuccess() {
+  loadData();
+  loadStatistics();
 }
 
 function handleSearch() {
@@ -516,7 +431,13 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
       togglePublish(item);
       break;
     case 'download':
-      window.$message?.success(`开始下载：${item.name}`);
+      fetchCatalogDownloadUrl(item.id)
+        .then(res => {
+          const url = extractData<string>(res);
+          if (url) window.open(url, '_blank');
+          else window.$message?.warning('该数据无下载地址');
+        })
+        .catch(() => window.$message?.error('获取下载地址失败'));
       break;
     case 'delete':
       handleDelete(item);
@@ -535,6 +456,181 @@ function handleAction(action: CatalogActionKey, item: CatalogItem) {
       break;
   }
 }
+
+// ====== 数据加载（真实后端）======
+
+/** 分类树索引：nodeId -> 节点（用于从 categoryId 推导大类 id/name，key 为雪花 ID 字符串） */
+const categoryNodeMap = computed<Record<string, Api.Catalog.CategoryNode>>(() => {
+  const map: Record<string, Api.Catalog.CategoryNode> = {};
+  const walk = (nodes: Api.Catalog.CategoryNode[]) => {
+    for (const n of nodes) {
+      map[String(n.id)] = n;
+      if (n.children?.length) walk(n.children);
+    }
+  };
+  walk(categoryTree.value);
+  return map;
+});
+
+/** 将字节格式化为展示字符串（兼容 normalizeSize 的 parseFloat） */
+function formatSize(bytes: number | null | undefined): string {
+  if (bytes == null || bytes <= 0) return '-';
+  const gb = bytes / 1024 / 1024 / 1024;
+  if (gb >= 1) return `${gb.toFixed(2)} GB`;
+  const mb = bytes / 1024 / 1024;
+  if (mb >= 1) return `${mb.toFixed(1)} MB`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+/** 后端返回字段 -> 前端 mock CatalogItem 字段适配（保留 OL/详情/分析对 type/range/status 等的依赖） */
+function adaptItem(raw: Api.Catalog.CatalogItem): CatalogItem {
+  const node = categoryNodeMap.value[raw.categoryId ?? ''];
+  // 大类（一级节点）id 与名称：从叶子沿 parentId 上溯到根
+  let rootId: string | null = null;
+  let rootName = raw.typeName ?? '';
+  let cur: Api.Catalog.CategoryNode | undefined = node;
+  const visited = new Set<string>();
+  while (cur && !visited.has(String(cur.id))) {
+    visited.add(String(cur.id));
+    rootName = cur.name;
+    rootId = String(cur.id);
+    cur = cur.parentId != null ? categoryNodeMap.value[String(cur.parentId)] : undefined;
+  }
+  return {
+    id: raw.id,
+    name: raw.name,
+    ingestTime: raw.createTime ?? '',
+    timePhase: raw.extendJson
+      ? (() => {
+          try {
+            const j = JSON.parse(raw.extendJson);
+            return j.timePhase ?? j.phase ?? '';
+          } catch {
+            return '';
+          }
+        })()
+      : '',
+    range: raw.bbox ?? raw.categoryName ?? '',
+    type: rootName || raw.typeName || raw.categoryName || '未分类',
+    status: raw.status === 1 ? 'published' : raw.status === 2 ? 'offline' : 'draft',
+    size: formatSize(raw.size),
+    source: raw.source ?? '',
+    format: raw.format ?? '',
+    coordinateSystem: raw.crs ?? '',
+    bbox: raw.bbox
+      ? (() => {
+          try {
+            const arr = JSON.parse(raw.bbox);
+            return Array.isArray(arr) && arr.length === 4 ? arr : undefined;
+          } catch {
+            return undefined;
+          }
+        })()
+      : undefined,
+    // 补充分类字段（filteredData 按 id 过滤用）
+    categoryId: raw.categoryId ?? undefined,
+    typeId: rootId ?? undefined
+  } as CatalogItem;
+}
+
+/**
+ * 从 request 的 FlatResponse 结果中解包真正的业务数据。
+ *
+ * 后端 controller 返回 mica `R.success(data)` = `{code, data}`，再被全局响应包装成
+ * `{code:"0", data:{code, data}}`，故需递归取 data：res.data 若是 mica R（含 data 字段）
+ * 则继续取 res.data.data。
+ */
+function extractData<T>(result: unknown): T | null {
+  if (!result) return null;
+  const r = result as { data?: unknown | null; response?: { data?: unknown } };
+  let v = r.data != null ? r.data : r.response?.data;
+  // mica R 嵌套：data 为 { code, data: 业务 } 时再取一层
+  if (v != null && typeof v === 'object' && 'data' in (v as object)) {
+    v = (v as { data?: unknown }).data;
+  }
+  return (v as T) ?? null;
+}
+
+/** 构建后端查询参数（后端分页 + 筛选） */
+function buildPageParams() {
+  const params: Api.Catalog.CatalogQuery = {
+    page: currentPage.value,
+    size: pageSize.value,
+    name: searchKeyword.value || undefined,
+    status: undefined
+  };
+  if (selectedCategory.value) params.categoryId = selectedCategory.value;
+  if (selectedType.value) params.typeId = selectedType.value;
+  if (activeTab.value && activeTab.value !== '总览') {
+    // Tab 对应大类 id：从分类树一级节点按 name 匹配
+    const root = categoryTree.value.find(c => c.name === activeTab.value);
+    if (root) params.typeId = root.id;
+  }
+  return params;
+}
+
+async function loadData() {
+  isLoading.value = true;
+  try {
+    const res = await fetchCatalogPage(buildPageParams());
+    const pageData = extractData<unknown>(res);
+    const pageResult = Array.isArray(pageData)
+      ? (pageData as unknown as Api.Catalog.PageResult<Api.Catalog.CatalogItem>)
+      : (pageData as Api.Catalog.PageResult<Api.Catalog.CatalogItem>);
+    dataList.value = (pageResult?.records ?? []).map(adaptItem);
+    total.value = Number(pageResult?.total ?? 0);
+    // 加载全量统计（仅用于顶部指标）
+    loadStatistics();
+  } catch {
+    dataList.value = [];
+    total.value = 0;
+    window.$message?.error('数据目录加载失败');
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+/** 全量加载用于顶部统计（不用于列表） */
+async function loadStatistics() {
+  try {
+    const res = await fetchCatalogPage({ page: 1, size: 1000 });
+    const pageData = extractData<unknown>(res);
+    const records = Array.isArray(pageData)
+      ? pageData
+      : ((pageData as { records?: Api.Catalog.CatalogItem[] })?.records ?? []);
+    statDataList.value = records.map(adaptItem);
+  } catch {
+    statDataList.value = [];
+  }
+}
+
+async function loadCategoryTree() {
+  try {
+    const res = await fetchCategoryTree();
+    const payload = extractData<unknown>(res);
+    categoryTree.value = Array.isArray(payload) ? (payload as Api.Catalog.CategoryNode[]) : [];
+  } catch {
+    categoryTree.value = [];
+  }
+}
+
+onMounted(() => {
+  loadCategoryTree().then(() => loadData());
+});
+
+// 筛选条件变化：重置到第一页并重新请求后端分页
+watch([activeTab, selectedCategory, selectedType, searchKeyword], () => {
+  if (currentPage.value !== 1) {
+    currentPage.value = 1;
+  } else {
+    loadData();
+  }
+});
+
+// 页码/每页条数变化：重新请求后端分页
+watch([currentPage, pageSize], () => {
+  loadData();
+});
 
 // ====== Analysis Modal - Analysis Types ======
 interface AnalysisSubItem {
@@ -1172,6 +1268,10 @@ onBeforeUnmount(() => {
             @update:selected-keys="handleCategorySelect"
           />
         </div>
+        <div class="catalog-sidebar__manage" @click="categoryManageVisible = true">
+          <SvgIcon icon="mdi:cog-outline" class="catalog-sidebar__manage-icon" />
+          管理分类
+        </div>
       </aside>
 
       <section class="catalog-main">
@@ -1229,7 +1329,7 @@ onBeforeUnmount(() => {
           <div class="catalog-card-head">
             <div class="catalog-card-head__title">目录清单</div>
             <div class="catalog-card-head__meta">
-              <span>共 {{ filteredData.length }} 条结果</span>
+              <span>共 {{ total }} 条结果</span>
             </div>
           </div>
 
@@ -1300,7 +1400,7 @@ onBeforeUnmount(() => {
 
               <div class="catalog-footer">
                 <div class="catalog-footer__summary">
-                  共 {{ filteredData.length }} 条
+                  共 {{ total }} 条
                   <span class="catalog-footer__divider" />
                   已发布 {{ summaryMetrics.published }} 条
                   <span class="catalog-footer__divider" />
@@ -1312,7 +1412,7 @@ onBeforeUnmount(() => {
                 <NPagination
                   v-model:page="currentPage"
                   v-model:page-size="pageSize"
-                  :item-count="filteredData.length"
+                  :item-count="total"
                   :page-sizes="[10, 20, 50]"
                   show-size-picker
                 />
@@ -1476,6 +1576,12 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </NModal>
+
+    <!-- 数据入库上传弹窗（独立组件：分片直传 / 中转） -->
+    <CatalogUploadModal v-model:show="uploadVisible" @success="handleUploadSuccess" />
+
+    <!-- 分类管理弹窗 -->
+    <CatalogCategoryManage v-model:show="categoryManageVisible" @refresh="handleCategoryChanged" />
 
     <!-- 数据分析弹窗 -->
     <NModal
@@ -1700,6 +1806,29 @@ onBeforeUnmount(() => {
   min-height: 0;
   padding: 8px;
   overflow: auto;
+}
+.catalog-sidebar__manage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  margin: 4px 8px 8px;
+  font-size: 13px;
+  color: #4e5969;
+  border: 1px dashed #d0d5dd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    border-color 0.2s;
+}
+.catalog-sidebar__manage:hover {
+  color: var(--vt-c-primary, #409eff);
+  border-color: var(--vt-c-primary, #409eff);
+}
+.catalog-sidebar__manage-icon {
+  font-size: 15px;
 }
 
 .catalog-main {
