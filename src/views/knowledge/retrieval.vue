@@ -25,6 +25,45 @@ const datasets = ref<Api.Knowledge.Dataset[]>([]);
 const graphCount = ref(0);
 /** 目标知识集合（空 = 全库检索） */
 const selectedDataset = ref<string>('');
+/** 元数据过滤逻辑：and / or */
+const metadataOperator = ref<'and' | 'or'>('and');
+/** 元数据过滤条件（编辑器局部结构，提交时映射为 Api 类型） */
+interface FilterCondition {
+  name: string;
+  operator: string;
+  value: string;
+}
+const metadataConditions = ref<FilterCondition[]>([]);
+/** 元数据过滤面板是否展开 */
+const metadataFilterOpen = ref(false);
+
+const METADATA_OPERATORS: { label: string; value: string; needsValue: boolean }[] = [
+  { label: '等于', value: 'is', needsValue: true },
+  { label: '不等于', value: 'is not', needsValue: true },
+  { label: '包含', value: 'contains', needsValue: true },
+  { label: '不包含', value: 'not contains', needsValue: true },
+  { label: '开头是', value: 'start with', needsValue: true },
+  { label: '结尾是', value: 'end with', needsValue: true },
+  { label: '为空', value: 'empty', needsValue: false },
+  { label: '不为空', value: 'not empty', needsValue: false },
+  { label: '大于', value: '>', needsValue: true },
+  { label: '小于', value: '<', needsValue: true }
+];
+
+function addMetadataCondition() {
+  metadataConditions.value.push({ name: '', operator: 'is', value: '' });
+}
+
+function removeMetadataCondition(index: number) {
+  metadataConditions.value.splice(index, 1);
+}
+
+function conditionNeedsValue(operator: string): boolean {
+  return METADATA_OPERATORS.find(item => item.value === operator)?.needsValue ?? true;
+}
+
+const operatorOptions = computed(() => METADATA_OPERATORS.map(item => ({ label: item.label, value: item.value })));
+
 /** 返回条数 TopK */
 const topK = ref(12);
 /** 是否启用 Score 阈值过滤 */
@@ -112,7 +151,17 @@ async function runSearch(text: string = query.value) {
       query: text,
       datasetId: selectedDataset.value || undefined,
       topN: topK.value,
-      searchMethod: difyMethod
+      searchMethod: difyMethod,
+      metadataLogicalOperator: metadataConditions.value.length ? metadataOperator.value : undefined,
+      metadataConditions: metadataConditions.value.length
+        ? metadataConditions.value
+            .filter(cond => cond.name.trim())
+            .map(cond => ({
+              name: cond.name.trim(),
+              operator: cond.operator,
+              value: conditionNeedsValue(cond.operator) ? cond.value : null
+            }))
+        : undefined
     });
     if (res.error) {
       const err = res.error as { response?: { data?: { msg?: string } }; message?: string };
@@ -268,6 +317,54 @@ onMounted(async () => {
             <span v-if="selectedDataset" class="mode-hint">
               仅在「{{ getCollectionLabel(selectedDataset) }}」集合内检索
             </span>
+          </div>
+
+          <!-- 元数据过滤（Dify metadata_filtering_conditions） -->
+          <div class="mt-10px">
+            <button type="button" class="filter-toggle" @click="metadataFilterOpen = !metadataFilterOpen">
+              <SvgIcon
+                :icon="metadataFilterOpen ? 'mdi:chevron-down' : 'mdi:chevron-right'"
+                class="filter-toggle__icon"
+              />
+              <span>元数据过滤</span>
+              <NTag v-if="metadataConditions.length" size="tiny" round type="primary" :bordered="false">
+                {{ metadataConditions.length }} 条
+              </NTag>
+            </button>
+
+            <div v-if="metadataFilterOpen" class="metadata-filter mt-8px">
+              <div class="filter-logic">
+                <NRadioGroup v-model:value="metadataOperator" size="small">
+                  <NRadio value="and">且（AND）</NRadio>
+                  <NRadio value="or">或（OR）</NRadio>
+                </NRadioGroup>
+              </div>
+              <div v-for="(cond, index) in metadataConditions" :key="index" class="filter-row">
+                <NInput v-model:value="cond.name" placeholder="字段名，如 source" size="small" class="flex-1" />
+                <NSelect v-model:value="cond.operator" :options="operatorOptions" size="small" class="filter-op" />
+                <NInput
+                  v-if="conditionNeedsValue(cond.operator)"
+                  v-model:value="cond.value"
+                  placeholder="比较值"
+                  size="small"
+                  class="flex-1"
+                />
+                <NButton size="small" quaternary type="error" @click="removeMetadataCondition(index)">
+                  <template #icon>
+                    <SvgIcon icon="mdi:close" />
+                  </template>
+                </NButton>
+              </div>
+              <NButton size="small" dashed class="mt-8px" @click="addMetadataCondition">
+                <template #icon>
+                  <SvgIcon icon="mdi:plus" />
+                </template>
+                添加条件
+              </NButton>
+              <p class="text-12px text-[var(--text-tertiary)] mt-8px">
+                按切片元数据字段值过滤召回结果（需检索集合已配置对应元数据）
+              </p>
+            </div>
           </div>
 
           <div class="mt-10px flex flex-wrap gap-6px">
@@ -596,6 +693,56 @@ onMounted(async () => {
 
 .param-topk {
   width: 80px;
+}
+
+/* ── 元数据过滤 ── */
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  color: rgba(147, 196, 255, 0.6);
+  cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: var(--accent);
+  }
+}
+
+.filter-toggle__icon {
+  width: 14px;
+  height: 14px;
+}
+
+.metadata-filter {
+  padding: 10px;
+  border: 1px solid rgba(41, 163, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(41, 163, 255, 0.04);
+}
+
+.filter-logic {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: rgba(203, 227, 255, 0.7);
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.filter-op {
+  width: 120px;
 }
 
 /* ── 关联模块徽章 ── */

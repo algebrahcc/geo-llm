@@ -19,6 +19,7 @@ coverage
 .pnpm-store
 .playwright-cli
 
+/docs
 /cypress/videos/
 /cypress/screenshots/
 /public/global

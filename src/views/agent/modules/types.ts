@@ -28,43 +28,6 @@ export interface AgentDefinition {
   defaultInput: string;
 }
 
-export interface AgentRunStep {
-  key: string;
-  label: string;
-  description: string;
-  status: AgentStepStatus;
-  duration: string;
-  tool?: string;
-}
-
-export interface AgentRunTask {
-  id: string;
-  agentKey: AgentKey;
-  mode?: 'chat' | 'workflow';
-  conversationId?: string;
-  messageId?: string;
-  workflowRunId?: string;
-  taskId?: string;
-  title: string;
-  status: AgentTaskStatus;
-  createdAt: string;
-  updatedAt: string;
-  operator: string;
-  input: string;
-  rawInputs?: Record<string, unknown>;
-  files?: Api.Dify.MessageFile[];
-  summary: string;
-  result: string;
-  rawOutput?: Record<string, unknown> | null;
-  references: string[];
-  steps: AgentRunStep[];
-  metrics: {
-    duration: string;
-    tokens: number;
-    confidence: number;
-  };
-}
-
 export interface AgentTestRecord {
   id: string;
   agentKey: AgentKey;

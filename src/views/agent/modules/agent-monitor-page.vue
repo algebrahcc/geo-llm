@@ -8,6 +8,7 @@ import { useAgentSelection } from './use-agent';
 import AgentSidebar from './agent-sidebar.vue';
 import { fetchDifyConversations, fetchDifyWorkflowLogs } from '@/service/api/dify';
 import { useAuthStore } from '@/store/modules/auth';
+import { asList } from './real';
 
 defineOptions({
   name: 'AgentMonitorPage'
@@ -25,6 +26,10 @@ const { agentKey, selectedAgent, updateAgentQuery } = useAgentSelection(route, r
 const isWorkflow = computed(() => selectedAgent.value?.appType === 3);
 const loading = ref(false);
 const keyword = ref('');
+/** 时间范围筛选：'' 全部 / today 今天 / 7d 近7天 / 30d 近30天 */
+const timeRange = ref('');
+/** 排序：'' 默认 / time 时间 / elapsed 耗时 / tokens token 消耗 */
+const sortBy = ref('time');
 
 interface ConvRow {
   id: string;
@@ -72,30 +77,61 @@ function statusText(s: string): string {
   return map[s] || s;
 }
 
+/** 时间范围下限（秒），0 表示不限制 */
+function rangeStartTs(): number {
+  const now = Date.now() / 1000;
+  switch (timeRange.value) {
+    case 'today': {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d.getTime() / 1000;
+    }
+    case '7d':
+      return now - 7 * 24 * 3600;
+    case '30d':
+      return now - 30 * 24 * 3600;
+    default:
+      return 0;
+  }
+}
+
 const filteredRuns = computed(() => {
   const kw = keyword.value.trim().toLowerCase();
-  if (!kw) return runs.value;
-  return runs.value.filter(
-    r =>
+  const start = rangeStartTs();
+  let list = runs.value.filter(r => {
+    if (start && (r.time ?? 0) < start) return false;
+    if (!kw) return true;
+    return (
       String(r.status || '')
         .toLowerCase()
         .includes(kw) || (r.error || '').toLowerCase().includes(kw)
-  );
+    );
+  });
+  if (sortBy.value === 'elapsed') list = [...list].sort((a, b) => (b.elapsed ?? 0) - (a.elapsed ?? 0));
+  else if (sortBy.value === 'tokens') list = [...list].sort((a, b) => (b.tokens ?? 0) - (a.tokens ?? 0));
+  else list = [...list].sort((a, b) => (b.time ?? 0) - (a.time ?? 0));
+  return list;
 });
 
 const filteredConvs = computed(() => {
   const kw = keyword.value.trim().toLowerCase();
-  if (!kw) return conversations.value;
-  return conversations.value.filter(c => c.name.toLowerCase().includes(kw));
+  const start = rangeStartTs();
+  let list = conversations.value.filter(c => {
+    if (start && (c.time ?? 0) < start) return false;
+    if (!kw) return true;
+    return c.name.toLowerCase().includes(kw);
+  });
+  list = [...list].sort((a, b) => (b.time ?? 0) - (a.time ?? 0));
+  return list;
 });
 
 async function loadData() {
-  if (!selectedAgent.value?.difyAppId || !userId.value) return;
+  if (!selectedAgent.value?.key || !userId.value) return;
   loading.value = true;
   try {
     if (isWorkflow.value) {
-      const res = await fetchDifyWorkflowLogs({ appId: selectedAgent.value.difyAppId });
-      const list = (res as unknown as Api.Dify.WorkflowLogList)?.data ?? [];
+      const res = await fetchDifyWorkflowLogs({ appId: selectedAgent.value.key });
+      const list = asList<Api.Dify.WorkflowLogItem>(res?.data);
       runs.value = list.map(item => {
         const wf = item.workflow_run ?? {};
         return {
@@ -109,8 +145,8 @@ async function loadData() {
         };
       });
     } else {
-      const res = await fetchDifyConversations({ appId: selectedAgent.value.difyAppId, userId: userId.value });
-      const list = (res as unknown as Api.Dify.ConversationList)?.data ?? [];
+      const res = await fetchDifyConversations({ appId: selectedAgent.value.key, userId: userId.value });
+      const list = asList<Api.Dify.ConversationItem>(res?.data);
       conversations.value = list.map(item => ({
         id: item.id,
         name: item.name || item.introduction || '未命名会话',
@@ -123,20 +159,6 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
-}
-
-function openDetail(row: ConvRow | RunRow) {
-  const id = (row as { id?: string | number }).id;
-  if (!id) return;
-  router.push({
-    name: 'agent_task_detail',
-    query: {
-      id,
-      agent: agentKey.value,
-      kind: isWorkflow.value ? 'workflow' : 'chat',
-      from: 'monitor'
-    }
-  });
 }
 
 function handleSelect(key: string) {
@@ -203,7 +225,32 @@ onMounted(loadData);
                   <SvgIcon icon="mdi:magnify" />
                 </template>
               </NInput>
-              <div class="monitor-bar__count">共 {{ isWorkflow ? runs.length : conversations.length }} 条</div>
+              <NSelect
+                v-model:value="timeRange"
+                size="small"
+                class="monitor-bar__range"
+                :options="[
+                  { label: '全部时间', value: '' },
+                  { label: '今天', value: 'today' },
+                  { label: '近 7 天', value: '7d' },
+                  { label: '近 30 天', value: '30d' }
+                ]"
+              />
+              <NSelect
+                v-model:value="sortBy"
+                size="small"
+                class="monitor-bar__range"
+                :options="[
+                  { label: '按时间排序', value: 'time' },
+                  ...(isWorkflow
+                    ? [
+                        { label: '按耗时排序', value: 'elapsed' },
+                        { label: '按 Token 排序', value: 'tokens' }
+                      ]
+                    : [])
+                ]"
+              />
+              <div class="monitor-bar__count">共 {{ isWorkflow ? filteredRuns.length : filteredConvs.length }} 条</div>
             </div>
 
             <div v-if="loading" class="monitor-skeleton">
@@ -230,7 +277,7 @@ onMounted(loadData);
             </div>
 
             <div v-else-if="isWorkflow" class="monitor-list">
-              <div v-for="r in filteredRuns" :key="r.id" class="monitor-row" @click="openDetail(r)">
+              <div v-for="r in filteredRuns" :key="r.id" class="monitor-row">
                 <div class="monitor-row__main">
                   <div class="monitor-row__title">
                     <span class="status-badge" :class="r.status">{{ statusText(r.status) }}</span>
@@ -256,7 +303,7 @@ onMounted(loadData);
             </div>
 
             <div v-else class="monitor-list">
-              <div v-for="c in filteredConvs" :key="c.id" class="monitor-row" @click="openDetail(c)">
+              <div v-for="c in filteredConvs" :key="c.id" class="monitor-row">
                 <div class="monitor-row__main">
                   <div class="monitor-row__title">
                     <SvgIcon icon="mdi:chat-outline" class="conv-icon" />
@@ -317,10 +364,15 @@ onMounted(loadData);
   margin-bottom: 14px;
 
   &__search {
-    width: 260px;
+    width: 220px;
+  }
+
+  &__range {
+    width: 130px;
   }
 
   &__count {
+    margin-left: auto;
     font-size: 12px;
     color: rgba(203, 227, 255, 0.5);
   }

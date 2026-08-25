@@ -90,15 +90,6 @@ function createAgentElegantRoute() {
         }
       },
       {
-        name: 'agent_task_detail',
-        path: '/agent/task/:id',
-        meta: {
-          title: '任务详情',
-          hideInMenu: true,
-          activeMenu: 'agent'
-        }
-      },
-      {
         name: 'agent_config',
         path: '/agent/config',
         meta: {
@@ -162,16 +153,6 @@ function createAgentVueRoute(): RouteRecordRaw {
           title: '应用列表',
           icon: 'mdi:view-grid-plus-outline',
           iconFontSize: 18
-        }
-      },
-      {
-        name: 'agent_task_detail',
-        path: 'task/:id',
-        component: () => import('@/views/agent/modules/agent-task-detail-page.vue'),
-        meta: {
-          title: '任务详情',
-          hideInMenu: true,
-          activeMenu: 'agent'
         }
       },
       {

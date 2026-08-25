@@ -137,6 +137,23 @@ export function fetchDifyMcpServers() {
   });
 }
 
+/** 新增 MCP 服务（body: { name, server_url, headers? }） */
+export function createDifyMcpServer(body: { name: string; server_url: string; headers?: Record<string, string> }) {
+  return request<Record<string, unknown>>({
+    url: '/api/dify/mcp',
+    method: 'post',
+    data: body
+  });
+}
+
+/** 删除 MCP 服务 */
+export function deleteDifyMcpServer(providerId: string) {
+  return request<Record<string, unknown>>({
+    url: `/api/dify/mcp/${providerId}`,
+    method: 'delete'
+  });
+}
+
 /** 绑定工具到智能体（Dify /apps/{id}/tools，body: { tool_ids }，整体覆盖） */
 export function bindDifyAppTools(appId: string | number, toolIds: string[]) {
   return request<unknown>({

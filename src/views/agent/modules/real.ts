@@ -1,4 +1,4 @@
-import type { AgentDefinition, AgentRunStep, AgentRunTask, AgentTestRecord } from './types';
+import type { AgentDefinition, AgentTestRecord } from './types';
 
 export interface AgentParameterField {
   kind: 'text' | 'textarea' | 'number' | 'select' | 'switch';
@@ -39,7 +39,12 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 export function asList<T = unknown>(value: unknown): T[] {
-  return Array.isArray(value) ? (value as T[]) : [];
+  if (Array.isArray(value)) return value as T[];
+  // 兼容 request 解包后残留的信封：{ data: [...] }
+  if (value && typeof value === 'object' && Array.isArray((value as { data?: unknown }).data)) {
+    return (value as { data: T[] }).data;
+  }
+  return [];
 }
 
 function pickString(record: Record<string, unknown>, keys: string[]) {
@@ -83,26 +88,6 @@ function previewText(value: unknown, fallback = '暂无内容'): string {
     }
   }
   return String(value);
-}
-
-function normalizeStatus(status?: string): AgentRunTask['status'] {
-  const value = (status || '').toLowerCase();
-  if (['running', 'processing'].includes(value)) return 'running';
-  if (['failed', 'error', 'stopped'].includes(value)) return 'failed';
-  return 'success';
-}
-
-function normalizeWorkflowStatus(status?: string): AgentRunTask['status'] {
-  const value = (status || '').toLowerCase();
-  if (['running', 'processing', 'pending'].includes(value)) return 'running';
-  if (['failed', 'stopped', 'error'].includes(value)) return 'failed';
-  return 'success';
-}
-
-function formatDuration(seconds?: number) {
-  if (!seconds || !Number.isFinite(seconds)) return '--';
-  if (seconds < 1) return `${Math.round(seconds * 1000)}ms`;
-  return `${seconds.toFixed(seconds >= 10 ? 0 : 1)}s`;
 }
 
 export function formatUnixTimestamp(value?: number): string {
@@ -192,77 +177,6 @@ export function normalizeFileCapability(parameters?: Api.Dify.AppParameters | nu
   };
 }
 
-function extractConversationReferences(messages: Api.Dify.ConversationMessage[]) {
-  const refs = new Set<string>();
-  messages.forEach(message => {
-    asList<Record<string, unknown>>(message.retriever_resources).forEach(resource => {
-      const current = asRecord(resource);
-      const label =
-        pickString(current, ['document_name', 'segment_name', 'dataset_name', 'title', 'name']) ||
-        pickString(asRecord(current.metadata), ['title', 'name']);
-      if (label) refs.add(label);
-    });
-  });
-  return Array.from(refs);
-}
-
-function extractConversationSteps(messages: Api.Dify.ConversationMessage[], answer: string): AgentRunStep[] {
-  const thoughts = messages.flatMap(message => asList<Record<string, unknown>>(message.agent_thoughts));
-  if (thoughts.length) {
-    const steps = thoughts.map((thought, index) => {
-      const current = asRecord(thought);
-      const tool = pickString(current, ['tool', 'tool_name']);
-      const description =
-        pickString(current, ['thought', 'observation']) ||
-        (tool ? `已执行 ${tool} 并返回处理结果` : `已完成第 ${index + 1} 步推理`);
-      return {
-        key: `thought_${index + 1}`,
-        label: tool || `步骤 ${index + 1}`,
-        description,
-        status: 'success' as const,
-        duration: '--',
-        tool: tool || undefined
-      };
-    });
-    steps.push({
-      key: 'output',
-      label: '结果输出',
-      description: answer ? `已生成 ${answer.length} 字回复内容` : '已返回本轮结果',
-      status: 'success',
-      duration: '--',
-      tool: undefined
-    });
-    return steps;
-  }
-
-  return [
-    {
-      key: 'intent',
-      label: '输入理解',
-      description: '已解析用户输入并完成本轮意图识别',
-      status: 'success',
-      duration: '--',
-      tool: undefined
-    },
-    {
-      key: 'generate',
-      label: '内容生成',
-      description: answer ? `已生成 ${answer.length} 字回复内容` : '已完成回复生成',
-      status: 'success',
-      duration: '--',
-      tool: '智能体引擎'
-    },
-    {
-      key: 'output',
-      label: '结果输出',
-      description: '结果已写入会话历史',
-      status: 'success',
-      duration: '--',
-      tool: undefined
-    }
-  ];
-}
-
 export function mapDifyAppToAgent(app: Api.DifyApp.DifyAppResp): AgentDefinition {
   const typeName = getTypeLabel(app.type);
 
@@ -284,159 +198,8 @@ export function mapDifyAppToAgent(app: Api.DifyApp.DifyAppResp): AgentDefinition
     capabilityTags: [typeName, app.status === 1 ? '已启用' : '未启用'],
     tools: TOOL_BY_TYPE[app.type] || ['对话生成'],
     recommendedPrompts: [],
-    defaultInput: `请使用「${app.name}」处理：${app.description || '请结合当前业务场景给出结果。'}`
-  };
-}
-
-export function buildConversationTask(params: {
-  agent: AgentDefinition;
-  conversation: Api.Dify.ConversationItem;
-  messages: Api.Dify.ConversationMessage[];
-}): AgentRunTask {
-  const { agent, conversation } = params;
-  const messages = [...params.messages].sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
-  const latestMessage = messages[messages.length - 1];
-  const answer = latestMessage?.answer || '';
-  const query = latestMessage?.query || messages[0]?.query || '';
-  const refs = extractConversationReferences(messages);
-  const tokenUsage = pickNumber(asRecord(latestMessage?.metadata).usage as Record<string, unknown>, ['total_tokens']);
-  const createdAt = formatUnixTimestamp(conversation.created_at || latestMessage?.created_at);
-
-  return {
-    id: conversation.id,
-    agentKey: agent.key,
-    mode: 'chat',
-    conversationId: conversation.id,
-    messageId: latestMessage?.id,
-    title: conversation.name || `${agent.name}会话`,
-    status: normalizeStatus(conversation.status || latestMessage?.status),
-    createdAt,
-    updatedAt: formatUnixTimestamp(conversation.updated_at || latestMessage?.created_at || conversation.created_at),
-    operator: '当前用户',
-    input: query,
-    rawInputs: conversation.inputs || latestMessage?.inputs || {},
-    summary: answer ? answer.slice(0, 80) : '暂无回复内容',
-    result: answer || '暂无回复内容',
-    rawOutput: latestMessage ? asRecord(latestMessage.metadata) : null,
-    references: refs,
-    steps: extractConversationSteps(messages, answer),
-    metrics: {
-      duration: '--',
-      tokens: tokenUsage || answer.length + query.length,
-      confidence: 0
-    }
-  };
-}
-
-function extractWorkflowRun(log: Record<string, unknown>) {
-  const workflowRun = asRecord(log.workflow_run);
-  if (Object.keys(workflowRun).length) return workflowRun;
-  return asRecord(log.data);
-}
-
-function buildWorkflowSteps(run: Record<string, unknown>): AgentRunStep[] {
-  return [
-    {
-      key: 'input',
-      label: '输入装载',
-      description: '已装载工作流运行所需变量',
-      status: 'success',
-      duration: '--'
-    },
-    {
-      key: 'workflow',
-      label: '流程执行',
-      description: pickString(run, ['status']) || '已执行工作流编排',
-      status: normalizeWorkflowStatus(pickString(run, ['status'])),
-      duration: formatDuration(pickNumber(run, ['elapsed_time']))
-    },
-    {
-      key: 'output',
-      label: '结果输出',
-      description: '已整理工作流输出结果',
-      status: normalizeWorkflowStatus(pickString(run, ['status'])),
-      duration: '--'
-    }
-  ];
-}
-
-export function buildWorkflowTaskFromLog(params: {
-  agent: AgentDefinition;
-  log: Api.Dify.WorkflowLogItem;
-}): AgentRunTask {
-  const { agent, log } = params;
-  const run = extractWorkflowRun(asRecord(log));
-  const outputs = asRecord(run.outputs);
-  const outputText = stringifyOutput(Object.keys(outputs).length ? outputs : run);
-  const createdAt = formatUnixTimestamp((run.created_at as number | undefined) || log.created_at);
-
-  return {
-    id: String(run.id || log.id || ''),
-    agentKey: agent.key,
-    mode: 'workflow',
-    workflowRunId: String(run.id || ''),
-    taskId: pickString(run, ['task_id']) || pickString(asRecord(log), ['task_id']),
-    title: `${agent.name}执行记录`,
-    status: normalizeWorkflowStatus(pickString(run, ['status'])),
-    createdAt,
-    updatedAt: formatUnixTimestamp(
-      (run.finished_at as number | undefined) || (run.created_at as number | undefined) || log.created_at
-    ),
-    operator: '当前用户',
-    input: previewText(asRecord(log).inputs, '按参数表单发起执行'),
-    rawInputs: asRecord(asRecord(log).inputs),
-    summary: outputText.slice(0, 80),
-    result: outputText,
-    rawOutput: outputs,
-    references: [],
-    steps: buildWorkflowSteps(run),
-    metrics: {
-      duration: formatDuration(pickNumber(run, ['elapsed_time'])),
-      tokens: pickNumber(run, ['total_tokens']),
-      confidence: 0
-    }
-  };
-}
-
-export function buildWorkflowTaskFromDetail(params: {
-  agent: AgentDefinition;
-  workflowRunId: string;
-  detail: Api.Dify.WorkflowRunDetail;
-  inputs?: Record<string, unknown>;
-}): AgentRunTask {
-  const { agent, workflowRunId, detail, inputs } = params;
-  const root = asRecord(detail);
-  const run = asRecord(detail.data);
-  const outputs = asRecord(run.outputs);
-  const status = pickString(run, ['status']) || pickString(root, ['status']);
-  const outputText = stringifyOutput(Object.keys(outputs).length ? outputs : run);
-  const createdAt = formatUnixTimestamp(
-    (run.created_at as number | undefined) || (root.created_at as number | undefined)
-  );
-
-  return {
-    id: workflowRunId,
-    agentKey: agent.key,
-    mode: 'workflow',
-    workflowRunId,
-    taskId: pickString(root, ['task_id']) || pickString(run, ['task_id']),
-    title: `${agent.name}执行详情`,
-    status: normalizeWorkflowStatus(status),
-    createdAt,
-    updatedAt: formatUnixTimestamp((run.finished_at as number | undefined) || (run.created_at as number | undefined)),
-    operator: '当前用户',
-    input: previewText(inputs || root.inputs || run.inputs, '按参数表单发起执行'),
-    rawInputs: inputs || asRecord(root.inputs) || asRecord(run.inputs),
-    summary: outputText.slice(0, 80),
-    result: outputText,
-    rawOutput: outputs,
-    references: [],
-    steps: buildWorkflowSteps(run),
-    metrics: {
-      duration: formatDuration(pickNumber(run, ['elapsed_time'])),
-      tokens: pickNumber(run, ['total_tokens']),
-      confidence: 0
-    }
+    // 应用有真实描述时生成有意义默认提示，否则留空让用户自行输入
+    defaultInput: app.description ? `请使用「${app.name}」处理：${app.description}` : ''
   };
 }
 

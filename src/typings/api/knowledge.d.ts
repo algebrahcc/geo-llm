@@ -98,6 +98,16 @@ declare namespace Api {
       id: number;
     }
 
+    /** 元数据过滤条件（对应后端 KbSearchReq.MetadataCondition） */
+    interface MetadataCondition {
+      /** 元数据字段名（如 source、title） */
+      name: string;
+      /** 比较操作符：is / is not / contains / not contains / start with / end with / empty / not empty / in / not in / = / ≠ / > / < / ≥ / ≤ / before / after */
+      operator: string;
+      /** 比较值（empty / not empty 时可为 null） */
+      value?: unknown;
+    }
+
     /** 检索请求（对应后端 KbSearchReq） */
     interface SearchReq {
       query: string;
@@ -106,6 +116,10 @@ declare namespace Api {
       topN?: number;
       /** Dify 检索方式：full_text_search / semantic_search / hybrid_search */
       searchMethod?: string;
+      /** 元数据过滤逻辑操作符：and / or */
+      metadataLogicalOperator?: string;
+      /** 元数据过滤条件列表 */
+      metadataConditions?: MetadataCondition[];
     }
 
     /** 检索命中文档片段（对应后端 KbSearchHit，id 取自 Dify，为字符串） */
@@ -116,6 +130,8 @@ declare namespace Api {
       docName: string;
       content: string;
       score: number;
+      /** 切片元数据（Dify segment.metadata 原样透出） */
+      metadata?: Record<string, unknown>;
       source: string;
     }
 

@@ -7,7 +7,8 @@ import {
   deleteKbDocument,
   fetchKbDatasets,
   fetchKbDocumentDetail,
-  updateKbDocumentMetadata
+  updateKbDocumentMetadata,
+  updateKbSegment
 } from '@/service/api/knowledge';
 import { asList, mapKbDetailToKnowledgeDetail, getKnowledgeStatusMeta } from './modules/real';
 import type { ModuleRef, KnowledgeReference, KnowledgeDocumentDetail, KnowledgeChunk } from './modules/types';
@@ -136,6 +137,65 @@ function openMetadataEditor() {
 
 function reloadAfterEdit() {
   loadDetail({ silent: true });
+}
+
+// ── 原文预览 ──
+const rawPreviewVisible = ref(false);
+
+/** 打开原文预览：按切片顺序拼接全文（基于已返回的切片内容，无需额外依赖） */
+function openRawPreview() {
+  if (!detail.value?.chunks.length) {
+    window.$message?.warning('当前暂无可用切片内容');
+    return;
+  }
+  rawPreviewVisible.value = true;
+}
+
+const rawPreviewText = computed(() => {
+  if (!detail.value) return '';
+  return [...detail.value.chunks]
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map(c => c.content)
+    .join('\n\n');
+});
+
+// ── 切片批量操作 ──
+const checkedChunkIds = ref<Array<string | number>>([]);
+
+const checkedChunks = computed(() => (detail.value?.chunks || []).filter(c => checkedChunkIds.value.includes(c.id)));
+
+function toggleChunkChecked(id: string | number, value: boolean) {
+  checkedChunkIds.value = value ? [...checkedChunkIds.value, id] : checkedChunkIds.value.filter(v => v !== id);
+}
+
+function toggleAllChunks() {
+  if (!detail.value) return;
+  if (checkedChunkIds.value.length === detail.value.chunks.length) {
+    checkedChunkIds.value = [];
+  } else {
+    checkedChunkIds.value = detail.value.chunks.map(c => c.id);
+  }
+}
+
+/** 批量启用 / 停用切片 */
+async function batchToggleSegments(enabled: boolean) {
+  const chunks = checkedChunks.value;
+  if (!chunks.length || !datasetId.value || !documentId.value) {
+    window.$message?.warning('请先勾选切片');
+    return;
+  }
+  try {
+    await updateKbSegment(
+      datasetId.value,
+      documentId.value,
+      chunks.map(c => ({ id: c.id, enabled }))
+    );
+    window.$message?.success(`已${enabled ? '启用' : '停用'} ${chunks.length} 个切片`);
+    checkedChunkIds.value = [];
+    await loadDetail({ silent: true });
+  } catch {
+    window.$message?.error(`${enabled ? '启用' : '停用'}切片失败，请稍后重试`);
+  }
 }
 
 // ── 文档信息编辑（持久化到 Dify doc_metadata） ──
@@ -388,6 +448,43 @@ onUnmounted(() => {
               class="panel-head__icon"
             />
             <span class="panel-head__title">{{ isImageDoc ? '区域要素预览' : 'Chunk 预览' }}</span>
+            <template v-if="detail.chunks.length">
+              <div class="chunk-actions ml-auto flex items-center gap-8px">
+                <NButton size="tiny" quaternary @click="openRawPreview">
+                  <template #icon>
+                    <SvgIcon icon="mdi:file-document-outline" />
+                  </template>
+                  预览原文
+                </NButton>
+                <template v-if="checkedChunkIds.length">
+                  <NButton
+                    size="tiny"
+                    secondary
+                    :disabled="!checkedChunks.some(c => c.enabled === false)"
+                    @click="batchToggleSegments(true)"
+                  >
+                    启用所选
+                  </NButton>
+                  <NButton
+                    size="tiny"
+                    secondary
+                    type="warning"
+                    :disabled="!checkedChunks.some(c => c.enabled !== false)"
+                    @click="batchToggleSegments(false)"
+                  >
+                    停用所选
+                  </NButton>
+                  <span class="chunk-batch__count">已选 {{ checkedChunkIds.length }} 项</span>
+                </template>
+                <NCheckbox
+                  :checked="checkedChunkIds.length > 0 && checkedChunkIds.length === detail.chunks.length"
+                  :indeterminate="checkedChunkIds.length > 0 && checkedChunkIds.length < detail.chunks.length"
+                  @update:checked="toggleAllChunks"
+                >
+                  全选
+                </NCheckbox>
+              </div>
+            </template>
           </div>
           <div class="panel-body">
             <NEmpty
@@ -397,9 +494,20 @@ onUnmounted(() => {
               "
             />
             <div v-else class="grid gap-10px lg:grid-cols-2">
-              <div v-for="chunk in detail.chunks" :key="chunk.id" class="chunk-card">
+              <div
+                v-for="chunk in detail.chunks"
+                :key="chunk.id"
+                class="chunk-card"
+                :class="{ 'chunk-card--checked': checkedChunkIds.includes(chunk.id) }"
+                @click.self="toggleChunkChecked(chunk.id, !checkedChunkIds.includes(chunk.id))"
+              >
                 <div class="flex items-center justify-between gap-10px">
                   <div class="flex items-center gap-6px">
+                    <NCheckbox
+                      :checked="checkedChunkIds.includes(chunk.id)"
+                      class="chunk-check"
+                      @update:checked="(value: boolean) => toggleChunkChecked(chunk.id, value)"
+                    />
                     <NTag
                       v-if="chunk.type === 'image-region'"
                       size="small"
@@ -547,6 +655,23 @@ onUnmounted(() => {
           @update:visible="editDocVisible = $event"
           @submit="handleDocEditSubmit"
         />
+
+        <NModal
+          :show="rawPreviewVisible"
+          preset="card"
+          title="原文预览"
+          style="max-width: 760px"
+          :bordered="false"
+          @update:show="rawPreviewVisible = $event"
+        >
+          <div class="raw-preview">
+            <div class="raw-preview__meta">
+              <span class="raw-preview__name">{{ detail?.name }}</span>
+              <span v-if="detail?.chunks.length" class="raw-preview__count">共 {{ detail.chunks.length }} 个切片</span>
+            </div>
+            <pre class="raw-preview__content">{{ rawPreviewText }}</pre>
+          </div>
+        </NModal>
       </template>
 
       <div v-else-if="!loading" class="panel-surface">
@@ -836,6 +961,72 @@ onUnmounted(() => {
   border-radius: 4px;
   background: rgba(6, 20, 38, 0.5);
   border: 1px solid rgba(25, 95, 176, 0.18);
+}
+
+.chunk-card {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.chunk-card--checked {
+  border-color: rgba(41, 163, 255, 0.65);
+  box-shadow:
+    0 0 0 1px rgba(41, 163, 255, 0.25),
+    0 0 12px rgba(41, 163, 255, 0.12);
+}
+
+.chunk-check {
+  margin-right: 2px;
+}
+
+.chunk-batch__count {
+  font-size: 12px;
+  color: #8cc8ff;
+}
+
+/* ── 原文预览 ── */
+.raw-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+}
+
+.raw-preview__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(25, 95, 176, 0.18);
+}
+
+.raw-preview__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--knowledge-text-primary, #dbeafe);
+}
+
+.raw-preview__count {
+  font-size: 12px;
+  color: var(--knowledge-text-tertiary, rgba(203, 227, 255, 0.5));
+}
+
+.raw-preview__content {
+  flex: 1;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border-radius: 4px;
+  background: rgba(6, 20, 38, 0.5);
+  border: 1px solid rgba(25, 95, 176, 0.18);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--knowledge-text-primary, #dbeafe);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* ── 增强引用卡片 ── */

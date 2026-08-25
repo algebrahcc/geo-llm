@@ -6,7 +6,7 @@ import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { getKnowledgeStatusMeta } from './modules/real';
 import type { KnowledgeDocument } from './modules/types';
-import { deleteKbDocument } from '@/service/api/knowledge';
+import { deleteKbDocument, syncKbDocument } from '@/service/api/knowledge';
 import KnowledgeCollectionNav from './modules/knowledge-collection-nav.vue';
 import KnowledgeToolbar from './modules/knowledge-toolbar.vue';
 import { useKnowledge } from './modules/use-knowledge';
@@ -29,6 +29,7 @@ const {
   statusOptions,
   sortOptions,
   collectionGroups,
+  allDocuments,
   filteredDocuments,
   kbLoading,
   kbFailed,
@@ -80,6 +81,89 @@ function handleDelete(document: KnowledgeDocument) {
   });
 }
 
+// ====== 统计卡片 ======
+const statTotal = computed(() => allDocuments.value.length);
+const statChunks = computed(() => allDocuments.value.reduce((sum, d) => sum + (Number(d.chunkCount) || 0), 0));
+const statReady = computed(() => allDocuments.value.filter(d => d.status === 'ready').length);
+const statIndexing = computed(() => allDocuments.value.filter(d => d.status === 'indexing').length);
+const statImages = computed(() => allDocuments.value.filter(d => d.format === 'IMAGE').length);
+
+const stats = computed(() => [
+  {
+    key: 'total',
+    label: '文档总数',
+    value: statTotal.value,
+    icon: 'mdi:file-document-multiple-outline',
+    accent: '#29a3ff'
+  },
+  { key: 'chunks', label: '分块总数', value: statChunks.value, icon: 'mdi:view-grid-outline', accent: '#62e4ff' },
+  { key: 'ready', label: '已完成', value: statReady.value, icon: 'mdi:check-circle-outline', accent: '#34d399' },
+  { key: 'indexing', label: '处理中', value: statIndexing.value, icon: 'mdi:loading', accent: '#fbbf24', spin: true },
+  { key: 'images', label: '图片文档', value: statImages.value, icon: 'mdi:image-outline', accent: '#a78bfa' }
+]);
+
+// ====== 批量操作 ======
+const checkedRowKeys = ref<Array<string | number>>([]);
+
+const checkedDocuments = computed(() => filteredDocuments.value.filter(d => checkedRowKeys.value.includes(d.id)));
+
+function handleCheckedChange(keys: Array<string | number>) {
+  checkedRowKeys.value = keys;
+}
+
+/** 批量同步索引 */
+async function handleBatchSync() {
+  const docs = checkedDocuments.value;
+  if (!docs.length) {
+    window.$message?.warning('请先勾选要同步的文档');
+    return;
+  }
+  let ok = 0;
+  let fail = 0;
+  for (const doc of docs) {
+    try {
+      await syncKbDocument(doc.id);
+      ok += 1;
+    } catch {
+      fail += 1;
+    }
+  }
+  if (ok > 0) window.$message?.success(`已提交 ${ok} 个文档的同步`);
+  if (fail > 0) window.$message?.error(`${fail} 个文档同步失败`);
+  checkedRowKeys.value = [];
+}
+
+/** 批量删除 */
+function handleBatchDelete() {
+  const docs = checkedDocuments.value;
+  if (!docs.length) {
+    window.$message?.warning('请先勾选要删除的文档');
+    return;
+  }
+  window.$dialog?.warning({
+    title: '批量删除',
+    content: `确认删除选中的 ${docs.length} 个文档吗？该操作不可恢复。`,
+    positiveText: '删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      let ok = 0;
+      let fail = 0;
+      for (const doc of docs) {
+        try {
+          await deleteKbDocument(doc.id, doc.collection);
+          ok += 1;
+        } catch {
+          fail += 1;
+        }
+      }
+      if (ok > 0) window.$message?.success(`已删除 ${ok} 个文档`);
+      if (fail > 0) window.$message?.error(`${fail} 个文档删除失败`);
+      checkedRowKeys.value = [];
+      await loadRealDocuments();
+    }
+  });
+}
+
 // ====== Pagination ======
 const currentPage = ref(1);
 const pageSize = ref(10);
@@ -104,6 +188,11 @@ watch([searchKeyword, sourceFilter, statusFilter, sortBy, selectedCollection], (
 
 // ====== NDataTable columns ======
 const columns = computed<DataTableColumns<KnowledgeDocument>>(() => [
+  {
+    type: 'selection',
+    width: 40,
+    fixed: 'left'
+  },
   {
     title: '文档名称',
     key: 'name',
@@ -261,6 +350,22 @@ const dataTableThemeOverrides = {
           </div>
         </div>
 
+        <!-- 统计卡片 -->
+        <div class="stat-row">
+          <div v-for="s in stats" :key="s.key" class="stat-card">
+            <SvgIcon
+              :icon="s.icon"
+              class="stat-card__icon"
+              :class="[{ 'is-spin': s.spin }]"
+              :style="{ color: s.accent }"
+            />
+            <div class="stat-card__body">
+              <div class="stat-card__value">{{ s.value }}</div>
+              <div class="stat-card__label">{{ s.label }}</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Main table card -->
         <div class="knowledge-main__card">
           <div class="card-head">
@@ -298,18 +403,41 @@ const dataTableThemeOverrides = {
               <NButton size="small" secondary @click="loadRealDocuments">重新加载</NButton>
             </div>
 
-            <NDataTable
-              v-else
-              :columns="columns"
-              :data="pagedDocuments"
-              :pagination="false"
-              :row-key="(row: KnowledgeDocument) => row.id"
-              :theme-overrides="dataTableThemeOverrides"
-              :bordered="false"
-              single-line
-              flex-height
-              class="knowledge-table"
-            />
+            <template v-else>
+              <!-- 批量操作栏 -->
+              <div v-if="checkedRowKeys.length" class="batch-bar">
+                <span class="batch-bar__count">已选 {{ checkedRowKeys.length }} 个文档</span>
+                <div class="batch-bar__actions">
+                  <NButton size="small" secondary type="primary" @click="handleBatchSync">
+                    <template #icon>
+                      <SvgIcon icon="mdi:sync" />
+                    </template>
+                    同步索引
+                  </NButton>
+                  <NButton size="small" secondary type="error" @click="handleBatchDelete">
+                    <template #icon>
+                      <SvgIcon icon="mdi:delete-outline" />
+                    </template>
+                    批量删除
+                  </NButton>
+                  <NButton size="small" quaternary @click="checkedRowKeys = []">取消选择</NButton>
+                </div>
+              </div>
+
+              <NDataTable
+                :columns="columns"
+                :data="pagedDocuments"
+                :pagination="false"
+                :row-key="(row: KnowledgeDocument) => row.id"
+                :checked-row-keys="checkedRowKeys"
+                :theme-overrides="dataTableThemeOverrides"
+                :bordered="false"
+                single-line
+                flex-height
+                class="knowledge-table"
+                @update:checked-row-keys="handleCheckedChange"
+              />
+            </template>
 
             <div class="table-footer">
               <div class="table-footer__summary">
@@ -454,6 +582,95 @@ const dataTableThemeOverrides = {
 
 .knowledge-topbar__left {
   width: 100%;
+}
+
+/* ====== 统计卡片 ====== */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 4px;
+  background: var(--knowledge-surface-bg);
+  border: 1px solid var(--knowledge-surface-border);
+  box-shadow: var(--knowledge-glow);
+  position: relative;
+  min-width: 0;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 2px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, transparent, var(--knowledge-accent), transparent);
+  opacity: 0.4;
+}
+
+.stat-card__icon {
+  flex-shrink: 0;
+  font-size: 22px;
+  filter: drop-shadow(0 0 6px rgba(41, 163, 255, 0.25));
+}
+
+.stat-card__icon.is-spin {
+  animation: meta-spin 0.8s linear infinite;
+}
+
+.stat-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stat-card__value {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--knowledge-text-primary);
+  text-shadow: 0 0 10px rgba(41, 163, 255, 0.12);
+  white-space: nowrap;
+}
+
+.stat-card__label {
+  font-size: 11px;
+  color: var(--knowledge-text-tertiary);
+  white-space: nowrap;
+}
+
+/* ====== 批量操作栏 ====== */
+.batch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(41, 163, 255, 0.35);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(10, 45, 88, 0.6) 0%, rgba(6, 32, 64, 0.7) 100%);
+  box-shadow: 0 0 12px rgba(41, 163, 255, 0.12);
+  margin-bottom: 10px;
+}
+
+.batch-bar__count {
+  font-size: 12px;
+  color: #8cc8ff;
+}
+
+.batch-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Main card */
@@ -890,6 +1107,10 @@ const dataTableThemeOverrides = {
 
   .knowledge-sidebar {
     max-height: 280px;
+  }
+
+  .stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

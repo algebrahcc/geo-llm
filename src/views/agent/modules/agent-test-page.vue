@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import {
+  deleteDifyConversation,
   fetchDifyChatStream,
   fetchDifyConversations,
   fetchDifyConversationMessages,
@@ -13,13 +14,15 @@ import {
   fetchDifyStop,
   fetchDifySuggestedQuestions,
   fetchDifyWorkflowStop,
-  fetchDifyWorkflowStream
+  fetchDifyWorkflowStream,
+  renameDifyConversation
 } from '@/service/api/dify';
 import AgentSidebar from './agent-sidebar.vue';
 import { useAgentSelection } from './use-agent';
 import { useDifyApps } from './use-dify-app';
 import { useAuthStore } from '@/store/modules/auth';
 import {
+  asList,
   buildInitialParameterValues,
   buildTestRecord,
   normalizeFileCapability,
@@ -36,6 +39,8 @@ type EventLine = {
   id: string;
   label: string;
   detail: string;
+  /** 事件类型：tool = 工具调用（高亮展示） */
+  kind?: 'evt' | 'tool';
 };
 
 /** 把包含 <think>...</think> 的流式文本拆分为 reasoning（思考）与 content（正文） */
@@ -80,7 +85,6 @@ const testing = ref(false);
 const latestRecord = ref<ReturnType<typeof buildTestRecord> | null>(null);
 const parameters = ref<Api.Dify.AppParameters | null>(null);
 const uploadFiles = ref<UploadFileInfo[]>([]);
-const remoteFileUrls = ref('');
 const streamOutput = ref('');
 const streamEvents = ref<EventLine[]>([]);
 const suggestedQuestions = ref<string[]>([]);
@@ -104,8 +108,6 @@ type ChatMsg = {
 };
 const messages = ref<ChatMsg[]>([]);
 const messageArea = ref<HTMLElement | null>(null);
-/** 是否保留对话上下文（多轮调试）。关闭时每轮独立会话，对齐调试平台「单轮/多轮」开关 */
-const keepContext = ref(true);
 /** 思考过程面板完成后是否默认折叠（对齐 Dify：进行中展开，完成后收起） */
 const reasoningPanelClosed = ref(true);
 const currentConversationId = ref('');
@@ -187,11 +189,12 @@ function updateFieldValue(name: string, value: unknown) {
   parameterValues[name] = value;
 }
 
-function appendEvent(label: string, detail: string) {
+function appendEvent(label: string, detail: string, kind: EventLine['kind'] = 'evt') {
   streamEvents.value.unshift({
     id: `${Date.now()}-${Math.random()}`,
     label,
-    detail
+    detail,
+    kind
   });
   streamEvents.value = streamEvents.value.slice(0, 12);
 }
@@ -252,20 +255,6 @@ async function collectRuntimeFiles() {
     }
   }
 
-  if (fileCapability.value.supportRemoteUrl && remoteFileUrls.value.trim()) {
-    remoteFileUrls.value
-      .split(/\r?\n|,/)
-      .map(item => item.trim())
-      .filter(Boolean)
-      .forEach(url => {
-        files.push({
-          type: 'document',
-          transfer_method: 'remote_url',
-          url
-        });
-      });
-  }
-
   return files;
 }
 
@@ -293,35 +282,165 @@ async function loadParameters() {
   }
 }
 
-/** 加载最近一次会话的历史消息，便于进入测试页时延续上下文（原运行页能力并入） */
-async function loadHistory() {
-  if (isWorkflow.value || !currentAppId.value || !userId.value) return;
+/** 历史会话列表（仅对话型应用） */
+const conversationList = ref<Api.Dify.ConversationItem[]>([]);
+const conversationLoading = ref(false);
+
+/** 会话标题：name → introduction → 兜底文案 */
+function convTitle(conv: Api.Dify.ConversationItem) {
+  return conv.name || conv.introduction || '未命名会话';
+}
+
+/** 会话时间：updated_at → created_at（Dify 返回秒级时间戳） */
+function convTime(conv: Api.Dify.ConversationItem) {
+  const t = conv.updated_at || conv.created_at;
+  if (!t) return '';
+  return new Date(t * 1000).toLocaleString('zh-CN', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+async function loadConversations() {
+  if (isWorkflow.value || !currentAppId.value || !userId.value) {
+    conversationList.value = [];
+    return;
+  }
+  conversationLoading.value = true;
   try {
-    const res = await fetchDifyConversations({ appId: currentAppId.value, userId: userId.value });
-    const list = (res as unknown as Api.Dify.ConversationList)?.data ?? [];
-    if (!list.length) return;
-    const first = list[0];
-    currentConversationId.value = first.id;
+    const res = await fetchDifyConversations({ appId: currentAppId.value, userId: userId.value, limit: 50 });
+    conversationList.value = asList<Api.Dify.ConversationItem>(res?.data);
+  } catch {
+    conversationList.value = [];
+  } finally {
+    conversationLoading.value = false;
+  }
+}
+
+/**
+ * 历史消息渲染：Dify 每条记录同时含用户提问与 AI 回答，
+ * 拆成两条消息（user → query，assistant → answer），避免只显示提问。
+ */
+function mapMessages(msgs: Api.Dify.ConversationMessage[]): ChatMsg[] {
+  const result: ChatMsg[] = [];
+  for (const m of msgs) {
+    if (m.query) {
+      result.push({ id: `${m.id}-q`, role: 'user', content: m.query, time: '' });
+    }
+    if (m.answer) {
+      // 与流式一致：从 answer 中拆出 <think>...</think>，思考内容走折叠面板渲染
+      const split = splitThink(m.answer);
+      result.push({
+        id: `${m.id}-a`,
+        role: 'assistant',
+        content: split.content,
+        reasoning: split.reasoning || undefined,
+        time: ''
+      });
+    }
+  }
+  return result;
+}
+
+/** 删除会话：成功后从列表移除；若删除的是当前会话则回到空会话状态 */
+async function removeConversation(conversationId: string) {
+  if (!currentAppId.value || !userId.value) return;
+  try {
+    await deleteDifyConversation({ appId: currentAppId.value, userId: userId.value, conversationId });
+  } catch {
+    return;
+  }
+  conversationList.value = conversationList.value.filter(c => c.id !== conversationId);
+  if (currentConversationId.value === conversationId) {
+    currentConversationId.value = '';
+    messages.value = [];
+    streamOutput.value = '';
+    streamEvents.value = [];
+    suggestedQuestions.value = [];
+    latestRecord.value = null;
+  }
+}
+
+/** 会话重命名弹窗状态 */
+const renameTarget = ref<Api.Dify.ConversationItem | null>(null);
+const renameValue = ref('');
+const renameLoading = ref(false);
+
+/** 打开重命名弹窗（仅对话型应用） */
+function openRenameDialog(conv: Api.Dify.ConversationItem) {
+  renameTarget.value = conv;
+  renameValue.value = conv.name || conv.introduction || '';
+}
+
+/** 提交重命名：成功后更新列表标题 */
+async function submitRename() {
+  const target = renameTarget.value;
+  if (!target || !currentAppId.value || !userId.value) return;
+  const name = renameValue.value.trim();
+  if (!name) {
+    window.$message?.warning('请输入会话名称');
+    return;
+  }
+  renameLoading.value = true;
+  try {
+    await renameDifyConversation({
+      appId: currentAppId.value,
+      userId: userId.value,
+      conversationId: target.id,
+      name,
+      autoGenerateName: false
+    });
+    const updated = { ...target, name };
+    conversationList.value = conversationList.value.map(c => (c.id === target.id ? updated : c));
+    renameTarget.value = null;
+    window.$message?.success('会话已重命名');
+  } catch {
+    // 后端已提示错误
+  } finally {
+    renameLoading.value = false;
+  }
+}
+
+/** 切换到指定历史会话并加载其消息 */
+async function switchConversation(conversationId: string) {
+  if (!currentAppId.value || !userId.value) return;
+  currentConversationId.value = conversationId;
+  streamOutput.value = '';
+  streamEvents.value = [];
+  suggestedQuestions.value = [];
+  latestRecord.value = null;
+  try {
     const msgRes = await fetchDifyConversationMessages({
       appId: currentAppId.value,
       userId: userId.value,
-      conversationId: first.id
+      conversationId
     });
-    const msgs = (msgRes as unknown as Api.Dify.ConversationMessages)?.data ?? [];
-    messages.value = msgs
-      .filter(m => m.query || m.answer)
-      .map(m => ({
-        id: m.id || `${Date.now()}-${Math.random()}`,
-        role: (m.query ? 'user' : 'assistant') as ChatMsg['role'],
-        content: m.query || m.answer || '',
-        time: ''
-      }));
-    if (messages.value.length) {
-      nextTick(() => messageArea.value?.scrollTo({ top: messageArea.value.scrollHeight }));
-    }
+    messages.value = mapMessages(asList<Api.Dify.ConversationMessage>(msgRes?.data));
   } catch {
-    // 历史加载失败不阻塞，仍可从空开始测试
+    messages.value = [];
   }
+  nextTick(() => messageArea.value?.scrollTo({ top: messageArea.value.scrollHeight }));
+}
+
+/** 新建对话：清空当前会话上下文，下次发送时 Dify 自动开新会话 */
+function newConversation() {
+  currentConversationId.value = '';
+  messages.value = [];
+  streamOutput.value = '';
+  streamEvents.value = [];
+  suggestedQuestions.value = [];
+  latestRecord.value = null;
+}
+
+/** 加载会话列表并自动进入最近一次会话，便于进入测试页时延续上下文 */
+async function loadHistory() {
+  if (isWorkflow.value || !currentAppId.value || !userId.value) return;
+  await loadConversations();
+  const first = conversationList.value[0];
+  if (!first) return;
+  await switchConversation(first.id);
 }
 
 watch(
@@ -336,7 +455,6 @@ watch(
     currentMessageId.value = '';
     currentConversationId.value = '';
     uploadFiles.value = [];
-    remoteFileUrls.value = '';
     await loadParameters();
     await loadHistory();
   },
@@ -382,12 +500,6 @@ function clearChat() {
   streamEvents.value = [];
   suggestedQuestions.value = [];
   latestRecord.value = null;
-  currentConversationId.value = '';
-}
-
-function onKeepContextChange(value: boolean) {
-  keepContext.value = value;
-  // 切换时重置上下文，避免脏会话污染下一轮
   currentConversationId.value = '';
 }
 
@@ -494,7 +606,7 @@ async function handleRun(targetPrompt?: string) {
           inputs,
           files,
           autoGenerateName: true,
-          conversationId: keepContext.value ? currentConversationId.value || undefined : undefined
+          conversationId: currentConversationId.value || undefined
         },
         {
           onDelta: text => {
@@ -507,7 +619,31 @@ async function handleRun(targetPrompt?: string) {
           onEvent: (event, payload) => {
             currentTaskId.value = String(payload.task_id || currentTaskId.value || '');
             currentMessageId.value = String(payload.message_id || currentMessageId.value || '');
-            if (event !== 'message' && event !== 'agent_message' && event !== 'agent_thought') {
+            // 工具调用可视化：agent_thought 携带 tool/tool_input/observation（Agent 模式），
+            // agent_message（Dify 1.16 新格式）携带 tool_calls[]
+            if (event === 'agent_thought') {
+              const tool = payload.tool as string | undefined;
+              if (tool) {
+                appendEvent(
+                  `工具调用 · ${tool}`,
+                  `输入：${stringifyOutput(payload.tool_input)}\n输出：${stringifyOutput(payload.observation)}`,
+                  'tool'
+                );
+              }
+            } else if (event === 'agent_message') {
+              const toolCalls = payload.tool_calls as
+                | Array<{ name?: string; arguments?: unknown; response?: unknown }>
+                | undefined;
+              if (Array.isArray(toolCalls) && toolCalls.length) {
+                for (const call of toolCalls) {
+                  appendEvent(
+                    `工具调用 · ${call.name ?? 'unknown'}`,
+                    `参数：${stringifyOutput(call.arguments)}\n输出：${stringifyOutput(call.response)}`,
+                    'tool'
+                  );
+                }
+              }
+            } else if (event !== 'message') {
               appendEvent(event, stringifyOutput(payload));
             }
           },
@@ -545,6 +681,8 @@ async function handleRun(targetPrompt?: string) {
             });
             msg.suggested = suggestedQuestions.value;
             scrollMessageArea();
+            // 对话完成后刷新会话列表（新会话会出现在顶部）
+            void loadConversations();
           },
           onError: message => {
             msg.streaming = false;
@@ -577,123 +715,171 @@ async function handleRun(targetPrompt?: string) {
       <section class="agent-main">
         <!-- 对话型主区：底部固定输入框 + 气泡流 -->
         <div v-if="!isWorkflow" class="chat-panel panel-surface">
-          <div class="panel-head">
-            <SvgIcon :icon="selectedAgent.icon" class="panel-head__icon" />
-            <span class="panel-head__title">{{ selectedAgent.name }}</span>
-            <NTag size="small" round :bordered="false" class="mode-tag">对话</NTag>
-            <div class="ml-auto flex gap-8px">
-              <NButton text size="small" :disabled="!messages.length || testing" @click="clearChat">
+          <div class="conversation-pane">
+            <div class="conversation-pane__head">
+              <NButton text size="small" class="conversation-pane__new" @click="newConversation">
                 <template #icon>
-                  <SvgIcon icon="mdi:delete-sweep-outline" />
+                  <SvgIcon icon="mdi:plus" />
                 </template>
-                清空
-              </NButton>
-              <NButton secondary size="small" :disabled="!testing" @click="handleStop">
-                <template #icon>
-                  <SvgIcon icon="mdi:stop" />
-                </template>
-                停止
+                新对话
               </NButton>
             </div>
-          </div>
-
-          <div ref="messageArea" class="chat-messages">
-            <div v-if="!messages.length" class="chat-welcome">
-              <SvgIcon icon="mdi:message-processing-outline" class="chat-welcome__icon" />
-              <div class="chat-welcome__title">开始调试</div>
-              <div class="chat-welcome__desc">在下方输入消息，模拟对话测试应用，流式返回结果。</div>
-              <div v-if="quickPrompts.length" class="chat-welcome__prompts">
-                <button
-                  v-for="item in quickPrompts"
-                  :key="item"
-                  type="button"
-                  class="prompt-chip"
-                  @click="handleRun(item)"
-                >
-                  {{ item }}
-                </button>
-              </div>
-            </div>
-
-            <div v-for="msg in messages" :key="msg.id" class="chat-row" :class="msg.role">
-              <div class="chat-avatar" :class="msg.role">
-                <SvgIcon :icon="msg.role === 'user' ? 'mdi:account-outline' : selectedAgent.icon" />
-              </div>
-              <div class="chat-bubble" :class="msg.role">
-                <!-- 思考过程折叠面板（参考 Dify：进行中默认展开，结束后默认折叠） -->
-                <details v-if="msg.reasoning" class="think-panel" :open="msg.streaming || !reasoningPanelClosed">
-                  <summary class="think-panel__summary">
-                    <span class="think-panel__chevron">▸</span>
-                    <span v-if="msg.streaming" class="think-panel__label think-panel__label--active">思考中…</span>
-                    <span v-else class="think-panel__label">思考过程</span>
-                  </summary>
-                  <div class="think-panel__body">{{ msg.reasoning }}</div>
-                </details>
-                <div v-if="msg.content" class="chat-bubble__text">
-                  {{ msg.content }}
-                  <span v-if="msg.streaming" class="type-cursor">▍</span>
-                </div>
-                <div v-else-if="msg.streaming && !msg.reasoning" class="chat-bubble__loading">
-                  <span class="dot" />
-                  <span class="dot" />
-                  <span class="dot" />
-                </div>
-                <div v-if="msg.content || !msg.streaming" class="chat-bubble__meta">
-                  <span class="chat-bubble__time">{{ msg.time }}</span>
-                  <button type="button" class="copy-btn" title="复制内容" @click="copyMessage(msg)">
-                    <SvgIcon icon="mdi:content-copy" />
-                  </button>
-                </div>
-                <div v-if="msg.suggested?.length" class="chat-bubble__suggested">
-                  <button v-for="q in msg.suggested" :key="q" type="button" class="prompt-chip" @click="handleRun(q)">
-                    {{ q }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="chat-input" :class="{ 'chat-input--focused': inputFocused }">
-            <NInput
-              v-model:value="prompt"
-              type="textarea"
-              :autosize="{ minRows: 1, maxRows: 5 }"
-              placeholder="输入消息，Enter 发送，Shift+Enter 换行"
-              :disabled="testing"
-              @focus="inputFocused = true"
-              @blur="inputFocused = false"
-              @keydown.enter.prevent="handleRun()"
-            />
-            <div class="chat-input__toolbar">
-              <div class="flex items-center gap-2px">
-                <NUpload
-                  v-if="fileCapability.supportLocalFile"
-                  multiple
-                  :max="fileCapability.limit"
-                  :file-list="uploadFiles"
-                  :default-upload="false"
-                  :accept="fileCapability.accept === '*' ? undefined : fileCapability.accept"
-                  class="inline-block"
-                  @change="handleLocalFileChange"
-                  @remove="handleLocalFileRemove"
-                >
-                  <button type="button" class="icon-btn" title="上传文件">
-                    <SvgIcon icon="mdi:paperclip" />
-                  </button>
-                </NUpload>
-                <span v-if="testing" class="chat-input__status">
-                  <span class="pulse-dot" />
-                  生成中…
+            <div v-if="conversationLoading" class="conversation-pane__loading">加载中…</div>
+            <div v-else-if="!conversationList.length" class="conversation-pane__loading">暂无历史会话</div>
+            <div v-else class="conversation-pane__list">
+              <button
+                v-for="conv in conversationList"
+                :key="conv.id"
+                type="button"
+                class="conversation-item"
+                :class="{ 'conversation-item--active': conv.id === currentConversationId }"
+                @click="switchConversation(conv.id)"
+              >
+                <span class="conversation-item__title">{{ convTitle(conv) }}</span>
+                <span v-if="convTime(conv)" class="conversation-item__time">{{ convTime(conv) }}</span>
+                <span class="conversation-item__actions">
+                  <span class="conversation-item__action" title="重命名会话" @click.stop="openRenameDialog(conv)">
+                    <SvgIcon icon="mdi:pencil-outline" />
+                  </span>
+                  <span
+                    class="conversation-item__action conversation-item__action--danger"
+                    title="删除会话"
+                    @click.stop="removeConversation(conv.id)"
+                  >
+                    <SvgIcon icon="mdi:trash-can-outline" />
+                  </span>
                 </span>
-              </div>
-              <div class="flex items-center gap-6px">
-                <span v-if="prompt.trim() && !testing" class="chat-input__hint">Enter 发送</span>
-                <NButton type="primary" size="small" :loading="testing" :disabled="!prompt.trim()" @click="handleRun()">
+              </button>
+            </div>
+          </div>
+
+          <div class="chat-body">
+            <div class="panel-head">
+              <SvgIcon :icon="selectedAgent.icon" class="panel-head__icon" />
+              <span class="panel-head__title">{{ selectedAgent.name }}</span>
+              <NTag size="small" round :bordered="false" class="mode-tag">对话</NTag>
+              <div class="ml-auto flex gap-8px">
+                <NButton text size="small" :disabled="!messages.length || testing" @click="clearChat">
                   <template #icon>
-                    <SvgIcon icon="mdi:send" />
+                    <SvgIcon icon="mdi:delete-sweep-outline" />
                   </template>
-                  发送
+                  清空
                 </NButton>
+                <NButton secondary size="small" :disabled="!testing" @click="handleStop">
+                  <template #icon>
+                    <SvgIcon icon="mdi:stop" />
+                  </template>
+                  停止
+                </NButton>
+              </div>
+            </div>
+
+            <div ref="messageArea" class="chat-messages">
+              <div v-if="!messages.length" class="chat-welcome">
+                <SvgIcon icon="mdi:message-processing-outline" class="chat-welcome__icon" />
+                <div class="chat-welcome__title">开始调试</div>
+                <div class="chat-welcome__desc">在下方输入消息，模拟对话测试应用，流式返回结果。</div>
+                <div v-if="quickPrompts.length" class="chat-welcome__prompts">
+                  <button
+                    v-for="item in quickPrompts"
+                    :key="item"
+                    type="button"
+                    class="prompt-chip"
+                    @click="handleRun(item)"
+                  >
+                    {{ item }}
+                  </button>
+                </div>
+              </div>
+
+              <div v-for="msg in messages" :key="msg.id" class="chat-row" :class="msg.role">
+                <div class="chat-avatar" :class="msg.role">
+                  <SvgIcon :icon="msg.role === 'user' ? 'mdi:account-outline' : selectedAgent.icon" />
+                </div>
+                <div class="chat-bubble" :class="msg.role">
+                  <!-- 思考过程折叠面板（参考 Dify：进行中默认展开，结束后默认折叠） -->
+                  <details v-if="msg.reasoning" class="think-panel" :open="msg.streaming || !reasoningPanelClosed">
+                    <summary class="think-panel__summary">
+                      <span class="think-panel__chevron">▸</span>
+                      <span v-if="msg.streaming" class="think-panel__label think-panel__label--active">思考中…</span>
+                      <span v-else class="think-panel__label">思考过程</span>
+                    </summary>
+                    <div class="think-panel__body">{{ msg.reasoning }}</div>
+                  </details>
+                  <div v-if="msg.content" class="chat-bubble__text">
+                    {{ msg.content }}
+                    <span v-if="msg.streaming" class="type-cursor">▍</span>
+                  </div>
+                  <div v-else-if="msg.streaming && !msg.reasoning" class="chat-bubble__loading">
+                    <span class="dot" />
+                    <span class="dot" />
+                    <span class="dot" />
+                  </div>
+                  <div v-if="msg.content || !msg.streaming" class="chat-bubble__meta">
+                    <span class="chat-bubble__time">{{ msg.time }}</span>
+                    <button type="button" class="copy-btn" title="复制内容" @click="copyMessage(msg)">
+                      <SvgIcon icon="mdi:content-copy" />
+                    </button>
+                  </div>
+                  <div v-if="msg.suggested?.length" class="chat-bubble__suggested">
+                    <button v-for="q in msg.suggested" :key="q" type="button" class="prompt-chip" @click="handleRun(q)">
+                      {{ q }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-input" :class="{ 'chat-input--focused': inputFocused }">
+              <div class="chat-input__box">
+                <NInput
+                  v-model:value="prompt"
+                  type="textarea"
+                  :autosize="{ minRows: 1, maxRows: 5 }"
+                  placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+                  :disabled="testing"
+                  @focus="inputFocused = true"
+                  @blur="inputFocused = false"
+                  @keydown.enter.prevent="handleRun()"
+                />
+                <div class="chat-input__toolbar">
+                  <div class="flex items-center gap-2px">
+                    <NUpload
+                      v-if="fileCapability.supportLocalFile"
+                      multiple
+                      :max="fileCapability.limit"
+                      :file-list="uploadFiles"
+                      :default-upload="false"
+                      :accept="fileCapability.accept === '*' ? undefined : fileCapability.accept"
+                      class="inline-block"
+                      @change="handleLocalFileChange"
+                      @remove="handleLocalFileRemove"
+                    >
+                      <button type="button" class="icon-btn" title="上传文件">
+                        <SvgIcon icon="mdi:paperclip" />
+                      </button>
+                    </NUpload>
+                    <span v-if="testing" class="chat-input__status">
+                      <span class="pulse-dot" />
+                      生成中…
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-6px">
+                    <span v-if="prompt.trim() && !testing" class="chat-input__hint">Enter 发送</span>
+                    <NButton
+                      type="primary"
+                      size="small"
+                      :loading="testing"
+                      :disabled="!prompt.trim()"
+                      @click="handleRun()"
+                    >
+                      <template #icon>
+                        <SvgIcon icon="mdi:send" />
+                      </template>
+                      发送
+                    </NButton>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -802,8 +988,16 @@ async function handleRun(targetPrompt?: string) {
               <div v-if="streamEvents.length" class="wf-run-result__logs">
                 <div class="wf-run-result__logtitle">节点执行过程</div>
                 <div class="flex flex-col gap-6px">
-                  <div v-for="item in streamEvents" :key="item.id" class="step-card">
-                    <div class="step-label">{{ item.label }}</div>
+                  <div
+                    v-for="item in streamEvents"
+                    :key="item.id"
+                    class="step-card"
+                    :class="{ 'step-card--tool': item.kind === 'tool' }"
+                  >
+                    <div class="step-label">
+                      <SvgIcon v-if="item.kind === 'tool'" icon="mdi:toolbox-outline" class="step-label__icon" />
+                      {{ item.label }}
+                    </div>
                     <div class="step-detail">{{ item.detail }}</div>
                   </div>
                 </div>
@@ -811,61 +1005,38 @@ async function handleRun(targetPrompt?: string) {
             </div>
           </div>
         </div>
-
-        <!-- 右侧设置面板 -->
-        <div class="side-panel panel-surface">
-          <div class="panel-head">
-            <SvgIcon icon="mdi:sliders-horizontal" class="panel-head__icon" />
-            <span class="panel-head__title">运行设置</span>
-          </div>
-          <div class="panel-body">
-            <NForm label-placement="top" :show-feedback="false">
-              <div v-if="!isWorkflow" class="setting-group">
-                <div class="setting-group__label">对话模式</div>
-                <div class="setting-row">
-                  <div class="setting-row__info">
-                    <div class="setting-row__label">保留对话上下文</div>
-                    <div class="setting-row__desc">
-                      {{ keepContext ? '多轮：延续历史对话继续追问' : '单轮：每轮独立会话' }}
-                    </div>
-                  </div>
-                  <NSwitch :value="keepContext" @update:value="onKeepContextChange" />
-                </div>
-              </div>
-
-              <template v-if="fileCapability.supportRemoteUrl">
-                <div class="setting-group">
-                  <div class="setting-group__label">附件</div>
-                  <div class="setting-row">
-                    <div class="setting-row__info">
-                      <div class="setting-row__label">远程文件 URL</div>
-                      <div class="setting-row__desc">每行一个 URL，随请求发送</div>
-                    </div>
-                  </div>
-                  <NInput
-                    v-model:value="remoteFileUrls"
-                    type="textarea"
-                    placeholder="每行一个 URL"
-                    :autosize="{ minRows: 2, maxRows: 4 }"
-                  />
-                </div>
-              </template>
-
-              <div v-if="streamEvents.length && !isWorkflow" class="setting-group">
-                <div class="setting-group__label">运行日志</div>
-              </div>
-              <div v-if="streamEvents.length && !isWorkflow" class="flex flex-col gap-6px">
-                <div v-for="item in streamEvents" :key="item.id" class="step-card">
-                  <div class="step-label">{{ item.label }}</div>
-                  <div class="step-detail">{{ item.detail }}</div>
-                </div>
-              </div>
-            </NForm>
-          </div>
-        </div>
       </section>
     </div>
   </div>
+
+  <!-- 会话重命名弹窗 -->
+  <NModal
+    :show="!!renameTarget"
+    preset="card"
+    title="重命名会话"
+    style="max-width: 420px"
+    :bordered="false"
+    @update:show="
+      val => {
+        if (!val) renameTarget = null;
+      }
+    "
+  >
+    <NInput
+      v-model:value="renameValue"
+      placeholder="请输入新的会话名称"
+      maxlength="80"
+      clearable
+      autofocus
+      @keyup.enter="submitRename"
+    />
+    <template #footer>
+      <div class="flex justify-end gap-8px">
+        <NButton size="small" @click="renameTarget = null">取消</NButton>
+        <NButton type="primary" size="small" :loading="renameLoading" @click="submitRename">确定</NButton>
+      </div>
+    </template>
+  </NModal>
 </template>
 
 <style scoped lang="scss">
@@ -897,7 +1068,7 @@ async function handleRun(targetPrompt?: string) {
 .agent-main {
   display: grid;
   min-width: 0;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 1fr;
   gap: 10px;
   min-height: 0;
@@ -907,11 +1078,134 @@ async function handleRun(targetPrompt?: string) {
 /* 对话主区 */
 .chat-panel {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   min-height: 0;
   min-width: 0;
   height: 100%;
-  overflow: hidden;
+  /* clip 而非 hidden：保留圆角裁剪，但不建立滚动容器，使输入条 sticky 能响应外层滚动 */
+  overflow: clip;
+}
+
+.chat-body {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 历史会话列 */
+.conversation-pane {
+  flex: 0 0 212px;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--agent-line);
+
+  &__head {
+    flex-shrink: 0;
+    padding: 10px;
+    border-bottom: 1px solid var(--agent-line);
+  }
+
+  &__new {
+    color: rgba(41, 163, 255, 0.9);
+  }
+
+  &__loading {
+    padding: 14px 12px;
+    font-size: 12px;
+    color: rgba(203, 227, 255, 0.45);
+  }
+
+  &__list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+.conversation-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(203, 227, 255, 0.72);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover {
+    background: rgba(41, 163, 255, 0.1);
+  }
+
+  &--active {
+    background: rgba(41, 163, 255, 0.16);
+    color: #29a3ff;
+  }
+
+  &__title {
+    width: 100%;
+    padding-right: 22px;
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__time {
+    font-size: 10px;
+    color: rgba(203, 227, 255, 0.35);
+  }
+
+  &__actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &__action {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    color: rgba(203, 227, 255, 0.45);
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background: rgba(41, 163, 255, 0.18);
+      color: #29a3ff;
+    }
+
+    &--danger:hover {
+      background: rgba(255, 90, 120, 0.16);
+      color: #ff7a95;
+    }
+  }
+
+  &:hover &__actions,
+  &--active &__actions {
+    opacity: 1;
+  }
 }
 
 /* 工作流主区 */
@@ -1268,12 +1562,29 @@ async function handleRun(targetPrompt?: string) {
 }
 
 .chat-input {
-  padding: 10px 14px;
-  border-top: 1px solid var(--agent-line);
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  /* 与 panel-surface 同底色，吸附时遮挡滚动内容 */
+  background: var(--agent-surface-bg);
+  border-radius: 0 0 var(--agent-radius) var(--agent-radius);
+  padding: 10px 14px 12px;
   transition: box-shadow 0.2s ease;
 
-  &--focused {
-    box-shadow: 0 -2px 16px rgba(41, 163, 255, 0.08);
+  /* 浮动输入条：与消息区留出间距，聚焦时高亮描边 */
+  &__box {
+    background: rgba(12, 38, 72, 0.45);
+    border: 1px solid rgba(25, 95, 176, 0.22);
+    border-radius: 12px;
+    padding: 8px 12px 6px;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  &--focused &__box {
+    border-color: rgba(41, 163, 255, 0.55);
+    box-shadow: 0 0 0 3px rgba(41, 163, 255, 0.08);
   }
 
   &__toolbar {
@@ -1335,62 +1646,11 @@ async function handleRun(targetPrompt?: string) {
   }
 }
 
-/* 右侧设置 */
-.side-panel {
-  min-height: 0;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.side-panel .panel-body {
-  overflow-y: auto;
-  flex: 1;
-}
-
 .runtime-section__title {
   margin: 4px 0 8px;
   font-size: 12px;
   font-weight: 600;
   color: rgba(203, 227, 255, 0.82);
-}
-
-.setting-group {
-  margin-bottom: 4px;
-
-  &__label {
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(41, 163, 255, 0.85);
-    letter-spacing: 0.02em;
-    margin-bottom: 4px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(25, 95, 176, 0.15);
-  }
-}
-
-.setting-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 0;
-
-  &__info {
-    min-width: 0;
-  }
-
-  &__label {
-    font-size: 13px;
-    font-weight: 600;
-    color: #eaf5ff;
-  }
-
-  &__desc {
-    font-size: 11px;
-    line-height: 1.4;
-    color: rgba(203, 227, 255, 0.5);
-    margin-top: 2px;
-  }
 }
 
 .prompt-chip {
@@ -1415,12 +1675,27 @@ async function handleRun(targetPrompt?: string) {
   border-radius: 4px;
   background: rgba(12, 38, 72, 0.4);
   border: 1px solid rgba(25, 95, 176, 0.12);
+
+  &--tool {
+    background: rgba(52, 211, 153, 0.06);
+    border-color: rgba(52, 211, 153, 0.28);
+    border-left: 3px solid rgba(52, 211, 153, 0.7);
+  }
 }
 
 .step-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 600;
   color: #eaf5ff;
+
+  &__icon {
+    width: 13px;
+    height: 13px;
+    color: #34d399;
+  }
 }
 
 .step-detail {
@@ -1442,6 +1717,10 @@ async function handleRun(targetPrompt?: string) {
 
   .agent-sidebar {
     max-height: 280px;
+  }
+
+  .conversation-pane {
+    flex-basis: 168px;
   }
 
   .chat-bubble {

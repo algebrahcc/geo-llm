@@ -18,7 +18,9 @@ const datasets = ref<Api.Knowledge.Dataset[]>([]);
 const uploadFiles = ref<UploadFileInfo[]>([]);
 
 const datasetId = ref('');
-const segmentMode = ref<'automatic' | 'custom'>('automatic');
+const segmentMode = ref<'automatic' | 'custom' | 'hierarchical'>('automatic');
+/** 索引模式：high_quality 高质量（向量索引）/ economy 经济（关键词索引），对齐 Dify */
+const indexingMode = ref<'high_quality' | 'economy'>('high_quality');
 /** 拖拽悬停态，用于上传区高亮反馈 */
 const dragActive = ref(false);
 
@@ -47,12 +49,76 @@ const datasetOptions = computed(() =>
 const ACCEPT_FORMATS = '.pdf,.docx,.md,.markdown,.txt,.csv,.xlsx,.xls,.html,.htm';
 const ACCEPT_HINT = 'PDF · Word · Markdown · TXT · CSV · Excel · HTML';
 
-/** 将分段方式映射为 Dify 的索引模式与切片规则 */
-function mapSegmentMode(mode: string): { indexingTechnique: string; processMode: string } {
+/** 将分段方式 + 索引模式映射为 Dify 的索引模式与切片规则（economy 不支持自定义分块，Dify 限制） */
+function mapSegmentMode(mode: string, indexing: string): { indexingTechnique: string; processMode: string } {
+  if (indexing === 'economy') {
+    return { indexingTechnique: 'economy', processMode: 'automatic' };
+  }
   if (mode === 'custom') {
     return { indexingTechnique: 'high_quality', processMode: 'custom' };
   }
+  if (mode === 'hierarchical') {
+    return { indexingTechnique: 'high_quality', processMode: 'hierarchical' };
+  }
   return { indexingTechnique: 'high_quality', processMode: 'automatic' };
+}
+
+/** 切换索引模式：economy 仅支持自动分段，自动回退并禁用自定义分块 */
+function selectIndexingMode(mode: 'high_quality' | 'economy') {
+  indexingMode.value = mode;
+  if (mode === 'economy') segmentMode.value = 'automatic';
+}
+
+/** 自定义分块规则（对齐 Dify process_rule.rules） */
+const chunkSeparator = ref('\n');
+const chunkMaxTokens = ref(500);
+const chunkOverlap = ref(50);
+const preprocessRemoveExtraSpaces = ref(true);
+const preprocessRemoveUrlsEmails = ref(false);
+
+/** 父级分块（hierarchical_model）配置：父块（paragraph 按段落 / full-doc 整篇文档）+ 子块 */
+const parentMode = ref<'paragraph' | 'full-doc'>('paragraph');
+const parentSeparator = ref('\n');
+const parentMaxTokens = ref(2000);
+const parentOverlap = ref(200);
+
+/** 组装 Dify 分块规则 JSON（custom：segmentation；hierarchical：parent_mode + 父块/子块分割）；非分块模式返回 undefined */
+function buildSegmentRules(): string | undefined {
+  if (segmentMode.value === 'hierarchical') {
+    const rules: Record<string, unknown> = {
+      pre_processing_rules: [
+        { id: 'remove_extra_spaces', enabled: preprocessRemoveExtraSpaces.value },
+        { id: 'remove_urls_emails', enabled: preprocessRemoveUrlsEmails.value }
+      ],
+      parent_mode: parentMode.value,
+      subchunk_segmentation: {
+        separator: chunkSeparator.value || '\n',
+        max_tokens: chunkMaxTokens.value,
+        chunk_overlap: chunkOverlap.value
+      }
+    };
+    // full-doc 模式父块为整篇文档，无需父块分割参数
+    if (parentMode.value === 'paragraph') {
+      rules.segmentation = {
+        separator: parentSeparator.value || '\n',
+        max_tokens: parentMaxTokens.value,
+        chunk_overlap: parentOverlap.value
+      };
+    }
+    return JSON.stringify(rules);
+  }
+  if (segmentMode.value !== 'custom' || indexingMode.value === 'economy') return undefined;
+  return JSON.stringify({
+    pre_processing_rules: [
+      { id: 'remove_extra_spaces', enabled: preprocessRemoveExtraSpaces.value },
+      { id: 'remove_urls_emails', enabled: preprocessRemoveUrlsEmails.value }
+    ],
+    segmentation: {
+      separator: chunkSeparator.value || '\n',
+      max_tokens: chunkMaxTokens.value,
+      chunk_overlap: chunkOverlap.value
+    }
+  });
 }
 
 /** 根据集合 id 取集合名称（Step 3 确认展示） */
@@ -141,14 +207,24 @@ async function handleSubmit() {
     return;
   }
 
-  const { indexingTechnique, processMode } = mapSegmentMode(segmentMode.value);
+  const { indexingTechnique, processMode } = mapSegmentMode(segmentMode.value, indexingMode.value);
+  const rules = buildSegmentRules();
   const total = files.length;
   let okCount = 0;
 
   try {
     submitting.value = true;
     for (const [index, file] of files.entries()) {
-      await uploadKbDocument(datasetId.value, file, undefined, 'file', undefined, indexingTechnique, processMode);
+      await uploadKbDocument(
+        datasetId.value,
+        file,
+        undefined,
+        'file',
+        undefined,
+        indexingTechnique,
+        processMode,
+        rules
+      );
       okCount += 1;
       if (total > 1) {
         window.$message?.success(`已上传 ${index + 1}/${total}`);
@@ -290,6 +366,37 @@ async function handleSubmit() {
         </div>
 
         <div class="setting-row">
+          <span class="setting-row__label">索引模式</span>
+          <div class="setting-row__control">
+            <div class="segment-tabs">
+              <button
+                type="button"
+                class="segment-tab"
+                :class="{ 'segment-tab--active': indexingMode === 'high_quality' }"
+                @click="selectIndexingMode('high_quality')"
+              >
+                高质量
+              </button>
+              <button
+                type="button"
+                class="segment-tab"
+                :class="{ 'segment-tab--active': indexingMode === 'economy' }"
+                @click="selectIndexingMode('economy')"
+              >
+                经济
+              </button>
+            </div>
+            <div class="setting-hint">
+              {{
+                indexingMode === 'high_quality'
+                  ? '向量索引，召回质量更高（消耗 Embedding Token）'
+                  : '关键词索引，节省成本（不支持自定义分块）'
+              }}
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-row">
           <span class="setting-row__label">分段方式</span>
           <div class="setting-row__control">
             <div class="segment-tabs">
@@ -305,13 +412,165 @@ async function handleSubmit() {
                 type="button"
                 class="segment-tab"
                 :class="{ 'segment-tab--active': segmentMode === 'custom' }"
+                :disabled="indexingMode === 'economy'"
                 @click="segmentMode = 'custom'"
               >
                 自定义分块
               </button>
+              <button
+                type="button"
+                class="segment-tab"
+                :class="{ 'segment-tab--active': segmentMode === 'hierarchical' }"
+                :disabled="indexingMode === 'economy'"
+                @click="segmentMode = 'hierarchical'"
+              >
+                父级分块
+              </button>
             </div>
-            <div v-if="segmentMode === 'custom'" class="setting-hint">
-              自定义分块规则需知识库已配置 embedding 模型，暂以高质量模式处理
+            <div v-if="indexingMode === 'economy'" class="setting-hint">经济索引模式仅支持自动分段（Dify 限制）</div>
+            <div v-else-if="segmentMode === 'custom'" class="chunk-rules">
+              <div class="chunk-rule-row">
+                <span class="chunk-rule-label">分隔符</span>
+                <NInput
+                  v-model:value="chunkSeparator"
+                  size="small"
+                  placeholder="如换行 \\n 或句号"
+                  class="chunk-rule-control"
+                />
+              </div>
+              <div class="chunk-rule-row">
+                <span class="chunk-rule-label">最大长度</span>
+                <NInputNumber
+                  v-model:value="chunkMaxTokens"
+                  :min="100"
+                  :max="1000"
+                  :step="50"
+                  size="small"
+                  class="chunk-rule-control"
+                />
+                <span class="chunk-rule-unit">tokens</span>
+              </div>
+              <div class="chunk-rule-row">
+                <span class="chunk-rule-label">重叠</span>
+                <NInputNumber
+                  v-model:value="chunkOverlap"
+                  :min="0"
+                  :max="100"
+                  size="small"
+                  class="chunk-rule-control"
+                />
+                <span class="chunk-rule-unit">tokens</span>
+              </div>
+              <div class="chunk-rule-row">
+                <span class="chunk-rule-label">预处理</span>
+                <div class="chunk-rule-switches">
+                  <NSwitch v-model:checked="preprocessRemoveExtraSpaces" size="small" />
+                  <span class="chunk-rule-switch-label">去除多余空格</span>
+                  <NSwitch v-model:checked="preprocessRemoveUrlsEmails" size="small" />
+                  <span class="chunk-rule-switch-label">去除 URL / 邮箱</span>
+                </div>
+              </div>
+              <p class="setting-hint">自定义分块仅在高质量索引模式下生效</p>
+            </div>
+            <div v-else-if="segmentMode === 'hierarchical'" class="chunk-rules">
+              <div class="chunk-rule-row">
+                <span class="chunk-rule-label">父块模式</span>
+                <div class="segment-tabs">
+                  <button
+                    type="button"
+                    class="segment-tab"
+                    :class="{ 'segment-tab--active': parentMode === 'paragraph' }"
+                    @click="parentMode = 'paragraph'"
+                  >
+                    按段落
+                  </button>
+                  <button
+                    type="button"
+                    class="segment-tab"
+                    :class="{ 'segment-tab--active': parentMode === 'full-doc' }"
+                    @click="parentMode = 'full-doc'"
+                  >
+                    整篇文档
+                  </button>
+                </div>
+              </div>
+              <template v-if="parentMode === 'paragraph'">
+                <div class="chunk-rule-row">
+                  <span class="chunk-rule-label">父块分隔符</span>
+                  <NInput
+                    v-model:value="parentSeparator"
+                    size="small"
+                    placeholder="如换行 \n"
+                    class="chunk-rule-control"
+                  />
+                </div>
+                <div class="chunk-rule-row">
+                  <span class="chunk-rule-label">父块长度</span>
+                  <NInputNumber
+                    v-model:value="parentMaxTokens"
+                    :min="500"
+                    :max="4000"
+                    :step="100"
+                    size="small"
+                    class="chunk-rule-control"
+                  />
+                  <span class="chunk-rule-unit">tokens</span>
+                </div>
+                <div class="chunk-rule-row">
+                  <span class="chunk-rule-label">父块重叠</span>
+                  <NInputNumber
+                    v-model:value="parentOverlap"
+                    :min="0"
+                    :max="500"
+                    size="small"
+                    class="chunk-rule-control"
+                  />
+                  <span class="chunk-rule-unit">tokens</span>
+                </div>
+              </template>
+              <div class="chunk-rule-divider">子块（用于检索）</div>
+              <div class="chunk-rule-row">
+                <span class="chunk-rule-label">子块分隔符</span>
+                <NInput
+                  v-model:value="chunkSeparator"
+                  size="small"
+                  placeholder="如换行 \n 或句号"
+                  class="chunk-rule-control"
+                />
+              </div>
+              <div class="chunk-rule-row">
+                <span class="chunk-rule-label">子块长度</span>
+                <NInputNumber
+                  v-model:value="chunkMaxTokens"
+                  :min="100"
+                  :max="1000"
+                  :step="50"
+                  size="small"
+                  class="chunk-rule-control"
+                />
+                <span class="chunk-rule-unit">tokens</span>
+              </div>
+              <div class="chunk-rule-row">
+                <span class="chunk-rule-label">子块重叠</span>
+                <NInputNumber
+                  v-model:value="chunkOverlap"
+                  :min="0"
+                  :max="100"
+                  size="small"
+                  class="chunk-rule-control"
+                />
+                <span class="chunk-rule-unit">tokens</span>
+              </div>
+              <div class="chunk-rule-row">
+                <span class="chunk-rule-label">预处理</span>
+                <div class="chunk-rule-switches">
+                  <NSwitch v-model:checked="preprocessRemoveExtraSpaces" size="small" />
+                  <span class="chunk-rule-switch-label">去除多余空格</span>
+                  <NSwitch v-model:checked="preprocessRemoveUrlsEmails" size="small" />
+                  <span class="chunk-rule-switch-label">去除 URL / 邮箱</span>
+                </div>
+              </div>
+              <p class="setting-hint">子块用于检索（小而准），命中后返回完整父块作为回答上下文。仅高质量索引模式可用</p>
             </div>
           </div>
         </div>
@@ -334,8 +593,16 @@ async function handleSubmit() {
           <span class="confirm-row__value">{{ getDatasetLabel(datasetId) }}</span>
         </div>
         <div class="confirm-row">
+          <span class="confirm-row__label">索引模式</span>
+          <span class="confirm-row__value">
+            {{ indexingMode === 'high_quality' ? '高质量（向量索引）' : '经济（关键词索引）' }}
+          </span>
+        </div>
+        <div class="confirm-row">
           <span class="confirm-row__label">分段方式</span>
-          <span class="confirm-row__value">{{ segmentMode === 'custom' ? '自定义分块' : '自动分段' }}</span>
+          <span class="confirm-row__value">
+            {{ segmentMode === 'custom' ? '自定义分块' : segmentMode === 'hierarchical' ? '父级分块' : '自动分段' }}
+          </span>
         </div>
         <div class="confirm-files">
           <div v-for="f in uploadFiles" :key="f.id" class="confirm-file">
@@ -807,6 +1074,16 @@ async function handleSubmit() {
     color: var(--text-primary);
   }
 
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    color: var(--text-tertiary);
+
+    &:hover {
+      color: var(--text-tertiary);
+    }
+  }
+
   &--active {
     background: rgba(41, 163, 255, 0.18);
     color: var(--accent);
@@ -818,6 +1095,56 @@ async function handleSubmit() {
   margin-top: 6px;
   font-size: 11px;
   color: var(--text-tertiary);
+}
+
+/* ── 自定义分块规则 ── */
+.chunk-rules {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chunk-rule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chunk-rule-label {
+  width: 64px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.chunk-rule-divider {
+  margin: 2px 0 0;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(25, 95, 176, 0.25);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.chunk-rule-control {
+  width: 160px;
+}
+
+.chunk-rule-unit {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.chunk-rule-switches {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chunk-rule-switch-label {
+  margin-right: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 /* ====== Upload actions ====== */

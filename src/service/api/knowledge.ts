@@ -51,7 +51,8 @@ export function uploadKbDocument(
   docType = 'file',
   source?: string,
   indexingTechnique?: string,
-  processMode?: string
+  processMode?: string,
+  rules?: string
 ) {
   const formData = new FormData();
   formData.append('file', file);
@@ -61,6 +62,7 @@ export function uploadKbDocument(
   if (source) formData.append('source', source);
   if (indexingTechnique) formData.append('indexingTechnique', indexingTechnique);
   if (processMode) formData.append('processMode', processMode);
+  if (rules) formData.append('rules', rules);
   return request<Api.Knowledge.UploadResp>({
     url: '/api/kb/documents',
     method: 'post',

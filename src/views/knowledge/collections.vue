@@ -25,7 +25,10 @@ const form = reactive<KnowledgeCollectionFormModel>({
   searchMethod: 'semantic_search',
   topK: 5,
   scoreThresholdEnabled: false,
-  scoreThreshold: 0
+  scoreThreshold: 0,
+  rerankingEnabled: false,
+  rerankingProvider: '',
+  rerankingModelName: ''
 });
 
 const collectionRows = computed(() =>
@@ -60,6 +63,9 @@ function resetForm() {
   form.topK = 5;
   form.scoreThresholdEnabled = false;
   form.scoreThreshold = 0;
+  form.rerankingEnabled = false;
+  form.rerankingProvider = '';
+  form.rerankingModelName = '';
 }
 
 function openCreate() {
@@ -82,6 +88,10 @@ function openEdit(key: string) {
   form.topK = Number(rm?.top_k ?? 5);
   form.scoreThresholdEnabled = Boolean(rm?.score_threshold_enabled);
   form.scoreThreshold = Number(rm?.score_threshold ?? 0);
+  const rmModel = rm?.reranking_model as Record<string, unknown> | undefined;
+  form.rerankingEnabled = Boolean(rm?.reranking_enable);
+  form.rerankingProvider = (rmModel?.reranking_provider_name as string) || '';
+  form.rerankingModelName = (rmModel?.reranking_model_name as string) || '';
   drawerVisible.value = true;
 }
 
@@ -100,7 +110,15 @@ async function handleSubmit() {
           search_method: form.searchMethod,
           top_k: form.topK,
           score_threshold_enabled: form.scoreThresholdEnabled,
-          score_threshold: form.scoreThreshold
+          score_threshold: form.scoreThreshold,
+          reranking_enable: form.rerankingEnabled,
+          reranking_mode: 'reranking_model',
+          reranking_model: form.rerankingEnabled
+            ? {
+                reranking_provider_name: form.rerankingProvider.trim(),
+                reranking_model_name: form.rerankingModelName.trim()
+              }
+            : null
         }
       });
       window.$message?.success('集合信息已更新');
@@ -236,6 +254,26 @@ onMounted(loadDatasets);
                 :disabled="!form.scoreThresholdEnabled"
                 class="flex-1"
               />
+            </div>
+          </NFormItem>
+          <NFormItem label="Rerank 重排序">
+            <div class="w-full">
+              <NSwitch v-model:checked="form.rerankingEnabled" />
+              <div v-if="form.rerankingEnabled" class="mt-10px flex flex-col gap-10px">
+                <NInput
+                  v-model:value="form.rerankingProvider"
+                  placeholder="模型提供方（插件标识），如 langgenius/cohere/rerank"
+                  clearable
+                />
+                <NInput
+                  v-model:value="form.rerankingModelName"
+                  placeholder="模型名，如 rerank-multilingual-v3.0"
+                  clearable
+                />
+                <p class="text-12px text-[var(--text-tertiary)]">
+                  启用后检索将使用该模型对召回结果重排序，需 Dify 已安装对应 Rerank 模型插件
+                </p>
+              </div>
             </div>
           </NFormItem>
         </NForm>

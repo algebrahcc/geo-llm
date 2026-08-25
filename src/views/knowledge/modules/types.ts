@@ -24,6 +24,12 @@ export interface KnowledgeCollectionFormModel {
   topK: number;
   scoreThresholdEnabled: boolean;
   scoreThreshold: number;
+  /** 是否启用 Rerank 重排序 */
+  rerankingEnabled: boolean;
+  /** Rerank 模型提供方（Dify 插件标识，如 langgenius/cohere/rerank） */
+  rerankingProvider: string;
+  /** Rerank 模型名（如 rerank-multilingual-v3.0） */
+  rerankingModelName: string;
 }
 
 /** 模块引用标识 */
@@ -157,4 +163,6 @@ export interface KnowledgeRetrievalMatch {
   method: 'vector' | 'bm25' | 'hybrid';
   /** snippet 中命中关键词的起止区间 */
   highlightRanges: [number, number][];
+  /** 切片元数据（Dify segment.metadata 原样透出） */
+  metadata?: Record<string, unknown>;
 }

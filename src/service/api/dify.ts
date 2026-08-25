@@ -136,24 +136,35 @@ export function fetchDifySuggestedQuestions(params: { appId?: string | number; m
 }
 
 /**
- * 会话重命名
+ * 删除会话
  */
-export function renameDifyConversation(conversationId: string, data: Api.Dify.ConversationRenameReq) {
+export function deleteDifyConversation(params: { appId?: string | number; userId: string; conversationId: string }) {
   return request<Record<string, unknown>>({
-    url: `/api/dify/conversations/${conversationId}/name`,
-    method: 'post',
-    data
+    url: `/api/dify/conversations/${params.conversationId}`,
+    method: 'delete',
+    params: { appId: params.appId, userId: params.userId }
   });
 }
 
 /**
- * Dify 消息反馈（like / dislike）
+ * 会话重命名
  */
-export function fetchDifyFeedback(params: Api.Dify.FeedbackReq) {
-  return request({
-    url: `/api/dify/messages/${params.messageId}/feedbacks`,
+export function renameDifyConversation(params: {
+  appId?: string | number;
+  userId: string;
+  conversationId: string;
+  name: string;
+  autoGenerateName?: boolean;
+}) {
+  return request<Api.Dify.ConversationItem>({
+    url: `/api/dify/conversations/${params.conversationId}/name`,
     method: 'post',
-    params: { appId: params.appId, userId: params.userId, rating: params.rating, content: params.content }
+    params: { appId: params.appId },
+    data: {
+      userId: params.userId,
+      name: params.name,
+      autoGenerateName: params.autoGenerateName
+    }
   });
 }
 
@@ -182,17 +193,6 @@ export function fetchDifyFileUpload(appId: string | number | undefined, userId: 
     url: '/api/dify/files/upload',
     method: 'post',
     data: formData
-  });
-}
-
-/**
- * Dify Workflow 阻塞运行（返回完整 outputs）
- */
-export function fetchDifyWorkflowRun(params: Api.Dify.WorkflowRunReq) {
-  return request<Api.Dify.WorkflowRunResp>({
-    url: '/api/dify/workflow/run',
-    method: 'post',
-    data: params
   });
 }
 
@@ -354,17 +354,6 @@ export async function fetchDifyWorkflowStream(
     if (eventName === 'done') handlers.onDone?.(dataStr);
     else if (eventName === 'error') handlers.onError?.(dataStr);
     else if (eventName && dataStr) handlers.onEvent?.(eventName, dataStr);
-  });
-}
-
-/**
- * Workflow 执行详情
- */
-export function fetchDifyWorkflowRunDetail(params: { appId?: string | number; workflowRunId: string }) {
-  return request<Api.Dify.WorkflowRunDetail>({
-    url: `/api/dify/workflow/run/${params.workflowRunId}`,
-    method: 'get',
-    params: { appId: params.appId }
   });
 }
 

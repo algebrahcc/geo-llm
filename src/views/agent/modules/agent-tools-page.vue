@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { NButton, NSwitch, NTag, NInput, NTabs, NTabPane } from 'naive-ui';
+import { NButton, NSwitch, NTag, NInput, NTabs, NTabPane, NModal, NForm, NFormItem } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { useAgentSelection } from './use-agent';
 import { useDifyApps } from './use-dify-app';
@@ -10,6 +10,8 @@ import {
   fetchDifyTools,
   fetchDifyAppTools,
   fetchDifyMcpServers,
+  createDifyMcpServer,
+  deleteDifyMcpServer,
   bindDifyAppTools,
   unbindDifyAppTool
 } from '@/service/api/difyApp';
@@ -140,6 +142,73 @@ async function load() {
 }
 
 watch(() => selectedAgent.value.key, load, { immediate: true });
+
+/** ── MCP 服务接入管理 ── */
+const mcpModalVisible = ref(false);
+const mcpSaving = ref(false);
+const mcpForm = reactive({
+  name: '',
+  server_url: '',
+  headers: ''
+});
+
+function openMcpModal() {
+  mcpForm.name = '';
+  mcpForm.server_url = '';
+  mcpForm.headers = '';
+  mcpModalVisible.value = true;
+}
+
+async function handleCreateMcp(): Promise<boolean> {
+  if (!mcpForm.name.trim() || !mcpForm.server_url.trim()) {
+    window.$message?.warning('请填写 MCP 服务名称与服务器地址');
+    return false;
+  }
+  mcpSaving.value = true;
+  try {
+    const headers: Record<string, string> = {};
+    for (const line of mcpForm.headers.split('\n')) {
+      const idx = line.indexOf(':');
+      if (idx > 0) {
+        headers[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+      }
+    }
+    await createDifyMcpServer({
+      name: mcpForm.name.trim(),
+      server_url: mcpForm.server_url.trim(),
+      ...(Object.keys(headers).length ? { headers } : {})
+    });
+    window.$message?.success('已添加 MCP 服务');
+    mcpModalVisible.value = false;
+    await load();
+    return true;
+  } catch {
+    window.$message?.error('添加失败，请确认服务地址可达且后端已代理 MCP 管理接口');
+    return false;
+  } finally {
+    mcpSaving.value = false;
+  }
+}
+
+function handleDeleteMcp(m: Record<string, unknown>) {
+  const id = String(m.id ?? '');
+  if (!id) return;
+  window.$dialog?.warning({
+    title: '删除 MCP 服务',
+    content: `确定要删除「${mcpName(m)}」吗？该服务下的工具将不可用。`,
+    positiveText: '删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        await deleteDifyMcpServer(id);
+        window.$message?.success('已删除 MCP 服务');
+        await load();
+      } catch {
+        window.$message?.error('删除失败，请确认后端已代理 MCP 管理接口');
+      }
+    }
+  });
+}
 
 async function toggleTool(t: Record<string, unknown>, next: boolean) {
   if (currentAppId.value == null) return;
@@ -352,6 +421,14 @@ async function handleDelete() {
                   <span class="stat stat--all">{{ mcpServers.length }}</span>
                   <span class="stat-label">MCP 服务</span>
                 </div>
+                <div class="ml-auto">
+                  <NButton size="small" secondary type="primary" @click="openMcpModal">
+                    <template #icon>
+                      <SvgIcon icon="mdi:plus" />
+                    </template>
+                    添加 MCP 服务
+                  </NButton>
+                </div>
               </div>
 
               <div v-if="loading" class="tool-skeleton">
@@ -363,7 +440,13 @@ async function handleDelete() {
                   <SvgIcon icon="mdi:server-network-off" />
                 </div>
                 <div class="custom-empty__title">暂未接入 MCP 服务</div>
-                <div class="custom-empty__desc">可在编排控制台的插件中接入外部 MCP 服务</div>
+                <div class="custom-empty__desc">可在此直接接入外部 MCP 服务（SSE / Streamable HTTP）</div>
+                <NButton size="small" secondary type="primary" class="mt-12px" @click="openMcpModal">
+                  <template #icon>
+                    <SvgIcon icon="mdi:plus" />
+                  </template>
+                  添加 MCP 服务
+                </NButton>
               </div>
 
               <div v-else class="tool-grid">
@@ -383,6 +466,12 @@ async function handleDelete() {
                       <span class="dot" />
                       已连接
                     </span>
+                    <NButton size="tiny" quaternary type="error" class="mcp-card__delete" @click="handleDeleteMcp(m)">
+                      <template #icon>
+                        <SvgIcon icon="mdi:delete-outline" />
+                      </template>
+                      删除
+                    </NButton>
                   </div>
                 </div>
               </div>
@@ -391,6 +480,40 @@ async function handleDelete() {
         </NTabs>
       </div>
     </div>
+
+    <!-- 添加 MCP 服务弹窗 -->
+    <NModal
+      v-model:show="mcpModalVisible"
+      preset="dialog"
+      title="添加 MCP 服务"
+      positive-text="添加"
+      negative-text="取消"
+      :positive-button-props="{ loading: mcpSaving }"
+      @positive-click="handleCreateMcp"
+    >
+      <div class="mcp-modal">
+        <NForm :model="mcpForm" size="small" label-placement="top">
+          <NFormItem label="服务名称" path="name">
+            <NInput v-model:value="mcpForm.name" placeholder="如 内部天气服务" />
+          </NFormItem>
+          <NFormItem label="服务器地址" path="server_url">
+            <NInput
+              v-model:value="mcpForm.server_url"
+              placeholder="https://mcp.example.com/sse 或 streamable-http 地址"
+            />
+          </NFormItem>
+          <NFormItem label="请求头（可选，每行一组 Key: Value）" path="headers">
+            <NInput
+              v-model:value="mcpForm.headers"
+              type="textarea"
+              :rows="3"
+              placeholder="Authorization: Bearer xxx&#10;x-custom: 1"
+            />
+          </NFormItem>
+        </NForm>
+        <p class="mcp-modal__hint">新增后系统会立即尝试连接该地址并拉取工具列表</p>
+      </div>
+    </NModal>
   </div>
 </template>
 
@@ -676,6 +799,25 @@ async function handleDelete() {
 .mcp-card__foot {
   margin-top: auto;
   padding-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mcp-card__delete {
+  margin-left: auto;
+  opacity: 0.75;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.mcp-modal__hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .mcp-card__status {

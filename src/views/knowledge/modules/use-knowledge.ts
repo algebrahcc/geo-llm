@@ -173,6 +173,7 @@ export function useKnowledge() {
     collectionSummary,
     collectionGroups,
     getCollectionLabel,
+    allDocuments,
     filteredDocuments,
     kbLoading,
     kbFailed,

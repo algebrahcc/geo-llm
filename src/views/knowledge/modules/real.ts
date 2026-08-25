@@ -343,7 +343,8 @@ export function mapKbSearchResults(params: {
       score: hit.score,
       similarity: Math.max(0, Math.min(1, hit.score)),
       method,
-      highlightRanges: buildHighlightRanges(hit.content, query)
+      highlightRanges: buildHighlightRanges(hit.content, query),
+      metadata: hit.metadata || undefined
     });
     grouped.set(String(hit.docId), current);
   });
