@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { NDataTable, NPagination, NTag, type DataTableColumns } from 'naive-ui';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
+import EmptyState from '@/components/common/empty-state.vue';
 import { getKnowledgeStatusMeta } from './modules/real';
 import type { KnowledgeDocument } from './modules/types';
 import { deleteKbDocument, syncKbDocument } from '@/service/api/knowledge';
@@ -397,11 +398,15 @@ const dataTableThemeOverrides = {
           </div>
 
           <div class="table-wrap">
-            <div v-if="kbFailed && !filteredDocuments.length" class="table-empty">
-              <SvgIcon icon="mdi:cloud-off-outline" class="table-empty__icon" />
-              <p class="table-empty__text">数据加载失败，请检查网络或后端服务</p>
-              <NButton size="small" secondary @click="loadRealDocuments">重新加载</NButton>
-            </div>
+            <EmptyState
+              v-if="kbFailed && !filteredDocuments.length"
+              icon="mdi:cloud-off-outline"
+              title="数据加载失败，请检查网络或后端服务"
+            >
+              <template #action>
+                <NButton size="small" secondary @click="loadRealDocuments">重新加载</NButton>
+              </template>
+            </EmptyState>
 
             <template v-else>
               <!-- 批量操作栏 -->
@@ -739,8 +744,7 @@ const dataTableThemeOverrides = {
   font-size: 11px;
 }
 
-.card-head__meta .meta-status .is-spin,
-.table-empty__icon {
+.card-head__meta .meta-status .is-spin {
   animation: meta-spin 0.8s linear infinite;
 }
 
@@ -796,27 +800,6 @@ const dataTableThemeOverrides = {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.table-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 40px;
-}
-
-.table-empty__icon {
-  font-size: 42px;
-  color: rgba(255, 141, 141, 0.6);
-}
-
-.table-empty__text {
-  margin: 0;
-  color: var(--knowledge-text-tertiary);
-  font-size: 13px;
 }
 
 /* ====== NDataTable deep overrides ====== */

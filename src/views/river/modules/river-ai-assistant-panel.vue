@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue';
 import type { AiAnalysisStep, ChatMessage, CrossingSettingForm, KnowledgeHitDisplay } from './types';
-import { fetchDifyChatStream } from '@/service/api/dify';
+import { fetchDifyChatStream } from '@/service/api/dify-stream';
 import { useAuthStore } from '@/store/modules/auth';
 
 const props = defineProps<{

@@ -28,6 +28,7 @@ import {
 } from '@/mock/river';
 import { sleep } from '@/utils/async';
 import { fetchVectorExtent, getVectorTileUrl } from '@/service/api/vector';
+import { unwrapResponseData } from '@/service/request/envelope';
 import type {
   RiverInteractiveTool,
   RiverLayerKey,
@@ -232,16 +233,6 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     };
   }
 
-  function unwrapResponseData(result: any): any {
-    if (!result || typeof result !== 'object') return result;
-    // 已经是 GeoJSON / 数组等平铺数据
-    if (result.type === 'FeatureCollection' || Array.isArray(result)) return result;
-    // 剥掉 R 包装或 Axios 响应包装
-    if (result.data !== undefined) return unwrapResponseData(result.data);
-    if (result.response?.data !== undefined) return unwrapResponseData(result.response.data);
-    return result;
-  }
-
   async function loadVectorLayer(vectorId: string, vectorName: string, sourceType = '') {
     const viewer = viewerRef.value;
     if (!viewer) return;
@@ -266,8 +257,8 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
 
       let extent: number[] | null = null;
       try {
-        const extentResult: any = await fetchVectorExtent(vectorId);
-        extent = unwrapResponseData(extentResult) as number[] | null;
+        const extentResult = await fetchVectorExtent(vectorId);
+        extent = unwrapResponseData<number[]>(extentResult);
       } catch {
         /* 无 extent 也能加载 */
       }

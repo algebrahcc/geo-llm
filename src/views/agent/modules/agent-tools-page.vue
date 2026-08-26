@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { NButton, NSwitch, NTag, NInput, NTabs, NTabPane, NModal, NForm, NFormItem } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
+import EmptyState from '@/components/common/empty-state.vue';
 import { useAgentSelection } from './use-agent';
 import { useDifyApps } from './use-dify-app';
 import AgentSidebar from './agent-sidebar.vue';
@@ -348,22 +349,20 @@ async function handleDelete() {
               </div>
 
               <!-- 空态 -->
-              <div v-else-if="availableTools.length === 0" class="agent-empty custom-empty">
-                <div class="custom-empty__icon">
-                  <SvgIcon icon="mdi:tools" />
-                </div>
-                <div class="custom-empty__title">暂无可用的工具</div>
-                <div class="custom-empty__desc">当前应用未配置可调用的工具，或后端未代理工具接口</div>
-              </div>
+              <EmptyState
+                v-else-if="availableTools.length === 0"
+                icon="mdi:tools"
+                title="暂无可用的工具"
+                description="当前应用未配置可调用的工具，或后端未代理工具接口"
+              />
 
               <!-- 搜索无结果 -->
-              <div v-else-if="filteredTools.length === 0" class="agent-empty custom-empty">
-                <div class="custom-empty__icon">
-                  <SvgIcon icon="mdi:magnify-close" />
-                </div>
-                <div class="custom-empty__title">未找到匹配的工具</div>
-                <div class="custom-empty__desc">换个关键词试试，或切换到「全部」筛选</div>
-              </div>
+              <EmptyState
+                v-else-if="filteredTools.length === 0"
+                icon="mdi:magnify-close"
+                title="未找到匹配的工具"
+                description="换个关键词试试，或切换到「全部」筛选"
+              />
 
               <!-- 工具卡片网格 -->
               <div v-else class="tool-grid">
@@ -435,19 +434,21 @@ async function handleDelete() {
                 <div v-for="i in 4" :key="i" class="tool-skeleton__card" />
               </div>
 
-              <div v-else-if="mcpServers.length === 0" class="agent-empty custom-empty">
-                <div class="custom-empty__icon">
-                  <SvgIcon icon="mdi:server-network-off" />
-                </div>
-                <div class="custom-empty__title">暂未接入 MCP 服务</div>
-                <div class="custom-empty__desc">可在此直接接入外部 MCP 服务（SSE / Streamable HTTP）</div>
-                <NButton size="small" secondary type="primary" class="mt-12px" @click="openMcpModal">
-                  <template #icon>
-                    <SvgIcon icon="mdi:plus" />
-                  </template>
-                  添加 MCP 服务
-                </NButton>
-              </div>
+              <EmptyState
+                v-else-if="mcpServers.length === 0"
+                icon="mdi:server-network-off"
+                title="暂未接入 MCP 服务"
+                description="可在此直接接入外部 MCP 服务（SSE / Streamable HTTP）"
+              >
+                <template #action>
+                  <NButton size="small" secondary type="primary" class="mt-12px" @click="openMcpModal">
+                    <template #icon>
+                      <SvgIcon icon="mdi:plus" />
+                    </template>
+                    添加 MCP 服务
+                  </NButton>
+                </template>
+              </EmptyState>
 
               <div v-else class="tool-grid">
                 <div v-for="m in mcpServers" :key="mcpName(m)" class="mcp-card">
@@ -650,41 +651,6 @@ async function handleDelete() {
 @keyframes skeleton-loading {
   to {
     background-position: -200% 0;
-  }
-}
-
-/* 增强空态 */
-.custom-empty {
-  padding: 60px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  text-align: center;
-
-  &__icon {
-    width: 64px;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    color: rgba(41, 163, 255, 0.35);
-    border-radius: 18px;
-    background: rgba(41, 163, 255, 0.06);
-    border: 1px solid rgba(25, 95, 176, 0.18);
-  }
-
-  &__title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #eaf5ff;
-  }
-
-  &__desc {
-    font-size: 12px;
-    color: rgba(203, 227, 255, 0.5);
-    max-width: 360px;
   }
 }
 

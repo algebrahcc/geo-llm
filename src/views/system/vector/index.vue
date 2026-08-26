@@ -2,6 +2,7 @@
 import { computed, h, onMounted, onBeforeUnmount, nextTick, ref, watch } from 'vue';
 import { NButton, NDataTable, NInput, NModal, NPopconfirm, NSelect, NUpload, useMessage } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
+import EmptyState from '@/components/common/empty-state.vue';
 import type { DataTableColumns, PaginationProps, SelectOption } from 'naive-ui';
 import {
   fetchVectorPage,
@@ -12,6 +13,7 @@ import {
   uploadVectorFile,
   getVectorTileUrl
 } from '@/service/api/vector';
+import { unwrapResponseData } from '@/service/request/envelope';
 import { getBasemapUrl, getBasemapMaxZoom } from '@/utils/basemap';
 
 import Map from 'ol/Map';
@@ -85,9 +87,13 @@ async function loadList(reset = false) {
     };
     if (keyword.value.trim()) params.keyword = keyword.value.trim();
     if (typeFilter.value) params.sourceType = typeFilter.value;
-    const res = await fetchVectorPage(params);
-    if (res && (res as any).data) {
-      const d = (res as any).data;
+    const { data, error } = await fetchVectorPage(params);
+    if (!error && data) {
+      const d = data as unknown as {
+        records?: Api.Vector.VectorItem[];
+        list?: Api.Vector.VectorItem[];
+        total?: number;
+      };
       list.value = d.records ?? d.list ?? [];
       pagination.value.itemCount = d.total ?? 0;
     } else {
@@ -201,10 +207,8 @@ async function initMap() {
   mapLoaded.value = true;
 
   try {
-    const result: any = await fetchVectorExtent(vectorId);
-    const extent = (result?.data?.data ?? result?.data ?? result?.response?.data?.data ?? result?.response?.data) as
-      | number[]
-      | null;
+    const result = await fetchVectorExtent(vectorId);
+    const extent = unwrapResponseData<number[]>(result);
     if (extent && extent.length === 4) {
       const [minLng, minLat, maxLng, maxLat] = extent;
       setTimeout(() => {
@@ -233,10 +237,8 @@ function closeMap() {
 async function handleFitExtent() {
   if (!mapRow.value || !olMap) return;
   try {
-    const result: any = await fetchVectorExtent(mapRow.value.id);
-    const extent = (result?.data?.data ?? result?.data ?? result?.response?.data?.data ?? result?.response?.data) as
-      | number[]
-      | null;
+    const result = await fetchVectorExtent(mapRow.value.id);
+    const extent = unwrapResponseData<number[]>(result);
     if (extent && extent.length === 4) {
       const [minLng, minLat, maxLng, maxLat] = extent;
       olMap.getView().fit(transformExtent([minLng, minLat, maxLng, maxLat], 'EPSG:4326', 'EPSG:3857'), {
@@ -521,10 +523,12 @@ onMounted(() => loadList(true));
           @update:page="onPageChange"
           @update:page-size="onPageSizeChange"
         />
-        <div v-if="!loading && list.length === 0" class="vec-empty">
-          <SvgIcon icon="mdi:layers-outline" class="vec-empty__ico" />
-          <p class="vec-empty__text">暂无矢量图层，点击右上角「上传数据」导入 GeoJSON</p>
-        </div>
+        <EmptyState
+          v-if="!loading && list.length === 0"
+          absolute
+          icon="mdi:layers-outline"
+          title="暂无矢量图层，点击右上角「上传数据」导入 GeoJSON"
+        />
       </div>
     </main>
 
@@ -1237,27 +1241,6 @@ onMounted(() => loadList(true));
 .vec-data-table :deep(.n-pagination-ellipsis) {
   color: rgba(203, 227, 255, 0.5);
   font-size: 13px;
-}
-
-/* Empty state */
-.vec-empty {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  pointer-events: none;
-}
-.vec-empty__ico {
-  font-size: 42px;
-  color: rgba(98, 196, 255, 0.35);
-}
-.vec-empty__text {
-  margin: 0;
-  font-size: 13px;
-  color: var(--vec-text-tertiary);
 }
 
 /* ====== Detail Modal — same as catalog-detail-modal ====== */

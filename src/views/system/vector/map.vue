@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { NButton, NTag, useMessage } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { fetchVectorDetail, fetchVectorExtent, getVectorTileUrl } from '@/service/api/vector';
+import { unwrapResponseData } from '@/service/request/envelope';
 import { getBasemapUrl, getBasemapMaxZoom } from '@/utils/basemap';
 
 import Map from 'ol/Map';
@@ -126,10 +127,8 @@ async function initMap() {
 
   // 自动定位到数据范围
   try {
-    const result: any = await fetchVectorExtent(vectorId);
-    const extent = (result?.data?.data ?? result?.data ?? result?.response?.data?.data ?? result?.response?.data) as
-      | number[]
-      | null;
+    const result = await fetchVectorExtent(vectorId);
+    const extent = unwrapResponseData<number[]>(result);
     if (extent && extent.length === 4) {
       const [minLng, minLat, maxLng, maxLat] = extent;
       setTimeout(() => {
@@ -153,10 +152,8 @@ async function handleFitExtent() {
   const vectorId = route.query.vectorId as string;
   if (!vectorId || !olMap) return;
   try {
-    const result: any = await fetchVectorExtent(vectorId);
-    const extent = (result?.data?.data ?? result?.data ?? result?.response?.data?.data ?? result?.response?.data) as
-      | number[]
-      | null;
+    const result = await fetchVectorExtent(vectorId);
+    const extent = unwrapResponseData<number[]>(result);
     if (extent && extent.length === 4) {
       const [minLng, minLat, maxLng, maxLat] = extent;
       olMap.getView().fit(transformExtent([minLng, minLat, maxLng, maxLat], 'EPSG:4326', 'EPSG:3857'), {

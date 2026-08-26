@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, onMounted, reactive, ref } from 'vue';
+import { h, reactive, ref } from 'vue';
 import {
   NButton,
   NDataTable,
@@ -21,14 +21,16 @@ import {
   fetchUserDetail,
   fetchUserResetPassword
 } from '@/service/api/system';
+import { usePagination } from '@/hooks/common/use-pagination';
 
 defineOptions({ name: 'UserManage' });
 
 // ==================== 状态 ====================
-const loading = ref(false);
-const tableData = ref<Api.System.UserItem[]>([]);
-const total = ref(0);
 const query = reactive<Api.System.UserQuery>({ page: 1, size: 10 });
+const { loading, tableData, total, loadData, onPageChange, onPageSizeChange } = usePagination({
+  query,
+  fetchPage: fetchUserPage
+});
 
 // 弹窗
 const modalVisible = ref(false);
@@ -107,35 +109,6 @@ const columns: DataTableColumns<Api.System.UserItem> = [
 ];
 
 const rowKey = (row: Api.System.UserItem) => row.id;
-
-// ==================== 数据加载 ====================
-async function loadData() {
-  loading.value = true;
-  try {
-    const { data, error } = await fetchUserPage(query);
-    if (!error && data) {
-      tableData.value = data.list || [];
-      total.value = data.total || 0;
-    }
-  } finally {
-    loading.value = false;
-  }
-}
-
-function onPageChange(page: number) {
-  query.page = page;
-  loadData();
-}
-
-function onPageSizeChange(size: number) {
-  query.size = size;
-  query.page = 1;
-  loadData();
-}
-
-onMounted(() => {
-  loadData();
-});
 
 // ==================== 新增/编辑 ====================
 function handleCreate() {

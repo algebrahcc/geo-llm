@@ -21,3 +21,29 @@ export function unwrapEnvelope<T = unknown>(payload: unknown): T | null {
   }
   return data as T;
 }
+
+/**
+ * 从扁平请求结果（createFlatRequest 的 { data, error, response }）稳健提取最内层业务数据。
+ *
+ * 请求层 transform 已用 unwrapEnvelope 递归解包 mica 信封，正常情况下 result.data 即业务数据。
+ * 此函数额外兼容两类历史残留形态：
+ *  1) 旧实现只解一层时的折叠信封（仅含 data 无 code，如 result.data.data）；
+ *  2) 请求失败时 data 为 null，退而读取原始响应体 result.response.data；
+ *  3) 数组 / GeoJSON（FeatureCollection）等平铺业务数据直接返回，避免被误剥。
+ */
+export function unwrapResponseData<T = unknown>(payload: unknown): T | null {
+  if (!payload || typeof payload !== 'object') return null;
+  // 平铺业务数据直接返回
+  if (Array.isArray(payload)) return payload as T;
+  if ((payload as { type?: string }).type === 'FeatureCollection') return payload as T;
+
+  const record = payload as Record<string, unknown>;
+  if (record.data !== undefined && record.data !== null) {
+    return unwrapResponseData(record.data);
+  }
+  const response = record.response as Record<string, unknown> | undefined;
+  if (response?.data !== undefined && response.data !== null) {
+    return unwrapResponseData(response.data);
+  }
+  return payload as T;
+}

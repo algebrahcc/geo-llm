@@ -6,7 +6,6 @@ import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import {
   deleteDifyConversation,
-  fetchDifyChatStream,
   fetchDifyConversations,
   fetchDifyConversationMessages,
   fetchDifyFileUpload,
@@ -14,9 +13,9 @@ import {
   fetchDifyStop,
   fetchDifySuggestedQuestions,
   fetchDifyWorkflowStop,
-  fetchDifyWorkflowStream,
   renameDifyConversation
 } from '@/service/api/dify';
+import { fetchDifyChatStream, fetchDifyWorkflowStream } from '@/service/api/dify-stream';
 import AgentSidebar from './agent-sidebar.vue';
 import { useAgentSelection } from './use-agent';
 import { useDifyApps } from './use-dify-app';
@@ -706,80 +705,275 @@ async function handleRun(targetPrompt?: string) {
 </script>
 
 <template>
-  <div class="agent-domain-page" :class="{ 'agent-domain-page--dark': darkMode }">
-    <div class="agent-shell">
-      <aside class="agent-sidebar panel-surface">
-        <AgentSidebar :active-key="agentKey" :agents="agentList" :loading="agentLoading" @select="handleSelect" />
-      </aside>
+  <div class="agent-test-page-root">
+    <div class="agent-domain-page" :class="{ 'agent-domain-page--dark': darkMode }">
+      <div class="agent-shell">
+        <aside class="agent-sidebar panel-surface">
+          <AgentSidebar :active-key="agentKey" :agents="agentList" :loading="agentLoading" @select="handleSelect" />
+        </aside>
 
-      <section class="agent-main">
-        <!-- 对话型主区：底部固定输入框 + 气泡流 -->
-        <div v-if="!isWorkflow" class="chat-panel panel-surface">
-          <div class="conversation-pane">
-            <div class="conversation-pane__head">
-              <NButton text size="small" class="conversation-pane__new" @click="newConversation">
-                <template #icon>
-                  <SvgIcon icon="mdi:plus" />
-                </template>
-                新对话
-              </NButton>
+        <section class="agent-main">
+          <!-- 对话型主区：底部固定输入框 + 气泡流 -->
+          <div v-if="!isWorkflow" class="chat-panel panel-surface">
+            <div class="conversation-pane">
+              <div class="conversation-pane__head">
+                <NButton text size="small" class="conversation-pane__new" @click="newConversation">
+                  <template #icon>
+                    <SvgIcon icon="mdi:plus" />
+                  </template>
+                  新对话
+                </NButton>
+              </div>
+              <div v-if="conversationLoading" class="conversation-pane__loading">加载中…</div>
+              <div v-else-if="!conversationList.length" class="conversation-pane__loading">暂无历史会话</div>
+              <div v-else class="conversation-pane__list">
+                <button
+                  v-for="conv in conversationList"
+                  :key="conv.id"
+                  type="button"
+                  class="conversation-item"
+                  :class="{ 'conversation-item--active': conv.id === currentConversationId }"
+                  @click="switchConversation(conv.id)"
+                >
+                  <span class="conversation-item__title">{{ convTitle(conv) }}</span>
+                  <span v-if="convTime(conv)" class="conversation-item__time">{{ convTime(conv) }}</span>
+                  <span class="conversation-item__actions">
+                    <span class="conversation-item__action" title="重命名会话" @click.stop="openRenameDialog(conv)">
+                      <SvgIcon icon="mdi:pencil-outline" />
+                    </span>
+                    <span
+                      class="conversation-item__action conversation-item__action--danger"
+                      title="删除会话"
+                      @click.stop="removeConversation(conv.id)"
+                    >
+                      <SvgIcon icon="mdi:trash-can-outline" />
+                    </span>
+                  </span>
+                </button>
+              </div>
             </div>
-            <div v-if="conversationLoading" class="conversation-pane__loading">加载中…</div>
-            <div v-else-if="!conversationList.length" class="conversation-pane__loading">暂无历史会话</div>
-            <div v-else class="conversation-pane__list">
-              <button
-                v-for="conv in conversationList"
-                :key="conv.id"
-                type="button"
-                class="conversation-item"
-                :class="{ 'conversation-item--active': conv.id === currentConversationId }"
-                @click="switchConversation(conv.id)"
-              >
-                <span class="conversation-item__title">{{ convTitle(conv) }}</span>
-                <span v-if="convTime(conv)" class="conversation-item__time">{{ convTime(conv) }}</span>
-                <span class="conversation-item__actions">
-                  <span class="conversation-item__action" title="重命名会话" @click.stop="openRenameDialog(conv)">
-                    <SvgIcon icon="mdi:pencil-outline" />
-                  </span>
-                  <span
-                    class="conversation-item__action conversation-item__action--danger"
-                    title="删除会话"
-                    @click.stop="removeConversation(conv.id)"
-                  >
-                    <SvgIcon icon="mdi:trash-can-outline" />
-                  </span>
-                </span>
-              </button>
+
+            <div class="chat-body">
+              <div class="panel-head">
+                <SvgIcon :icon="selectedAgent.icon" class="panel-head__icon" />
+                <span class="panel-head__title">{{ selectedAgent.name }}</span>
+                <NTag size="small" round :bordered="false" class="mode-tag">对话</NTag>
+                <div class="ml-auto flex gap-8px">
+                  <NButton text size="small" :disabled="!messages.length || testing" @click="clearChat">
+                    <template #icon>
+                      <SvgIcon icon="mdi:delete-sweep-outline" />
+                    </template>
+                    清空
+                  </NButton>
+                  <NButton secondary size="small" :disabled="!testing" @click="handleStop">
+                    <template #icon>
+                      <SvgIcon icon="mdi:stop" />
+                    </template>
+                    停止
+                  </NButton>
+                </div>
+              </div>
+
+              <div ref="messageArea" class="chat-messages">
+                <div v-if="!messages.length" class="chat-welcome">
+                  <SvgIcon icon="mdi:message-processing-outline" class="chat-welcome__icon" />
+                  <div class="chat-welcome__title">开始调试</div>
+                  <div class="chat-welcome__desc">在下方输入消息，模拟对话测试应用，流式返回结果。</div>
+                  <div v-if="quickPrompts.length" class="chat-welcome__prompts">
+                    <button
+                      v-for="item in quickPrompts"
+                      :key="item"
+                      type="button"
+                      class="prompt-chip"
+                      @click="handleRun(item)"
+                    >
+                      {{ item }}
+                    </button>
+                  </div>
+                </div>
+
+                <div v-for="msg in messages" :key="msg.id" class="chat-row" :class="msg.role">
+                  <div class="chat-avatar" :class="msg.role">
+                    <SvgIcon :icon="msg.role === 'user' ? 'mdi:account-outline' : selectedAgent.icon" />
+                  </div>
+                  <div class="chat-bubble" :class="msg.role">
+                    <!-- 思考过程折叠面板（参考 Dify：进行中默认展开，结束后默认折叠） -->
+                    <details v-if="msg.reasoning" class="think-panel" :open="msg.streaming || !reasoningPanelClosed">
+                      <summary class="think-panel__summary">
+                        <span class="think-panel__chevron">▸</span>
+                        <span v-if="msg.streaming" class="think-panel__label think-panel__label--active">思考中…</span>
+                        <span v-else class="think-panel__label">思考过程</span>
+                      </summary>
+                      <div class="think-panel__body">{{ msg.reasoning }}</div>
+                    </details>
+                    <div v-if="msg.content" class="chat-bubble__text">
+                      {{ msg.content }}
+                      <span v-if="msg.streaming" class="type-cursor">▍</span>
+                    </div>
+                    <div v-else-if="msg.streaming && !msg.reasoning" class="chat-bubble__loading">
+                      <span class="dot" />
+                      <span class="dot" />
+                      <span class="dot" />
+                    </div>
+                    <div v-if="msg.content || !msg.streaming" class="chat-bubble__meta">
+                      <span class="chat-bubble__time">{{ msg.time }}</span>
+                      <button type="button" class="copy-btn" title="复制内容" @click="copyMessage(msg)">
+                        <SvgIcon icon="mdi:content-copy" />
+                      </button>
+                    </div>
+                    <div v-if="msg.suggested?.length" class="chat-bubble__suggested">
+                      <button
+                        v-for="q in msg.suggested"
+                        :key="q"
+                        type="button"
+                        class="prompt-chip"
+                        @click="handleRun(q)"
+                      >
+                        {{ q }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="chat-input" :class="{ 'chat-input--focused': inputFocused }">
+                <div class="chat-input__box">
+                  <NInput
+                    v-model:value="prompt"
+                    type="textarea"
+                    :autosize="{ minRows: 1, maxRows: 5 }"
+                    placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+                    :disabled="testing"
+                    @focus="inputFocused = true"
+                    @blur="inputFocused = false"
+                    @keydown.enter.prevent="handleRun()"
+                  />
+                  <div class="chat-input__toolbar">
+                    <div class="flex items-center gap-2px">
+                      <NUpload
+                        v-if="fileCapability.supportLocalFile"
+                        multiple
+                        :max="fileCapability.limit"
+                        :file-list="uploadFiles"
+                        :default-upload="false"
+                        :accept="fileCapability.accept === '*' ? undefined : fileCapability.accept"
+                        class="inline-block"
+                        @change="handleLocalFileChange"
+                        @remove="handleLocalFileRemove"
+                      >
+                        <button type="button" class="icon-btn" title="上传文件">
+                          <SvgIcon icon="mdi:paperclip" />
+                        </button>
+                      </NUpload>
+                      <span v-if="testing" class="chat-input__status">
+                        <span class="pulse-dot" />
+                        生成中…
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-6px">
+                      <span v-if="prompt.trim() && !testing" class="chat-input__hint">Enter 发送</span>
+                      <NButton
+                        type="primary"
+                        size="small"
+                        :loading="testing"
+                        :disabled="!prompt.trim()"
+                        @click="handleRun()"
+                      >
+                        <template #icon>
+                          <SvgIcon icon="mdi:send" />
+                        </template>
+                        发送
+                      </NButton>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="chat-body">
+          <!-- 工作流主区：单轮运行（输入表单 + 运行结果） -->
+          <div v-else class="wf-panel panel-surface">
             <div class="panel-head">
               <SvgIcon :icon="selectedAgent.icon" class="panel-head__icon" />
               <span class="panel-head__title">{{ selectedAgent.name }}</span>
-              <NTag size="small" round :bordered="false" class="mode-tag">对话</NTag>
+              <NTag size="small" round :bordered="false" class="mode-tag">工作流</NTag>
               <div class="ml-auto flex gap-8px">
-                <NButton text size="small" :disabled="!messages.length || testing" @click="clearChat">
-                  <template #icon>
-                    <SvgIcon icon="mdi:delete-sweep-outline" />
-                  </template>
-                  清空
-                </NButton>
                 <NButton secondary size="small" :disabled="!testing" @click="handleStop">
                   <template #icon>
                     <SvgIcon icon="mdi:stop" />
                   </template>
                   停止
                 </NButton>
+                <NButton type="primary" size="small" :loading="testing" :disabled="!prompt.trim()" @click="handleRun()">
+                  <template #icon>
+                    <SvgIcon icon="mdi:play" />
+                  </template>
+                  运行
+                </NButton>
               </div>
             </div>
 
-            <div ref="messageArea" class="chat-messages">
-              <div v-if="!messages.length" class="chat-welcome">
-                <SvgIcon icon="mdi:message-processing-outline" class="chat-welcome__icon" />
-                <div class="chat-welcome__title">开始调试</div>
-                <div class="chat-welcome__desc">在下方输入消息，模拟对话测试应用，流式返回结果。</div>
-                <div v-if="quickPrompts.length" class="chat-welcome__prompts">
+            <div class="wf-panel__body">
+              <div class="wf-run-form">
+                <div class="wf-run-form__desc">
+                  填写运行参数，点击「运行」执行工作流，下方展示节点执行过程与最终输出。
+                </div>
+
+                <NFormItem label="执行说明">
+                  <NInput
+                    v-model:value="prompt"
+                    type="textarea"
+                    placeholder="输入执行说明，作为工作流输入"
+                    :autosize="{ minRows: 2, maxRows: 4 }"
+                  />
+                </NFormItem>
+
+                <template v-if="parameterFields.length">
+                  <div class="runtime-section__title">工作流变量</div>
+                  <div class="flex flex-col gap-6px">
+                    <NFormItem
+                      v-for="field in parameterFields"
+                      :key="field.name"
+                      :label="field.label"
+                      :required="field.required"
+                    >
+                      <NInput
+                        v-if="field.kind === 'text'"
+                        :value="getFieldStringValue(field.name)"
+                        :placeholder="field.placeholder"
+                        @update:value="value => updateFieldValue(field.name, value)"
+                      />
+                      <NInput
+                        v-else-if="field.kind === 'textarea'"
+                        :value="getFieldStringValue(field.name)"
+                        type="textarea"
+                        :placeholder="field.placeholder"
+                        :autosize="{ minRows: 3, maxRows: 6 }"
+                        @update:value="value => updateFieldValue(field.name, value)"
+                      />
+                      <NInputNumber
+                        v-else-if="field.kind === 'number'"
+                        class="w-full"
+                        :value="getFieldNumberValue(field.name)"
+                        @update:value="value => updateFieldValue(field.name, value)"
+                      />
+                      <NSelect
+                        v-else-if="field.kind === 'select'"
+                        :value="getFieldSelectValue(field.name)"
+                        :options="field.options || []"
+                        clearable
+                        @update:value="value => updateFieldValue(field.name, value)"
+                      />
+                      <NSwitch
+                        v-else
+                        :value="getFieldSwitchValue(field.name)"
+                        @update:value="value => updateFieldValue(field.name, value)"
+                      />
+                    </NFormItem>
+                  </div>
+                </template>
+
+                <div v-if="quickPrompts.length" class="wf-run-form__prompts">
                   <button
                     v-for="item in quickPrompts"
                     :key="item"
@@ -792,254 +986,71 @@ async function handleRun(targetPrompt?: string) {
                 </div>
               </div>
 
-              <div v-for="msg in messages" :key="msg.id" class="chat-row" :class="msg.role">
-                <div class="chat-avatar" :class="msg.role">
-                  <SvgIcon :icon="msg.role === 'user' ? 'mdi:account-outline' : selectedAgent.icon" />
-                </div>
-                <div class="chat-bubble" :class="msg.role">
-                  <!-- 思考过程折叠面板（参考 Dify：进行中默认展开，结束后默认折叠） -->
-                  <details v-if="msg.reasoning" class="think-panel" :open="msg.streaming || !reasoningPanelClosed">
-                    <summary class="think-panel__summary">
-                      <span class="think-panel__chevron">▸</span>
-                      <span v-if="msg.streaming" class="think-panel__label think-panel__label--active">思考中…</span>
-                      <span v-else class="think-panel__label">思考过程</span>
-                    </summary>
-                    <div class="think-panel__body">{{ msg.reasoning }}</div>
-                  </details>
-                  <div v-if="msg.content" class="chat-bubble__text">
-                    {{ msg.content }}
-                    <span v-if="msg.streaming" class="type-cursor">▍</span>
-                  </div>
-                  <div v-else-if="msg.streaming && !msg.reasoning" class="chat-bubble__loading">
-                    <span class="dot" />
-                    <span class="dot" />
-                    <span class="dot" />
-                  </div>
-                  <div v-if="msg.content || !msg.streaming" class="chat-bubble__meta">
-                    <span class="chat-bubble__time">{{ msg.time }}</span>
-                    <button type="button" class="copy-btn" title="复制内容" @click="copyMessage(msg)">
-                      <SvgIcon icon="mdi:content-copy" />
-                    </button>
-                  </div>
-                  <div v-if="msg.suggested?.length" class="chat-bubble__suggested">
-                    <button v-for="q in msg.suggested" :key="q" type="button" class="prompt-chip" @click="handleRun(q)">
-                      {{ q }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+              <div class="wf-run-result">
+                <div class="wf-run-result__head">运行结果</div>
+                <div v-if="streamOutput" class="wf-output">{{ streamOutput }}</div>
+                <div v-else class="wf-run-result__empty">运行后在此查看输出</div>
 
-            <div class="chat-input" :class="{ 'chat-input--focused': inputFocused }">
-              <div class="chat-input__box">
-                <NInput
-                  v-model:value="prompt"
-                  type="textarea"
-                  :autosize="{ minRows: 1, maxRows: 5 }"
-                  placeholder="输入消息，Enter 发送，Shift+Enter 换行"
-                  :disabled="testing"
-                  @focus="inputFocused = true"
-                  @blur="inputFocused = false"
-                  @keydown.enter.prevent="handleRun()"
-                />
-                <div class="chat-input__toolbar">
-                  <div class="flex items-center gap-2px">
-                    <NUpload
-                      v-if="fileCapability.supportLocalFile"
-                      multiple
-                      :max="fileCapability.limit"
-                      :file-list="uploadFiles"
-                      :default-upload="false"
-                      :accept="fileCapability.accept === '*' ? undefined : fileCapability.accept"
-                      class="inline-block"
-                      @change="handleLocalFileChange"
-                      @remove="handleLocalFileRemove"
+                <div v-if="streamEvents.length" class="wf-run-result__logs">
+                  <div class="wf-run-result__logtitle">节点执行过程</div>
+                  <div class="flex flex-col gap-6px">
+                    <div
+                      v-for="item in streamEvents"
+                      :key="item.id"
+                      class="step-card"
+                      :class="{ 'step-card--tool': item.kind === 'tool' }"
                     >
-                      <button type="button" class="icon-btn" title="上传文件">
-                        <SvgIcon icon="mdi:paperclip" />
-                      </button>
-                    </NUpload>
-                    <span v-if="testing" class="chat-input__status">
-                      <span class="pulse-dot" />
-                      生成中…
-                    </span>
-                  </div>
-                  <div class="flex items-center gap-6px">
-                    <span v-if="prompt.trim() && !testing" class="chat-input__hint">Enter 发送</span>
-                    <NButton
-                      type="primary"
-                      size="small"
-                      :loading="testing"
-                      :disabled="!prompt.trim()"
-                      @click="handleRun()"
-                    >
-                      <template #icon>
-                        <SvgIcon icon="mdi:send" />
-                      </template>
-                      发送
-                    </NButton>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 工作流主区：单轮运行（输入表单 + 运行结果） -->
-        <div v-else class="wf-panel panel-surface">
-          <div class="panel-head">
-            <SvgIcon :icon="selectedAgent.icon" class="panel-head__icon" />
-            <span class="panel-head__title">{{ selectedAgent.name }}</span>
-            <NTag size="small" round :bordered="false" class="mode-tag">工作流</NTag>
-            <div class="ml-auto flex gap-8px">
-              <NButton secondary size="small" :disabled="!testing" @click="handleStop">
-                <template #icon>
-                  <SvgIcon icon="mdi:stop" />
-                </template>
-                停止
-              </NButton>
-              <NButton type="primary" size="small" :loading="testing" :disabled="!prompt.trim()" @click="handleRun()">
-                <template #icon>
-                  <SvgIcon icon="mdi:play" />
-                </template>
-                运行
-              </NButton>
-            </div>
-          </div>
-
-          <div class="wf-panel__body">
-            <div class="wf-run-form">
-              <div class="wf-run-form__desc">
-                填写运行参数，点击「运行」执行工作流，下方展示节点执行过程与最终输出。
-              </div>
-
-              <NFormItem label="执行说明">
-                <NInput
-                  v-model:value="prompt"
-                  type="textarea"
-                  placeholder="输入执行说明，作为工作流输入"
-                  :autosize="{ minRows: 2, maxRows: 4 }"
-                />
-              </NFormItem>
-
-              <template v-if="parameterFields.length">
-                <div class="runtime-section__title">工作流变量</div>
-                <div class="flex flex-col gap-6px">
-                  <NFormItem
-                    v-for="field in parameterFields"
-                    :key="field.name"
-                    :label="field.label"
-                    :required="field.required"
-                  >
-                    <NInput
-                      v-if="field.kind === 'text'"
-                      :value="getFieldStringValue(field.name)"
-                      :placeholder="field.placeholder"
-                      @update:value="value => updateFieldValue(field.name, value)"
-                    />
-                    <NInput
-                      v-else-if="field.kind === 'textarea'"
-                      :value="getFieldStringValue(field.name)"
-                      type="textarea"
-                      :placeholder="field.placeholder"
-                      :autosize="{ minRows: 3, maxRows: 6 }"
-                      @update:value="value => updateFieldValue(field.name, value)"
-                    />
-                    <NInputNumber
-                      v-else-if="field.kind === 'number'"
-                      class="w-full"
-                      :value="getFieldNumberValue(field.name)"
-                      @update:value="value => updateFieldValue(field.name, value)"
-                    />
-                    <NSelect
-                      v-else-if="field.kind === 'select'"
-                      :value="getFieldSelectValue(field.name)"
-                      :options="field.options || []"
-                      clearable
-                      @update:value="value => updateFieldValue(field.name, value)"
-                    />
-                    <NSwitch
-                      v-else
-                      :value="getFieldSwitchValue(field.name)"
-                      @update:value="value => updateFieldValue(field.name, value)"
-                    />
-                  </NFormItem>
-                </div>
-              </template>
-
-              <div v-if="quickPrompts.length" class="wf-run-form__prompts">
-                <button
-                  v-for="item in quickPrompts"
-                  :key="item"
-                  type="button"
-                  class="prompt-chip"
-                  @click="handleRun(item)"
-                >
-                  {{ item }}
-                </button>
-              </div>
-            </div>
-
-            <div class="wf-run-result">
-              <div class="wf-run-result__head">运行结果</div>
-              <div v-if="streamOutput" class="wf-output">{{ streamOutput }}</div>
-              <div v-else class="wf-run-result__empty">运行后在此查看输出</div>
-
-              <div v-if="streamEvents.length" class="wf-run-result__logs">
-                <div class="wf-run-result__logtitle">节点执行过程</div>
-                <div class="flex flex-col gap-6px">
-                  <div
-                    v-for="item in streamEvents"
-                    :key="item.id"
-                    class="step-card"
-                    :class="{ 'step-card--tool': item.kind === 'tool' }"
-                  >
-                    <div class="step-label">
-                      <SvgIcon v-if="item.kind === 'tool'" icon="mdi:toolbox-outline" class="step-label__icon" />
-                      {{ item.label }}
+                      <div class="step-label">
+                        <SvgIcon v-if="item.kind === 'tool'" icon="mdi:toolbox-outline" class="step-label__icon" />
+                        {{ item.label }}
+                      </div>
+                      <div class="step-detail">{{ item.detail }}</div>
                     </div>
-                    <div class="step-detail">{{ item.detail }}</div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-    </div>
-  </div>
-
-  <!-- 会话重命名弹窗 -->
-  <NModal
-    :show="!!renameTarget"
-    preset="card"
-    title="重命名会话"
-    style="max-width: 420px"
-    :bordered="false"
-    @update:show="
-      val => {
-        if (!val) renameTarget = null;
-      }
-    "
-  >
-    <NInput
-      v-model:value="renameValue"
-      placeholder="请输入新的会话名称"
-      maxlength="80"
-      clearable
-      autofocus
-      @keyup.enter="submitRename"
-    />
-    <template #footer>
-      <div class="flex justify-end gap-8px">
-        <NButton size="small" @click="renameTarget = null">取消</NButton>
-        <NButton type="primary" size="small" :loading="renameLoading" @click="submitRename">确定</NButton>
+        </section>
       </div>
-    </template>
-  </NModal>
+    </div>
+
+    <!-- 会话重命名弹窗 -->
+    <NModal
+      :show="!!renameTarget"
+      preset="card"
+      title="重命名会话"
+      style="max-width: 420px"
+      :bordered="false"
+      @update:show="
+        val => {
+          if (!val) renameTarget = null;
+        }
+      "
+    >
+      <NInput
+        v-model:value="renameValue"
+        placeholder="请输入新的会话名称"
+        maxlength="80"
+        clearable
+        autofocus
+        @keyup.enter="submitRename"
+      />
+      <template #footer>
+        <div class="flex justify-end gap-8px">
+          <NButton size="small" @click="renameTarget = null">取消</NButton>
+          <NButton type="primary" size="small" :loading="renameLoading" @click="submitRename">确定</NButton>
+        </div>
+      </template>
+    </NModal>
+  </div>
 </template>
 
 <style scoped lang="scss">
+.agent-test-page-root {
+  height: 100%;
+}
+
 .agent-domain-page {
   height: 100%;
   background: var(--agent-page-bg);

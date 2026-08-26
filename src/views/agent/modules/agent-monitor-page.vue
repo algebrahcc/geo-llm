@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { NButton, NInput, NTag, useMessage } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
+import EmptyState from '@/components/common/empty-state.vue';
 import { useDifyApps } from './use-dify-app';
 import { useAgentSelection } from './use-agent';
 import AgentSidebar from './agent-sidebar.vue';
@@ -257,24 +258,20 @@ onMounted(loadData);
               <div v-for="i in 6" :key="i" class="monitor-skeleton__row" />
             </div>
 
-            <div v-else-if="(isWorkflow ? runs.length : conversations.length) === 0" class="agent-empty custom-empty">
-              <div class="custom-empty__icon">
-                <SvgIcon :icon="isWorkflow ? 'mdi:chart-timeline-variant' : 'mdi:chat-outline'" />
-              </div>
-              <div class="custom-empty__title">{{ isWorkflow ? '暂无运行记录' : '暂无会话记录' }}</div>
-              <div class="custom-empty__desc">
-                {{
-                  isWorkflow ? '在工作流「测试」页运行后，记录会显示在这里' : '在「测试」页发起对话后，会话会显示在这里'
-                }}
-              </div>
-            </div>
+            <EmptyState
+              v-else-if="(isWorkflow ? runs.length : conversations.length) === 0"
+              :icon="isWorkflow ? 'mdi:chart-timeline-variant' : 'mdi:chat-outline'"
+              :title="isWorkflow ? '暂无运行记录' : '暂无会话记录'"
+              :description="
+                isWorkflow ? '在工作流「测试」页运行后，记录会显示在这里' : '在「测试」页发起对话后，会话会显示在这里'
+              "
+            />
 
-            <div v-else-if="isWorkflow && filteredRuns.length === 0" class="agent-empty custom-empty">
-              <div class="custom-empty__icon">
-                <SvgIcon icon="mdi:magnify-close" />
-              </div>
-              <div class="custom-empty__title">未找到匹配的运行记录</div>
-            </div>
+            <EmptyState
+              v-else-if="isWorkflow && filteredRuns.length === 0"
+              icon="mdi:magnify-close"
+              title="未找到匹配的运行记录"
+            />
 
             <div v-else-if="isWorkflow" class="monitor-list">
               <div v-for="r in filteredRuns" :key="r.id" class="monitor-row">
@@ -295,12 +292,7 @@ onMounted(loadData);
               </div>
             </div>
 
-            <div v-else-if="filteredConvs.length === 0" class="agent-empty custom-empty">
-              <div class="custom-empty__icon">
-                <SvgIcon icon="mdi:magnify-close" />
-              </div>
-              <div class="custom-empty__title">未找到匹配的会话</div>
-            </div>
+            <EmptyState v-else-if="filteredConvs.length === 0" icon="mdi:magnify-close" title="未找到匹配的会话" />
 
             <div v-else class="monitor-list">
               <div v-for="c in filteredConvs" :key="c.id" class="monitor-row">
@@ -517,40 +509,6 @@ onMounted(loadData);
 @keyframes monitor-skeleton-loading {
   to {
     background-position: -200% 0;
-  }
-}
-
-.custom-empty {
-  padding: 60px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  text-align: center;
-
-  &__icon {
-    width: 64px;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    color: rgba(41, 163, 255, 0.35);
-    border-radius: 18px;
-    background: rgba(41, 163, 255, 0.06);
-    border: 1px solid rgba(25, 95, 176, 0.18);
-  }
-
-  &__title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #eaf5ff;
-  }
-
-  &__desc {
-    font-size: 12px;
-    color: rgba(203, 227, 255, 0.5);
-    max-width: 360px;
   }
 }
 

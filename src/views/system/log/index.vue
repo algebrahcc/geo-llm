@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, onMounted, reactive, ref } from 'vue';
+import { h, reactive, ref } from 'vue';
 import {
   NButton,
   NDataTable,
@@ -13,13 +13,15 @@ import {
 } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { fetchLogPage, fetchLogDetail, exportLoginLog, exportOperationLog } from '@/service/api/monitor';
+import { usePagination } from '@/hooks/common/use-pagination';
 
 defineOptions({ name: 'LogManage' });
 
-const loading = ref(false);
-const tableData = ref<Api.Monitor.LogItem[]>([]);
-const total = ref(0);
 const query = reactive<Api.Monitor.LogQuery>({ page: 1, size: 10 });
+const { loading, tableData, total, loadData, onPageChange, onPageSizeChange } = usePagination({
+  query,
+  fetchPage: fetchLogPage
+});
 
 const detailVisible = ref(false);
 const detailLoading = ref(false);
@@ -79,32 +81,6 @@ const columns: DataTableColumns<Api.Monitor.LogItem> = [
 ];
 
 const rowKey = (row: Api.Monitor.LogItem) => row.id;
-
-async function loadData() {
-  loading.value = true;
-  try {
-    const { data, error } = await fetchLogPage(query);
-    if (!error && data) {
-      tableData.value = data.list || [];
-      total.value = data.total || 0;
-    }
-  } finally {
-    loading.value = false;
-  }
-}
-
-function onPageChange(page: number) {
-  query.page = page;
-  loadData();
-}
-function onPageSizeChange(size: number) {
-  query.size = size;
-  query.page = 1;
-  loadData();
-}
-onMounted(() => {
-  loadData();
-});
 
 async function handleDetail(id: number) {
   detailVisible.value = true;

@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { h, onMounted, reactive, ref } from 'vue';
+import { h, reactive } from 'vue';
 import { NButton, NDataTable, NInput, NPopconfirm, NTooltip, type DataTableColumns } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { fetchOnlineUserPage, fetchKickoutOnlineUser } from '@/service/api/monitor';
+import { usePagination } from '@/hooks/common/use-pagination';
 
 defineOptions({ name: 'OnlineManage' });
 
 // ==================== 状态 ====================
-const loading = ref(false);
-const tableData = ref<Api.Monitor.OnlineUserItem[]>([]);
-const total = ref(0);
 const query = reactive<Api.Monitor.OnlineUserQuery>({ page: 1, size: 10 });
+const { loading, tableData, total, loadData, onPageChange, onPageSizeChange } = usePagination({
+  query,
+  fetchPage: fetchOnlineUserPage
+});
 
 // ==================== 单元格渲染 ====================
 function renderUserCell(row: Api.Monitor.OnlineUserItem) {
@@ -74,35 +76,6 @@ const columns: DataTableColumns<Api.Monitor.OnlineUserItem> = [
 ];
 
 const rowKey = (row: Api.Monitor.OnlineUserItem) => row.token;
-
-// ==================== 数据加载 ====================
-async function loadData() {
-  loading.value = true;
-  try {
-    const { data, error } = await fetchOnlineUserPage(query);
-    if (!error && data) {
-      tableData.value = data.list || [];
-      total.value = data.total || 0;
-    }
-  } finally {
-    loading.value = false;
-  }
-}
-
-function onPageChange(page: number) {
-  query.page = page;
-  loadData();
-}
-
-function onPageSizeChange(size: number) {
-  query.size = size;
-  query.page = 1;
-  loadData();
-}
-
-onMounted(() => {
-  loadData();
-});
 
 // ==================== 强退 ====================
 async function handleKickout(token: string) {
