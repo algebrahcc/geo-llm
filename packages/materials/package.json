@@ -12,7 +12,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@sa/utils": "workspace:*",
+    "@sa/utils": "2.2.0",
     "simplebar-vue": "2.4.2"
   },
   "devDependencies": {

@@ -10,7 +10,7 @@ export interface CliOption {
    *
    * @default
    * ```json
-   * ["** /dist", "** /pnpm-lock.yaml", "** /node_modules", "!node_modules/**"]
+   * ["** /dist", "** /package-lock.json", "** /node_modules", "!node_modules/**"]
    * ```
    */
   cleanupDirs: string[];

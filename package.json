@@ -23,6 +23,9 @@
   "repository": {
     "url": "https://github.com/algebrahcc/geo-llm.git"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "type": "module",
   "scripts": {
     "build": "vite build --mode prod",
@@ -34,7 +37,6 @@
     "dev:prod": "vite --mode prod",
     "fmt": "oxfmt",
     "gen-route": "sa gen-route",
-    "install:local": "pnpm install --store-dir ./.pnpm-store",
     "lint": "oxlint --fix && eslint --fix .",
     "prepare": "simple-git-hooks",
     "preview": "vite preview",
@@ -46,11 +48,11 @@
   "dependencies": {
     "@better-scroll/core": "2.5.1",
     "@iconify/vue": "5.0.1",
-    "@sa/axios": "workspace:*",
-    "@sa/color": "workspace:*",
-    "@sa/hooks": "workspace:*",
-    "@sa/materials": "workspace:*",
-    "@sa/utils": "workspace:*",
+    "@sa/axios": "2.2.0",
+    "@sa/color": "2.2.0",
+    "@sa/hooks": "2.2.0",
+    "@sa/materials": "2.2.0",
+    "@sa/utils": "2.2.0",
     "@vueuse/core": "14.3.0",
     "cesium": "1.141.0",
     "clipboard": "2.0.11",
@@ -74,8 +76,8 @@
     "@elegant-router/vue": "0.3.8",
     "@iconify/json": "2.2.472",
     "@iconify/utils": "^2",
-    "@sa/scripts": "workspace:*",
-    "@sa/uno-preset": "workspace:*",
+    "@sa/scripts": "2.2.0",
+    "@sa/uno-preset": "2.2.0",
     "@soybeanjs/eslint-config-vue": "^0.0.2",
     "@types/node": "25.7.0",
     "@types/nprogress": "0.2.3",
@@ -102,12 +104,11 @@
     "vue-tsc": "3.2.8"
   },
   "simple-git-hooks": {
-    "commit-msg": "pnpm sa git-commit-verify",
-    "pre-commit": "pnpm typecheck && pnpm lint && pnpm fmt && git diff --exit-code"
+    "commit-msg": "npx sa git-commit-verify",
+    "pre-commit": "npm run typecheck && npm run lint && npm run fmt && git diff --exit-code"
   },
   "engines": {
-    "node": ">=20.19.0",
-    "pnpm": ">=10.5.0"
+    "node": ">=20.19.0"
   },
   "website": ""
 }

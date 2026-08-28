@@ -39,7 +39,7 @@ export const locales = {
     ] as [string, string][],
     gitCommitNoStaged: `${bgRed(' 错误 ')} ${red('暂存区没有文件，请先使用 git add 添加文件后再提交!')}`,
     gitCommitVerify: `${bgRed(' 错误 ')} ${red('git 提交信息必须符合 Conventional Commits 标准!')}\n\n${green(
-      '推荐使用命令 `pnpm commit` 生成符合 Conventional Commits 标准的提交信息。\n获取有关 Conventional Commits 的更多信息，请访问此链接: https://conventionalcommits.org'
+      '推荐使用命令 `npm run commit` 生成符合 Conventional Commits 标准的提交信息。\n获取有关 Conventional Commits 的更多信息，请访问此链接: https://conventionalcommits.org'
     )}`
   },
   'en-us': {
@@ -78,7 +78,7 @@ export const locales = {
     ] as [string, string][],
     gitCommitNoStaged: `${bgRed(' ERROR ')} ${red('No files in staging area, please use git add to stage files first!')}`,
     gitCommitVerify: `${bgRed(' ERROR ')} ${red('git commit message must match the Conventional Commits standard!')}\n\n${green(
-      'Recommended to use the command `pnpm commit` to generate Conventional Commits compliant commit information.\nGet more info about Conventional Commits, follow this link: https://conventionalcommits.org'
+      'Recommended to use the command `npm run commit` to generate Conventional Commits compliant commit information.\nGet more info about Conventional Commits, follow this link: https://conventionalcommits.org'
     )}`
   }
 } satisfies Record<Lang, Record<string, unknown>>;

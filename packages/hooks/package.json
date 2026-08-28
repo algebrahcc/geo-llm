@@ -12,7 +12,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@sa/axios": "workspace:*",
-    "@sa/utils": "workspace:*"
+    "@sa/axios": "2.2.0",
+    "@sa/utils": "2.2.0"
   }
 }
