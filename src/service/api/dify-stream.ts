@@ -66,7 +66,14 @@ export async function fetchDifyChatStream(
 
     if (eventName === 'done') {
       try {
-        handlers.onDone?.(JSON.parse(data) as { conversationId?: string; messageId?: string; taskId?: string });
+        const payload = JSON.parse(data);
+        if (typeof payload === 'string') {
+          // 与 message 分支同理：后端 SseEmitter 可能把 String data 再序列化一次，
+          // 若不做二次解析，conversationId 会被整体污染成 JSON 字符串导致后续请求失败
+          handlers.onDone?.(JSON.parse(payload) as { conversationId?: string; messageId?: string; taskId?: string });
+        } else {
+          handlers.onDone?.(payload as { conversationId?: string; messageId?: string; taskId?: string });
+        }
       } catch {
         handlers.onDone?.(data);
       }

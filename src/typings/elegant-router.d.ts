@@ -31,7 +31,10 @@ declare module "@elegant-router/types" {
     "404": "/404";
     "500": "/500";
     "agent": "/agent";
-    "catalog": "/catalog";
+    "data-center": "/data-center";
+    "data-center_catalog": "/data-center/catalog";
+    "data-center_dataservice": "/data-center/dataservice";
+    "data-center_vector": "/data-center/vector";
     "iframe-page": "/iframe-page/:url";
     "knowledge": "/knowledge";
     "login": "/login/:module(pwd-login)?";
@@ -44,7 +47,6 @@ declare module "@elegant-router/types" {
     "system_online": "/system/online";
     "system_role": "/system/role";
     "system_user": "/system/user";
-    "system_vector": "/system/vector";
   };
 
   /**
@@ -90,7 +92,7 @@ declare module "@elegant-router/types" {
     | "404"
     | "500"
     | "agent"
-    | "catalog"
+    | "data-center"
     | "iframe-page"
     | "knowledge"
     | "login"
@@ -130,7 +132,9 @@ declare module "@elegant-router/types" {
     | "iframe-page"
     | "login"
     | "agent"
-    | "catalog"
+    | "data-center_catalog"
+    | "data-center_dataservice"
+    | "data-center_vector"
     | "knowledge"
     | "planning"
     | "river"
@@ -140,7 +144,6 @@ declare module "@elegant-router/types" {
     | "system_online"
     | "system_role"
     | "system_user"
-    | "system_vector"
   >;
 
   /**

@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { runKnowledgeRetrieval, type KnowledgeRetrievalResult } from '@/mock/knowledge';
 import { aiAnalysisStepTemplate, crossingPlanCards, defaultCrossingSettingForm } from '@/mock/river';
 import { fetchVectorPage } from '@/service/api/vector';
+import type { ServiceLayerHandle } from '@/composables/cesium/service-loader';
 import RiverAiAssistantPanel from './modules/river-ai-assistant-panel.vue';
-import RiverLayerPanel from './modules/river-layer-panel.vue';
-import type { BasemapItem } from './modules/river-layer-panel.vue';
 import RiverResultBar from './modules/river-result-bar.vue';
 import RiverSettingPanel from './modules/river-setting-panel.vue';
 import SceneToolbar from '@/components/common/scene-toolbar.vue';
 import type { SceneToolbarItem } from '@/components/common/scene-toolbar.vue';
 import RiverViewer from './modules/river-viewer.vue';
 import { useDraggable } from '@/composables/use-draggable';
-import type { VectorLayerItem } from './modules/types';
+import MapLayerPanel, { type VectorLayerItem } from '@/components/cesium/map-layer-panel.vue';
 import type {
   AiAnalysisStep,
   CrossingPlanCard,
@@ -39,6 +38,12 @@ interface ViewerExpose {
   loadVectorLayer: (id: string, name: string, sourceType?: string) => Promise<void>;
   setVectorLayerVisible: (id: string, show: boolean) => void;
   showPlan: (planKey: RiverPlanKey) => void;
+  /** 数据服务（阶段二） */
+  serviceHandles: ServiceLayerHandle[];
+  toggleService: (id: number, visible: boolean) => void;
+  removeService: (id: number) => void;
+  setServiceOpacity: (id: number, opacity: number) => void;
+  reorderService: (fromIndex: number, toIndex: number) => void;
 }
 
 const viewerRef = ref<ViewerExpose | null>(null);
@@ -80,9 +85,6 @@ const activePlanKey = ref<RiverPlanKey>('plan-a');
 // ──── 智能体信息 ────
 const agentInfo = { status: 'online' as const };
 
-// ──── 底图 ────
-const basemapItem = ref<BasemapItem>({ key: 'basemap', label: '影像底图', visible: true });
-
 // ──── 矢量图层（真实数据） ────
 const vectorLayers = ref<VectorLayerItem[]>([]);
 const vectorLoading = ref(false);
@@ -112,10 +114,6 @@ onMounted(() => {
 });
 
 // ──── 图层切换 ────
-function handleToggleBasemap() {
-  basemapItem.value.visible = !basemapItem.value.visible;
-}
-
 function handleToggleVector(layerId: string) {
   const layer = vectorLayers.value.find(l => l.id === layerId);
   if (!layer) return;
@@ -127,6 +125,25 @@ function handleToggleVector(layerId: string) {
   } else {
     viewer?.setVectorLayerVisible(layerId, false);
   }
+}
+
+// ──── 数据服务（阶段二） ────
+const serviceHandles = computed<ServiceLayerHandle[]>(() => viewerRef.value?.serviceHandles ?? []);
+
+function handleToggleService(id: number, visible: boolean) {
+  viewerRef.value?.toggleService(id, visible);
+}
+
+function handleRemoveService(id: number) {
+  viewerRef.value?.removeService(id);
+}
+
+function handleOpacityService(id: number, opacity: number) {
+  viewerRef.value?.setServiceOpacity(id, opacity);
+}
+
+function handleReorderService(fromIndex: number, toIndex: number) {
+  viewerRef.value?.reorderService(fromIndex, toIndex);
 }
 
 // ──── 右侧工具栏 ────
@@ -407,13 +424,16 @@ function handleToggleResult() {
             <span class="drag-dots">⋮⋮</span>
             <span>图层面板</span>
           </div>
-          <RiverLayerPanel
+          <MapLayerPanel
             :collapsed="layerCollapsed"
-            :basemap="basemapItem"
             :vector-layers="vectorLayers"
             :vector-loading="vectorLoading"
-            @toggle-basemap="handleToggleBasemap"
+            :service-handles="serviceHandles"
             @toggle-vector="handleToggleVector"
+            @toggle-service="handleToggleService"
+            @remove-service="handleRemoveService"
+            @opacity-service="handleOpacityService"
+            @reorder-service="handleReorderService"
             @toggle-collapse="layerCollapsed = !layerCollapsed"
             @close="handleLayerClose"
           />
@@ -546,7 +566,7 @@ function handleToggleResult() {
   width: 420px;
 }
 .layer-panel-wrapper {
-  width: 300px;
+  width: 360px;
 }
 
 .result-panel {
@@ -656,6 +676,9 @@ function handleToggleResult() {
   }
   .ai-panel-wrapper {
     width: 380px;
+  }
+  .layer-panel-wrapper {
+    width: 320px;
   }
 }
 </style>

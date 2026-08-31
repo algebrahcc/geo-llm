@@ -177,7 +177,10 @@ const routeMap: RouteMap = {
   "404": "/404",
   "500": "/500",
   "agent": "/agent",
-  "catalog": "/catalog",
+  "data-center": "/data-center",
+  "data-center_catalog": "/data-center/catalog",
+  "data-center_dataservice": "/data-center/dataservice",
+  "data-center_vector": "/data-center/vector",
   "iframe-page": "/iframe-page/:url",
   "knowledge": "/knowledge",
   "login": "/login/:module(pwd-login)?",
@@ -189,8 +192,7 @@ const routeMap: RouteMap = {
   "system_menu": "/system/menu",
   "system_online": "/system/online",
   "system_role": "/system/role",
-  "system_user": "/system/user",
-  "system_vector": "/system/vector"
+  "system_user": "/system/user"
 };
 
 /**

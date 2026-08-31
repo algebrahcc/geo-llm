@@ -24,7 +24,7 @@
     }
   },
   "TERRAIN": {
-    "enabled": true,
+    "enabled": false,
     "url": "http://192.168.12.211:19091/terrain/{z}/{x}/{y}.terrain",
     "requestVertexNormals": false,
     "requestWaterMask": false

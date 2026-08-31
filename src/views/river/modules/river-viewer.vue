@@ -34,7 +34,14 @@ const {
   toggleViewMode,
   loadVectorLayer,
   setVectorLayerVisible,
-  removeVectorLayer
+  removeVectorLayer,
+  serviceHandles,
+  loadService,
+  removeService,
+  toggleService,
+  setServiceOpacity,
+  switchImagery,
+  reorderService
 } = useCesiumRiver({
   onStatusChange(status) {
     emit('statusChange', status);
@@ -68,7 +75,15 @@ defineExpose({
   loadVectorLayer: (vectorId: string, vectorName: string, sourceType?: string) =>
     loadVectorLayer(vectorId, vectorName, sourceType),
   setVectorLayerVisible: (vectorId: string, show: boolean) => setVectorLayerVisible(vectorId, show),
-  removeVectorLayer: (vectorId: string) => removeVectorLayer(vectorId)
+  removeVectorLayer: (vectorId: string) => removeVectorLayer(vectorId),
+  /** 数据服务（阶段二）：激活服务图层句柄 + 管理方法 */
+  serviceHandles,
+  loadService,
+  removeService,
+  toggleService,
+  setServiceOpacity,
+  switchImagery,
+  reorderService
 });
 </script>
 

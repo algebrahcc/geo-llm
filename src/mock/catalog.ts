@@ -5,7 +5,7 @@
 //   数据目录模块已真实化（对接后端 /service/catalog/**）。
 //   原 mock 的列表数据(catalogData)、分类树(catalogCategories)等已转为 SQL 入库，
 //   本文件仅保留前端仍依赖的类型定义与智能体标签映射（agent 绑定本期不进表）。
-//   分析弹窗的 getMockGeoJSON 定义在 views/catalog/index.vue 内，不在本文件。
+//   分析弹窗的 getMockGeoJSON 定义在 views/data-center/catalog/index.vue 内，不在本文件。
 
 /** 数据质量 */
 export interface DataQuality {

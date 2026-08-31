@@ -24,6 +24,7 @@ coverage
 /cypress/screenshots/
 /public/global
 /public/taiwan
+/public/*
 
 # Editor directories and files
 .vscode/*

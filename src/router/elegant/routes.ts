@@ -46,14 +46,46 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
-    name: 'catalog',
-    path: '/catalog',
-    component: 'layout.base$view.catalog',
+    name: 'data-center',
+    path: '/data-center',
+    component: 'layout.base',
     meta: {
-      title: '数据目录',
+      title: '数据中心',
       order: 3,
-      icon: 'mdi:database'
-    }
+      icon: 'mdi:database-cog'
+    },
+    children: [
+      {
+        name: 'data-center_catalog',
+        path: '/data-center/catalog',
+        component: 'view.data-center_catalog',
+        meta: {
+          title: '数据目录',
+          icon: 'mdi:database',
+          order: 1
+        }
+      },
+      {
+        name: 'data-center_dataservice',
+        path: '/data-center/dataservice',
+        component: 'view.data-center_dataservice',
+        meta: {
+          title: '数据服务',
+          icon: 'mdi:share-variant',
+          order: 3
+        }
+      },
+      {
+        name: 'data-center_vector',
+        path: '/data-center/vector',
+        component: 'view.data-center_vector',
+        meta: {
+          title: '矢量数据管理',
+          icon: 'mdi:map-clock',
+          order: 2
+        }
+      }
+    ]
   },
   {
     name: 'iframe-page',
@@ -177,16 +209,6 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: '用户管理',
           icon: 'mdi:account-group',
           order: 1
-        }
-      },
-      {
-        name: 'system_vector',
-        path: '/system/vector',
-        component: 'view.system_vector',
-        meta: {
-          title: '矢量数据管理',
-          icon: 'mdi:map-clock',
-          order: 7
         }
       }
     ]

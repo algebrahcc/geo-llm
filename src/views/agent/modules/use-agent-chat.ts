@@ -26,7 +26,7 @@ export type ChatMsg = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  /** AI 思考过程（从  thinking... response 中拆出），供折叠展示 */
+  /** AI 思考过程（从 <think>...</think> 中拆出），供折叠展示 */
   reasoning?: string;
   /** 是否正在流式生成中（用于显示打字机光标 / 思考中状态） */
   streaming?: boolean;
@@ -42,19 +42,21 @@ type EventLine = {
   kind?: 'evt' | 'tool';
 };
 
-/** 把包含  thinking... response 的流式文本拆分为 reasoning（思考）与 content（正文） */
+/** 把包含 <think>...</think> 的流式文本拆分为 reasoning（思考）与 content（正文） */
 function splitThink(raw: string): { reasoning: string; content: string } {
   const reasoningParts: string[] = [];
   const contentParts: string[] = [];
+  // 大小写不敏感：lower 与 raw 仅 ASCII/中文场景长度一致，索引可直接复用
+  const lower = raw.toLowerCase();
   let pos = 0;
   while (true) {
-    const start = raw.indexOf(' thinking', pos);
+    const start = lower.indexOf('<think>', pos);
     if (start === -1) {
       contentParts.push(raw.slice(pos));
       break;
     }
     contentParts.push(raw.slice(pos, start));
-    const end = raw.indexOf(' response', start);
+    const end = lower.indexOf('</think>', start + 7);
     if (end === -1) {
       // 思考块尚未闭合（流式中），剩余部分视为思考内容
       reasoningParts.push(raw.slice(start));
@@ -307,7 +309,7 @@ export function useAgentChat(opts: {
         result.push({ id: `${m.id}-q`, role: 'user', content: m.query, time: '' });
       }
       if (m.answer) {
-        // 与流式一致：从 answer 中拆出  thinking... response，思考内容走折叠面板渲染
+        // 与流式一致：从 answer 中拆出 <think>...</think>，思考内容走折叠面板渲染
         const split = splitThink(m.answer);
         result.push({
           id: `${m.id}-a`,
@@ -488,10 +490,10 @@ export function useAgentChat(opts: {
       botMsg = pushMessage('assistant');
       botMsg.streaming = true;
       const msg = botMsg;
-      // 累积原始流，避免  thinking 标签被 SSE 块截断导致拆分错误
+      // 累积原始流，避免 <think> 标签被 SSE 块截断导致拆分错误
       let rawBuffer = '';
       /**
-       * 追加流式增量：把  thinking... response 从正文中拆出，分别更新 reasoning / content。
+       * 追加流式增量：把 <think>...</think> 从正文中拆出，分别更新 reasoning / content。
        * 由于流式块可能把一个标签拆成多段，这里每次对「累积原始流」整体重新解析。
        */
       const appendBot = (text: string) => {

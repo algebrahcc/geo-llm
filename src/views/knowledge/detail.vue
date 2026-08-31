@@ -164,6 +164,30 @@ const checkedChunkIds = ref<Array<string | number>>([]);
 
 const checkedChunks = computed(() => (detail.value?.chunks || []).filter(c => checkedChunkIds.value.includes(c.id)));
 
+// ── 切片分页 ──
+const chunkPageSize = 8;
+const chunkPage = ref(1);
+
+/** 当前分页展示的切片 */
+const pagedChunks = computed<KnowledgeChunk[]>(() => {
+  if (!detail.value) return [];
+  const all = detail.value.chunks;
+  const count = Math.max(1, Math.ceil(all.length / chunkPageSize));
+  const page = Math.min(chunkPage.value, count);
+  const start = (page - 1) * chunkPageSize;
+  return all.slice(start, start + chunkPageSize);
+});
+
+const chunkPageCount = computed(() => {
+  if (!detail.value) return 1;
+  return Math.max(1, Math.ceil(detail.value.chunks.length / chunkPageSize));
+});
+
+/** 切换文档或切片数量变化时回到第一页 */
+watch([documentId, () => detail.value?.chunks.length ?? 0], () => {
+  chunkPage.value = 1;
+});
+
 function toggleChunkChecked(id: string | number, value: boolean) {
   checkedChunkIds.value = value ? [...checkedChunkIds.value, id] : checkedChunkIds.value.filter(v => v !== id);
 }
@@ -495,7 +519,7 @@ onUnmounted(() => {
             />
             <div v-else class="grid gap-10px lg:grid-cols-2">
               <div
-                v-for="chunk in detail.chunks"
+                v-for="chunk in pagedChunks"
                 :key="chunk.id"
                 class="chunk-card"
                 :class="{ 'chunk-card--checked': checkedChunkIds.includes(chunk.id) }"
@@ -563,6 +587,9 @@ onUnmounted(() => {
                   </div>
                 </div>
               </div>
+            </div>
+            <div v-if="detail.chunks.length > chunkPageSize" class="chunk-pagination">
+              <NPagination v-model:page="chunkPage" :page-count="chunkPageCount" size="small" />
             </div>
           </div>
         </div>
@@ -984,6 +1011,15 @@ onUnmounted(() => {
 .chunk-batch__count {
   font-size: 12px;
   color: #8cc8ff;
+}
+
+/* ── 切片分页 ── */
+.chunk-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
 
 /* ── 原文预览 ── */

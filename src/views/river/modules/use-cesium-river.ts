@@ -1,4 +1,6 @@
 import { useCesiumBase } from '@/composables/cesium/use-cesium-base';
+import { useCesiumServices } from '@/composables/cesium/use-cesium-services';
+import { fetchEnabledDataServices } from '@/service/api/dataservice';
 import {
   Cartesian2,
   Cartesian3,
@@ -53,6 +55,8 @@ const toolNameMap = createToolNameMap<RiverInteractiveTool | 'browse'>([
 export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
   const base = useCesiumBase();
   const { containerRef, viewerRef } = base;
+  // 数据服务组合层（阶段二）：管理激活服务图层句柄，供图层面板渲染
+  const services = useCesiumServices(base);
 
   // ─── mock 静态/方案 entities（保留分析流程用） ───
   const staticEntities: Record<'channel' | 'assembly', Entity[]> = {
@@ -429,6 +433,16 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
         emitStatus(Cartesian3.fromDegrees(riverPresets.task.longitude, riverPresets.task.latitude, 0));
       }
     });
+
+    // 阶段二：加载全部启用中的数据服务（登记句柄供图层面板渲染）→ 重建影像/地形层序
+    try {
+      const serviceResult = await fetchEnabledDataServices();
+      const serviceList = unwrapResponseData<Api.DataService.DataServiceItem[]>(serviceResult) ?? [];
+      await services.loadEnabled(undefined, serviceList);
+      await base.applyServices(serviceList, services.handles.value);
+    } catch (e) {
+      console.warn('[River] 数据服务加载失败，使用默认图源:', e);
+    }
   }
 
   function initMapOverlays() {
@@ -461,6 +475,14 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     // 矢量图层
     loadVectorLayer,
     setVectorLayerVisible,
-    removeVectorLayer
+    removeVectorLayer,
+    // 数据服务（阶段二）
+    serviceHandles: services.handles,
+    loadService: services.loadOne,
+    removeService: services.removeService,
+    toggleService: services.toggleService,
+    setServiceOpacity: services.setOpacity,
+    switchImagery: services.switchImagery,
+    reorderService: services.reorder
   };
 }

@@ -21,7 +21,9 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   "iframe-page": () => import("@/views/_builtin/iframe-page/[url].vue"),
   login: () => import("@/views/_builtin/login/index.vue"),
   agent: () => import("@/views/agent/index.vue"),
-  catalog: () => import("@/views/catalog/index.vue"),
+  "data-center_catalog": () => import("@/views/data-center/catalog/index.vue"),
+  "data-center_dataservice": () => import("@/views/data-center/dataservice/index.vue"),
+  "data-center_vector": () => import("@/views/data-center/vector/index.vue"),
   knowledge: () => import("@/views/knowledge/index.vue"),
   planning: () => import("@/views/planning/index.vue"),
   river: () => import("@/views/river/index.vue"),
@@ -31,5 +33,4 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   system_online: () => import("@/views/system/online/index.vue"),
   system_role: () => import("@/views/system/role/index.vue"),
   system_user: () => import("@/views/system/user/index.vue"),
-  system_vector: () => import("@/views/system/vector/index.vue"),
 };

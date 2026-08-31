@@ -21,6 +21,7 @@ import {
   getOnlineImageryProviderOptions
 } from '@/utils/imagery';
 import { createTerrainProvider } from '@/utils/terrain';
+import { loadService, type ServiceLayerHandle } from './service-loader';
 import type { BaseStatusInfo } from '@/typings/cesium';
 
 export interface ViewerInitHooks {
@@ -38,6 +39,8 @@ export interface CesiumBaseReturn {
   imageryLayers: ImageryLayer[];
   initViewer: (hooks?: ViewerInitHooks) => Promise<void>;
   destroyViewer: () => void;
+  /** 应用数据服务：按 enabled+sort 重建影像/地形层，存在服务时替换 config.json 兜底 */
+  applyServices: (services: Api.DataService.DataServiceItem[], handles?: ServiceLayerHandle[]) => Promise<void>;
 
   /** 工具函数 */
   requestRender: () => void;
@@ -83,6 +86,27 @@ export interface CesiumBaseReturn {
 }
 
 /**
+ * 数据服务加载超时（ms）。
+ *
+ * 服务地址不可达时 Cesium provider 请求（terrain layer.json 等）可能长期挂起而不 reject，
+ * 需兜底中断，避免拖垮整个初始化流程。与 useCesiumServices 内的超时保持一致。
+ */
+const SERVICE_LOAD_TIMEOUT_MS = 8000;
+
+/** 为 Promise 附加超时：超时后以 reason 拒绝，避免挂起请求长期占用初始化流程 */
+function withTimeout<T>(promise: Promise<T>, ms: number, reason: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    promise.finally(() => {
+      if (timer) clearTimeout(timer);
+    }),
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(reason)), ms);
+    })
+  ]);
+}
+
+/**
  * Cesium Viewer 基础 Composable
  *
  * 封装所有模块公用的 Viewer 生命周期、影像层加载、事件管理、镜头控制，
@@ -118,6 +142,10 @@ export function useCesiumBase(): CesiumBaseReturn {
       sceneModePicker: false,
       selectionIndicator: false,
       timeline: false,
+      // 禁用默认底图：Cesium 默认加载 Ion 的 World Imagery（asset 2），
+      // 项目未配置 Ion.defaultAccessToken，会打 INVALID_TOKEN 401。
+      // 底图统一由下方 addDefaultImagery / applyServices 挂载。
+      baseLayer: false,
       terrainProvider: new EllipsoidTerrainProvider(),
       contextOptions: {
         webgl: {
@@ -131,36 +159,15 @@ export function useCesiumBase(): CesiumBaseReturn {
     // 模块自定义的 Viewer 配置
     hooks?.prepareViewer?.(viewer);
 
-    // 加载影像层
+    // 加载影像层（默认 config.json 兜底；存在数据服务影像时由 applyServices 替换）
     viewer.imageryLayers.removeAll();
     imageryLayers.splice(0, imageryLayers.length);
-
-    imageryLayers.push(
-      viewer.imageryLayers.addImageryProvider(
-        new UrlTemplateImageryProvider(
-          isOnlineImagery()
-            ? getOnlineImageryProviderOptions()
-            : { url: globalImageryUrl, minimumLevel: 0, maximumLevel: localConfig.globalMaxLevel }
-        )
-      )
-    );
-
-    if (regionImageryUrl) {
-      imageryLayers.push(
-        viewer.imageryLayers.addImageryProvider(
-          new UrlTemplateImageryProvider({
-            url: regionImageryUrl,
-            minimumLevel: 0,
-            maximumLevel: localConfig.regionMaxLevel,
-            rectangle: Rectangle.fromDegrees(...localConfig.regionRectangle)
-          })
-        )
-      );
-    }
+    addDefaultImagery(viewer);
 
     // 异步加载高程（地形）数据，不阻塞初始化流程
     createTerrainProvider().then(provider => {
-      if (provider) {
+      // 快速离开页面时 viewer 可能已被销毁，异步结果回来时需二次校验，避免写已销毁对象抛异常
+      if (provider && !viewer.isDestroyed()) {
         viewer.terrainProvider = provider;
       }
     });
@@ -187,6 +194,116 @@ export function useCesiumBase(): CesiumBaseReturn {
       viewerRef.value.destroy();
     }
     viewerRef.value = null;
+  }
+
+  /** 加载 config.json 兜底影像层（全局 + 区域叠加），并登记进 imageryLayers 供模块显隐控制 */
+  function addDefaultImagery(viewer: Viewer) {
+    imageryLayers.push(
+      viewer.imageryLayers.addImageryProvider(
+        new UrlTemplateImageryProvider(
+          isOnlineImagery()
+            ? getOnlineImageryProviderOptions()
+            : { url: globalImageryUrl, minimumLevel: 0, maximumLevel: localConfig.globalMaxLevel }
+        )
+      )
+    );
+    if (regionImageryUrl) {
+      imageryLayers.push(
+        viewer.imageryLayers.addImageryProvider(
+          new UrlTemplateImageryProvider({
+            url: regionImageryUrl,
+            minimumLevel: 0,
+            maximumLevel: localConfig.regionMaxLevel,
+            rectangle: Rectangle.fromDegrees(...localConfig.regionRectangle)
+          })
+        )
+      );
+    }
+  }
+
+  /**
+   * 应用数据服务（设计文档 5.4 第 2 条）：
+   * 移除服务加载的影像/地形层，按 enabled+sort 重建；
+   * 存在 imagery & enabled=1 时替换 config.json 兜底影像，否则回退兜底。
+   * handles 可传入 useCesiumServices 已加载的句柄以复用（避免重复创建）。
+   */
+  async function applyServices(services: Api.DataService.DataServiceItem[], handles?: ServiceLayerHandle[]) {
+    const viewer = viewerRef.value;
+    if (!viewer) return;
+
+    const imageryList = services
+      .filter(s => s.category === 'imagery' && Number(s.enabled) === 1)
+      .sort((a, b) => a.sort - b.sort);
+    const terrainList = services
+      .filter(s => s.category === 'terrain' && Number(s.enabled) === 1)
+      .sort((a, b) => a.sort - b.sort);
+
+    // 1) 清空现有影像层（含兜底与既有服务层）
+    viewer.imageryLayers.removeAll();
+    imageryLayers.splice(0, imageryLayers.length);
+
+    // 2) 按 enabled+sort 重建影像层；无服务影像时回退 config.json 兜底
+    if (imageryList.length > 0) {
+      for (const s of imageryList) {
+        const reused = handles?.find(h => h.id === s.id && h.layer);
+        if (reused?.layer) {
+          // removeAll 后旧 layer 已失效，用同一 provider 重建新 layer 并回写到句柄，
+          // 保证后续 show/hide/透明度 仍作用于 viewer 上实际显示的图层
+          reused.layer = viewer.imageryLayers.addImageryProvider(reused.layer.imageryProvider);
+          imageryLayers.push(reused.layer);
+          continue;
+        }
+        try {
+          const handle = await loadService(s, viewer);
+          if (handle.layer) imageryLayers.push(handle.layer);
+        } catch (e) {
+          console.warn(`[DataService] 影像服务加载失败: ${s.name}`, e);
+        }
+      }
+      // 数据服务影像全部加载失败时，回退 config.json 兜底，避免球上无底图
+      if (imageryLayers.length === 0) {
+        addDefaultImagery(viewer);
+      }
+    } else {
+      addDefaultImagery(viewer);
+    }
+
+    // 3) 地形：有启用的地形服务则替换，否则回退 config.json 兜底
+    const fallbackTerrain = () => {
+      createTerrainProvider().then(provider => {
+        const v = viewerRef.value;
+        if (provider && v && !v.isDestroyed()) {
+          v.terrainProvider = provider;
+        }
+      });
+    };
+    if (terrainList.length > 0) {
+      // 按 id 查找而非限定 state==='ready'：句柄已存在就说明 useCesiumServices 尝试过，
+      // 否则这里会对不可达的服务重复发起请求、再次挂起（服务不通时等于卡住初始化）。
+      const existing = handles?.find(h => h.id === terrainList[0].id);
+      if (existing?.state === 'ready') {
+        // createTerrainHandle 内已把 provider 应用到 viewer，无需重复加载
+      } else if (existing) {
+        // loading / error：等 useCesiumServices 的结果，这里只做兜底地形
+        fallbackTerrain();
+      } else {
+        // 句柄不存在（applyServices 被独立调用）：带超时兜底加载一次
+        try {
+          await withTimeout(
+            loadService(terrainList[0], viewer),
+            SERVICE_LOAD_TIMEOUT_MS,
+            `地形服务 ${SERVICE_LOAD_TIMEOUT_MS / 1000}s 未响应`
+          );
+        } catch (e) {
+          console.warn(`[DataService] 地形服务加载失败: ${terrainList[0].name}`, e);
+          fallbackTerrain();
+        }
+      }
+    } else {
+      fallbackTerrain();
+    }
+
+    viewer.scene?.requestRender();
   }
 
   // ─── 工具函数 ─────────────────────────────────────
@@ -376,6 +493,7 @@ export function useCesiumBase(): CesiumBaseReturn {
     imageryLayers,
     initViewer,
     destroyViewer,
+    applyServices,
     requestRender,
     getColor,
     getCartesianFromScreen,
