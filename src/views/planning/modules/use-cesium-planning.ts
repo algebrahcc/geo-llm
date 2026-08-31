@@ -1,4 +1,7 @@
 import { useCesiumBase } from '@/composables/cesium/use-cesium-base';
+import { useCesiumServices } from '@/composables/cesium/use-cesium-services';
+import { useCesiumVectorLayer } from '@/composables/cesium/use-cesium-vector-layer';
+import { fetchEnabledDataServices } from '@/service/api/dataservice';
 import {
   Cartesian2,
   Cartesian3,
@@ -15,6 +18,7 @@ import {
   VerticalOrigin
 } from 'cesium';
 import { planningDefaultTaskForm, planningPresets, planningRouteScenes, planningRouteSummaries } from '@/mock/planning';
+import { unwrapResponseData } from '@/service/request/envelope';
 import { createToolNameMap } from '@/typings/cesium';
 import type {
   PlanningInteractiveTool,
@@ -42,6 +46,10 @@ const toolNameMap = createToolNameMap<PlanningInteractiveTool>([
 export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
   const base = useCesiumBase();
   const { containerRef, viewerRef } = base;
+  // 数据服务组合层：管理激活服务图层句柄，供图层面板渲染（与渡河保障一致）
+  const services = useCesiumServices(base);
+  // 矢量图层组合层（通用）：mvt-imagery-provider 按瓦片渲染后端 MVT
+  const vectorLayers = useCesiumVectorLayer(base);
 
   const routeEntities: Partial<Record<PlanningRouteKey, Entity>> = {};
   const selectedRiskEntities: Entity[] = [];
@@ -402,6 +410,16 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
         emitStatus(Cartesian3.fromDegrees(planningPresets.task.longitude, planningPresets.task.latitude, 0));
       }
     });
+
+    // 数据服务（与渡河保障一致）：加载全部启用中的数据服务（登记句柄供图层面板渲染）→ 重建影像/地形层序
+    try {
+      const serviceResult = await fetchEnabledDataServices();
+      const serviceList = unwrapResponseData<Api.DataService.DataServiceItem[]>(serviceResult) ?? [];
+      await services.loadEnabled(undefined, serviceList);
+      await base.applyServices(serviceList, services.handles.value);
+    } catch (e) {
+      console.warn('[Planning] 数据服务加载失败，使用默认图源:', e);
+    }
   }
 
   return {
@@ -420,6 +438,18 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     pitch: base.pitch,
     exportScreenshot: () => base.exportScreenshot(`planning-route-${currentRoute}.png`),
     is2dMode: base.is2dMode,
-    toggleViewMode: base.toggleViewMode
+    toggleViewMode: base.toggleViewMode,
+    // 矢量图层（通用组合层）
+    loadVectorLayer: vectorLayers.loadVectorLayer,
+    setVectorLayerVisible: vectorLayers.setVectorLayerVisible,
+    removeVectorLayer: vectorLayers.removeVectorLayer,
+    // 数据服务：激活服务图层句柄 + 管理方法（与渡河保障一致）
+    serviceHandles: services.handles,
+    loadService: services.loadOne,
+    removeService: services.removeService,
+    toggleService: services.toggleService,
+    setServiceOpacity: services.setOpacity,
+    switchImagery: services.switchImagery,
+    reorderService: services.reorder
   };
 }

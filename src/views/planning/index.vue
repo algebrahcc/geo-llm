@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   planningDefaultRouteSettingsForm,
@@ -10,6 +10,8 @@ import {
 } from '@/mock/planning';
 import { runKnowledgeRetrieval } from '@/mock/knowledge';
 import { sleep } from '@/utils/async';
+import { fetchVectorPage } from '@/service/api/vector';
+import type { ServiceLayerHandle } from '@/composables/cesium/service-loader';
 import PlanningRouteAiPanel from './modules/planning-route-ai-panel.vue';
 import PlanningRouteResultBar from './modules/planning-route-result-bar.vue';
 import PlanningRouteSettingsPanel from './modules/planning-route-settings-panel.vue';
@@ -20,6 +22,7 @@ import SceneToolbar from '@/components/common/scene-toolbar.vue';
 import { useDraggable } from '@/composables/use-draggable';
 import PlanningViewer from './modules/planning-viewer.vue';
 import { usePlanning } from './modules/use-planning';
+import MapLayerPanel, { type VectorLayerItem } from '@/components/cesium/map-layer-panel.vue';
 import type {
   PlanningAnalysisStep,
   PlanningInteractiveTool,
@@ -51,6 +54,15 @@ interface PlanningViewerExposed {
   rotate: () => void;
   pitch: () => void;
   toggleViewMode: () => void;
+  /** 矢量图层（与渡河保障一致的图层管理） */
+  loadVectorLayer: (id: string, name: string, sourceType?: string) => Promise<void>;
+  setVectorLayerVisible: (id: string, show: boolean) => void;
+  /** 数据服务：激活服务图层句柄 + 管理方法 */
+  serviceHandles: ServiceLayerHandle[];
+  toggleService: (id: number, visible: boolean) => void;
+  removeService: (id: number) => void;
+  setServiceOpacity: (id: number, opacity: number) => void;
+  reorderService: (fromIndex: number, toIndex: number) => void;
 }
 
 const viewerRef = ref<PlanningViewerExposed | null>(null);
@@ -108,6 +120,8 @@ const bottomPanelVisible = ref(false);
 const leftPanelCollapsed = ref(false);
 const rightPanelCollapsed = ref(false);
 const bottomPanelCollapsed = ref(false);
+const layerPanelVisible = ref(false);
+const layerCollapsed = ref(false);
 
 // ──── 分析步骤与进度 ────
 const routeAnalysisSteps = ref<PlanningAnalysisStep[]>(planningRouteAnalysisSteps.map(s => ({ ...s })));
@@ -131,6 +145,7 @@ const selectedSupportCard = ref<string | null>(null);
 const leftDrag = useDraggable({ anchor: 'left', initialX: 72, initialY: 72 });
 const rightDrag = useDraggable({ anchor: 'right', initialX: 16, initialY: 72 });
 const bottomDrag = useDraggable({ anchor: 'right', initialX: 700, initialY: 72 });
+const layerDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 18 });
 
 // ──── 业务逻辑（保留原有 composable） ────
 const {
@@ -350,6 +365,64 @@ function handleSupportSettingsUpdate(form: PlanningSupportSettingsForm) {
   supportSettingsForm.value = form;
 }
 
+// ──── 图层管理（与渡河保障一致：矢量图层 + 数据服务） ────
+const vectorLayers = ref<VectorLayerItem[]>([]);
+const vectorLoading = ref(false);
+
+async function loadVectorLayerList() {
+  vectorLoading.value = true;
+  try {
+    const { data } = await fetchVectorPage({ page: 1, size: 200 });
+    const list = data?.list ?? [];
+    vectorLayers.value = list.map((item: any) => ({
+      key: `vector-${item.id}`,
+      id: String(item.id),
+      label: item.vectorName || '未命名图层',
+      sourceType: item.sourceType || 'GeoJSON',
+      featureCount: Number(item.featureCount) || 0,
+      visible: false
+    }));
+  } catch {
+    vectorLayers.value = [];
+  } finally {
+    vectorLoading.value = false;
+  }
+}
+
+onMounted(() => {
+  loadVectorLayerList();
+});
+
+const serviceHandles = computed<ServiceLayerHandle[]>(() => viewerRef.value?.serviceHandles ?? []);
+
+function handleToggleVector(layerId: string) {
+  const layer = vectorLayers.value.find(l => l.id === layerId);
+  if (!layer) return;
+  layer.visible = !layer.visible;
+  const viewer = viewerRef.value;
+  if (layer.visible) {
+    viewer?.loadVectorLayer(layerId, layer.label, layer.sourceType);
+  } else {
+    viewer?.setVectorLayerVisible(layerId, false);
+  }
+}
+
+function handleToggleService(id: number, visible: boolean) {
+  viewerRef.value?.toggleService(id, visible);
+}
+
+function handleRemoveService(id: number) {
+  viewerRef.value?.removeService(id);
+}
+
+function handleOpacityService(id: number, opacity: number) {
+  viewerRef.value?.setServiceOpacity(id, opacity);
+}
+
+function handleReorderService(fromIndex: number, toIndex: number) {
+  viewerRef.value?.reorderService(fromIndex, toIndex);
+}
+
 // ──── 点选起终点 ────
 function handlePickStart() {
   setPlanningState('picking-start');
@@ -386,8 +459,26 @@ function handleSupportCardSelect(key: string) {
 const activeRightTool = ref<string | null>(null);
 const is2dMode = ref(false);
 
+function handleLayerClose() {
+  layerPanelVisible.value = false;
+  activeRightTool.value = null;
+}
+
+function handleToggleLayerPanel() {
+  if (layerPanelVisible.value) {
+    layerCollapsed.value = !layerCollapsed.value;
+  } else {
+    layerPanelVisible.value = true;
+    layerCollapsed.value = false;
+  }
+}
+
 function handleRightToolSelect(key: string) {
   switch (key) {
+    case 'layers':
+      handleToggleLayerPanel();
+      activeRightTool.value = layerPanelVisible.value ? key : null;
+      return;
     case 'reset':
       viewerRef.value?.resetView();
       break;
@@ -536,6 +627,7 @@ function handleSupportAiSend(message: string) {
           placement="right"
           :is-2d-mode="is2dMode"
           :items="[
+            { key: 'layers', label: '图层管理', icon: 'mdi:layers-outline' },
             { key: 'reset', label: '复位', icon: 'mdi:home-outline' },
             { key: 'zoom-in', label: '放大', icon: 'mdi:magnify-plus-outline' },
             { key: 'zoom-out', label: '缩小', icon: 'mdi:magnify-minus-outline' },
@@ -648,6 +740,32 @@ function handleSupportAiSend(message: string) {
             :knowledge-hits="supportKnowledgeHits"
             @toggle-collapse="handleRightPanelCollapse"
             @send="handleSupportAiSend"
+          />
+        </div>
+      </Transition>
+
+      <!-- ══════ 图层面板（与渡河保障一致的图层管理） ══════ -->
+      <Transition name="panel-slide-right">
+        <div v-if="layerPanelVisible" class="floating-panel layer-panel-wrapper" :style="layerDrag.style.value">
+          <div class="panel-drag-handle" @mousedown="layerDrag.onDragStart">
+            <span class="drag-dots">⋮⋮</span>
+            <span class="drag-label">图层面板</span>
+            <button type="button" class="panel-close-btn" @click.stop="handleLayerClose">
+              <SvgIcon icon="mdi:close" />
+            </button>
+          </div>
+          <MapLayerPanel
+            :collapsed="layerCollapsed"
+            :vector-layers="vectorLayers"
+            :vector-loading="vectorLoading"
+            :service-handles="serviceHandles"
+            @toggle-vector="handleToggleVector"
+            @toggle-service="handleToggleService"
+            @remove-service="handleRemoveService"
+            @opacity-service="handleOpacityService"
+            @reorder-service="handleReorderService"
+            @toggle-collapse="layerCollapsed = !layerCollapsed"
+            @close="handleLayerClose"
           />
         </div>
       </Transition>
@@ -774,6 +892,11 @@ function handleSupportAiSend(message: string) {
 .bottom-panel {
   width: 380px;
   max-height: calc(100vh - 144px);
+}
+
+.layer-panel-wrapper {
+  width: 360px;
+  max-height: calc(100vh - 36px);
 }
 
 /* ──── 拖拽手柄 ──── */
@@ -948,6 +1071,15 @@ function handleSupportAiSend(message: string) {
   box-shadow: none !important;
 }
 
+.layer-panel-wrapper :deep(.layer-panel) {
+  width: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
 /* ──── 动画 ──── */
 .panel-slide-left-enter-active,
 .panel-slide-left-leave-active {
@@ -1013,6 +1145,10 @@ function handleSupportAiSend(message: string) {
   .bottom-panel {
     width: 340px;
   }
+
+  .layer-panel-wrapper {
+    width: 320px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1029,6 +1165,11 @@ function handleSupportAiSend(message: string) {
   .bottom-panel {
     width: calc(100vw - 72px);
     max-width: 380px;
+  }
+
+  .layer-panel-wrapper {
+    width: calc(100vw - 72px);
+    max-width: 360px;
   }
 }
 </style>

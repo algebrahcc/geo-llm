@@ -1,0 +1,57 @@
+/* ========================================
+   Naive UI 下拉框（NSelect / 级联 / 日期选择触发框）— 全系统统一深色科技风
+   - 覆盖全局 dark 主题默认样式，与系统管理 / 数据服务等页面定制保持一致
+   - 菜单 teleport 到 body，必须用全局选择器；naive 变量内联注入，需 !important 压制
+   - 页面级 :deep 定制（scoped 特异性更高）优先，本文件作为全系统兜底
+   ======================================== */
+
+/* ── 触发框 ── */
+.n-base-selection {
+  --n-color: rgba(2, 16, 31, 0.98) !important;
+  --n-color-active: rgba(2, 16, 31, 0.98) !important;
+  --n-color-focus: rgba(2, 16, 31, 0.98) !important;
+  --n-border: 1px solid rgba(43, 118, 197, 0.38) !important;
+  --n-border-hover: 1px solid rgba(58, 160, 255, 0.5) !important;
+  --n-border-active: 1px solid rgba(58, 160, 255, 0.65) !important;
+  --n-border-focus: 1px solid rgba(58, 160, 255, 0.65) !important;
+  --n-box-shadow-active: 0 0 0 2px rgba(41, 163, 255, 0.12) !important;
+  --n-box-shadow-focus: 0 0 0 2px rgba(41, 163, 255, 0.12) !important;
+  --n-text-color: #eaf5ff !important;
+  --n-placeholder-color: rgba(132, 177, 233, 0.45) !important;
+  --n-arrow-color: #7cc4f0 !important;
+  --n-border-radius: 8px !important;
+  --n-font-size: 13px !important;
+  --n-padding-single: 0 26px 0 12px !important;
+  border-radius: 8px;
+}
+.n-base-selection-label,
+.n-base-selection-tags {
+  background: linear-gradient(180deg, rgba(2, 16, 31, 0.98) 0%, rgba(1, 12, 24, 0.98) 100%);
+}
+.n-base-selection-placeholder,
+.n-base-selection-input__content {
+  color: rgba(132, 177, 233, 0.45);
+}
+.n-base-selection-arrow {
+  color: #7cc4f0;
+  opacity: 0.7;
+}
+
+/* ── 下拉菜单（选项列表）── */
+.n-base-select-menu {
+  --n-color: rgba(3, 18, 38, 0.98) !important;
+  --n-border-radius: 8px !important;
+  --n-menu-box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
+  --n-option-font-size-medium: 13px !important;
+  --n-option-text-color: rgba(203, 227, 255, 0.82) !important;
+  --n-option-text-color-active: #7cc4f0 !important;
+  --n-option-text-color-pressed: #7cc4f0 !important;
+  --n-option-color-pending: rgba(14, 42, 88, 0.92) !important;
+  --n-option-color-active: rgba(23, 115, 230, 0.22) !important;
+  --n-option-color-active-pending: rgba(23, 115, 230, 0.3) !important;
+  --n-option-check-color: #62c4ff !important;
+  --n-group-header-text-color: rgba(132, 177, 233, 0.55) !important;
+  --n-action-divider-color: rgba(43, 118, 197, 0.25) !important;
+  border: 1px solid rgba(43, 118, 197, 0.32);
+  overflow: hidden;
+}

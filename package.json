@@ -48,6 +48,7 @@
   "dependencies": {
     "@better-scroll/core": "2.5.1",
     "@iconify/vue": "5.0.1",
+    "@photo-sphere-viewer/core": "^5.15.1",
     "@sa/axios": "2.2.0",
     "@sa/color": "2.2.0",
     "@sa/hooks": "2.2.0",

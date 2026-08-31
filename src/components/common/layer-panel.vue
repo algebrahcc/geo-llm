@@ -41,7 +41,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 /** 分组固定展示顺序（与业务数据分类一致） */
 const CATEGORY_ORDER: string[] = ['imagery', 'terrain', 'threed', 'vector', 'streetview', 'analysis'];
 
-/** 分类默认色块（无图例时回退） */
+/** 分类默认主色（图标着色 / 图例回退色） */
 const CATEGORY_COLORS: Record<string, string> = {
   imagery: '#22c55e',
   terrain: '#a855f7',
@@ -51,15 +51,28 @@ const CATEGORY_COLORS: Record<string, string> = {
   analysis: '#facc15'
 };
 
+/** 分类类型图标（替代名称前主色块，信息更直观） */
+const CATEGORY_ICONS: Record<string, string> = {
+  imagery: 'mdi:image-outline',
+  terrain: 'mdi:terrain',
+  threed: 'mdi:cube-outline',
+  vector: 'mdi:vector-polygon',
+  streetview: 'mdi:google-street-view',
+  analysis: 'mdi:chart-box-outline'
+};
+
 const visibleCount = computed(() => props.handles.filter(h => h.visible).length);
 
 function categoryLabel(category: string): string {
   return CATEGORY_LABELS[category] ?? category;
 }
 
-/** 主色块：优先图例首色，回退分类色 */
-function swatchColor(handle: ServiceLayerHandle): string {
-  return handle.legend?.[0]?.color ?? CATEGORY_COLORS[handle.category] ?? '#8db8ff';
+function categoryIcon(category: string): string {
+  return CATEGORY_ICONS[category] ?? 'mdi:layers-outline';
+}
+
+function categoryColor(category: string): string {
+  return CATEGORY_COLORS[category] ?? '#8db8ff';
 }
 
 // ─── 分组（grouped 模式） ────────────────────────────────
@@ -193,7 +206,9 @@ function onOpacityInput(id: number, value: number): void {
       >
         <!-- 组标题（grouped 模式） -->
         <button v-if="entry.kind === 'group'" type="button" class="group-header" @click="toggleGroup(entry.category)">
-          <span class="group-swatch" :style="{ background: CATEGORY_COLORS[entry.category] ?? '#8db8ff' }" />
+          <span class="group-icon" :style="{ color: categoryColor(entry.category) }">
+            <SvgIcon :icon="categoryIcon(entry.category)" />
+          </span>
           <span class="group-title">{{ categoryLabel(entry.category) }}</span>
           <span class="group-count">{{ entry.count }}</span>
           <SvgIcon
@@ -237,8 +252,10 @@ function onOpacityInput(id: number, value: number): void {
             <SvgIcon :icon="entry.handle.visible ? 'mdi:eye' : 'mdi:eye-off'" />
           </button>
 
-          <!-- 图例色块 -->
-          <span class="layer-swatch" :style="{ background: swatchColor(entry.handle) }" />
+          <!-- 分类类型图标（替代名称前主色块） -->
+          <span class="layer-icon" :style="{ color: categoryColor(entry.handle.category) }">
+            <SvgIcon :icon="categoryIcon(entry.handle.category)" />
+          </span>
 
           <!-- 主体信息 -->
           <div class="layer-meta">
@@ -394,12 +411,17 @@ function onOpacityInput(id: number, value: number): void {
 .group-header:hover {
   color: rgba(255, 255, 255, 0.95);
 }
-.group-swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
+.group-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 .group-title {
   flex: 1;
@@ -509,14 +531,28 @@ function onOpacityInput(id: number, value: number): void {
   opacity: 0.5;
 }
 
-/* 图例主色块 */
-.layer-swatch {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
+/* 分类类型图标（替代主色块） */
+.layer-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   flex-shrink: 0;
-  margin-top: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 17px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.15s;
+}
+.layer-item:hover .layer-icon {
+  background: linear-gradient(180deg, rgba(98, 196, 255, 0.1) 0%, rgba(98, 196, 255, 0.03) 100%);
+  border-color: rgba(98, 196, 255, 0.18);
+  transform: translateY(-1px);
 }
 
 .layer-meta {
@@ -567,10 +603,11 @@ function onOpacityInput(id: number, value: number): void {
   gap: 5px;
 }
 .legend-swatch {
-  width: 13px;
-  height: 13px;
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.035);
 }
 .legend-label {
   font-size: 10px;

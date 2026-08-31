@@ -5,30 +5,37 @@
  * 新增服务类型时只需 registerServiceFactory 注册一个 factory，不改分发逻辑（开闭原则）。
  * 每个句柄带加载状态机（loading/ready/error），区分「服务不可达」与「类型不支持」。
  *
- * 覆盖（阶段二）：imagery / terrain / threed / vector 四类。
- * streetview / analysis 属阶段三，未注册 → loadService 返回 error 句柄。
+ * 覆盖：imagery / terrain / threed / vector / streetview 五类。
+ * streetview(panorama) 走街景服务直连（点集合 + 全景图），analysis 未注册 → 返回 error 句柄。
  */
 import {
   ArcGisMapServerImageryProvider,
   ArcGISTiledElevationTerrainProvider,
+  Cartesian3,
   Cesium3DTileset,
   CesiumTerrainProvider,
+  Color,
   GeographicTilingScheme,
   GeoJsonDataSource,
+  HeightReference,
   ImageryLayer,
   KmlDataSource,
   Model,
   Rectangle,
+  ScreenSpaceEventHandler,
+  ScreenSpaceEventType,
   UrlTemplateImageryProvider,
   Viewer,
   WebMapServiceImageryProvider,
   WebMapTileServiceImageryProvider,
   WebMercatorTilingScheme,
+  type Entity,
   type ImageryProvider,
   type TerrainProvider
 } from 'cesium';
 import MVTImageryProvider from 'mvt-imagery-provider';
 import type { StyleSpecification } from 'mvt-imagery-provider';
+import { openStreetViewPanorama } from '@/components/cesium/street-view-panorama';
 
 /** 加载状态机 */
 export type ServiceLayerState = 'loading' | 'ready' | 'error';
@@ -234,7 +241,7 @@ async function createTerrainHandle(s: Api.DataService.DataServiceItem, viewer: V
   const params = parseJson<Record<string, unknown>>(s.params) || {};
   const originalProvider = viewer.terrainProvider;
   let provider: TerrainProvider;
-  if (s.type === 'arcgis') {
+  if (s.type === 'elevation') {
     provider = await ArcGISTiledElevationTerrainProvider.fromUrl(url);
   } else {
     provider = await CesiumTerrainProvider.fromUrl(url, {
@@ -404,6 +411,200 @@ async function createVectorHandle(s: Api.DataService.DataServiceItem, viewer: Vi
   return handle;
 }
 
+// ─── streetview 工厂（参考 xxfw 街景数据加载）────────────
+
+/** 街景服务接口路径约定（相对服务根地址 url，对齐 xxfw 后端 /streetview/api/*） */
+const STREETVIEW_POINTS_PATH = '/api/query/geojson/points';
+const STREETVIEW_NEAREST_PATH = '/api/nearest/point';
+const STREETVIEW_IMAGE_PATH = '/api/image';
+
+/** 从 GeoJSON 递归提取 [lon, lat] 坐标（支持 MultiPoint / Point / Feature / FeatureCollection） */
+function extractStreetPointCoordinates(geojson: unknown): Array<[number, number]> {
+  const result: Array<[number, number]> = [];
+  const push = (coords: unknown): void => {
+    if (!Array.isArray(coords)) return;
+    if (typeof coords[0] === 'number') {
+      if (coords.length >= 2) result.push([Number(coords[0]), Number(coords[1])]);
+      return;
+    }
+    coords.forEach(push);
+  };
+
+  const g = geojson as
+    | {
+        type?: string;
+        coordinates?: unknown;
+        geometry?: { coordinates?: unknown };
+        features?: Array<{ geometry?: { coordinates?: unknown } }>;
+      }
+    | undefined;
+  if (!g || typeof g !== 'object') return result;
+
+  if (g.type === 'FeatureCollection') {
+    g.features?.forEach(f => push(f?.geometry?.coordinates));
+    return result;
+  }
+  if (g.type === 'Feature') {
+    push(g.geometry?.coordinates);
+    return result;
+  }
+  // Point / MultiPoint / 裸坐标数组
+  push(g.coordinates ?? (Array.isArray(geojson) ? geojson : undefined));
+  return result;
+}
+
+/** 从 nearest 接口返回中提取 geoid（兼容 {geoid} / {data:{geoid}} / {data:"geoid"}） */
+function extractGeoid(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== 'object') return undefined;
+  const obj = payload as Record<string, unknown>;
+  if (typeof obj.geoid === 'string') return obj.geoid;
+  if (obj.data && typeof obj.data === 'object') {
+    const d = obj.data as Record<string, unknown>;
+    if (typeof d.geoid === 'string') return d.geoid;
+  }
+  if (typeof obj.data === 'string') return obj.data;
+  return undefined;
+}
+
+async function fetchJson(url: string): Promise<unknown> {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.json();
+}
+
+/** 点击街景点：查最近街景点 geoid → 拼全景图 URL → 打开全景查看器 */
+async function openNearestPanorama(
+  baseUrl: string,
+  lon: number,
+  lat: number,
+  level: string,
+  s: Api.DataService.DataServiceItem
+): Promise<void> {
+  try {
+    const nearestUrl = `${baseUrl}${STREETVIEW_NEAREST_PATH}/${lat}/${lon}`;
+    const payload = await fetchJson(nearestUrl);
+    const geoid = extractGeoid(payload);
+    if (!geoid) {
+      window.$message?.warning('未找到附近街景点的全景图');
+      return;
+    }
+    const imageUrl = `${baseUrl}${STREETVIEW_IMAGE_PATH}?level=${level}&geoid=${encodeURIComponent(geoid)}`;
+    openStreetViewPanorama(imageUrl, {
+      title: s.name,
+      subtitle: `${geoid} · ${lon.toFixed(5)}, ${lat.toFixed(5)}`
+    });
+  } catch (e) {
+    window.$message?.error('街景全景图请求失败，请检查街景服务地址');
+    console.error('[streetview] nearest 请求失败：', e);
+  }
+}
+
+/** streetview:panorama 工厂：撒街景点 + 点击拾取最近街景全景图 */
+async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer: Viewer): Promise<ServiceLayerHandle> {
+  const baseUrl = resolveUrl(s).replace(/\/+$/, '');
+  const params = parseJson<Record<string, string | number>>(s.params) || {};
+  const rid = params.rid ? String(params.rid) : '';
+  const level = params.level ? String(params.level) : '4';
+
+  if (!rid) {
+    throw new Error('街景服务缺少区域 ID（rid），请在「连接参数」中配置 {"rid":"..."}');
+  }
+
+  // 1) 拉取区域所有街景点（响应 data 为字符串化 GeoJSON）
+  const pointsUrl = `${baseUrl}${STREETVIEW_POINTS_PATH}?rid=${encodeURIComponent(rid)}`;
+  const payload = (await fetchJson(pointsUrl)) as Record<string, unknown>;
+  const geojsonStr = typeof payload?.data === 'string' ? payload.data : JSON.stringify(payload?.data ?? payload);
+  const coordinates = extractStreetPointCoordinates(JSON.parse(geojsonStr));
+  if (coordinates.length === 0) {
+    throw new Error('街景服务未返回任何街景点坐标');
+  }
+
+  // 2) 撒点：每个街景点一个 entity，经纬度/笛卡尔坐标登记到 Map 供点击拾取
+  const pointLatLon = new Map<string, { lon: number; lat: number; cartesian: Cartesian3 }>();
+  const pointEntities: Entity[] = [];
+  coordinates.forEach(([lon, lat], index) => {
+    const id = `streetview-${s.id}-${index}`;
+    const cartesian = Cartesian3.fromDegrees(lon, lat, 0);
+    pointLatLon.set(id, { lon, lat, cartesian });
+    pointEntities.push(
+      viewer.entities.add({
+        id,
+        position: cartesian,
+        point: {
+          pixelSize: 11,
+          color: Color.fromCssColorString('#ff4d8d').withAlpha(0.95),
+          outlineColor: Color.WHITE,
+          outlineWidth: 1.5,
+          heightReference: HeightReference.CLAMP_TO_GROUND,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY
+        }
+      })
+    );
+  });
+
+  // 3) 点击拾取街景点 → 查最近街景全景图
+  const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
+  handler.setInputAction((movement: ScreenSpaceEventHandler.PositionedEvent) => {
+    // 优先精确拾取街景点 entity
+    const picked = viewer.scene.pick(movement.position);
+    const entityId = (picked as { id?: { id?: unknown } } | undefined)?.id?.id;
+    let ll = pointLatLon.get(String(entityId));
+
+    // 兜底：未点中点时，反算地表点并命中距离阈值内的最近街景点
+    if (!ll) {
+      const cartesian = viewer.camera.pickEllipsoid(movement.position, viewer.scene.globe.ellipsoid);
+      if (cartesian) {
+        let best: { lon: number; lat: number; cartesian: Cartesian3 } | undefined;
+        let bestDist = Number.POSITIVE_INFINITY;
+        for (const p of pointLatLon.values()) {
+          const d = Cartesian3.distance(cartesian, p.cartesian);
+          if (d < bestDist) {
+            bestDist = d;
+            best = p;
+          }
+        }
+        // 阈值 100 米内才触发，避免点击远处误弹全景
+        if (best && bestDist < 100) ll = best;
+      }
+    }
+
+    if (!ll) return;
+    void openNearestPanorama(baseUrl, ll.lon, ll.lat, level, s);
+  }, ScreenSpaceEventType.LEFT_CLICK);
+
+  // 4) 句柄
+  const handle: ServiceLayerHandle = {
+    id: s.id,
+    category: s.category,
+    type: s.type,
+    name: s.name,
+    state: 'ready',
+    visible: true,
+    show() {
+      pointEntities.forEach(e => {
+        e.show = true;
+      });
+      this.visible = true;
+    },
+    hide() {
+      pointEntities.forEach(e => {
+        e.show = false;
+      });
+      this.visible = false;
+    },
+    remove() {
+      handler.destroy();
+      if (!viewer.isDestroyed()) {
+        pointEntities.forEach(e => viewer.entities.remove(e));
+      }
+    },
+    setOpacity() {
+      /* 街景点为点实体，不支持整体透明度 */
+    }
+  };
+  return handle;
+}
+
 // ─── 注册表初始化 ───────────────────────────────────────
 
 registerServiceFactory('imagery', 'xyz', createImageryHandle);
@@ -411,8 +612,8 @@ registerServiceFactory('imagery', 'tms', createImageryHandle);
 registerServiceFactory('imagery', 'wms', createImageryHandle);
 registerServiceFactory('imagery', 'wmts', createImageryHandle);
 registerServiceFactory('imagery', 'arcgis', createImageryHandle);
-registerServiceFactory('terrain', 'cesium', createTerrainHandle);
-registerServiceFactory('terrain', 'arcgis', createTerrainHandle);
+registerServiceFactory('terrain', 'quantized-mesh', createTerrainHandle);
+registerServiceFactory('terrain', 'elevation', createTerrainHandle);
 registerServiceFactory('threed', '3dtiles', createTilesetHandle);
 registerServiceFactory('threed', 'gltf', createTilesetHandle);
 registerServiceFactory('threed', 'glb', createTilesetHandle);
@@ -420,6 +621,7 @@ registerServiceFactory('vector', 'geojson', createVectorHandle);
 registerServiceFactory('vector', 'kml', createVectorHandle);
 registerServiceFactory('vector', 'wfs', createVectorHandle);
 registerServiceFactory('vector', 'mvt', createVectorHandle);
+registerServiceFactory('streetview', 'panorama', createStreetViewHandle);
 
 /**
  * 加载服务：查表 + 状态机包装。

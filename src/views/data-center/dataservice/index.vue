@@ -38,10 +38,10 @@ const CATEGORY_OPTIONS: Array<{ label: string; value: string }> = [
 
 const TYPE_OPTIONS: Record<string, string[]> = {
   imagery: ['xyz', 'tms', 'wms', 'wmts', 'arcgis'],
-  terrain: ['cesium', 'arcgis'],
+  terrain: ['quantized-mesh', 'elevation'],
   threed: ['3dtiles', 'gltf', 'glb'],
   vector: ['geojson', 'kml', 'mvt', 'wfs'],
-  streetview: ['google', 'panorama'],
+  streetview: ['panorama'],
   analysis: ['api']
 };
 
@@ -54,6 +54,12 @@ const STATUS_OPTIONS: Array<{ label: string; value: number }> = [
   { label: '草稿', value: 0 },
   { label: '已发布', value: 1 },
   { label: '已下线', value: 2 }
+];
+
+const CRS_OPTIONS: Array<{ label: string; value: string }> = [
+  { label: 'EPSG:3857 · Web 墨卡托', value: 'EPSG:3857' },
+  { label: 'EPSG:4490 · CGCS2000 地理坐标系', value: 'EPSG:4490' },
+  { label: 'EPSG:4326 · WGS84 地理坐标系', value: 'EPSG:4326' }
 ];
 
 function categoryLabel(category?: string) {
@@ -267,7 +273,7 @@ const FORM_SCHEMA: Record<string, DynamicField[]> = {
       placeholder: '[minLng,minLat,maxLng,maxLat]（JSON 数组，空表示不限）'
     }
   ],
-  'terrain:cesium': [
+  'terrain:quantized-mesh': [
     { key: 'requestVertexNormals', label: '请求顶点法线', component: 'switch', target: 'params' },
     { key: 'requestWaterMask', label: '请求水面遮罩', component: 'switch', target: 'params' }
   ],
@@ -330,17 +336,16 @@ const FORM_SCHEMA: Record<string, DynamicField[]> = {
       placeholder: '完整 Mapbox StyleSpecification JSON（不填则用默认色板）'
     }
   ],
-  'streetview:google': [
+  'streetview:panorama': [
     {
-      key: 'key',
-      label: 'API Key',
+      key: 'rid',
+      label: '区域 ID (rid)',
       component: 'input',
       target: 'params',
       required: true,
-      placeholder: 'Google Street View Static API Key'
+      placeholder: '街景区域 ID，如 3954a767b86a00508479ada030546344'
     },
-    { key: 'heading', label: '水平角 (heading)', component: 'number', target: 'params', min: 0, max: 360 },
-    { key: 'pitch', label: '俯仰角 (pitch)', component: 'number', target: 'params', min: -90, max: 90 }
+    { key: 'level', label: '全景图级别 (level, 默认 4)', component: 'number', target: 'params', min: 0, max: 6 }
   ],
   'analysis:api': [
     {
@@ -898,14 +903,24 @@ onMounted(() => loadList(true));
                 <NSelect
                   v-model:value="formData.category"
                   :options="CATEGORY_OPTIONS"
+                  :menu-props="{ class: 'ds-select-menu' }"
                   @update:value="v => onCategoryChange(String(v ?? ''))"
                 />
               </NFormItem>
               <NFormItem label="服务类型" path="type">
-                <NSelect v-model:value="formData.type" :options="typeOptions" @update:value="onTypeChange" />
+                <NSelect
+                  v-model:value="formData.type"
+                  :options="typeOptions"
+                  :menu-props="{ class: 'ds-select-menu' }"
+                  @update:value="onTypeChange"
+                />
               </NFormItem>
               <NFormItem label="来源" path="origin">
-                <NSelect v-model:value="formData.origin" :options="ORIGIN_OPTIONS" />
+                <NSelect
+                  v-model:value="formData.origin"
+                  :options="ORIGIN_OPTIONS"
+                  :menu-props="{ class: 'ds-select-menu' }"
+                />
               </NFormItem>
               <NFormItem label="服务地址" path="url" class="ds-form-item--wide">
                 <NInput
@@ -914,7 +929,12 @@ onMounted(() => loadList(true));
                 />
               </NFormItem>
               <NFormItem label="坐标系">
-                <NInput v-model:value="formData.crs" placeholder="EPSG:3857" />
+                <NSelect
+                  v-model:value="formData.crs"
+                  :options="CRS_OPTIONS"
+                  :menu-props="{ class: 'ds-select-menu' }"
+                  placeholder="EPSG:3857"
+                />
               </NFormItem>
               <!-- 差异字段：按 category:type 由 FORM_SCHEMA 驱动渲染 -->
               <template v-for="f in currentSchema" :key="`${f.target}:${f.key}`">
@@ -944,6 +964,7 @@ onMounted(() => loadList(true));
                     :value="strVal(f)"
                     :options="f.options"
                     :placeholder="f.placeholder"
+                    :menu-props="{ class: 'ds-select-menu' }"
                     @update:value="v => fieldValue(f, v ?? undefined)"
                   />
                   <NInput
@@ -966,7 +987,12 @@ onMounted(() => loadList(true));
                 </NSwitch>
               </NFormItem>
               <NFormItem label="状态">
-                <NSelect v-model:value="formData.status" :options="STATUS_OPTIONS" class="ds-num-input" />
+                <NSelect
+                  v-model:value="formData.status"
+                  :options="STATUS_OPTIONS"
+                  class="ds-num-input"
+                  :menu-props="{ class: 'ds-select-menu' }"
+                />
               </NFormItem>
               <NFormItem label="分组" class="ds-form-item--wide">
                 <NInput v-model:value="formData.group" placeholder="项目/场景维度分组（可选）" />
@@ -1885,18 +1911,56 @@ onMounted(() => loadList(true));
   --n-font-size: 13px !important;
   --n-height: 38px !important;
   --n-border-radius: 8px !important;
+  --n-box-shadow-focus: 0 0 0 2px rgba(41, 163, 255, 0.12) !important;
+  border-radius: 8px;
 }
 .ds-form :deep(.n-base-selection) {
-  --n-border: 1px solid rgba(76, 169, 255, 0.22) !important;
-  --n-border-hover: 1px solid rgba(76, 169, 255, 0.45) !important;
-  --n-border-focus: 1px solid rgba(76, 169, 255, 0.65) !important;
   --n-color: rgba(6, 18, 38, 0.7) !important;
   --n-color-active: rgba(6, 18, 38, 0.7) !important;
+  --n-color-focus: rgba(6, 18, 38, 0.7) !important;
+  --n-border: 1px solid rgba(76, 169, 255, 0.22) !important;
+  --n-border-hover: 1px solid rgba(76, 169, 255, 0.45) !important;
+  --n-border-active: 1px solid rgba(76, 169, 255, 0.65) !important;
+  --n-border-focus: 1px solid rgba(76, 169, 255, 0.65) !important;
+  --n-box-shadow-active: 0 0 0 2px rgba(41, 163, 255, 0.12) !important;
+  --n-box-shadow-focus: 0 0 0 2px rgba(41, 163, 255, 0.12) !important;
+  --n-text-color: #eaf5ff !important;
+  --n-placeholder-color: rgba(132, 177, 233, 0.4) !important;
+  --n-arrow-color: #7cc4f0 !important;
+  --n-font-size: 13px !important;
+  --n-height: 38px !important;
   --n-border-radius: 8px !important;
+  --n-padding-single: 0 26px 0 12px !important;
   height: 38px;
+  border-radius: 8px;
+}
+.ds-form :deep(.n-base-selection-label),
+.ds-form :deep(.n-base-selection-tags) {
+  background: linear-gradient(180deg, rgba(6, 18, 38, 0.7) 0%, rgba(4, 14, 30, 0.72) 100%);
 }
 .ds-form :deep(.n-base-selection-label) {
   color: #eaf5ff;
+}
+.ds-form :deep(.n-base-selection-placeholder),
+.ds-form :deep(.n-base-selection-input__content) {
+  color: rgba(132, 177, 233, 0.4);
+}
+.ds-form :deep(.n-base-selection-arrow) {
+  color: #7cc4f0;
+  opacity: 0.7;
+}
+/* 数字输入框内嵌加减按钮：变量定义在 .n-input-number 根上，随主题浅色时需手动压制 */
+.ds-form :deep(.n-input-number) {
+  --n-button-color: rgba(9, 30, 58, 0.85) !important;
+  --n-button-color-hover: rgba(14, 42, 88, 0.92) !important;
+  --n-button-color-pressed: rgba(6, 25, 50, 0.95) !important;
+  --n-button-text-color: #7cc4f0 !important;
+  --n-button-text-color-hover: #9ad6ff !important;
+  --n-button-text-color-pressed: #5ea4ff !important;
+  --n-button-icon-color: #7cc4f0 !important;
+  --n-button-border: 1px solid rgba(76, 169, 255, 0.22) !important;
+  --n-button-border-hover: 1px solid rgba(76, 169, 255, 0.45) !important;
+  --n-button-border-pressed: 1px solid rgba(76, 169, 255, 0.45) !important;
 }
 .ds-form-grid {
   display: grid;

@@ -100,7 +100,10 @@ function vectorColor(index: number) {
         >
           <SvgIcon :icon="layer.visible ? 'mdi:eye' : 'mdi:eye-off'" />
         </button>
-        <span class="layer-swatch" :style="{ background: vectorColor(idx) }" />
+        <span
+          class="layer-accent"
+          :style="{ background: vectorColor(idx), boxShadow: `0 0 8px ${vectorColor(idx)}66` }"
+        />
         <div class="layer-meta">
           <span class="layer-name" :class="{ 'layer-name--dim': !layer.visible }">{{ layer.label }}</span>
           <span class="layer-sub">{{ layer.sourceType }} · {{ layer.featureCount }} 要素</span>
@@ -288,13 +291,12 @@ function vectorColor(index: number) {
   color: rgba(255, 255, 255, 0.32);
 }
 
-.layer-swatch {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
+.layer-accent {
+  width: 3px;
+  height: 22px;
+  border-radius: 2px;
   flex-shrink: 0;
-  margin-top: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  margin-top: 2px;
 }
 .layer-meta {
   display: flex;

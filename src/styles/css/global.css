@@ -4,6 +4,7 @@
 @import './nav-theme.css';
 @import './system-page.css';
 @import './agent-ui.css';
+@import './naive-select.css';
 
 /* ──── 全局字体设计 Token ──── */
 :root {
