@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useCesiumRiver } from './use-cesium-river';
-import type { RiverInteractiveTool, RiverLayerKey, RiverPlanKey, RiverStatusInfo } from './types';
+import type { RejectedRouteData, RiverInteractiveTool, RiverLayerKey, RiverPlanKey, RiverStatusInfo } from './types';
 
 defineOptions({
   name: 'RiverViewer'
@@ -30,9 +30,13 @@ const {
   startAnalysis,
   exportScreenshot,
   showPlan,
+  showRejectedRoutes,
+  clearRejectedEntities,
+  focusRejectedRoute,
   is2dMode,
   toggleViewMode,
   loadVectorLayer,
+  flyToVector,
   setVectorLayerVisible,
   removeVectorLayer,
   serviceHandles,
@@ -69,11 +73,15 @@ defineExpose({
   startAnalysis: (planKey: RiverPlanKey, onStep?: (index: number) => void) => startAnalysis(planKey, onStep),
   exportScreenshot,
   showPlan,
+  showRejectedRoutes: (routes: RejectedRouteData[]) => showRejectedRoutes(routes),
+  clearRejectedEntities: () => clearRejectedEntities(),
+  focusRejectedRoute: (id: string) => focusRejectedRoute(id),
   is2dMode,
   toggleViewMode,
   /** 加载矢量图层（通过 mvt-imagery-provider 渲染后端 MVT 瓦片，后续只切换 show） */
   loadVectorLayer: (vectorId: string, vectorName: string, sourceType?: string) =>
     loadVectorLayer(vectorId, vectorName, sourceType),
+  flyToVector: (vectorId: string, vectorName?: string) => flyToVector(vectorId, vectorName),
   setVectorLayerVisible: (vectorId: string, show: boolean) => setVectorLayerVisible(vectorId, show),
   removeVectorLayer: (vectorId: string) => removeVectorLayer(vectorId),
   /** 数据服务（阶段二）：激活服务图层句柄 + 管理方法 */

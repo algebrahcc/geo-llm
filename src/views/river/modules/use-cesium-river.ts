@@ -28,6 +28,7 @@ import {
 import { sleep } from '@/utils/async';
 import { unwrapResponseData } from '@/service/request/envelope';
 import type {
+  RejectedRouteData,
   RiverInteractiveTool,
   RiverLayerKey,
   RiverPlanKey,
@@ -67,6 +68,9 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     mark: []
   };
   const dynamicMarkEntities: Entity[] = [];
+  // 淘汰方式路线（常驻弱化显示，与可行方案路线并存）
+  const rejectedEntities: Entity[] = [];
+  let currentRejectedRoutes: RejectedRouteData[] = [];
 
   const layerVisibility: Record<RiverLayerKey, boolean> = {
     imagery: true
@@ -181,6 +185,9 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     [...planEntities.mark, ...dynamicMarkEntities].forEach(e => {
       e.show = layerVisibility.imagery;
     });
+    rejectedEntities.forEach(e => {
+      e.show = layerVisibility.imagery;
+    });
     base.requestRender();
   }
 
@@ -224,6 +231,51 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     });
     syncLayerVisibility();
     emitStatus();
+  }
+
+  // ─── 淘汰方式路线（常驻弱化虚线，供对照查看） ───
+
+  function clearRejectedEntities() {
+    const viewer = viewerRef.value;
+    if (!viewer) return;
+    rejectedEntities.forEach(e => viewer.entities.remove(e));
+    rejectedEntities.splice(0, rejectedEntities.length);
+  }
+
+  /** 显示所有淘汰方式的路线（弱化虚线 + 渡场点），与可行方案路线并存 */
+  function showRejectedRoutes(routes: RejectedRouteData[]) {
+    const viewer = viewerRef.value;
+    if (!viewer) return;
+    clearRejectedEntities();
+    currentRejectedRoutes = [...routes];
+    routes.forEach(route => {
+      const line = createPolylineEntity('imagery', {
+        id: `${route.id}-route`,
+        name: `${route.name}（已淘汰）`,
+        color: route.color,
+        positions: route.positions,
+        width: 3
+      });
+      if (line) rejectedEntities.push(line);
+      if (route.mark) {
+        const mark = createPointEntity('imagery', {
+          id: `${route.id}-mark`,
+          name: `${route.name} 渡场（不可行）`,
+          longitude: route.mark.longitude,
+          latitude: route.mark.latitude,
+          color: route.color
+        });
+        if (mark) rejectedEntities.push(mark);
+      }
+    });
+    base.requestRender();
+  }
+
+  /** 聚焦某条淘汰路线（飞行至其渡场点；横渡短线较短，视高低于方案路线） */
+  function focusRejectedRoute(id: string) {
+    const route = currentRejectedRoutes.find(r => r.id === id);
+    if (!route?.mark) return;
+    base.flyToLocation(route.mark.longitude, route.mark.latitude, 3500, 1.4);
   }
 
   function flyToPreset() {
@@ -354,10 +406,14 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     startAnalysis,
     exportScreenshot: () => base.exportScreenshot(`river-plan-${activePlan}.png`),
     showPlan,
+    showRejectedRoutes,
+    clearRejectedEntities,
+    focusRejectedRoute,
     is2dMode: base.is2dMode,
     toggleViewMode: base.toggleViewMode,
     // 矢量图层（通用组合层）
     loadVectorLayer: vectorLayers.loadVectorLayer,
+    flyToVector: vectorLayers.flyToVector,
     setVectorLayerVisible: vectorLayers.setVectorLayerVisible,
     removeVectorLayer: vectorLayers.removeVectorLayer,
     // 数据服务（阶段二）

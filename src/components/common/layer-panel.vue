@@ -27,6 +27,7 @@ const emit = defineEmits<{
   (e: 'opacity', id: number, opacity: number): void;
   (e: 'remove', id: number): void;
   (e: 'reorder', fromIndex: number, toIndex: number): void;
+  (e: 'fly', id: number): void;
 }>();
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -217,7 +218,7 @@ function onOpacityInput(id: number, value: number): void {
           />
         </button>
 
-        <!-- 图层条目 -->
+        <!-- 图层条目（双击定位到数据范围） -->
         <div
           v-else
           class="layer-item"
@@ -227,6 +228,7 @@ function onOpacityInput(id: number, value: number): void {
           }"
           @dragover="onDragOver(entry.globalIndex, $event)"
           @drop="onDrop(entry.globalIndex)"
+          @dblclick="entry.handle.state === 'ready' && emit('fly', entry.handle.id)"
         >
           <!-- 拖动手柄（六点，hover 显示） -->
           <button
@@ -264,7 +266,10 @@ function onOpacityInput(id: number, value: number): void {
               <span
                 class="layer-name"
                 :class="{ 'layer-name--dim': !entry.handle.visible }"
-                :title="entry.handle.error ?? entry.handle.name"
+                :title="
+                  entry.handle.error ??
+                  (entry.handle.flyTo ? `${entry.handle.name}（双击定位到数据范围）` : entry.handle.name)
+                "
               >
                 {{ entry.handle.name }}
               </span>

@@ -1,22 +1,28 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { CrossingPlanCard, RiverPlanKey } from './types';
+import type { CrossingPlanCard, RejectedRouteData, RiverPlanKey } from './types';
 
 const props = defineProps<{
   collapsed: boolean;
   plans: CrossingPlanCard[];
   confidence: number;
   activeKey?: RiverPlanKey;
+  /** 被淘汰的渡河方式（含路线数据，可点击在地图上查看） */
+  rejected?: RejectedRouteData[];
+  /** 当前聚焦的淘汰项 id */
+  activeRejectedId?: string | null;
 }>();
 
 const emit = defineEmits<{
   (e: 'toggle-collapse'): void;
   (e: 'close'): void;
   (e: 'select', planKey: RiverPlanKey): void;
+  (e: 'select-rejected', id: string): void;
 }>();
 
 const expandedCard = ref<number | null>(null);
 const expandAll = ref(false);
+const showRejected = ref(false);
 
 const allExpanded = computed(() => expandAll.value && props.plans.length > 0);
 
@@ -30,6 +36,10 @@ function toggleCard(rank: number) {
 function toggleExpandAll() {
   expandAll.value = !expandAll.value;
   expandedCard.value = null;
+}
+
+function toggleRejected() {
+  showRejected.value = !showRejected.value;
 }
 
 function getStars(stars: number): string {
@@ -77,6 +87,36 @@ function getSafetyColor(safety: string): string {
           共生成
           <strong>{{ plans.length }}</strong>
           项可行方案，综合知识库检索与智能体推理分析，按推荐指数排序：
+        </div>
+
+        <!-- ══ 已淘汰方式（可点击查看路线） ══ -->
+        <div v-if="rejected && rejected.length > 0" class="rejected-section">
+          <div class="rejected-header" @click="toggleRejected">
+            <SvgIcon class="rejected-chevron" :icon="showRejected ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
+            <span class="rejected-title">已淘汰 {{ rejected.length }} 项不可行方式</span>
+            <span class="rejected-hint">点击查看路线</span>
+          </div>
+          <Transition name="collapse">
+            <div v-show="showRejected" class="rejected-list">
+              <div
+                v-for="r in rejected"
+                :key="r.id"
+                class="rejected-item"
+                :class="{ 'rejected-item--active': r.id === props.activeRejectedId }"
+                @click="emit('select-rejected', r.id)"
+              >
+                <div class="rejected-row">
+                  <span class="rejected-icon">{{ r.icon }}</span>
+                  <span class="rejected-name">{{ r.name }}</span>
+                  <span class="rejected-reason">{{ r.reason }}</span>
+                  <SvgIcon class="rejected-locate" icon="mdi:crosshairs-gps" />
+                </div>
+                <div v-if="r.detail.length" class="rejected-detail">
+                  <span v-for="(d, j) in r.detail" :key="j" class="rejected-calc">{{ d }}</span>
+                </div>
+              </div>
+            </div>
+          </Transition>
         </div>
 
         <div class="plan-cards">
@@ -625,5 +665,141 @@ function getSafetyColor(safety: string): string {
 
 .detail-list li + li {
   margin-top: 2px;
+}
+
+/* ──── 已淘汰方式 ──── */
+.rejected-section {
+  margin: 10px 0 12px;
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(239, 68, 68, 0.03);
+}
+
+.rejected-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.rejected-header:hover {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.rejected-chevron {
+  font-size: 14px;
+  color: rgba(239, 68, 68, 0.6);
+}
+
+.rejected-title {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(239, 68, 68, 0.8);
+}
+
+.rejected-hint {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 400;
+}
+
+.rejected-list {
+  padding: 6px 12px 10px;
+  border-top: 1px solid rgba(239, 68, 68, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rejected-item {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.rejected-item:hover {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.rejected-item--active {
+  background: rgba(239, 68, 68, 0.1);
+  box-shadow: inset 2px 0 0 rgba(239, 68, 68, 0.6);
+}
+
+.rejected-locate {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.rejected-item:hover .rejected-locate,
+.rejected-item--active .rejected-locate {
+  color: rgba(239, 68, 68, 0.75);
+}
+
+.rejected-item:last-child {
+  border-bottom: none;
+}
+
+.rejected-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rejected-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.rejected-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  flex-shrink: 0;
+}
+
+.rejected-reason {
+  flex: 1;
+  font-size: 10px;
+  color: rgba(239, 68, 68, 0.7);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rejected-detail {
+  margin-top: 4px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rejected-calc {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  font-variant-numeric: tabular-nums;
+}
+
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: all 0.2s ease;
+}
+
+.collapse-enter-from,
+.collapse-leave-to {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 </style>

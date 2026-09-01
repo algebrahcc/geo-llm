@@ -60,6 +60,24 @@ export interface CrossingSettingForm {
   otherRequirements: string;
 }
 
+/** 可用资源属性项（长度/宽度/高度等规格） */
+export interface CrossingResourceAttr {
+  label: string;
+  value: string;
+}
+
+/** 可用资源规格信息（方案助手面板展示，并作为渡河计算输入） */
+export interface CrossingResourceSpec {
+  /** 资源名称，与表单 availableResources 的值一致 */
+  name: string;
+  /** 型号/类别 */
+  model: string;
+  icon: string;
+  /** 编制/预设数量（用于运力计算） */
+  count: number;
+  attrs: CrossingResourceAttr[];
+}
+
 /** AI 分析步骤 */
 export interface AiAnalysisStep {
   key: string;
@@ -67,6 +85,8 @@ export interface AiAnalysisStep {
   status: 'waiting' | 'running' | 'success';
   description?: string;
   tool?: string;
+  /** 步骤实际耗时（分析完成后回填，如 "4.8s"） */
+  duration?: string;
 }
 
 /** 对话消息 */
@@ -109,4 +129,18 @@ export interface CrossingPlanCard {
   advantages: string[];
   risks: string[];
   conditions: string[];
+}
+
+/** 已淘汰方式的路线数据（供地图渲染与结果栏展示） */
+export interface RejectedRouteData {
+  id: string;
+  name: string;
+  icon: string;
+  reason: string;
+  detail: string[];
+  color: string;
+  /** 路线坐标 [[lon, lat], ...] */
+  positions: readonly (readonly [number, number])[];
+  /** 渡场点 */
+  mark?: { longitude: number; latitude: number };
 }

@@ -1,4 +1,9 @@
-import type { AiAnalysisStep, CrossingPlanCard, CrossingSettingForm } from '@/views/river/modules/types';
+import type {
+  AiAnalysisStep,
+  CrossingPlanCard,
+  CrossingResourceSpec,
+  CrossingSettingForm
+} from '@/views/river/modules/types';
 
 export const riverFlowTemplate = [
   { key: 'env', label: '环境分析', description: '河道宽度、水面状态与周边地形分析' },
@@ -315,8 +320,125 @@ export const resourceOptions = [
   { label: '浮桥', value: '浮桥' },
   { label: '无人机', value: '无人机' },
   { label: '工兵作业车', value: '工兵作业车' },
-  { label: '架桥坦克', value: '架桥坦克' }
+  { label: '架桥坦克', value: '架桥坦克' },
+  { label: '两栖坦克', value: '两栖坦克' }
 ];
+
+/** 可用资源规格属性（长度/宽度/高度等，供方案助手面板回显） */
+export const crossingResourceSpecs: Record<string, CrossingResourceSpec> = {
+  登陆艇: {
+    name: '登陆艇',
+    model: '通用机械化登陆艇',
+    icon: '🚢',
+    count: 3,
+    attrs: [
+      { label: '长度', value: '28.4 m' },
+      { label: '宽度', value: '7.2 m' },
+      { label: '高度', value: '5.6 m' },
+      { label: '吃水深度', value: '1.6 m' },
+      { label: '载重量', value: '60 t' },
+      { label: '水上航速', value: '18 km/h' },
+      { label: '满载排水量', value: '120 t' },
+      { label: '适航流速', value: '≤ 3.0 m/s' }
+    ]
+  },
+  冲锋舟: {
+    name: '冲锋舟',
+    model: '突击型橡皮冲锋舟',
+    icon: '🛶',
+    count: 16,
+    attrs: [
+      { label: '长度', value: '5.6 m' },
+      { label: '宽度', value: '2.2 m' },
+      { label: '高度', value: '1.1 m' },
+      { label: '载员', value: '10 人' },
+      { label: '载重量', value: '1.2 t' },
+      { label: '水上航速', value: '46 km/h' },
+      { label: '抗风等级', value: '≤ 5 级' },
+      { label: '适航流速', value: '≤ 2.5 m/s' }
+    ]
+  },
+  浮桥: {
+    name: '浮桥',
+    model: '重型舟桥器材',
+    icon: '🌉',
+    count: 1,
+    attrs: [
+      { label: '单节长度', value: '6.75 m' },
+      { label: '桥面宽度', value: '6.5 m' },
+      { label: '舟体高度', value: '2.1 m' },
+      { label: '架设长度', value: '265 m/套' },
+      { label: '通载等级', value: '60 t 级' },
+      { label: '架设时间', value: '约 60 min' },
+      { label: '适应流速', value: '≤ 3.0 m/s' },
+      { label: '适应岸坡', value: '≤ 8°' }
+    ]
+  },
+  无人机: {
+    name: '无人机',
+    model: '侦察型固定翼无人机',
+    icon: '🛩️',
+    count: 4,
+    attrs: [
+      { label: '机身长度', value: '1.8 m' },
+      { label: '翼展宽度', value: '3.2 m' },
+      { label: '机身高度', value: '0.6 m' },
+      { label: '续航时间', value: '4 h' },
+      { label: '侦察半径', value: '15 km' },
+      { label: '巡航速度', value: '90 km/h' },
+      { label: '抗风等级', value: '≤ 6 级' },
+      { label: '工作海拔', value: '≤ 4500 m' }
+    ]
+  },
+  工兵作业车: {
+    name: '工兵作业车',
+    model: '综合工程保障车',
+    icon: '🚜',
+    count: 6,
+    attrs: [
+      { label: '长度', value: '7.5 m' },
+      { label: '宽度', value: '3.1 m' },
+      { label: '高度', value: '3.2 m' },
+      { label: '整备质量', value: '16 t' },
+      { label: '最高车速', value: '70 km/h' },
+      { label: '涉水深度', value: '1.2 m' },
+      { label: '爬坡度', value: '60 %' },
+      { label: '连续作业', value: '8 h' }
+    ]
+  },
+  架桥坦克: {
+    name: '架桥坦克',
+    model: '装甲冲击桥车',
+    icon: '🛡️',
+    count: 2,
+    attrs: [
+      { label: '行军长度', value: '11.8 m' },
+      { label: '车体宽度', value: '3.5 m' },
+      { label: '车体高度', value: '3.3 m' },
+      { label: '桥体跨长', value: '22 m' },
+      { label: '通载等级', value: '60 t 级' },
+      { label: '架设时间', value: '约 5 min' },
+      { label: '战斗全重', value: '42 t' },
+      { label: '适应流速', value: '≤ 2.5 m/s' }
+    ]
+  },
+  两栖坦克: {
+    name: '两栖坦克',
+    model: '两栖突击战车',
+    icon: '⚔️',
+    count: 8,
+    attrs: [
+      { label: '长度', value: '8.0 m' },
+      { label: '宽度', value: '3.3 m' },
+      { label: '高度', value: '2.9 m' },
+      { label: '战斗全重', value: '28 t' },
+      { label: '水上航速', value: '12 km/h' },
+      { label: '陆上速度', value: '60 km/h' },
+      { label: '适航浪高', value: '≤ 1.2 m' },
+      { label: '适航流速', value: '≤ 2.0 m/s' }
+    ]
+  }
+};
 
 /** AI 分析步骤模板 */
 export const aiAnalysisStepTemplate: AiAnalysisStep[] = [
@@ -327,7 +449,7 @@ export const aiAnalysisStepTemplate: AiAnalysisStep[] = [
   { key: 'recommend', label: '首选方案推荐', status: 'waiting', description: '综合评分推荐最优方案' }
 ];
 
-/** 底部方案卡片数据 */
+/** 底部方案卡片数据（固定三个方案，不做淘汰） */
 export const crossingPlanCards: CrossingPlanCard[] = [
   {
     rank: 1,

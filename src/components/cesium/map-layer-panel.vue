@@ -37,6 +37,8 @@ const emit = defineEmits<{
   (e: 'remove-service', id: number): void;
   (e: 'opacity-service', id: number, opacity: number): void;
   (e: 'reorder-service', fromIndex: number, toIndex: number): void;
+  (e: 'fly-service', id: number): void;
+  (e: 'fly-vector', id: string): void;
 }>();
 
 const visibleCount = () => {
@@ -90,6 +92,8 @@ function vectorColor(index: number) {
         :key="layer.id"
         class="layer-item"
         :class="{ 'layer-item--active': layer.visible }"
+        :title="`${layer.label}（双击定位到数据范围）`"
+        @dblclick="emit('fly-vector', layer.id)"
       >
         <button
           type="button"
@@ -120,6 +124,7 @@ function vectorColor(index: number) {
         @opacity="(id: number, o: number) => emit('opacity-service', id, o)"
         @remove="(id: number) => emit('remove-service', id)"
         @reorder="(from: number, to: number) => emit('reorder-service', from, to)"
+        @fly="(id: number) => emit('fly-service', id)"
       />
     </div>
   </div>

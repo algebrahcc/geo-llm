@@ -65,6 +65,8 @@ export interface ServiceLayerHandle {
   hide(): void;
   remove(): void;
   setOpacity(opacity: number): void;
+  /** 双击图层面板条目时定位到数据范围（extent → 图层自身包围范围），不支持定位的类型可省略 */
+  flyTo?(): void;
 }
 
 /** 服务 → Cesium 对象工厂 */
@@ -82,6 +84,37 @@ export function registerServiceFactory(category: string, type: string, factory: 
 
 function serviceKey(s: Api.DataService.DataServiceItem): string {
   return `${s.category}:${s.type}`;
+}
+
+/** 双击定位的默认飞行时长（秒），对齐各模块 flyToPreset 的节奏 */
+const FLY_DURATION = 1.4;
+
+/** 解析服务条目 extent（JSON 文本 [west, south, east, north]）为 Cesium Rectangle */
+function parseExtentRectangle(s: Api.DataService.DataServiceItem): Rectangle | undefined {
+  const extent = parseJson<number[]>(s.extent);
+  if (extent && extent.length === 4 && extent.every(v => typeof v === 'number')) {
+    return Rectangle.fromDegrees(extent[0], extent[1], extent[2], extent[3]);
+  }
+  return undefined;
+}
+
+/** 相机飞行至矩形范围 */
+function flyToRectangle(viewer: Viewer, rect: Rectangle): void {
+  viewer.camera.flyTo({ destination: rect, duration: FLY_DURATION });
+}
+
+/** 由一组 [lon, lat] 坐标求包围矩形（街景点定位用） */
+function rectangleFromCoordinates(coordinates: Array<[number, number]>): Rectangle | undefined {
+  if (coordinates.length === 0) return undefined;
+  const lons = coordinates.map(c => c[0]);
+  const lats = coordinates.map(c => c[1]);
+  const pad = 0.002; // 稍作外扩，避免贴边
+  return Rectangle.fromDegrees(
+    Math.min(...lons) - pad,
+    Math.min(...lats) - pad,
+    Math.max(...lons) + pad,
+    Math.max(...lats) + pad
+  );
 }
 
 function parseJson<T = Record<string, unknown>>(raw?: string): T | null {
@@ -180,6 +213,10 @@ function buildLayerHandle(s: Api.DataService.DataServiceItem, viewer: Viewer, la
     },
     setOpacity(opacity: number) {
       layer.alpha = opacity;
+    },
+    flyTo() {
+      const rect = parseExtentRectangle(s);
+      if (rect) flyToRectangle(viewer, rect);
     }
   };
 }
@@ -272,6 +309,10 @@ async function createTerrainHandle(s: Api.DataService.DataServiceItem, viewer: V
     },
     setOpacity() {
       /* 地形不支持透明度 */
+    },
+    flyTo() {
+      const rect = parseExtentRectangle(s);
+      if (rect) flyToRectangle(viewer, rect);
     }
   };
   return handle;
@@ -312,6 +353,21 @@ async function createTilesetHandle(s: Api.DataService.DataServiceItem, viewer: V
       // Model 支持 alpha；3D Tiles 透明度控制留待后续（可经 Cesium3DTileStyle）
       if ('alpha' in primitive) {
         (primitive as unknown as { alpha: number }).alpha = opacity;
+      }
+    },
+    flyTo() {
+      const rect = parseExtentRectangle(s);
+      if (rect) {
+        flyToRectangle(viewer, rect);
+        return;
+      }
+      if (viewer.isDestroyed()) return;
+      if (primitive instanceof Model) {
+        // glTF/glb：按模型包围球飞行（viewer.flyTo 不接受 Model）
+        viewer.camera.flyToBoundingSphere(primitive.boundingSphere, { duration: FLY_DURATION });
+      } else {
+        // 3D Tiles：按 tileset 包围球飞行
+        void viewer.flyTo(primitive, { duration: FLY_DURATION });
       }
     }
   };
@@ -406,6 +462,17 @@ async function createVectorHandle(s: Api.DataService.DataServiceItem, viewer: Vi
     },
     setOpacity() {
       /* 矢量数据源不支持整体透明度 */
+    },
+    flyTo() {
+      const rect = parseExtentRectangle(s);
+      if (rect) {
+        flyToRectangle(viewer, rect);
+        return;
+      }
+      // 无 extent 时飞到数据源自带包围范围
+      if (!viewer.isDestroyed()) {
+        void viewer.flyTo(dataSource, { duration: FLY_DURATION });
+      }
     }
   };
   return handle;
@@ -477,18 +544,20 @@ async function openNearestPanorama(
   baseUrl: string,
   lon: number,
   lat: number,
+  rid: string,
   level: string,
   s: Api.DataService.DataServiceItem
 ): Promise<void> {
   try {
-    const nearestUrl = `${baseUrl}${STREETVIEW_NEAREST_PATH}/${lat}/${lon}`;
+    // 后端 nearest 端点要求必传查询参数 rid，lat/lon 为路径参数
+    const nearestUrl = `${baseUrl}${STREETVIEW_NEAREST_PATH}/${lat}/${lon}?rid=${encodeURIComponent(rid)}`;
     const payload = await fetchJson(nearestUrl);
     const geoid = extractGeoid(payload);
     if (!geoid) {
       window.$message?.warning('未找到附近街景点的全景图');
       return;
     }
-    const imageUrl = `${baseUrl}${STREETVIEW_IMAGE_PATH}?level=${level}&geoid=${encodeURIComponent(geoid)}`;
+    const imageUrl = `${baseUrl}${STREETVIEW_IMAGE_PATH}?level=${level}&geoid=${encodeURIComponent(geoid)}&rid=${encodeURIComponent(rid)}`;
     openStreetViewPanorama(imageUrl, {
       title: s.name,
       subtitle: `${geoid} · ${lon.toFixed(5)}, ${lat.toFixed(5)}`
@@ -569,7 +638,7 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
     }
 
     if (!ll) return;
-    void openNearestPanorama(baseUrl, ll.lon, ll.lat, level, s);
+    void openNearestPanorama(baseUrl, ll.lon, ll.lat, rid, level, s);
   }, ScreenSpaceEventType.LEFT_CLICK);
 
   // 4) 句柄
@@ -600,6 +669,16 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
     },
     setOpacity() {
       /* 街景点为点实体，不支持整体透明度 */
+    },
+    flyTo() {
+      const rect = parseExtentRectangle(s);
+      if (rect) {
+        flyToRectangle(viewer, rect);
+        return;
+      }
+      // 无 extent 时飞到街景点集合的包围范围
+      const pointsRect = rectangleFromCoordinates(coordinates);
+      if (pointsRect && !viewer.isDestroyed()) flyToRectangle(viewer, pointsRect);
     }
   };
   return handle;

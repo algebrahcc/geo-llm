@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue';
-import type { AiAnalysisStep, ChatMessage, CrossingSettingForm, KnowledgeHitDisplay } from './types';
+import { crossingResourceSpecs } from '@/mock/river';
+import type {
+  AiAnalysisStep,
+  ChatMessage,
+  CrossingResourceAttr,
+  CrossingResourceSpec,
+  CrossingSettingForm,
+  KnowledgeHitDisplay
+} from './types';
 import { fetchDifyChatStream } from '@/service/api/dify-stream';
 import { useAuthStore } from '@/store/modules/auth';
 
@@ -26,6 +34,7 @@ const emit = defineEmits<{
 const sectionCollapsed = ref<Record<string, boolean>>({
   intro: false,
   params: false,
+  resources: false,
   progress: false,
   knowledge: false
 });
@@ -85,6 +94,34 @@ watch(
   },
   { immediate: true, deep: true }
 );
+
+// ──── 所选可用资源的规格属性（长度/宽度/高度等） ────
+const selectedResourceSpecs = computed<CrossingResourceSpec[]>(() => {
+  const resources = props.form?.availableResources ?? [];
+  return resources
+    .map(name => crossingResourceSpecs[name])
+    .filter((spec): spec is CrossingResourceSpec => Boolean(spec));
+});
+
+/** 手风琴展开的资源名（默认全部折叠，仅显示尺寸摘要行） */
+const expandedResource = ref<string | null>(null);
+
+function toggleResource(name: string) {
+  expandedResource.value = expandedResource.value === name ? null : name;
+}
+
+/** 折叠态摘要：长 × 宽 × 高（从属性中按标签匹配尺寸项） */
+function getResourceDims(spec: CrossingResourceSpec): string {
+  const dims = [
+    spec.attrs.find(a => a.label.includes('长度')),
+    spec.attrs.find(a => a.label.includes('宽度')),
+    spec.attrs.find(a => a.label.includes('高度'))
+  ].filter((a): a is CrossingResourceAttr => Boolean(a));
+  if (dims.length === 0) return spec.model;
+  const nums = dims.map(a => a.value.replace(/[^\d.]/g, ''));
+  const unit = dims[0].value.replace(/[\d.\s]/g, '') || '';
+  return `${nums.join(' × ')} ${unit}`.trim();
+}
 
 // ──── 计算完成/总数 ────
 const completedStepsCount = () => props.steps.filter(s => s.status === 'success').length;
@@ -237,6 +274,47 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
         </div>
       </div>
 
+      <!-- ══════ 可用资源属性 ══════ -->
+      <div v-if="selectedResourceSpecs.length > 0" class="content-section">
+        <div class="section-header-bar" @click="toggleSection('resources')">
+          <span class="section-quick-icon">🛠️</span>
+          <span class="section-quick-title">可用资源属性</span>
+          <span class="section-badge section-badge--purple">{{ selectedResourceSpecs.length }}</span>
+          <SvgIcon class="section-chevron" :icon="sectionCollapsed.resources ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
+        </div>
+        <div v-show="!sectionCollapsed.resources" class="section-body section-body--compact">
+          <div class="resource-spec-list">
+            <div
+              v-for="spec in selectedResourceSpecs"
+              :key="spec.name"
+              class="resource-spec-card"
+              :class="{ 'resource-spec-card--expanded': expandedResource === spec.name }"
+            >
+              <!-- 折叠态：一行摘要（名称 + 长×宽×高） -->
+              <div class="resource-spec-row" @click="toggleResource(spec.name)">
+                <span class="resource-spec-icon">{{ spec.icon }}</span>
+                <span class="resource-spec-name">{{ spec.name }}</span>
+                <span class="resource-spec-dims">{{ getResourceDims(spec) }}</span>
+                <SvgIcon
+                  class="resource-spec-chevron"
+                  :icon="expandedResource === spec.name ? 'mdi:chevron-up' : 'mdi:chevron-down'"
+                />
+              </div>
+              <!-- 展开态：型号 + 完整属性 -->
+              <div v-if="expandedResource === spec.name" class="resource-spec-detail">
+                <div class="resource-spec-model">{{ spec.model }}</div>
+                <div class="resource-attr-grid">
+                  <div v-for="attr in spec.attrs" :key="attr.label" class="resource-attr-item">
+                    <span class="attr-label">{{ attr.label }}</span>
+                    <span class="attr-value">{{ attr.value }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ══════ 智能体分析进度 ══════ -->
       <div v-if="steps.length > 0" class="content-section">
         <div class="section-header-bar" @click="toggleSection('progress')">
@@ -274,6 +352,10 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
                   <span class="step-label">{{ step.label }}</span>
                   <span class="step-status-tag" :class="`tag-${step.status}`">
                     {{ getStepStatusLabel(step.status) }}
+                  </span>
+                  <span v-if="step.duration" class="step-duration">
+                    <SvgIcon icon="mdi:clock-outline" />
+                    {{ step.duration }}
                   </span>
                 </div>
                 <div v-if="step.tool" class="step-tool">🔧 调用：{{ step.tool }}</div>
@@ -595,6 +677,11 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   color: #22c55e;
 }
 
+.section-badge--purple {
+  background: rgba(168, 85, 247, 0.14);
+  color: #c084fc;
+}
+
 .section-chevron {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.3);
@@ -655,7 +742,6 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   grid-template-columns: 1fr 1fr;
   gap: 3px 12px;
 }
-
 .param-item {
   display: flex;
   justify-content: space-between;
@@ -681,6 +767,116 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ──── 可用资源属性卡片 ──── */
+.resource-spec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resource-spec-card {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.resource-spec-card:hover {
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.resource-spec-card--expanded {
+  border-color: rgba(168, 85, 247, 0.35);
+}
+
+.resource-spec-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.resource-spec-row:hover {
+  background: rgba(168, 85, 247, 0.06);
+}
+
+.resource-spec-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.resource-spec-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.86);
+  flex-shrink: 0;
+}
+
+.resource-spec-dims {
+  flex: 1;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.resource-spec-chevron {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.resource-spec-detail {
+  padding: 6px 9px 7px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.resource-spec-model {
+  font-size: 10px;
+  color: rgba(192, 132, 252, 0.75);
+  margin-bottom: 4px;
+}
+
+.resource-attr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 10px;
+  padding: 6px 9px 7px;
+}
+
+.resource-attr-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 11px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.025);
+}
+
+.resource-attr-item:last-child,
+.resource-attr-item:nth-last-child(2):nth-child(odd) {
+  border-bottom: none;
+}
+
+.attr-label {
+  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+}
+
+.attr-value {
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 500;
+  text-align: right;
   white-space: nowrap;
 }
 
@@ -819,6 +1015,19 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   font-size: 11px;
   color: #8db8ff;
   margin-top: 2px;
+}
+
+.step-duration {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.45);
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
 }
 
 .step-desc {

@@ -63,6 +63,29 @@ export function useCesiumVectorLayer(base: CesiumBaseReturn) {
     };
   }
 
+  /** 飞行至矢量数据范围中心（extent 为 [west, south, east, north]，来自后端 /system/vector/extent） */
+  async function flyToVector(vectorId: string, vectorName?: string) {
+    const viewer = base.viewerRef.value;
+    if (!viewer) return;
+    let extent: number[] | null = null;
+    try {
+      const extentResult = await fetchVectorExtent(vectorId);
+      extent = unwrapResponseData<number[]>(extentResult);
+    } catch {
+      /* 无 extent 时提示即可 */
+    }
+
+    if (extent && extent.length === 4) {
+      const centerLng = (extent[0] + extent[2]) / 2;
+      const centerLat = (extent[1] + extent[3]) / 2;
+      viewer.camera.flyTo({
+        destination: Cartesian3.fromDegrees(centerLng, centerLat, 12000)
+      });
+    } else {
+      window.$message?.warning(vectorName ? `图层 "${vectorName}" 未获取到数据范围` : '未获取到矢量数据范围');
+    }
+  }
+
   async function loadVectorLayer(vectorId: string, vectorName: string, sourceType = '') {
     const viewer = base.viewerRef.value;
     if (!viewer) return;
@@ -85,23 +108,7 @@ export function useCesiumVectorLayer(base: CesiumBaseReturn) {
       layer.show = true;
       vectorLayerMap.set(vectorId, { provider, layer });
 
-      let extent: number[] | null = null;
-      try {
-        const extentResult = await fetchVectorExtent(vectorId);
-        extent = unwrapResponseData<number[]>(extentResult);
-      } catch {
-        /* 无 extent 也能加载 */
-      }
-
-      if (extent && extent.length === 4) {
-        const centerLng = (extent[0] + extent[2]) / 2;
-        const centerLat = (extent[1] + extent[3]) / 2;
-        viewer.camera.flyTo({
-          destination: Cartesian3.fromDegrees(centerLng, centerLat, 12000)
-        });
-      } else {
-        window.$message?.warning(`图层 "${vectorName}" 已加载（未获取到范围）`);
-      }
+      await flyToVector(vectorId, vectorName);
 
       base.requestRender();
     } catch (e: any) {
@@ -130,6 +137,7 @@ export function useCesiumVectorLayer(base: CesiumBaseReturn) {
 
   return {
     loadVectorLayer,
+    flyToVector,
     setVectorLayerVisible,
     removeVectorLayer
   };

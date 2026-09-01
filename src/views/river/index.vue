@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { calculateConfidence, calculateCrossingPlans } from '@/utils/crossing-engineer';
 import { runKnowledgeRetrieval, type KnowledgeRetrievalResult } from '@/mock/knowledge';
 import { aiAnalysisStepTemplate, crossingPlanCards, defaultCrossingSettingForm } from '@/mock/river';
 import { fetchVectorPage } from '@/service/api/vector';
@@ -18,6 +19,7 @@ import type {
   CrossingPlanCard,
   CrossingSettingForm,
   KnowledgeHitDisplay,
+  RejectedRouteData,
   RiverPlanKey
 } from './modules/types';
 
@@ -36,8 +38,13 @@ interface ViewerExpose {
   exportScreenshot: () => void;
   toggleViewMode: () => void;
   loadVectorLayer: (id: string, name: string, sourceType?: string) => Promise<void>;
+  flyToVector: (id: string, name?: string) => Promise<void>;
   setVectorLayerVisible: (id: string, show: boolean) => void;
   showPlan: (planKey: RiverPlanKey) => void;
+  /** 淘汰方式路线（常驻弱化显示 / 聚焦查看） */
+  showRejectedRoutes: (routes: RejectedRouteData[]) => void;
+  clearRejectedEntities: () => void;
+  focusRejectedRoute: (id: string) => void;
   /** 数据服务（阶段二） */
   serviceHandles: ServiceLayerHandle[];
   toggleService: (id: number, visible: boolean) => void;
@@ -78,6 +85,8 @@ const knowledgeHits = ref<KnowledgeHitDisplay[]>([]);
 const references = ref<string[]>([]);
 const planCards = ref<CrossingPlanCard[]>([]);
 const confidence = ref(0);
+const rejectedWays = ref<RejectedRouteData[]>([]);
+const activeRejectedId = ref<string | null>(null);
 
 // ──── 当前标绘方案 ────
 const activePlanKey = ref<RiverPlanKey>('plan-a');
@@ -146,6 +155,16 @@ function handleReorderService(fromIndex: number, toIndex: number) {
   viewerRef.value?.reorderService(fromIndex, toIndex);
 }
 
+// ──── 图层双击定位 ────
+function handleFlyService(id: number) {
+  serviceHandles.value.find(h => h.id === id)?.flyTo?.();
+}
+
+function handleFlyVector(layerId: string) {
+  const layer = vectorLayers.value.find(l => l.id === layerId);
+  void viewerRef.value?.flyToVector(layerId, layer?.label);
+}
+
 // ──── 右侧工具栏 ────
 const activeRightTool = ref<string | null>(null);
 const is2dMode = ref(false);
@@ -178,13 +197,20 @@ async function handleSubmitAnalysis() {
   planCards.value = [];
   confidence.value = 0;
 
-  const query = `${settingForm.value.taskName} ${settingForm.value.location} ${settingForm.value.taskType} ${settingForm.value.forceScale} 渡河 水文`;
+  const form = settingForm.value;
 
-  await runStep(0, '分析河宽、水深、流速等环境参数');
+  // ── 阶段 1：环境参数解析（约 6s） ──
+  await runStep(0, '解析河宽、水深、流速、地形等环境参数', 6000);
 
+  // ── 阶段 2：知识库检索（约 8s） ──
   analysisSteps.value[1].status = 'running';
-  await delay(600);
+  analysisSteps.value[1].description = '构建检索关键词并匹配历史案例';
+  const step2Start = Date.now();
+  await delay(2000);
+  analysisSteps.value[1].description = '执行混合检索（BM25 + 向量召回）';
+  await delay(3000);
 
+  const query = `${form.taskType} ${form.riverWidth}m ${form.flowVelocity} ${form.waterDepthRange} ${form.riverbedTerrain} ${form.availableResources.join(' ')}`;
   const retrievalResults: KnowledgeRetrievalResult[] = runKnowledgeRetrieval(query);
   const totalHits = retrievalResults.reduce((sum, r) => sum + r.matches.length, 0);
   const hitDocCount = retrievalResults.length;
@@ -204,38 +230,69 @@ async function handleSubmitAnalysis() {
   const retrieveDesc =
     totalHits > 0 ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk` : '未命中相关文档，使用默认知识模板';
 
+  await delay(3000);
   analysisSteps.value[1].status = 'success';
   analysisSteps.value[1].description = retrieveDesc;
+  analysisSteps.value[1].duration = `${((Date.now() - step2Start) / 1000).toFixed(1)}s`;
 
   references.value =
     totalHits > 0
       ? [...retrievalResults.slice(0, 3).map(r => r.document.name), '运行模板', '智能体默认配置']
       : ['无相关命中文档', '运行模板', '智能体默认配置'];
 
-  await runStep(2, '基于知识库匹配结果选择最优渡场点与渡河路线');
-  await runStep(3, '综合水文风险、装备适配性、时间约束进行评估');
-  await runStep(4, '综合评分推荐最优方案');
+  // ── 阶段 3：渡场点与路线分析（约 7s） ──
+  await runStep(2, '基于知识库匹配结果选择最优渡场点，规划进出路线', 7000);
 
+  // ── 阶段 4：方案计算与评估（约 9s） ──
+  analysisSteps.value[3].status = 'running';
+  analysisSteps.value[3].description = '计算各渡河方式的可行性与耗时';
+  const step4Start = Date.now();
+  await delay(3000);
+  analysisSteps.value[3].description = '校验水文约束与资源适配性';
+  await delay(3000);
+
+  // 数据完整度用于置信度计算；方案固定使用三套预设方案，不做淘汰
+  const { dataCompleteness } = calculateCrossingPlans(form);
+  analysisSteps.value[3].description = `生成 ${crossingPlanCards.length} 项可行方案`;
+  await delay(3000);
+  analysisSteps.value[3].status = 'success';
+  analysisSteps.value[3].duration = `${((Date.now() - step4Start) / 1000).toFixed(1)}s`;
+
+  // ── 阶段 5：综合评分推荐（约 5s） ──
+  analysisSteps.value[4].status = 'running';
+  analysisSteps.value[4].description = '综合时效性、安全性、资源消耗加权评分';
+  const step5Start = Date.now();
+  await delay(5000);
+
+  const conf = calculateConfidence(dataCompleteness, totalHits, 85);
+  confidence.value = conf;
   planCards.value = [...crossingPlanCards];
-  confidence.value = totalHits > 0 ? 89 : 80;
+
+  analysisSteps.value[4].status = 'success';
+  analysisSteps.value[4].description = `推荐方案一，置信度 ${conf}%`;
+  analysisSteps.value[4].duration = `${((Date.now() - step5Start) / 1000).toFixed(1)}s`;
 
   resultVisible.value = true;
   resultCollapsed.value = false;
 
   viewerRef.value?.initMapOverlays();
   const recommended = crossingPlanCards.find(p => p.isRecommended) ?? crossingPlanCards[0];
-  activePlanKey.value = recommended.key;
-  viewerRef.value?.showPlan(recommended.key);
+  if (recommended) {
+    activePlanKey.value = recommended.key;
+    viewerRef.value?.showPlan(recommended.key);
+  }
 
   analysisRunning.value = false;
   window.$message?.success('AI 智能分析完成，已生成渡河保障方案');
 }
 
-async function runStep(index: number, description: string) {
+async function runStep(index: number, description: string, durationMs: number = 800) {
   analysisSteps.value[index].status = 'running';
   analysisSteps.value[index].description = description;
-  await delay(700);
+  const start = Date.now();
+  await delay(durationMs);
   analysisSteps.value[index].status = 'success';
+  analysisSteps.value[index].duration = `${((Date.now() - start) / 1000).toFixed(1)}s`;
 }
 
 function delay(ms: number): Promise<void> {
@@ -246,11 +303,22 @@ function handleSettingClose() {
   settingVisible.value = false;
 }
 
-// ──── 方案切换：重绘标绘路线 ────
+// ──── 方案切换：重绘标绘路线（淘汰路线保持常驻） ────
 function handlePlanSelect(planKey: RiverPlanKey) {
-  if (planKey === activePlanKey.value) return;
+  if (planKey === activePlanKey.value && !activeRejectedId.value) return;
+  activeRejectedId.value = null;
   activePlanKey.value = planKey;
   viewerRef.value?.showPlan(planKey);
+}
+
+// ──── 淘汰方式点击：聚焦查看其路线（可行方案路线保留） ────
+function handleRejectedSelect(id: string) {
+  if (activeRejectedId.value === id) {
+    activeRejectedId.value = null;
+    return;
+  }
+  activeRejectedId.value = id;
+  viewerRef.value?.focusRejectedRoute(id);
 }
 function handleAiClose() {
   aiPanelVisible.value = false;
@@ -434,6 +502,8 @@ function handleToggleResult() {
             @remove-service="handleRemoveService"
             @opacity-service="handleOpacityService"
             @reorder-service="handleReorderService"
+            @fly-service="handleFlyService"
+            @fly-vector="handleFlyVector"
             @toggle-collapse="layerCollapsed = !layerCollapsed"
             @close="handleLayerClose"
           />
@@ -474,7 +544,10 @@ function handleToggleResult() {
             :plans="planCards"
             :confidence="confidence"
             :active-key="activePlanKey"
+            :rejected="rejectedWays"
+            :active-rejected-id="activeRejectedId"
             @select="handlePlanSelect"
+            @select-rejected="handleRejectedSelect"
             @toggle-collapse="resultCollapsed = !resultCollapsed"
             @close="handleResultClose"
           />

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { resourceOptions } from '@/mock/river';
 import type { CrossingSettingForm } from './types';
 
 const props = defineProps<{
@@ -37,15 +38,6 @@ const forceScaleOptions = [
   { label: '1个营', value: '1个营' },
   { label: '1个合成营', value: '1个合成营' },
   { label: '1个团', value: '1个团' }
-];
-
-const resourceOptions = [
-  { label: '登陆艇', value: '登陆艇' },
-  { label: '冲锋舟', value: '冲锋舟' },
-  { label: '浮桥', value: '浮桥' },
-  { label: '无人机', value: '无人机' },
-  { label: '工兵作业车', value: '工兵作业车' },
-  { label: '架桥坦克', value: '架桥坦克' }
 ];
 
 // ──── 表单变化 ────
