@@ -35,30 +35,39 @@ const customRoutes = [
   }
 ] as unknown as CustomRoute[];
 
-function createRiverElegantRoute() {
+/** 典型场景分组：渡河保障方案 / 机动路线规划（子页均为 blank 布局的全屏地图页） */
+function createScenarioElegantRoute() {
   return {
-    name: 'river',
-    path: '/river',
-    component: 'layout.blank$view.river',
+    name: 'scenario',
+    path: '/scenario',
+    redirect: '/scenario/river',
     meta: {
-      title: '渡河保障方案',
+      title: '典型场景',
       order: 5,
-      icon: 'mdi:ferry'
-    }
-  } satisfies ElegantConstRoute;
-}
-
-function createPlanningElegantRoute() {
-  return {
-    name: 'planning',
-    path: '/planning',
-    component: 'layout.blank$view.planning',
-    meta: {
-      title: '机动路线规划',
-      order: 6,
-      icon: 'mdi:routes'
-    }
-  } satisfies ElegantConstRoute;
+      icon: 'mdi:map-marker-radius'
+    },
+    children: [
+      {
+        name: 'scenario_river',
+        path: '/scenario/river',
+        // 多级子路由不支持 "layout.$view" 组合写法（组合拆包仅限单级路由），全屏地图页直接挂视图即可
+        component: 'view.river',
+        meta: {
+          title: '渡河保障方案',
+          icon: 'mdi:ferry'
+        }
+      },
+      {
+        name: 'scenario_planning',
+        path: '/scenario/planning',
+        component: 'view.planning',
+        meta: {
+          title: '机动路线规划',
+          icon: 'mdi:routes'
+        }
+      }
+    ]
+  } as unknown as ElegantRoute;
 }
 
 function createAgentElegantRoute() {
@@ -327,8 +336,7 @@ export function createStaticRoutes() {
 
   [
     ...customRoutes,
-    createPlanningElegantRoute() as unknown as ElegantRoute,
-    createRiverElegantRoute() as unknown as ElegantRoute,
+    createScenarioElegantRoute() as unknown as ElegantRoute,
     createKnowledgeElegantRoute() as unknown as ElegantRoute,
     createAgentElegantRoute() as unknown as ElegantRoute,
     ...generatedRoutes.filter(item => !['knowledge', 'agent', 'river', 'planning'].includes(item.name))

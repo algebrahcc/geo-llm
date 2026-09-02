@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
-import { NCollapse, NCollapseItem, NModal } from 'naive-ui';
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { NButton, NCollapse, NCollapseItem, NEmpty, NInputNumber, NModal } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import type { CatalogItem } from '@/mock/catalog';
 import { getGlobalImageryUrl, getOnlineImageryConfig, isOnlineImagery } from '@/utils/imagery';
+import {
+  fetchCatalogPreview,
+  fetchVisionModels,
+  postObstacleDetect,
+  postObstacleDetectCatalog
+} from '@/service/api/vision';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
@@ -11,7 +17,7 @@ import VectorLayer from 'ol/layer/Vector';
 import XYZ from 'ol/source/XYZ';
 import VectorSource from 'ol/source/Vector';
 import GeoJSON from 'ol/format/GeoJSON';
-import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
+import { Style, Fill, Stroke } from 'ol/style';
 import { defaults as defaultControls } from 'ol/control';
 import { transformExtent, fromLonLat } from 'ol/proj';
 import { createXYZ } from 'ol/tilegrid';
@@ -62,13 +68,19 @@ interface AnalysisCategory {
   items: AnalysisSubItem[];
 }
 
+/** 真实 AI 检测模型（YOLOv8 服务），key 与后端 /api/vision/models 的模型名一致 */
+const realModelMeta: Record<string, { label: string; description: string }> = {
+  military: { label: '军事目标检测', description: '火炮/导弹/雷达/火箭炮/士兵/坦克/车辆 7 类' },
+  road: { label: '道路障碍物检测', description: '行人/车辆/动物等道路动态障碍（COCO）' }
+};
+
 const analysisCategories: AnalysisCategory[] = [
   {
     key: 'feature-extraction',
     label: '要素提取',
     icon: 'mdi:vector-polygon',
     items: [
-      { key: 'road', label: '道路提取' },
+      { key: 'road-extraction', label: '道路提取' },
       { key: 'building', label: '建筑提取' },
       { key: 'water', label: '水体提取' },
       { key: 'vegetation', label: '植被提取' }
@@ -79,37 +91,147 @@ const analysisCategories: AnalysisCategory[] = [
     label: '目标检测',
     icon: 'mdi:target',
     items: [
-      { key: 'vehicle', label: '车辆检测' },
-      { key: 'ship', label: '船舶检测' },
-      { key: 'aircraft', label: '飞机检测' }
-    ]
-  },
-  {
-    key: 'obstacle-recognition',
-    label: '障碍物识别',
-    icon: 'mdi:road-variant',
-    items: [
-      { key: 'road-damage', label: '道路损毁物' },
-      { key: 'barrier', label: '路障/拒马' },
-      { key: 'fortification', label: '防御工事' }
+      { key: 'military', label: realModelMeta.military.label },
+      { key: 'road', label: realModelMeta.road.label }
     ]
   }
 ];
 
 function getSubItemIcon(key: string): string {
   const iconMap: Record<string, string> = {
-    road: 'mdi:road-variant',
+    'road-extraction': 'mdi:road-variant',
     building: 'mdi:office-building',
     water: 'mdi:water',
     vegetation: 'mdi:pine-tree',
-    vehicle: 'mdi:car',
-    ship: 'mdi:ferry',
-    aircraft: 'mdi:airplane',
+    military: 'mdi:radar',
     'road-damage': 'mdi:road-variant',
     barrier: 'mdi:alert-octagon',
     fortification: 'mdi:shield-outline'
   };
   return iconMap[key] ?? 'mdi:map-marker';
+}
+
+function isRealModelKey(key: string): boolean {
+  return key in realModelMeta;
+}
+
+const isDetectMode = computed(() => isRealModelKey(selectedAnalysisType.value));
+
+// ==================== AI 检测（图片级）状态 ====================
+const modelAvailability = ref<Record<string, boolean>>({});
+const selectedFile = ref<File | null>(null);
+const selectedFileName = ref('');
+const previewUrl = ref('');
+const detectConf = ref(0.25);
+const isDetecting = ref(false);
+const detectResult = ref<Api.Vision.DetectResult | null>(null);
+const detectError = ref('');
+const fileInputRef = ref<HTMLInputElement | null>(null);
+/** 检测数据来源：catalog=当前目录数据（免上传），upload=本地图片 */
+const detectSource = ref<'catalog' | 'upload'>('catalog');
+/** 目录数据原始图预览（data URI） */
+const catalogPreviewUrl = ref('');
+const isLoadingPreview = ref(false);
+
+/** 展示图：有标注图用标注图 → 本地上传原图 → 目录数据原图 */
+const detectImageUrl = computed(
+  () => detectResult.value?.annotatedImageBase64 || previewUrl.value || catalogPreviewUrl.value || ''
+);
+
+/** 开始检测按钮禁用条件 */
+const runDisabled = computed(() => isDetecting.value || (detectSource.value === 'upload' && !selectedFile.value));
+
+/** 加载目录数据原始图预览（tif 等格式由后端转 jpeg） */
+async function loadCatalogPreview() {
+  if (!props.item || isLoadingPreview.value) return;
+  isLoadingPreview.value = true;
+  catalogPreviewUrl.value = '';
+  const res = await fetchCatalogPreview(props.item.id);
+  isLoadingPreview.value = false;
+  if (!res.error && res.data) {
+    catalogPreviewUrl.value = res.data;
+  } else {
+    // 预览失败不阻断检测（如超大分辨率图后端拒绝生成预览）
+    console.warn('[catalog-analysis] 预览加载失败', res.error);
+  }
+}
+
+async function loadModelAvailability() {
+  const res = await fetchVisionModels();
+  const map: Record<string, boolean> = {};
+  (res.data ?? []).forEach(m => {
+    map[m.name] = Boolean(m.available);
+  });
+  modelAvailability.value = map;
+}
+
+function currentModelAvailable(): boolean {
+  return modelAvailability.value[selectedAnalysisType.value] !== false;
+}
+
+function handlePickFile() {
+  fileInputRef.value?.click();
+}
+
+function handleFileChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
+  selectedFile.value = file;
+  selectedFileName.value = file.name;
+  previewUrl.value = URL.createObjectURL(file);
+  detectResult.value = null;
+  detectError.value = '';
+  input.value = '';
+}
+
+function resetDetectState() {
+  selectedFile.value = null;
+  selectedFileName.value = '';
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
+  previewUrl.value = '';
+  detectResult.value = null;
+  detectError.value = '';
+  isDetecting.value = false;
+  catalogPreviewUrl.value = '';
+  detectSource.value = props.item ? 'catalog' : 'upload';
+}
+
+async function handleRunDetect() {
+  if (runDisabled.value) return;
+  if (!currentModelAvailable()) {
+    detectError.value = '该模型权重未部署（不可用），请联系管理员确认 YOLOv8 服务状态';
+    return;
+  }
+  isDetecting.value = true;
+  detectError.value = '';
+  detectResult.value = null;
+  const params: Api.Vision.DetectParams = {
+    model: selectedAnalysisType.value,
+    conf: detectConf.value,
+    returnAnnotated: true
+  };
+  const res =
+    detectSource.value === 'catalog'
+      ? await detectCatalogItem(params)
+      : await postObstacleDetect(selectedFile.value as File, params);
+  isDetecting.value = false;
+  if (res.error) {
+    const err = res.error as unknown as { msg?: string; message?: string };
+    detectError.value = err?.msg || err?.message || '检测失败，请稍后重试';
+    return;
+  }
+  detectResult.value = res.data ?? null;
+}
+
+/** 目录数据直通：后端经存储抽象层（minio/local）读对象内容送检，无需重新上传 */
+async function detectCatalogItem(params: Api.Vision.DetectParams) {
+  type DetectFlatResp = Awaited<ReturnType<typeof postObstacleDetectCatalog>>;
+  if (!props.item) {
+    return { data: null, error: { msg: '未选择目录数据' } } as unknown as DetectFlatResp;
+  }
+  return postObstacleDetectCatalog(props.item.id, params);
 }
 
 // ==================== Mock Vector Data (GeoJSON Features) ====================
@@ -122,7 +244,7 @@ function getMockGeoJSON(type: string): SimpleFeatureCollection {
   const dy = (maxY - minY) * 0.15;
 
   const mockData: Record<string, SimpleFeatureCollection> = {
-    road: {
+    'road-extraction': {
       type: 'FeatureCollection',
       features: [
         {
@@ -312,171 +434,6 @@ function getMockGeoJSON(type: string): SimpleFeatureCollection {
           }
         }
       ]
-    },
-    vehicle: {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: { name: '车辆-1', type: 'vehicle' },
-          geometry: { type: 'Point', coordinates: [cx - dx * 0.3, cy - dy * 0.2] }
-        },
-        {
-          type: 'Feature',
-          properties: { name: '车辆-2', type: 'vehicle' },
-          geometry: { type: 'Point', coordinates: [cx + dx * 0.1, cy + dy * 0.15] }
-        },
-        {
-          type: 'Feature',
-          properties: { name: '车辆-3', type: 'vehicle' },
-          geometry: { type: 'Point', coordinates: [cx + dx * 0.5, cy - dy * 0.1] }
-        },
-        {
-          type: 'Feature',
-          properties: { name: '车辆-4', type: 'vehicle' },
-          geometry: { type: 'Point', coordinates: [cx - dx * 0.7, cy + dy * 0.3] }
-        },
-        {
-          type: 'Feature',
-          properties: { name: '车辆-5', type: 'vehicle' },
-          geometry: { type: 'Point', coordinates: [cx + dx * 0.8, cy + dy * 0.5] }
-        }
-      ]
-    },
-    ship: {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: { name: '船舶-1', type: 'ship' },
-          geometry: { type: 'Point', coordinates: [cx + dx * 0.8, cy - dy * 0.4] }
-        },
-        {
-          type: 'Feature',
-          properties: { name: '船舶-2', type: 'ship' },
-          geometry: { type: 'Point', coordinates: [cx + dx * 1.0, cy - dy * 0.1] }
-        },
-        {
-          type: 'Feature',
-          properties: { name: '船舶-3', type: 'ship' },
-          geometry: { type: 'Point', coordinates: [cx + dx * 0.6, cy + dy * 0.35] }
-        }
-      ]
-    },
-    aircraft: {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: { name: '飞机-1', type: 'aircraft' },
-          geometry: { type: 'Point', coordinates: [cx - dx * 0.9, cy + dy * 0.8] }
-        },
-        {
-          type: 'Feature',
-          properties: { name: '飞机-2', type: 'aircraft' },
-          geometry: { type: 'Point', coordinates: [cx + dx * 0.4, cy + dy * 0.9] }
-        }
-      ]
-    },
-    'road-damage': {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: { name: '路面损毁1', type: 'road-damage' },
-          geometry: {
-            type: 'Polygon',
-            coordinates: [
-              [
-                [cx - dx * 0.4, cy - dy * 0.3],
-                [cx - dx * 0.1, cy - dy * 0.3],
-                [cx - dx * 0.1, cy - dy * 0.15],
-                [cx - dx * 0.4, cy - dy * 0.15],
-                [cx - dx * 0.4, cy - dy * 0.3]
-              ]
-            ]
-          }
-        },
-        {
-          type: 'Feature',
-          properties: { name: '桥梁断裂2', type: 'road-damage' },
-          geometry: {
-            type: 'Polygon',
-            coordinates: [
-              [
-                [cx + dx * 0.2, cy + dy * 0.1],
-                [cx + dx * 0.45, cy + dy * 0.1],
-                [cx + dx * 0.45, cy + dy * 0.25],
-                [cx + dx * 0.2, cy + dy * 0.25],
-                [cx + dx * 0.2, cy + dy * 0.1]
-              ]
-            ]
-          }
-        }
-      ]
-    },
-    barrier: {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: { name: '路障-1', type: 'barrier' },
-          geometry: {
-            type: 'LineString',
-            coordinates: [
-              [cx - dx * 0.5, cy + dy * 0.3],
-              [cx - dx * 0.1, cy + dy * 0.5],
-              [cx + dx * 0.2, cy + dy * 0.35]
-            ]
-          }
-        },
-        {
-          type: 'Feature',
-          properties: { name: '拒马-2', type: 'barrier' },
-          geometry: {
-            type: 'LineString',
-            coordinates: [
-              [cx + dx * 0.5, cy - dy * 0.4],
-              [cx + dx * 0.8, cy - dy * 0.2],
-              [cx + dx * 1.0, cy - dy * 0.35]
-            ]
-          }
-        }
-      ]
-    },
-    fortification: {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: { name: '碉堡', type: 'fortification' },
-          geometry: {
-            type: 'Polygon',
-            coordinates: [
-              [
-                [cx - dx * 0.8, cy - dy * 0.7],
-                [cx - dx * 0.5, cy - dy * 0.7],
-                [cx - dx * 0.5, cy - dy * 0.45],
-                [cx - dx * 0.8, cy - dy * 0.45],
-                [cx - dx * 0.8, cy - dy * 0.7]
-              ]
-            ]
-          }
-        },
-        {
-          type: 'Feature',
-          properties: { name: '战壕', type: 'fortification' },
-          geometry: {
-            type: 'LineString',
-            coordinates: [
-              [cx - dx * 1.0, cy + dy * 0.6],
-              [cx - dx * 0.5, cy + dy * 0.7],
-              [cx, cy + dy * 0.6],
-              [cx + dx * 0.5, cy + dy * 0.8]
-            ]
-          }
-        }
-      ]
     }
   };
 
@@ -505,38 +462,6 @@ function getVectorStyle(featureType: string): Style {
     vegetation: new Style({
       stroke: new Stroke({ color: '#66bb6a', width: 2 }),
       fill: new Fill({ color: 'rgba(102, 187, 106, 0.25)' })
-    }),
-    vehicle: new Style({
-      image: new CircleStyle({
-        radius: 7,
-        fill: new Fill({ color: '#f44336' }),
-        stroke: new Stroke({ color: '#fff', width: 2 })
-      })
-    }),
-    ship: new Style({
-      image: new CircleStyle({
-        radius: 7,
-        fill: new Fill({ color: '#2196f3' }),
-        stroke: new Stroke({ color: '#fff', width: 2 })
-      })
-    }),
-    aircraft: new Style({
-      image: new CircleStyle({
-        radius: 8,
-        fill: new Fill({ color: '#e91e63' }),
-        stroke: new Stroke({ color: '#fff', width: 2 })
-      })
-    }),
-    'road-damage': new Style({
-      stroke: new Stroke({ color: '#ff1744', width: 2, lineDash: [8, 4] }),
-      fill: new Fill({ color: 'rgba(255, 23, 68, 0.3)' })
-    }),
-    barrier: new Style({
-      stroke: new Stroke({ color: '#ff6d00', width: 3, lineDash: [6, 3] })
-    }),
-    fortification: new Style({
-      stroke: new Stroke({ color: '#d500f9', width: 2 }),
-      fill: new Fill({ color: 'rgba(213, 0, 249, 0.2)' })
     })
   };
   return styles[featureType] ?? new Style({});
@@ -624,6 +549,17 @@ function destroyAnalysisMap() {
 
 // ==================== 交互 ====================
 function handleAnalysisTypeSelect(typeKey: string) {
+  // 真实模型：进入 AI 检测面板（图片级展示），不渲染 mock 地图
+  if (isRealModelKey(typeKey)) {
+    selectedAnalysisType.value = typeKey;
+    resetDetectState();
+    // resetDetectState 把来源重置为 catalog（有目录项时），自动加载原始图预览
+    if (detectSource.value === 'catalog') {
+      loadCatalogPreview();
+    }
+    return;
+  }
+
   selectedAnalysisType.value = typeKey;
   isAnalysisLoading.value = true;
   const vLayer = analysisVectorLayer.value;
@@ -663,26 +599,37 @@ function handleClose() {
   emit('close');
 }
 
+// 切回「检测当前数据」来源时自动加载原始图预览
+watch(detectSource, val => {
+  if (val === 'catalog' && props.item && !catalogPreviewUrl.value) {
+    loadCatalogPreview();
+  }
+});
+
 // 打开时初始化地图，关闭/切换目录时销毁并重置
 watch(
   () => props.item,
   val => {
     if (val) {
       selectedAnalysisType.value = '';
+      resetDetectState();
+      loadModelAvailability();
       nextTick(() => initAnalysisMap());
     } else {
       destroyAnalysisMap();
+      resetDetectState();
     }
   }
 );
 
 onBeforeUnmount(() => {
   destroyAnalysisMap();
+  resetDetectState();
 });
 </script>
 
 <template>
-  <!-- 数据分析弹窗（本期为 mock 演示） -->
+  <!-- 数据分析弹窗：要素提取为 mock 演示；目标检测/障碍物识别为真实 AI 检测 -->
   <NModal :show="Boolean(item)" :mask-closable="true" :close-on-esc="true" transform-origin="center">
     <div v-if="item" class="analysis-card">
       <!-- 标题区 -->
@@ -708,10 +655,7 @@ onBeforeUnmount(() => {
             <SvgIcon icon="mdi:format-list-bulleted" class="analysis-sidebar__title-icon" />
             分析类型
           </div>
-          <NCollapse
-            :default-expanded-names="['feature-extraction', 'target-detection', 'obstacle-recognition']"
-            class="analysis-collapse"
-          >
+          <NCollapse :default-expanded-names="['feature-extraction', 'target-detection']" class="analysis-collapse">
             <NCollapseItem
               v-for="category in analysisCategories"
               :key="category.key"
@@ -728,7 +672,9 @@ onBeforeUnmount(() => {
                   class="analysis-sub-item"
                   :class="{
                     'analysis-sub-item--active': selectedAnalysisType === subItem.key,
-                    'analysis-sub-item--loading': isAnalysisLoading && selectedAnalysisType === subItem.key
+                    'analysis-sub-item--loading': isAnalysisLoading && selectedAnalysisType === subItem.key,
+                    'analysis-sub-item--disabled':
+                      isRealModelKey(subItem.key) && modelAvailability[subItem.key] === false
                   }"
                   @click="handleAnalysisTypeSelect(subItem.key)"
                 >
@@ -747,9 +693,138 @@ onBeforeUnmount(() => {
           </NCollapse>
         </div>
 
-        <!-- 中间地图区域 -->
-        <div class="analysis-map-area" :class="{ 'analysis-map-area--active': selectedAnalysisType }">
+        <!-- 中间区域：mock 地图（要素提取） -->
+        <div
+          v-show="!isDetectMode"
+          class="analysis-map-area"
+          :class="{ 'analysis-map-area--active': selectedAnalysisType }"
+        >
           <div ref="analysisMapContainer" class="analysis-map-container"></div>
+        </div>
+
+        <!-- 中间区域：AI 检测（图片级展示） -->
+        <div v-show="isDetectMode" class="detect-area">
+          <div class="detect-toolbar">
+            <span class="detect-toolbar__model">
+              <SvgIcon icon="mdi:radar" />
+              {{ realModelMeta[selectedAnalysisType]?.label || 'AI 检测' }}
+            </span>
+            <div class="detect-toolbar__source">
+              <button
+                class="detect-source-btn"
+                :class="{ 'detect-source-btn--active': detectSource === 'catalog' }"
+                :disabled="!item"
+                title="直接检测当前目录数据，无需重新上传"
+                @click="detectSource = 'catalog'"
+              >
+                <SvgIcon icon="mdi:database" />
+                检测当前数据
+              </button>
+              <button
+                class="detect-source-btn"
+                :class="{ 'detect-source-btn--active': detectSource === 'upload' }"
+                @click="detectSource = 'upload'"
+              >
+                <SvgIcon icon="mdi:upload" />
+                本地图片
+              </button>
+            </div>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff,.tif,.tiff"
+              class="detect-toolbar__file-input"
+              @change="handleFileChange"
+            />
+            <span v-if="detectSource === 'catalog' && item" class="detect-toolbar__filename" :title="item.name">
+              {{ item.name }}
+            </span>
+            <template v-if="detectSource === 'upload'">
+              <button class="detect-toolbar__upload" @click="handlePickFile">
+                <SvgIcon icon="mdi:upload" />
+                选择图片
+              </button>
+              <span class="detect-toolbar__filename" :title="selectedFileName">
+                {{ selectedFileName || '未选择图片' }}
+              </span>
+            </template>
+            <div class="detect-toolbar__conf">
+              <span>置信度阈值</span>
+              <NInputNumber
+                v-model:value="detectConf"
+                :min="0.01"
+                :max="1"
+                :step="0.05"
+                size="small"
+                style="width: 110px"
+              />
+            </div>
+            <NButton
+              type="primary"
+              size="small"
+              :loading="isDetecting"
+              :disabled="runDisabled"
+              @click="handleRunDetect"
+            >
+              开始检测
+            </NButton>
+          </div>
+
+          <div v-if="detectError" class="detect-alert">
+            <SvgIcon icon="mdi:alert-circle" />
+            {{ detectError }}
+          </div>
+
+          <div class="detect-content">
+            <div class="detect-image">
+              <img v-if="detectImageUrl" :src="detectImageUrl" alt="检测图片" />
+              <NEmpty
+                v-else
+                :description="
+                  detectSource === 'catalog'
+                    ? '点击「开始检测」分析当前目录数据（支持 jpg/png/webp/tif，≤200MB）'
+                    : '上传图片后开始检测'
+                "
+                class="detect-image__empty"
+              />
+              <div v-if="isDetecting || isLoadingPreview" class="detect-image__loading">
+                <SvgIcon icon="mdi:loading" class="detect-image__spinner" />
+                {{ isDetecting ? '检测中…' : '预览加载中…' }}
+              </div>
+            </div>
+
+            <div class="detect-result">
+              <div v-if="detectResult" class="detect-result__summary">
+                <SvgIcon icon="mdi:check-decagram" />
+                <span>{{ detectResult.summary }}</span>
+                <span class="detect-result__meta">
+                  {{ detectResult.detections.length }} 个目标 · {{ detectResult.inferenceMs }}ms ·
+                  {{ detectResult.width }}×{{ detectResult.height }}
+                </span>
+              </div>
+              <div class="detect-result__list">
+                <div v-for="(d, idx) in detectResult?.detections ?? []" :key="idx" class="detect-row">
+                  <span class="detect-row__idx">{{ idx + 1 }}</span>
+                  <span class="detect-row__name">{{ d.classNameZh }}</span>
+                  <span class="detect-row__en">{{ d.className }}</span>
+                  <div class="detect-row__bar">
+                    <div class="detect-row__bar-fill" :style="{ width: `${Math.min(d.confidence * 100, 100)}%` }"></div>
+                  </div>
+                  <span class="detect-row__conf">{{ (d.confidence * 100).toFixed(1) }}%</span>
+                </div>
+                <NEmpty
+                  v-if="detectResult && detectResult.detections.length === 0"
+                  description="未检测到目标，可尝试降低置信度阈值"
+                  class="detect-result__empty"
+                />
+                <NEmpty
+                  v-if="!detectResult && !isDetecting"
+                  description="检测结果将显示在这里"
+                  class="detect-result__empty"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -875,6 +950,8 @@ onBeforeUnmount(() => {
   border-right: 1px solid var(--catalog-line, rgba(25, 95, 176, 0.35));
   overflow-y: auto;
   background: linear-gradient(180deg, rgba(2, 10, 24, 0.7) 0%, rgba(2, 14, 28, 0.5) 100%);
+  display: flex;
+  flex-direction: column;
 
   &::-webkit-scrollbar {
     width: 4px;
@@ -901,6 +978,15 @@ onBeforeUnmount(() => {
     font-size: 15px;
     color: var(--catalog-accent, #29a3ff);
     opacity: 0.6;
+  }
+
+  &__footnote {
+    margin-top: auto;
+    padding: 12px 18px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: rgba(147, 196, 255, 0.45);
+    border-top: 1px solid rgba(25, 95, 176, 0.15);
   }
 }
 
@@ -1037,6 +1123,11 @@ onBeforeUnmount(() => {
     pointer-events: none;
     opacity: 0.7;
   }
+
+  &--disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 }
 
 /* ── Map Area ── */
@@ -1100,6 +1191,286 @@ onBeforeUnmount(() => {
 
   :deep(.ol-viewport) {
     background: #010c1a;
+  }
+}
+
+/* ── Detect Area（AI 检测，图片级展示） ── */
+.detect-source-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--catalog-text-secondary, rgba(203, 227, 255, 0.72));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &--active {
+    color: var(--catalog-accent, #29a3ff);
+    background: rgba(41, 163, 255, 0.16);
+    font-weight: 600;
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--catalog-accent, #29a3ff);
+    background: rgba(41, 163, 255, 0.1);
+  }
+}
+
+.detect-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.detect-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(25, 95, 176, 0.2);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+
+  &__model {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--catalog-accent, #29a3ff);
+  }
+
+  &__source {
+    display: inline-flex;
+    border: 1px solid rgba(41, 163, 255, 0.25);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  &__upload {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--catalog-text-primary, #eaf5ff);
+    background: rgba(41, 163, 255, 0.12);
+    border: 1px solid rgba(41, 163, 255, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(41, 163, 255, 0.22);
+    }
+  }
+
+  &__file-input {
+    display: none;
+  }
+
+  &__filename {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--catalog-text-tertiary, rgba(147, 196, 255, 0.62));
+  }
+
+  &__conf {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--catalog-text-tertiary, rgba(147, 196, 255, 0.62));
+
+    :deep(.n-input) {
+      background: rgba(2, 18, 36, 0.6);
+    }
+  }
+}
+
+.detect-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 18px 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #ff8a80;
+  background: rgba(255, 23, 68, 0.08);
+  border: 1px solid rgba(255, 23, 68, 0.25);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.detect-content {
+  flex: 1;
+  display: flex;
+  gap: 14px;
+  padding: 14px 18px 18px;
+  min-height: 0;
+}
+
+.detect-image {
+  flex: 1.4;
+  min-width: 0;
+  border: 1px solid rgba(25, 95, 176, 0.3);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  &__empty {
+    opacity: 0.5;
+  }
+
+  &__loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--catalog-accent, #29a3ff);
+    background: rgba(1, 12, 26, 0.7);
+    backdrop-filter: blur(2px);
+  }
+
+  &__spinner {
+    font-size: 20px;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+.detect-result {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(25, 95, 176, 0.3);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+
+  &__summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #7ee787;
+    background: rgba(126, 231, 135, 0.06);
+    border-bottom: 1px solid rgba(25, 95, 176, 0.2);
+  }
+
+  &__meta {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--catalog-text-tertiary, rgba(147, 196, 255, 0.62));
+  }
+
+  &__list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 10px;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(41, 163, 255, 0.2);
+      border-radius: 2px;
+    }
+  }
+
+  &__empty {
+    margin-top: 40px;
+    opacity: 0.5;
+  }
+}
+
+.detect-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(41, 163, 255, 0.06);
+  }
+
+  &__idx {
+    width: 20px;
+    text-align: center;
+    color: var(--catalog-text-tertiary, rgba(147, 196, 255, 0.5));
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    width: 52px;
+    font-weight: 600;
+    color: var(--catalog-text-primary, #eaf5ff);
+    flex-shrink: 0;
+  }
+
+  &__en {
+    width: 70px;
+    color: var(--catalog-text-tertiary, rgba(147, 196, 255, 0.55));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  &__bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(41, 163, 255, 0.1);
+    overflow: hidden;
+  }
+
+  &__bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, rgba(41, 163, 255, 0.7), #7ee787);
+    transition: width 0.4s ease;
+  }
+
+  &__conf {
+    width: 44px;
+    text-align: right;
+    color: #7ee787;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
   }
 }
 

@@ -11,6 +11,8 @@
 import {
   ArcGisMapServerImageryProvider,
   ArcGISTiledElevationTerrainProvider,
+  BoundingSphere,
+  Cartesian2,
   Cartesian3,
   Cesium3DTileset,
   CesiumTerrainProvider,
@@ -19,8 +21,11 @@ import {
   GeoJsonDataSource,
   HeightReference,
   ImageryLayer,
+  JulianDate,
   KmlDataSource,
+  LabelGraphics,
   Model,
+  PointGraphics,
   Rectangle,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
@@ -36,6 +41,7 @@ import {
 import MVTImageryProvider from 'mvt-imagery-provider';
 import type { StyleSpecification } from 'mvt-imagery-provider';
 import { openStreetViewPanorama } from '@/components/cesium/street-view-panorama';
+import { openIntelDetailCard } from '@/components/cesium/intel-detail-card';
 
 /** 加载状态机 */
 export type ServiceLayerState = 'loading' | 'ready' | 'error';
@@ -216,7 +222,11 @@ function buildLayerHandle(s: Api.DataService.DataServiceItem, viewer: Viewer, la
     },
     flyTo() {
       const rect = parseExtentRectangle(s);
-      if (rect) flyToRectangle(viewer, rect);
+      if (rect) {
+        flyToRectangle(viewer, rect);
+        return;
+      }
+      window.$message?.warning(`「${s.name}」未配置数据范围（extent），无法定位`);
     }
   };
 }
@@ -312,7 +322,11 @@ async function createTerrainHandle(s: Api.DataService.DataServiceItem, viewer: V
     },
     flyTo() {
       const rect = parseExtentRectangle(s);
-      if (rect) flyToRectangle(viewer, rect);
+      if (rect) {
+        flyToRectangle(viewer, rect);
+        return;
+      }
+      window.$message?.warning(`「${s.name}」未配置数据范围（extent），无法定位`);
     }
   };
   return handle;
@@ -365,8 +379,18 @@ async function createTilesetHandle(s: Api.DataService.DataServiceItem, viewer: V
       if (primitive instanceof Model) {
         // glTF/glb：按模型包围球飞行（viewer.flyTo 不接受 Model）
         viewer.camera.flyToBoundingSphere(primitive.boundingSphere, { duration: FLY_DURATION });
+        return;
+      }
+      // 聚合式 3D Tiles（如 taibei）顶层 tileset 的 root 包围盒往往被人为放大到覆盖全球
+      // （保证根节点不被视野裁剪），直接 flyTo 会"飞了等于没飞"。
+      // 改为聚合根瓦片各子节点的包围球（子节点才是真实局部位置）。
+      const childSpheres = primitive.root?.children?.map(c => c.boundingSphere).filter(Boolean) ?? [];
+      if (childSpheres.length > 0) {
+        const union = BoundingSphere.fromPoints(childSpheres.map(b => b.center));
+        // fromPoints 只聚合了各子球中心，半径补上子球自身半径，避免贴太近
+        union.radius += Math.max(...childSpheres.map(b => b.radius));
+        viewer.camera.flyToBoundingSphere(union, { duration: FLY_DURATION });
       } else {
-        // 3D Tiles：按 tileset 包围球飞行
         void viewer.flyTo(primitive, { duration: FLY_DURATION });
       }
     }
@@ -439,6 +463,51 @@ async function createVectorHandle(s: Api.DataService.DataServiceItem, viewer: Vi
   const url = resolveUrl(s);
   const dataSource = s.type === 'kml' ? await KmlDataSource.load(url) : await GeoJsonDataSource.load(url);
   viewer.dataSources.add(dataSource);
+
+  // geojson 点带情报属性（properties.image）时：强化点样式 + 名称标签 + 点击弹详情卡
+  let intelHandler: ScreenSpaceEventHandler | null = null;
+  if (s.type === 'geojson') {
+    const intelProps = new Map<string, Record<string, unknown>>();
+    const now = JulianDate.now();
+    dataSource.entities.values.forEach((entity: Entity) => {
+      const props = entity.properties?.getValue(now) as Record<string, unknown> | undefined;
+      if (!props || !props.image) return;
+      intelProps.set(entity.id, props);
+      entity.point = new PointGraphics({
+        pixelSize: 12,
+        color: Color.fromCssColorString('#ffb02e').withAlpha(0.95),
+        outlineColor: Color.WHITE,
+        outlineWidth: 1.5,
+        heightReference: HeightReference.CLAMP_TO_GROUND,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY
+      });
+      if (props.name) {
+        entity.label = new LabelGraphics({
+          text: String(props.name),
+          font: '12px "Microsoft YaHei", sans-serif',
+          fillColor: Color.fromCssColorString('#eaf5ff'),
+          showBackground: true,
+          backgroundColor: Color.fromCssColorString('rgba(2, 10, 20, 0.78)'),
+          backgroundPadding: new Cartesian2(8, 5),
+          pixelOffset: new Cartesian2(0, -20),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY
+        });
+      }
+    });
+
+    if (intelProps.size > 0) {
+      intelHandler = new ScreenSpaceEventHandler(viewer.scene.canvas);
+      intelHandler.setInputAction((movement: ScreenSpaceEventHandler.PositionedEvent) => {
+        const picked = viewer.scene.pick(movement.position);
+        const entityId = (picked as { id?: { id?: unknown } } | undefined)?.id?.id;
+        const props = intelProps.get(String(entityId));
+        if (props) {
+          openIntelDetailCard(props as Parameters<typeof openIntelDetailCard>[0]);
+        }
+      }, ScreenSpaceEventType.LEFT_CLICK);
+    }
+  }
+
   const handle: ServiceLayerHandle = {
     id: s.id,
     category: s.category,
@@ -456,6 +525,7 @@ async function createVectorHandle(s: Api.DataService.DataServiceItem, viewer: Vi
       this.visible = false;
     },
     remove() {
+      intelHandler?.destroy();
       if (!viewer.isDestroyed()) {
         viewer.dataSources.remove(dataSource, true);
       }
@@ -539,32 +609,71 @@ async function fetchJson(url: string): Promise<unknown> {
   return resp.json();
 }
 
-/** 点击街景点：查最近街景点 geoid → 拼全景图 URL → 打开全景查看器 */
-async function openNearestPanorama(
+/** 由坐标查最近街景点，拼全景图 URL（nearest 端点要求必传查询参数 rid，lat/lon 为路径参数） */
+async function fetchNearestImage(
   baseUrl: string,
   lon: number,
   lat: number,
   rid: string,
+  level: string
+): Promise<{ imageUrl: string; geoid: string }> {
+  const nearestUrl = `${baseUrl}${STREETVIEW_NEAREST_PATH}/${lat}/${lon}?rid=${encodeURIComponent(rid)}`;
+  const payload = await fetchJson(nearestUrl);
+  const geoid = extractGeoid(payload);
+  if (!geoid) {
+    throw new Error('未找到附近街景点');
+  }
+  const imageUrl = `${baseUrl}${STREETVIEW_IMAGE_PATH}?level=${level}&geoid=${encodeURIComponent(geoid)}&rid=${encodeURIComponent(rid)}`;
+  return { imageUrl, geoid };
+}
+
+/** 点击街景点：打开全景查看器（右下角浮动面板），并支持 ←/→ 切换相邻街景点 */
+async function openNearestPanorama(
+  baseUrl: string,
+  lon: number,
+  lat: number,
+  pointIndex: number,
+  coordinates: Array<[number, number]>,
+  rid: string,
   level: string,
   s: Api.DataService.DataServiceItem
 ): Promise<void> {
-  try {
-    // 后端 nearest 端点要求必传查询参数 rid，lat/lon 为路径参数
-    const nearestUrl = `${baseUrl}${STREETVIEW_NEAREST_PATH}/${lat}/${lon}?rid=${encodeURIComponent(rid)}`;
-    const payload = await fetchJson(nearestUrl);
-    const geoid = extractGeoid(payload);
-    if (!geoid) {
-      window.$message?.warning('未找到附近街景点的全景图');
-      return;
+  let currentIndex = pointIndex;
+  // 主地图上的加载指示（nearest + 首图请求期间）
+  const loading = window.$message?.loading(`正在获取「${s.name}」街景全景图…`, { duration: 0 });
+  // 网络抖动时自动重试一次，仍失败才提示
+  const fetchImageWithRetry = async (nLon: number, nLat: number) => {
+    try {
+      return await fetchNearestImage(baseUrl, nLon, nLat, rid, level);
+    } catch {
+      return await fetchNearestImage(baseUrl, nLon, nLat, rid, level);
     }
-    const imageUrl = `${baseUrl}${STREETVIEW_IMAGE_PATH}?level=${level}&geoid=${encodeURIComponent(geoid)}&rid=${encodeURIComponent(rid)}`;
+  };
+  try {
+    const { imageUrl, geoid } = await fetchImageWithRetry(lon, lat);
     openStreetViewPanorama(imageUrl, {
       title: s.name,
-      subtitle: `${geoid} · ${lon.toFixed(5)}, ${lat.toFixed(5)}`
+      subtitle: `${geoid} · ${lon.toFixed(5)}, ${lat.toFixed(5)}`,
+      position: { index: pointIndex, total: coordinates.length },
+      // ←/→ 切换：取相邻坐标点 → nearest 解析 geoid → 拼全景图 URL
+      navigate: async delta => {
+        const nextIndex = currentIndex + delta;
+        if (nextIndex < 0 || nextIndex >= coordinates.length) return null;
+        const [nextLon, nextLat] = coordinates[nextIndex];
+        const next = await fetchImageWithRetry(nextLon, nextLat);
+        currentIndex = nextIndex;
+        return {
+          imageUrl: next.imageUrl,
+          subtitle: `${next.geoid} · ${nextLon.toFixed(5)}, ${nextLat.toFixed(5)}`,
+          index: nextIndex
+        };
+      }
     });
   } catch (e) {
-    window.$message?.error('街景全景图请求失败，请检查街景服务地址');
+    window.$message?.error(`「${s.name}」街景全景图请求失败，请检查街景服务地址与网络后重试`);
     console.error('[streetview] nearest 请求失败：', e);
+  } finally {
+    loading?.destroy();
   }
 }
 
@@ -589,12 +698,12 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
   }
 
   // 2) 撒点：每个街景点一个 entity，经纬度/笛卡尔坐标登记到 Map 供点击拾取
-  const pointLatLon = new Map<string, { lon: number; lat: number; cartesian: Cartesian3 }>();
+  const pointLatLon = new Map<string, { lon: number; lat: number; cartesian: Cartesian3; index: number }>();
   const pointEntities: Entity[] = [];
   coordinates.forEach(([lon, lat], index) => {
     const id = `streetview-${s.id}-${index}`;
     const cartesian = Cartesian3.fromDegrees(lon, lat, 0);
-    pointLatLon.set(id, { lon, lat, cartesian });
+    pointLatLon.set(id, { lon, lat, cartesian, index });
     pointEntities.push(
       viewer.entities.add({
         id,
@@ -623,7 +732,7 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
     if (!ll) {
       const cartesian = viewer.camera.pickEllipsoid(movement.position, viewer.scene.globe.ellipsoid);
       if (cartesian) {
-        let best: { lon: number; lat: number; cartesian: Cartesian3 } | undefined;
+        let best: { lon: number; lat: number; cartesian: Cartesian3; index: number } | undefined;
         let bestDist = Number.POSITIVE_INFINITY;
         for (const p of pointLatLon.values()) {
           const d = Cartesian3.distance(cartesian, p.cartesian);
@@ -638,7 +747,7 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
     }
 
     if (!ll) return;
-    void openNearestPanorama(baseUrl, ll.lon, ll.lat, rid, level, s);
+    void openNearestPanorama(baseUrl, ll.lon, ll.lat, ll.index, coordinates, rid, level, s);
   }, ScreenSpaceEventType.LEFT_CLICK);
 
   // 4) 句柄
@@ -678,7 +787,11 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
       }
       // 无 extent 时飞到街景点集合的包围范围
       const pointsRect = rectangleFromCoordinates(coordinates);
-      if (pointsRect && !viewer.isDestroyed()) flyToRectangle(viewer, pointsRect);
+      if (pointsRect) {
+        flyToRectangle(viewer, pointsRect);
+      } else {
+        window.$message?.warning(`「${s.name}」未配置数据范围（extent），无法定位`);
+      }
     }
   };
   return handle;
@@ -745,6 +858,7 @@ export async function loadService(
     proxy.hide = real.hide;
     proxy.remove = real.remove;
     proxy.setOpacity = real.setOpacity;
+    proxy.flyTo = real.flyTo;
     proxy.layer = real.layer;
     proxy.legend = real.legend;
     proxy.state = 'ready';

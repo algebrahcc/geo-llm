@@ -75,7 +75,20 @@ function vectorColor(index: number) {
     </div>
 
     <div v-show="!collapsed" class="panel-content">
-      <!-- ====== Section 1：矢量图层 ====== -->
+      <!-- ====== Section 1：数据服务（通用 LayerPanel，设计文档 5.7，按分类分组折叠） ====== -->
+      <div class="layer-section-title">数据服务</div>
+      <LayerPanel
+        :handles="serviceHandles ?? []"
+        :show-header="false"
+        grouped
+        @toggle="(id: number, v: boolean) => emit('toggle-service', id, v)"
+        @opacity="(id: number, o: number) => emit('opacity-service', id, o)"
+        @remove="(id: number) => emit('remove-service', id)"
+        @reorder="(from: number, to: number) => emit('reorder-service', from, to)"
+        @fly="(id: number) => emit('fly-service', id)"
+      />
+
+      <!-- ====== Section 2：矢量图层 ====== -->
       <div class="layer-section-title">
         矢量图层
         <span v-if="vectorLoading" class="loading-dot">加载中…</span>
@@ -113,19 +126,6 @@ function vectorColor(index: number) {
           <span class="layer-sub">{{ layer.sourceType }} · {{ layer.featureCount }} 要素</span>
         </div>
       </div>
-
-      <!-- ====== Section 2：数据服务（通用 LayerPanel，设计文档 5.7，按分类分组折叠） ====== -->
-      <div class="layer-section-title">数据服务</div>
-      <LayerPanel
-        :handles="serviceHandles ?? []"
-        :show-header="false"
-        grouped
-        @toggle="(id: number, v: boolean) => emit('toggle-service', id, v)"
-        @opacity="(id: number, o: number) => emit('opacity-service', id, o)"
-        @remove="(id: number) => emit('remove-service', id)"
-        @reorder="(from: number, to: number) => emit('reorder-service', from, to)"
-        @fly="(id: number) => emit('fly-service', id)"
-      />
     </div>
   </div>
 </template>
