@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { NButton, NCollapse, NCollapseItem, NEmpty, NInputNumber, NModal } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import type { CatalogItem } from '@/mock/catalog';
@@ -10,7 +10,8 @@ import {
   postObstacleDetect,
   postObstacleDetectCatalog
 } from '@/service/api/vision';
-import Map from 'ol/Map';
+import { classColor, confLevel } from '@/utils/detect-colors';
+import OlMap from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
@@ -53,7 +54,7 @@ interface SimpleFeatureCollection {
 const selectedAnalysisType = ref('');
 const isAnalysisLoading = ref(false);
 const analysisMapContainer = ref<HTMLElement | null>(null);
-const analysisMap = shallowRef<Map | null>(null);
+const analysisMap = shallowRef<OlMap | null>(null);
 const analysisVectorLayer = shallowRef<VectorLayer<VectorSource> | null>(null);
 
 // ==================== 分析类型配置 ====================
@@ -133,13 +134,99 @@ const detectSource = ref<'catalog' | 'upload'>('catalog');
 const catalogPreviewUrl = ref('');
 const isLoadingPreview = ref(false);
 
-/** 展示图：有标注图用标注图 → 本地上传原图 → 目录数据原图 */
-const detectImageUrl = computed(
-  () => detectResult.value?.annotatedImageBase64 || previewUrl.value || catalogPreviewUrl.value || ''
-);
+/** 原始图（本地上传预览 / 目录数据预览） */
+const originalImageUrl = computed(() => previewUrl.value || catalogPreviewUrl.value || '');
+/** 服务端标注图 */
+const annotatedImageUrl = computed(() => detectResult.value?.annotatedImageBase64 || '');
+/** 图像区展示：检测框叠加在原图上 / 服务端标注图 */
+const viewMode = ref<'overlay' | 'annotated'>('overlay');
+const displayImageUrl = computed(() => {
+  if (viewMode.value === 'annotated' && annotatedImageUrl.value) return annotatedImageUrl.value;
+  return originalImageUrl.value || annotatedImageUrl.value;
+});
 
 /** 开始检测按钮禁用条件 */
 const runDisabled = computed(() => isDetecting.value || (detectSource.value === 'upload' && !selectedFile.value));
+
+// ─── 检测结果可视化：类别统计 / 筛选 / 清单与图上框联动 ───
+const activeDetectionIdx = ref<number | null>(null);
+const hoverDetectionIdx = ref<number | null>(null);
+const classFilter = ref<string>('all');
+
+/** 按类别聚合统计（供筛选 chips） */
+const classStats = computed(() => {
+  const map = new Map<string, { key: string; name: string; en: string; count: number; maxConf: number }>();
+  (detectResult.value?.detections ?? []).forEach(d => {
+    const key = d.classNameZh || d.className;
+    const cur = map.get(key) ?? { key, name: d.classNameZh, en: d.className, count: 0, maxConf: 0 };
+    cur.count += 1;
+    cur.maxConf = Math.max(cur.maxConf, d.confidence);
+    map.set(key, cur);
+  });
+  return [...map.values()].sort((a, b) => b.count - a.count);
+});
+
+/** 筛选后的目标清单（保留原始序号，与图上框联动） */
+const visibleDetections = computed(() => {
+  const list = detectResult.value?.detections ?? [];
+  return list
+    .map((d, i) => ({ d, i }))
+    .filter(x => classFilter.value === 'all' || (x.d.classNameZh || x.d.className) === classFilter.value);
+});
+
+/** 图上检测框定位（bbox 按原图像素 → 百分比；等比缩放下比例不变） */
+function boxStyle(d: Api.Vision.Detection): Record<string, string> {
+  const w = detectResult.value?.width || 1;
+  const h = detectResult.value?.height || 1;
+  const [x1, y1, x2, y2] = d.bbox;
+  return {
+    left: `${(x1 / w) * 100}%`,
+    top: `${(y1 / h) * 100}%`,
+    width: `${((x2 - x1) / w) * 100}%`,
+    height: `${((y2 - y1) / h) * 100}%`,
+    borderColor: classColor(d.classNameZh || d.className)
+  };
+}
+
+function toggleDetection(i: number) {
+  activeDetectionIdx.value = activeDetectionIdx.value === i ? null : i;
+}
+
+// ─── 检测框叠加层定位：按 object-fit contain 计算图像实际渲染区域 ───
+const frameContainerRef = ref<HTMLElement | null>(null);
+const imgRef = ref<HTMLImageElement | null>(null);
+const frameStyle = ref<Record<string, string | number>>({ opacity: 0 });
+
+function updateBoxRect() {
+  const container = frameContainerRef.value;
+  const img = imgRef.value;
+  if (!container || !img || !img.naturalWidth || !img.naturalHeight) return;
+  const cw = container.clientWidth;
+  const ch = container.clientHeight;
+  if (!cw || !ch) return;
+  const scale = Math.min(cw / img.naturalWidth, ch / img.naturalHeight);
+  const w = img.naturalWidth * scale;
+  const h = img.naturalHeight * scale;
+  frameStyle.value = {
+    left: `${(cw - w) / 2}px`,
+    top: `${(ch - h) / 2}px`,
+    width: `${w}px`,
+    height: `${h}px`,
+    opacity: 1
+  };
+}
+
+let boxResizeObserver: ResizeObserver | null = null;
+
+onMounted(() => {
+  boxResizeObserver = new ResizeObserver(() => updateBoxRect());
+  if (frameContainerRef.value) boxResizeObserver.observe(frameContainerRef.value);
+});
+
+watch(displayImageUrl, () => {
+  frameStyle.value = { opacity: 0 };
+  nextTick(() => updateBoxRect());
+});
 
 /** 加载目录数据原始图预览（tif 等格式由后端转 jpeg） */
 async function loadCatalogPreview() {
@@ -195,6 +282,10 @@ function resetDetectState() {
   detectError.value = '';
   isDetecting.value = false;
   catalogPreviewUrl.value = '';
+  activeDetectionIdx.value = null;
+  hoverDetectionIdx.value = null;
+  classFilter.value = 'all';
+  viewMode.value = 'overlay';
   detectSource.value = props.item ? 'catalog' : 'upload';
 }
 
@@ -223,6 +314,11 @@ async function handleRunDetect() {
     return;
   }
   detectResult.value = res.data ?? null;
+  // 检测完成：切到原图+检测框视图，重置筛选与选中
+  viewMode.value = 'overlay';
+  classFilter.value = 'all';
+  activeDetectionIdx.value = null;
+  hoverDetectionIdx.value = null;
 }
 
 /** 目录数据直通：后端经存储抽象层（minio/local）读对象内容送检，无需重新上传 */
@@ -520,7 +616,7 @@ function initAnalysisMap() {
   const bbox = props.item?.bbox ?? [116.0, 30.0, 117.0, 31.0];
   const extent = transformExtent(bbox, 'EPSG:4326', 'EPSG:3857');
 
-  const map = new Map({
+  const map = new OlMap({
     target: analysisMapContainer.value,
     controls: defaultControls({ attribution: false, rotate: false }),
     layers: [tileLayer, vLayer],
@@ -623,6 +719,8 @@ watch(
 );
 
 onBeforeUnmount(() => {
+  boxResizeObserver?.disconnect();
+  boxResizeObserver = null;
   destroyAnalysisMap();
   resetDetectState();
 });
@@ -776,8 +874,37 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="detect-content">
-            <div class="detect-image">
-              <img v-if="detectImageUrl" :src="detectImageUrl" alt="检测图片" />
+            <div ref="frameContainerRef" class="detect-image">
+              <div v-if="displayImageUrl" class="detect-image__frame" :style="frameStyle">
+                <img ref="imgRef" :src="displayImageUrl" alt="检测图片" @load="updateBoxRect" />
+                <!-- 原图 + 自绘检测框（中文标签，按类别配色，清单联动） -->
+                <template v-if="viewMode === 'overlay' && detectResult">
+                  <div
+                    v-for="x in visibleDetections"
+                    :key="x.i"
+                    class="dbox"
+                    :class="[
+                      `dbox--${confLevel(x.d.confidence)}`,
+                      {
+                        'dbox--active': activeDetectionIdx === x.i || hoverDetectionIdx === x.i,
+                        'dbox--dim':
+                          (activeDetectionIdx !== null && activeDetectionIdx !== x.i) ||
+                          (hoverDetectionIdx !== null && hoverDetectionIdx !== x.i)
+                      }
+                    ]"
+                    :style="boxStyle(x.d)"
+                    :title="`${x.d.classNameZh} · 置信度 ${(x.d.confidence * 100).toFixed(1)}% · bbox [${x.d.bbox.join(', ')}]`"
+                    @click="toggleDetection(x.i)"
+                    @mouseenter="hoverDetectionIdx = x.i"
+                    @mouseleave="hoverDetectionIdx = null"
+                  >
+                    <span class="dbox__tag" :style="{ background: classColor(x.d.classNameZh || x.d.className) }">
+                      {{ x.d.classNameZh }}
+                      {{ (x.d.confidence * 100).toFixed(0) }}%
+                    </span>
+                  </div>
+                </template>
+              </div>
               <NEmpty
                 v-else
                 :description="
@@ -787,6 +914,18 @@ onBeforeUnmount(() => {
                 "
                 class="detect-image__empty"
               />
+              <!-- 视图切换（有结果且两种视图都有来源时） -->
+              <div v-if="detectResult && originalImageUrl && annotatedImageUrl" class="detect-image__views">
+                <button :class="{ 'detect-view-btn--active': viewMode === 'overlay' }" @click="viewMode = 'overlay'">
+                  检测框
+                </button>
+                <button
+                  :class="{ 'detect-view-btn--active': viewMode === 'annotated' }"
+                  @click="viewMode = 'annotated'"
+                >
+                  服务标注
+                </button>
+              </div>
               <div v-if="isDetecting || isLoadingPreview" class="detect-image__loading">
                 <SvgIcon icon="mdi:loading" class="detect-image__spinner" />
                 {{ isDetecting ? '检测中…' : '预览加载中…' }}
@@ -802,16 +941,66 @@ onBeforeUnmount(() => {
                   {{ detectResult.width }}×{{ detectResult.height }}
                 </span>
               </div>
+              <!-- 类别统计筛选 chips -->
+              <div v-if="classStats.length" class="detect-result__chips">
+                <button
+                  class="detect-chip"
+                  :class="{ 'detect-chip--active': classFilter === 'all' }"
+                  @click="classFilter = 'all'"
+                >
+                  全部 {{ (detectResult?.detections ?? []).length }}
+                </button>
+                <button
+                  v-for="s in classStats"
+                  :key="s.key"
+                  class="detect-chip"
+                  :class="{ 'detect-chip--active': classFilter === s.key }"
+                  :style="
+                    classFilter === s.key
+                      ? { background: classColor(s.key), borderColor: classColor(s.key) }
+                      : { borderColor: classColor(s.key) }
+                  "
+                  @click="classFilter = classFilter === s.key ? 'all' : s.key"
+                >
+                  {{ s.name }}×{{ s.count }}
+                </button>
+              </div>
               <div class="detect-result__list">
-                <div v-for="(d, idx) in detectResult?.detections ?? []" :key="idx" class="detect-row">
-                  <span class="detect-row__idx">{{ idx + 1 }}</span>
-                  <span class="detect-row__name">{{ d.classNameZh }}</span>
-                  <span class="detect-row__en">{{ d.className }}</span>
+                <div
+                  v-for="x in visibleDetections"
+                  :key="x.i"
+                  class="detect-row"
+                  :class="{
+                    'detect-row--active': activeDetectionIdx === x.i || hoverDetectionIdx === x.i,
+                    'detect-row--low': x.d.confidence < 0.4
+                  }"
+                  :title="`bbox [${x.d.bbox.join(', ')}]`"
+                  @mouseenter="hoverDetectionIdx = x.i"
+                  @mouseleave="hoverDetectionIdx = null"
+                  @click="toggleDetection(x.i)"
+                >
+                  <span class="detect-row__idx">{{ x.i + 1 }}</span>
+                  <span
+                    class="detect-row__dot"
+                    :style="{ background: classColor(x.d.classNameZh || x.d.className) }"
+                  ></span>
+                  <span class="detect-row__name">{{ x.d.classNameZh }}</span>
+                  <span class="detect-row__en">{{ x.d.className }}</span>
+                  <span v-if="x.d.confidence < 0.4" class="detect-row__review">待确认</span>
                   <div class="detect-row__bar">
-                    <div class="detect-row__bar-fill" :style="{ width: `${Math.min(d.confidence * 100, 100)}%` }"></div>
+                    <div
+                      class="detect-row__bar-fill"
+                      :class="`detect-row__bar-fill--${confLevel(x.d.confidence)}`"
+                      :style="{ width: `${Math.min(x.d.confidence * 100, 100)}%` }"
+                    ></div>
                   </div>
-                  <span class="detect-row__conf">{{ (d.confidence * 100).toFixed(1) }}%</span>
+                  <span class="detect-row__conf">{{ (x.d.confidence * 100).toFixed(1) }}%</span>
                 </div>
+                <NEmpty
+                  v-if="detectResult && visibleDetections.length === 0 && detectResult.detections.length > 0"
+                  description="该类别下无目标，点击「全部」恢复"
+                  class="detect-result__empty"
+                />
                 <NEmpty
                   v-if="detectResult && detectResult.detections.length === 0"
                   description="未检测到目标，可尝试降低置信度阈值"
@@ -1335,14 +1524,49 @@ onBeforeUnmount(() => {
   position: relative;
   overflow: hidden;
 
-  img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
+  /* 图像实际渲染区域（object-fit contain 换算，JS 定位），检测框百分比叠加其上 */
+  &__frame {
+    position: absolute;
+    z-index: 1;
+
+    img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
   }
 
   &__empty {
     opacity: 0.5;
+  }
+
+  &__views {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 5;
+    display: inline-flex;
+    border: 1px solid rgba(43, 131, 255, 0.35);
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(2, 10, 20, 0.8);
+    backdrop-filter: blur(4px);
+
+    button {
+      padding: 4px 10px;
+      font-size: 11px;
+      color: rgba(203, 227, 255, 0.75);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .detect-view-btn--active {
+      color: #eaf5ff;
+      background: rgba(41, 163, 255, 0.28);
+      font-weight: 600;
+    }
   }
 
   &__loading {
@@ -1364,6 +1588,53 @@ onBeforeUnmount(() => {
   }
 }
 
+/* 检测框叠加层（原图 + 中文标签，按类别配色） */
+.dbox {
+  position: absolute;
+  border: 2px solid;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition:
+    opacity 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &--low {
+    border-style: dashed;
+  }
+
+  &--active {
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.85),
+      0 0 14px rgba(41, 163, 255, 0.5);
+    z-index: 3;
+
+    .dbox__tag {
+      opacity: 1;
+    }
+  }
+
+  &--dim {
+    opacity: 0.25;
+  }
+
+  &__tag {
+    position: absolute;
+    top: -20px;
+    left: -2px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 3px;
+    line-height: 18px;
+    white-space: nowrap;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+    opacity: 0.92;
+    transition: opacity 0.15s ease;
+  }
+}
+
 .detect-result {
   flex: 1;
   min-width: 0;
@@ -1373,6 +1644,14 @@ onBeforeUnmount(() => {
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.18);
   overflow: hidden;
+
+  /* 类别统计筛选 chips */
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 10px 4px;
+  }
 
   &__summary {
     display: flex;
@@ -1413,6 +1692,26 @@ onBeforeUnmount(() => {
   }
 }
 
+.detect-chip {
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  color: rgba(203, 227, 255, 0.85);
+  background: rgba(41, 163, 255, 0.06);
+  border: 1px solid rgba(41, 163, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(41, 163, 255, 0.15);
+  }
+
+  &--active {
+    color: #06121f;
+    font-weight: 700;
+  }
+}
+
 .detect-row {
   display: flex;
   align-items: center;
@@ -1421,9 +1720,35 @@ onBeforeUnmount(() => {
   border-radius: 5px;
   font-size: 12px;
   transition: background 0.15s ease;
+  cursor: pointer;
 
   &:hover {
     background: rgba(41, 163, 255, 0.06);
+  }
+
+  &--active {
+    background: rgba(41, 163, 255, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(41, 163, 255, 0.3);
+  }
+
+  &--low .detect-row__name {
+    opacity: 0.55;
+  }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &__review {
+    font-size: 10px;
+    color: #ffb02e;
+    border: 1px solid rgba(255, 176, 46, 0.4);
+    padding: 0 4px;
+    border-radius: 3px;
+    flex-shrink: 0;
   }
 
   &__idx {
@@ -1463,6 +1788,18 @@ onBeforeUnmount(() => {
     border-radius: 3px;
     background: linear-gradient(90deg, rgba(41, 163, 255, 0.7), #7ee787);
     transition: width 0.4s ease;
+
+    &--high {
+      background: linear-gradient(90deg, rgba(126, 231, 135, 0.75), #7ee787);
+    }
+
+    &--mid {
+      background: linear-gradient(90deg, rgba(41, 163, 255, 0.65), #8db8ff);
+    }
+
+    &--low {
+      background: rgba(255, 176, 46, 0.65);
+    }
   }
 
   &__conf {

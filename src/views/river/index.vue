@@ -200,15 +200,15 @@ async function handleSubmitAnalysis() {
   const form = settingForm.value;
 
   // ── 阶段 1：环境参数解析（约 6s） ──
-  await runStep(0, '解析河宽、水深、流速、地形等环境参数', 6000);
+  await runStep(0, '解析河宽、水深、流速、地形等环境参数', 2000);
 
   // ── 阶段 2：知识库检索（约 8s） ──
   analysisSteps.value[1].status = 'running';
   analysisSteps.value[1].description = '构建检索关键词并匹配历史案例';
   const step2Start = Date.now();
-  await delay(2000);
+  await delay(1500);
   analysisSteps.value[1].description = '执行混合检索（BM25 + 向量召回）';
-  await delay(3000);
+  await delay(800);
 
   const query = `${form.taskType} ${form.riverWidth}m ${form.flowVelocity} ${form.waterDepthRange} ${form.riverbedTerrain} ${form.availableResources.join(' ')}`;
   const retrievalResults: KnowledgeRetrievalResult[] = runKnowledgeRetrieval(query);
@@ -230,7 +230,7 @@ async function handleSubmitAnalysis() {
   const retrieveDesc =
     totalHits > 0 ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk` : '未命中相关文档，使用默认知识模板';
 
-  await delay(3000);
+  await delay(700);
   analysisSteps.value[1].status = 'success';
   analysisSteps.value[1].description = retrieveDesc;
   analysisSteps.value[1].duration = `${((Date.now() - step2Start) / 1000).toFixed(1)}s`;
@@ -241,20 +241,20 @@ async function handleSubmitAnalysis() {
       : ['无相关命中文档', '运行模板', '智能体默认配置'];
 
   // ── 阶段 3：渡场点与路线分析（约 7s） ──
-  await runStep(2, '基于知识库匹配结果选择最优渡场点，规划进出路线', 7000);
+  await runStep(2, '基于知识库匹配结果选择最优渡场点，规划进出路线', 2500);
 
   // ── 阶段 4：方案计算与评估（约 9s） ──
   analysisSteps.value[3].status = 'running';
   analysisSteps.value[3].description = '计算各渡河方式的可行性与耗时';
   const step4Start = Date.now();
-  await delay(3000);
+  await delay(600);
   analysisSteps.value[3].description = '校验水文约束与资源适配性';
-  await delay(3000);
+  await delay(1700);
 
   // 数据完整度用于置信度计算；方案固定使用三套预设方案，不做淘汰
   const { dataCompleteness } = calculateCrossingPlans(form);
   analysisSteps.value[3].description = `生成 ${crossingPlanCards.length} 项可行方案`;
-  await delay(3000);
+  await delay(1200);
   analysisSteps.value[3].status = 'success';
   analysisSteps.value[3].duration = `${((Date.now() - step4Start) / 1000).toFixed(1)}s`;
 
@@ -262,7 +262,7 @@ async function handleSubmitAnalysis() {
   analysisSteps.value[4].status = 'running';
   analysisSteps.value[4].description = '综合时效性、安全性、资源消耗加权评分';
   const step5Start = Date.now();
-  await delay(5000);
+  await delay(1000);
 
   const conf = calculateConfidence(dataCompleteness, totalHits, 85);
   confidence.value = conf;

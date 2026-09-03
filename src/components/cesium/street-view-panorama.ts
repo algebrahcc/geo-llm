@@ -16,6 +16,7 @@ import { EquirectangularAdapter, Viewer } from '@photo-sphere-viewer/core';
 import { CompassPlugin } from '@photo-sphere-viewer/compass-plugin';
 import '@photo-sphere-viewer/core/index.css';
 import '@photo-sphere-viewer/compass-plugin/index.css';
+import { enableOverlayDrag, resetOverlayPosition } from '@/components/cesium/overlay-drag';
 
 export interface StreetViewPanoramaNeighbor {
   /** 街景点的全景图 URL */
@@ -172,6 +173,8 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
   fullscreenBtn.title = '全屏 / 退出全屏';
   fullscreenBtn.addEventListener('click', () => {
     overlay.classList.toggle('svp-overlay--fullscreen');
+    // 全屏/还原时回到样式表默认锚点，避免拖拽残留的 left/top 与全屏定位冲突
+    resetOverlayPosition(overlay);
   });
 
   const closeBtn = document.createElement('button');
@@ -190,6 +193,11 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
 
   overlay.append(bar, stage);
   document.body.appendChild(overlay);
+
+  // 标题栏可拖拽移动卡片
+  bar.style.cursor = 'grab';
+  bar.style.userSelect = 'none';
+  const disposeDrag = enableOverlayDrag(bar, overlay);
 
   // ─── 关闭清理 ──────────────────────────────────────
   let viewer: Viewer | null = null;
@@ -212,6 +220,7 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
     closed = true;
     clearTimeout(hintTimer);
     window.removeEventListener('keydown', onKeydown);
+    disposeDrag();
     viewer?.destroy();
     viewer = null;
     overlay.remove();

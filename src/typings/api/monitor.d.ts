@@ -42,7 +42,7 @@ declare namespace Api {
       page: number;
       size: number;
       /** 排序条件（Continew 契约：["字段,方向"]，如 ["createTime,desc"]） */
-      sort?: string[];
+      sort?: string;
       description?: string;
       module?: string;
       ip?: string;

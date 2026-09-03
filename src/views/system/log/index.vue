@@ -17,7 +17,7 @@ import { usePagination } from '@/hooks/common/use-pagination';
 
 defineOptions({ name: 'LogManage' });
 
-const query = reactive<Api.Monitor.LogQuery>({ page: 1, size: 10, sort: ['createTime,desc'] });
+const query = reactive<Api.Monitor.LogQuery>({ page: 1, size: 10, sort: 'createTime,desc' });
 const { loading, tableData, total, loadData, onPageChange, onPageSizeChange } = usePagination({
   query,
   fetchPage: fetchLogPage
