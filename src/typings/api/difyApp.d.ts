@@ -27,6 +27,8 @@ declare namespace Api {
       description?: string;
       sort?: number;
       status: AppStatus;
+      /** 是否已发布（Dify 侧 Agent 发布状态，仅 agent 类型有值；未知为 null） */
+      published?: boolean | null;
       createTime?: string;
       updateTime?: string;
     }

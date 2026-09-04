@@ -6,6 +6,7 @@ import {
   planningDefaultSupportSettingsForm,
   planningRouteAnalysisSteps,
   planningRouteSummaries,
+  planningRouteTraffic,
   planningSupportAnalysisSteps
 } from '@/mock/planning';
 import { runKnowledgeRetrieval } from '@/mock/knowledge';
@@ -19,7 +20,10 @@ import PlanningSupportAiPanel from './modules/planning-support-ai-panel.vue';
 import PlanningSupportResultBar from './modules/planning-support-result-bar.vue';
 import PlanningSupportSettingsPanel from './modules/planning-support-settings-panel.vue';
 import SceneToolbar from '@/components/common/scene-toolbar.vue';
+import AgentChatPanel from '@/components/agent/agent-chat-panel.vue';
+import type { PlotInstruction } from '@/components/agent/plot-instruction';
 import { useDraggable } from '@/composables/use-draggable';
+import { usePanelResize } from '@/composables/use-panel-resize';
 import PlanningViewer from './modules/planning-viewer.vue';
 import { usePlanning } from './modules/use-planning';
 import MapLayerPanel, { type VectorLayerItem } from '@/components/cesium/map-layer-panel.vue';
@@ -44,6 +48,7 @@ interface PlanningViewerExposed {
   setActiveTool: (tool: PlanningInteractiveTool) => void;
   setLayerVisible: (key: PlanningLayerKey, visible: boolean) => void;
   showRoute: (routeKey: PlanningRouteKey) => void;
+  revealRoutes: (routeKey: PlanningRouteKey) => void;
   showWaypoints: (waypoints: PlanningWaypoint[]) => void;
   setStartPoint: (longitude: number | null, latitude: number | null, name?: string) => void;
   setEndPoint: (longitude: number | null, latitude: number | null, name?: string) => void;
@@ -54,6 +59,15 @@ interface PlanningViewerExposed {
   rotate: () => void;
   pitch: () => void;
   toggleViewMode: () => void;
+  /** 视角定位（智能体标绘 flyTo 指令） */
+  flyToLocation: (lon: number, lat: number, height?: number, duration?: number) => void;
+  /** 智能体标绘层 */
+  drawAiMark: (item: { id?: string; lon: number; lat: number; name?: string; color?: string }) => string;
+  drawAiLine: (item: { id?: string; name?: string; color?: string; positions: Array<[number, number]> }) => string;
+  drawAiPolygon: (item: { id?: string; name?: string; color?: string; positions: Array<[number, number]> }) => string;
+  drawAiText: (item: { id?: string; lon: number; lat: number; text: string; name?: string; color?: string }) => string;
+  removeAiOverlay: (id: string) => boolean;
+  clearAiOverlays: () => void;
   /** 矢量图层（与渡河保障一致的图层管理） */
   loadVectorLayer: (id: string, name: string, sourceType?: string) => Promise<void>;
   setVectorLayerVisible: (id: string, show: boolean) => void;
@@ -104,6 +118,7 @@ const routeResultCards = computed<PlanningRouteResultCard[]>(() => {
       distance: dist,
       highlights: [...s.highlights],
       mainPath: s.title,
+      traffic: planningRouteTraffic[key],
       isRecommended: i === 0
     };
   });
@@ -116,9 +131,11 @@ const supportSettingsForm = ref<PlanningSupportSettingsForm>({ ...planningDefaul
 // ──── 面板可见与折叠 ────
 const leftPanelVisible = ref(true);
 const rightPanelVisible = ref(false);
+const agentPanelVisible = ref(false);
 const bottomPanelVisible = ref(false);
 const leftPanelCollapsed = ref(false);
 const rightPanelCollapsed = ref(false);
+const agentCollapsed = ref(false);
 const bottomPanelCollapsed = ref(false);
 const layerPanelVisible = ref(false);
 const layerCollapsed = ref(false);
@@ -141,9 +158,48 @@ const supportKnowledgeHits = ref<{ docCount: number; chunkCount: number; docName
 const selectedRouteCard = ref<string | null>(null);
 const selectedSupportCard = ref<string | null>(null);
 
+// ──── 场景智能体（AgentChatPanel） ────
+// Dify 应用 id：规划场景参谋应用（在系统管理-应用管理录入 Dify 控制台创建的 Agent 应用后，
+// 把该记录的本地主键 id 填到这里）；未配置时组件拉取已发布 Agent 列表默认选第一个
+const agentAppId = ref<string | number | undefined>(undefined);
+const agentNotice = ref<string | null>(null);
+// 场景上下文（按当前 Tab 模式给 route / mission 表单快照）
+const agentContext = computed(() => {
+  if (pageMode.value === 'mission') {
+    return {
+      page: 'planning',
+      mode: 'mission',
+      missionName: supportSettingsForm.value.missionName,
+      supportType: supportSettingsForm.value.supportType,
+      forceScale: supportSettingsForm.value.forceScale,
+      plannedRoute: supportSettingsForm.value.plannedRoute,
+      selectedSupport: selectedSupportCard.value
+    };
+  }
+  return {
+    page: 'planning',
+    mode: 'route',
+    taskName: routeSettingsForm.value.taskName,
+    startName: routeSettingsForm.value.startName,
+    endName: routeSettingsForm.value.endName,
+    routePreference: routeSettingsForm.value.routePreference,
+    forceScale: routeSettingsForm.value.forceScale,
+    roadGrades: (routeSettingsForm.value.roadGrades ?? []).join('、'),
+    selectedRoute: selectedRouteCard.value
+  };
+});
+
 // ──── 拖拽状态 ────
 const leftDrag = useDraggable({ anchor: 'left', initialX: 72, initialY: 72 });
 const rightDrag = useDraggable({ anchor: 'right', initialX: 16, initialY: 72 });
+const agentDrag = useDraggable({ anchor: 'right', initialX: 16, initialY: 120 });
+// 智能体面板宽高（默认 520×660，右下角可拖拽缩放）
+const agentResize = usePanelResize({ width: 520, height: 660 });
+const agentPanelStyle = computed(() => ({
+  ...agentDrag.style.value,
+  width: `${agentResize.size.value.width}px`,
+  height: `${agentResize.size.value.height}px`
+}));
 const bottomDrag = useDraggable({ anchor: 'right', initialX: 700, initialY: 72 });
 const layerDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 18 });
 
@@ -185,7 +241,83 @@ function toggleLeftPanel() {
 
 function toggleRightPanel() {
   rightPanelVisible.value = !rightPanelVisible.value;
-  if (rightPanelVisible.value) rightPanelCollapsed.value = false;
+  if (rightPanelVisible.value) {
+    rightPanelCollapsed.value = false;
+    // 互斥：打开 AI 面板时关闭场景智能体面板
+    agentPanelVisible.value = false;
+  }
+}
+
+function toggleAgentPanel() {
+  agentPanelVisible.value = !agentPanelVisible.value;
+  if (agentPanelVisible.value) {
+    agentCollapsed.value = false;
+    // 互斥：打开场景智能体面板时关闭 AI 面板
+    rightPanelVisible.value = false;
+  }
+}
+
+function handleAgentClose() {
+  agentPanelVisible.value = false;
+}
+
+/** 智能体标绘指令分发到 Cesium */
+function handlePlotInstruction(instruction: PlotInstruction) {
+  const viewer = viewerRef.value;
+  if (!viewer) return;
+  try {
+    switch (instruction.action) {
+      case 'addMark': {
+        viewer.drawAiMark({
+          id: instruction.id,
+          lon: instruction.lon!,
+          lat: instruction.lat!,
+          name: instruction.name,
+          color: instruction.color
+        });
+        viewer.flyToLocation(instruction.lon!, instruction.lat!, 5000, 1.2);
+        break;
+      }
+      case 'addText':
+        viewer.drawAiText({
+          id: instruction.id,
+          lon: instruction.lon!,
+          lat: instruction.lat!,
+          text: instruction.text || instruction.name || '注记',
+          name: instruction.name,
+          color: instruction.color
+        });
+        break;
+      case 'addLine':
+        viewer.drawAiLine({
+          id: instruction.id,
+          name: instruction.name,
+          color: instruction.color,
+          positions: instruction.positions!
+        });
+        break;
+      case 'addPolygon':
+        viewer.drawAiPolygon({
+          id: instruction.id,
+          name: instruction.name,
+          color: instruction.color,
+          positions: instruction.positions!
+        });
+        break;
+      case 'remove':
+        viewer.removeAiOverlay(instruction.id!);
+        break;
+      case 'clear':
+        viewer.clearAiOverlays();
+        break;
+      case 'flyTo':
+        viewer.flyToLocation(instruction.lon!, instruction.lat!, instruction.height ?? 6000, 1.2);
+        break;
+    }
+  } catch (e) {
+    console.error('[planning] 标绘指令执行失败：', instruction, e);
+    window.$message?.error(`标绘指令执行失败（${instruction.action}），请查看控制台`);
+  }
 }
 
 function toggleBottomPanel() {
@@ -255,8 +387,8 @@ async function handleRoutePlan() {
   setPlanningState('analyzing');
   try {
     await startPlanning();
-    // 根据 setCurrentRoute 的结果更新地图标绘
-    viewerRef.value?.showRoute(currentRoute.value);
+    // 根据 setCurrentRoute 的结果更新地图标绘（首次分析完成时同时显示全部候选路线）
+    viewerRef.value?.revealRoutes(currentRoute.value);
     viewerRef.value?.setStartPoint(
       routeSettingsForm.value.startLongitude,
       routeSettingsForm.value.startLatitude,
@@ -282,6 +414,8 @@ async function handleRoutePlan() {
   bottomPanelVisible.value = true;
   bottomPanelCollapsed.value = false;
   routeRunning.value = false;
+  // 衔接智能体面板：注入系统消息
+  agentNotice.value = `已完成机动规划分析，生成候选路线方案，可打开"场景智能体"向我提问（如"路线一为什么推荐"）。`;
 }
 
 function getRouteStepText(label: string): string {
@@ -341,6 +475,8 @@ async function handleSupportPlan() {
   bottomPanelVisible.value = true;
   bottomPanelCollapsed.value = false;
   window.$message?.success('机动保障方案生成完成');
+  // 衔接智能体面板：注入系统消息
+  agentNotice.value = `已完成机动保障方案生成，可打开"场景智能体"向我提问（如"各保障方案的油料/补给差异"）。`;
 }
 
 function getSupportStepText(label: string): string {
@@ -611,6 +747,20 @@ function handleSupportAiSend(message: string) {
             <button
               type="button"
               class="side-btn"
+              :class="{ 'side-btn--active': agentPanelVisible }"
+              @click="toggleAgentPanel"
+            >
+              <SvgIcon icon="mdi:robot" />
+            </button>
+          </template>
+          <span>场景智能体</span>
+        </NTooltip>
+
+        <NTooltip placement="right">
+          <template #trigger>
+            <button
+              type="button"
+              class="side-btn"
               :class="{ 'side-btn--active': bottomPanelVisible }"
               @click="toggleBottomPanel"
             >
@@ -653,25 +803,11 @@ function handleSupportAiSend(message: string) {
             </button>
           </div>
 
-          <!-- Tab 切换 -->
+          <!-- Tab 切换（机动保障模式暂隐藏，仅保留机动规划） -->
           <div class="panel-tabs">
-            <button
-              type="button"
-              class="panel-tab"
-              :class="{ 'panel-tab--active': pageMode === 'route' }"
-              @click="handleTabSwitch('route')"
-            >
+            <button type="button" class="panel-tab panel-tab--active" @click="handleTabSwitch('route')">
               <SvgIcon icon="mdi:routes" class="tab-icon" />
               机动规划
-            </button>
-            <button
-              type="button"
-              class="panel-tab"
-              :class="{ 'panel-tab--active': pageMode === 'mission' }"
-              @click="handleTabSwitch('mission')"
-            >
-              <SvgIcon icon="mdi:shield-check-outline" class="tab-icon" />
-              机动保障
             </button>
           </div>
 
@@ -726,6 +862,7 @@ function handleSupportAiSend(message: string) {
             :progress="routeProgress"
             :status-text="routeStatusText"
             :knowledge-hits="routeKnowledgeHits"
+            :app-id="agentAppId"
             @toggle-collapse="handleRightPanelCollapse"
             @send="handleRouteAiSend"
           />
@@ -741,6 +878,32 @@ function handleSupportAiSend(message: string) {
             @toggle-collapse="handleRightPanelCollapse"
             @send="handleSupportAiSend"
           />
+        </div>
+      </Transition>
+
+      <!-- ══════ 右侧：场景智能体面板 ══════ -->
+      <Transition name="panel-slide-right">
+        <div v-if="agentPanelVisible" class="floating-panel right-panel agent-panel-wrapper" :style="agentPanelStyle">
+          <div class="panel-drag-handle" @mousedown="agentDrag.onDragStart">
+            <span class="drag-dots">⋮⋮</span>
+            <span class="drag-label">场景智能体</span>
+            <button type="button" class="panel-close-btn" @click.stop="handleAgentClose">
+              <SvgIcon icon="mdi:close" />
+            </button>
+          </div>
+          <AgentChatPanel
+            :collapsed="agentCollapsed"
+            title="场景智能体"
+            :app-id="agentAppId"
+            :context="agentContext"
+            :notice="agentNotice"
+            welcome-text="您好，我是机动规划场景的智能参谋。可以结合当前任务回答专业问题；也可以用自然语言下达标绘指令，例如「关渡大桥拥堵了，标出来」。"
+            :capabilities="['知识库问答', '路线标绘', '方案解读']"
+            @toggle-collapse="agentCollapsed = !agentCollapsed"
+            @close="handleAgentClose"
+            @plot-instruction="handlePlotInstruction"
+          />
+          <button type="button" class="resize-handle" title="拖拽调整大小" @mousedown="agentResize.onResizeStart" />
         </div>
       </Transition>
 
@@ -1059,6 +1222,37 @@ function handleSupportAiSend(message: string) {
   background: transparent !important;
   backdrop-filter: none !important;
   border-radius: 0 !important;
+}
+
+.right-panel :deep(.agent-chat-panel) {
+  flex: 1;
+  min-height: 0;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+.resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  border: none;
+  background: transparent;
+  z-index: 5;
+}
+
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid rgba(255, 255, 255, 0.4);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+  border-bottom-right-radius: 2px;
 }
 
 .bottom-panel :deep(.route-result-bar),

@@ -29,13 +29,13 @@ const customRoutes = [
     path: '/river-fullscreen',
     component: 'layout.blank$view.river',
     meta: {
-      title: '渡河保障方案',
+      title: '渡河工程保障',
       hideInMenu: true
     }
   }
 ] as unknown as CustomRoute[];
 
-/** 典型场景分组：渡河保障方案 / 机动路线规划（子页均为 blank 布局的全屏地图页） */
+/** 典型场景分组：渡河工程保障 / 机动路线规划（子页均为 blank 布局的全屏地图页） */
 function createScenarioElegantRoute() {
   return {
     name: 'scenario',
@@ -53,7 +53,7 @@ function createScenarioElegantRoute() {
         // 多级子路由不支持 "layout.$view" 组合写法（组合拆包仅限单级路由），全屏地图页直接挂视图即可
         component: 'view.river',
         meta: {
-          title: '渡河保障方案',
+          title: '渡河工程保障',
           icon: 'mdi:ferry'
         }
       },

@@ -11,8 +11,11 @@ import RiverResultBar from './modules/river-result-bar.vue';
 import RiverSettingPanel from './modules/river-setting-panel.vue';
 import SceneToolbar from '@/components/common/scene-toolbar.vue';
 import type { SceneToolbarItem } from '@/components/common/scene-toolbar.vue';
+import AgentChatPanel from '@/components/agent/agent-chat-panel.vue';
+import type { PlotInstruction } from '@/components/agent/plot-instruction';
 import RiverViewer from './modules/river-viewer.vue';
 import { useDraggable } from '@/composables/use-draggable';
+import { usePanelResize } from '@/composables/use-panel-resize';
 import MapLayerPanel, { type VectorLayerItem } from '@/components/cesium/map-layer-panel.vue';
 import type {
   AiAnalysisStep,
@@ -45,6 +48,15 @@ interface ViewerExpose {
   showRejectedRoutes: (routes: RejectedRouteData[]) => void;
   clearRejectedEntities: () => void;
   focusRejectedRoute: (id: string) => void;
+  /** 视角定位（智能体标绘 flyTo 指令） */
+  flyToLocation: (lon: number, lat: number, height?: number, duration?: number) => void;
+  /** 智能体标绘层 */
+  drawAiMark: (item: { id?: string; lon: number; lat: number; name?: string; color?: string }) => string;
+  drawAiLine: (item: { id?: string; name?: string; color?: string; positions: Array<[number, number]> }) => string;
+  drawAiPolygon: (item: { id?: string; name?: string; color?: string; positions: Array<[number, number]> }) => string;
+  drawAiText: (item: { id?: string; lon: number; lat: number; text: string; name?: string; color?: string }) => string;
+  removeAiOverlay: (id: string) => boolean;
+  clearAiOverlays: () => void;
   /** 数据服务（阶段二） */
   serviceHandles: ServiceLayerHandle[];
   toggleService: (id: number, visible: boolean) => void;
@@ -59,18 +71,28 @@ const router = useRouter();
 // ──── 面板可见性 ────
 const settingVisible = ref(true);
 const aiPanelVisible = ref(false);
+const agentPanelVisible = ref(false);
 const resultVisible = ref(false);
 const layerPanelVisible = ref(false);
 
 // ──── 面板折叠 ────
 const settingCollapsed = ref(false);
 const aiCollapsed = ref(false);
+const agentCollapsed = ref(false);
 const resultCollapsed = ref(false);
 const layerCollapsed = ref(false);
 
 // ──── 面板拖拽 ────
 const settingDrag = useDraggable({ anchor: 'left', initialX: 72, initialY: 72 });
 const aiDrag = useDraggable({ anchor: 'right', initialX: 18, initialY: 18 });
+const agentDrag = useDraggable({ anchor: 'right', initialX: 18, initialY: 72 });
+// 智能体面板宽高（默认 520×660，右下角可拖拽缩放）
+const agentResize = usePanelResize({ width: 520, height: 660 });
+const agentPanelStyle = computed(() => ({
+  ...agentDrag.style.value,
+  width: `${agentResize.size.value.width}px`,
+  height: `${agentResize.size.value.height}px`
+}));
 // 结果面板：中间偏右竖向浮动面板（参考路线规划页）
 const resultDrag = useDraggable({ anchor: 'right', initialX: 460, initialY: 72 });
 const layerDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 18 });
@@ -90,6 +112,27 @@ const activeRejectedId = ref<string | null>(null);
 
 // ──── 当前标绘方案 ────
 const activePlanKey = ref<RiverPlanKey>('plan-a');
+
+// ──── 场景智能体（AgentChatPanel） ────
+// Dify 应用 id：渡河场景参谋应用；未配置时走后端默认应用
+const agentAppId = ref<string | number | undefined>(undefined);
+// 分析完成衔接的系统通知
+const agentNotice = ref<string | null>(null);
+// 场景上下文（随每条消息作为 inputs.context 传给 Dify）
+const agentContext = computed(() => ({
+  page: 'river',
+  taskName: settingForm.value.taskName,
+  location: settingForm.value.location,
+  taskType: settingForm.value.taskType,
+  forceScale: settingForm.value.forceScale,
+  riverWidth: settingForm.value.riverWidth,
+  waterDepthRange: settingForm.value.waterDepthRange,
+  flowVelocity: settingForm.value.flowVelocity,
+  riverbedTerrain: settingForm.value.riverbedTerrain,
+  availableResources: settingForm.value.availableResources.join('、'),
+  timeConstraint: settingForm.value.timeConstraint,
+  currentPlan: activePlanKey.value
+}));
 
 // ──── 智能体信息 ────
 const agentInfo = { status: 'online' as const };
@@ -206,9 +249,9 @@ async function handleSubmitAnalysis() {
   analysisSteps.value[1].status = 'running';
   analysisSteps.value[1].description = '构建检索关键词并匹配历史案例';
   const step2Start = Date.now();
-  await delay(1500);
+  await delay(1000);
   analysisSteps.value[1].description = '执行混合检索（BM25 + 向量召回）';
-  await delay(800);
+  await delay(1000);
 
   const query = `${form.taskType} ${form.riverWidth}m ${form.flowVelocity} ${form.waterDepthRange} ${form.riverbedTerrain} ${form.availableResources.join(' ')}`;
   const retrievalResults: KnowledgeRetrievalResult[] = runKnowledgeRetrieval(query);
@@ -230,7 +273,7 @@ async function handleSubmitAnalysis() {
   const retrieveDesc =
     totalHits > 0 ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk` : '未命中相关文档，使用默认知识模板';
 
-  await delay(700);
+  await delay(600);
   analysisSteps.value[1].status = 'success';
   analysisSteps.value[1].description = retrieveDesc;
   analysisSteps.value[1].duration = `${((Date.now() - step2Start) / 1000).toFixed(1)}s`;
@@ -241,20 +284,20 @@ async function handleSubmitAnalysis() {
       : ['无相关命中文档', '运行模板', '智能体默认配置'];
 
   // ── 阶段 3：渡场点与路线分析（约 7s） ──
-  await runStep(2, '基于知识库匹配结果选择最优渡场点，规划进出路线', 2500);
+  await runStep(2, '基于知识库匹配结果选择最优渡场点，规划进出路线', 1800);
 
   // ── 阶段 4：方案计算与评估（约 9s） ──
   analysisSteps.value[3].status = 'running';
   analysisSteps.value[3].description = '计算各渡河方式的可行性与耗时';
   const step4Start = Date.now();
-  await delay(600);
+  await delay(1000);
   analysisSteps.value[3].description = '校验水文约束与资源适配性';
-  await delay(1700);
+  await delay(1200);
 
   // 数据完整度用于置信度计算；方案固定使用三套预设方案，不做淘汰
   const { dataCompleteness } = calculateCrossingPlans(form);
   analysisSteps.value[3].description = `生成 ${crossingPlanCards.length} 项可行方案`;
-  await delay(1200);
+  await delay(1000);
   analysisSteps.value[3].status = 'success';
   analysisSteps.value[3].duration = `${((Date.now() - step4Start) / 1000).toFixed(1)}s`;
 
@@ -283,7 +326,9 @@ async function handleSubmitAnalysis() {
   }
 
   analysisRunning.value = false;
-  window.$message?.success('AI 智能分析完成，已生成渡河保障方案');
+  window.$message?.success('AI 智能分析完成，已生成渡河工程保障');
+  // 衔接智能体面板：注入一条系统消息，提示可追问
+  agentNotice.value = `已完成对「${settingForm.value.taskName}」的智能分析，生成 ${planCards.value.length} 套方案，可打开"场景智能体"向我提问（如"方案一为什么被推荐"）。`;
 }
 
 async function runStep(index: number, description: string, durationMs: number = 800) {
@@ -395,6 +440,82 @@ function handleToggleAiPanel() {
   else {
     aiPanelVisible.value = true;
     aiCollapsed.value = false;
+    // 互斥：打开 AI 助手面板时关闭场景智能体面板
+    agentPanelVisible.value = false;
+  }
+}
+
+function handleToggleAgentPanel() {
+  if (agentPanelVisible.value) agentCollapsed.value = !agentCollapsed.value;
+  else {
+    agentPanelVisible.value = true;
+    agentCollapsed.value = false;
+    // 互斥：打开场景智能体面板时关闭 AI 助手面板
+    aiPanelVisible.value = false;
+  }
+}
+
+function handleAgentClose() {
+  agentPanelVisible.value = false;
+}
+
+/** 智能体标绘指令分发到 Cesium */
+function handlePlotInstruction(instruction: PlotInstruction) {
+  const viewer = viewerRef.value;
+  if (!viewer) return;
+  try {
+    switch (instruction.action) {
+      case 'addMark': {
+        viewer.drawAiMark({
+          id: instruction.id,
+          lon: instruction.lon!,
+          lat: instruction.lat!,
+          name: instruction.name,
+          color: instruction.color
+        });
+        viewer.flyToLocation(instruction.lon!, instruction.lat!, 5000, 1.2);
+        break;
+      }
+      case 'addText': {
+        viewer.drawAiText({
+          id: instruction.id,
+          lon: instruction.lon!,
+          lat: instruction.lat!,
+          text: instruction.text || instruction.name || '注记',
+          name: instruction.name,
+          color: instruction.color
+        });
+        break;
+      }
+      case 'addLine':
+        viewer.drawAiLine({
+          id: instruction.id,
+          name: instruction.name,
+          color: instruction.color,
+          positions: instruction.positions!
+        });
+        break;
+      case 'addPolygon':
+        viewer.drawAiPolygon({
+          id: instruction.id,
+          name: instruction.name,
+          color: instruction.color,
+          positions: instruction.positions!
+        });
+        break;
+      case 'remove':
+        viewer.removeAiOverlay(instruction.id!);
+        break;
+      case 'clear':
+        viewer.clearAiOverlays();
+        break;
+      case 'flyTo':
+        viewer.flyToLocation(instruction.lon!, instruction.lat!, instruction.height ?? 6000, 1.2);
+        break;
+    }
+  } catch (e) {
+    console.error('[river] 标绘指令执行失败：', instruction, e);
+    window.$message?.error(`标绘指令执行失败（${instruction.action}），请查看控制台`);
   }
 }
 
@@ -449,6 +570,20 @@ function handleToggleResult() {
             </button>
           </template>
           <span>AI 助手</span>
+        </NTooltip>
+
+        <NTooltip placement="right">
+          <template #trigger>
+            <button
+              type="button"
+              class="side-btn"
+              :class="{ 'side-btn--active': agentPanelVisible && !agentCollapsed }"
+              @click="handleToggleAgentPanel"
+            >
+              <SvgIcon icon="mdi:robot-outline" />
+            </button>
+          </template>
+          <span>场景智能体</span>
         </NTooltip>
 
         <NTooltip placement="right">
@@ -529,6 +664,27 @@ function handleToggleResult() {
             @close="handleAiClose"
             @setting-close="handleSettingClose"
           />
+        </div>
+      </Transition>
+
+      <!-- ══════ 右侧：场景智能体面板 ══════ -->
+      <Transition name="panel-slide-right">
+        <div v-if="agentPanelVisible" class="side-panel ai-panel-wrapper agent-panel-wrapper" :style="agentPanelStyle">
+          <div class="panel-drag-handle" @mousedown="agentDrag.onDragStart">
+            <span class="drag-dots">⋮⋮</span>
+            <span>场景智能体</span>
+          </div>
+          <AgentChatPanel
+            :collapsed="agentCollapsed"
+            title="场景智能体"
+            :app-id="agentAppId"
+            :context="agentContext"
+            :notice="agentNotice"
+            @toggle-collapse="agentCollapsed = !agentCollapsed"
+            @close="handleAgentClose"
+            @plot-instruction="handlePlotInstruction"
+          />
+          <button type="button" class="resize-handle" title="拖拽调整大小" @mousedown="agentResize.onResizeStart" />
         </div>
       </Transition>
 
@@ -694,6 +850,37 @@ function handleToggleResult() {
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+}
+.ai-panel-wrapper :deep(.agent-chat-panel) {
+  flex: 1;
+  min-height: 0;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  border: none;
+  background: transparent;
+  z-index: 5;
+}
+
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid rgba(255, 255, 255, 0.4);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+  border-bottom-right-radius: 2px;
 }
 .result-panel :deep(.result-bar) {
   height: 100%;

@@ -114,6 +114,8 @@ export interface PlanningChatMessage {
   id: string;
   role: 'assistant' | 'user';
   content: string;
+  /** 流式生成中（用于"正在思考…"占位与停止按钮） */
+  streaming?: boolean;
 }
 
 // ──── 分析步骤 ────
@@ -185,6 +187,20 @@ export interface PlanningSupportSettingsForm {
   missionName?: string;
 }
 
+// ──── 交通状况分析 ────
+export interface RouteTrafficAnalysis {
+  /** 总体路况等级 */
+  level: '畅通' | '基本畅通' | '缓行' | '拥堵';
+  /** 平均车速 */
+  avgSpeed: string;
+  /** 预计延误（分钟，0 表示无） */
+  delayMin: number;
+  /** 分路段路况 */
+  segments: Array<{ name: string; level: string; note: string }>;
+  /** 对机动的影响与建议 */
+  impacts: string[];
+}
+
 // ──── 路线结果卡片 ────
 export interface PlanningRouteResultCard {
   key: string;
@@ -198,6 +214,8 @@ export interface PlanningRouteResultCard {
   score: number;
   highlights: string[];
   mainPath?: string;
+  /** 交通状况分析 */
+  traffic?: RouteTrafficAnalysis;
 }
 
 // ──── 保障结果卡片 ────

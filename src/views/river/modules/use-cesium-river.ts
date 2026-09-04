@@ -71,6 +71,9 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
   // 淘汰方式路线（常驻弱化显示，与可行方案路线并存）
   const rejectedEntities: Entity[] = [];
   let currentRejectedRoutes: RejectedRouteData[] = [];
+  // 智能体标绘层（AI 指令产生的点/线/面/文字，按 id 管理，可单删/全清）
+  const aiOverlayEntries = new Map<string, Entity>();
+  let aiPlotSeq = 0;
 
   const layerVisibility: Record<RiverLayerKey, boolean> = {
     imagery: true
@@ -188,6 +191,9 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     rejectedEntities.forEach(e => {
       e.show = layerVisibility.imagery;
     });
+    aiOverlayEntries.forEach(e => {
+      e.show = layerVisibility.imagery;
+    });
     base.requestRender();
   }
 
@@ -278,6 +284,100 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     base.flyToLocation(route.mark.longitude, route.mark.latitude, 3500, 1.4);
   }
 
+  // ─── 智能体标绘层（AI 指令 → 点/线/面/文字，按 id 管理） ───
+
+  interface AiOverlayItem {
+    id?: string;
+    name?: string;
+    color?: string;
+  }
+
+  function resolveAiId(item: AiOverlayItem): string {
+    return item.id || `ai-plot-${++aiPlotSeq}`;
+  }
+
+  function drawAiMark(item: AiOverlayItem & { lon: number; lat: number }): string {
+    const id = resolveAiId(item);
+    const viewer = viewerRef.value;
+    if (!viewer) return id;
+    // 同 id 实体已存在时先移除，避免多轮对话 id 复用导致 add 冲突
+    const existing = viewer.entities.getById(id);
+    if (existing) viewer.entities.remove(existing);
+    const entity = createPointEntity('imagery', {
+      id,
+      name: item.name || 'AI 标注',
+      longitude: item.lon,
+      latitude: item.lat,
+      color: item.color || '#fb7185'
+    });
+    if (entity) {
+      aiOverlayEntries.set(id, entity);
+      base.requestRender();
+    }
+    return id;
+  }
+
+  function drawAiText(item: AiOverlayItem & { lon: number; lat: number; text: string }): string {
+    return drawAiMark({ ...item, name: item.text });
+  }
+
+  function drawAiLine(item: AiOverlayItem & { positions: Array<[number, number]> }): string {
+    const id = resolveAiId(item);
+    const viewer = viewerRef.value;
+    if (!viewer) return id;
+    const existing = viewer.entities.getById(id);
+    if (existing) viewer.entities.remove(existing);
+    const entity = createPolylineEntity('imagery', {
+      id,
+      name: item.name || 'AI 标绘线',
+      color: item.color || '#f7b267',
+      positions: item.positions,
+      width: 4
+    });
+    if (entity) {
+      aiOverlayEntries.set(id, entity);
+      base.requestRender();
+    }
+    return id;
+  }
+
+  function drawAiPolygon(item: AiOverlayItem & { positions: Array<[number, number]> }): string {
+    const id = resolveAiId(item);
+    const viewer = viewerRef.value;
+    if (!viewer) return id;
+    const existing = viewer.entities.getById(id);
+    if (existing) viewer.entities.remove(existing);
+    const entity = createPolygonEntity('imagery', {
+      id,
+      name: item.name || 'AI 标绘区域',
+      color: item.color || '#fb7185',
+      positions: item.positions
+    });
+    if (entity) {
+      aiOverlayEntries.set(id, entity);
+      base.requestRender();
+    }
+    return id;
+  }
+
+  function removeAiOverlay(id: string): boolean {
+    const entity = aiOverlayEntries.get(id);
+    const viewer = viewerRef.value;
+    if (!entity || !viewer) return false;
+    viewer.entities.remove(entity);
+    aiOverlayEntries.delete(id);
+    base.requestRender();
+    return true;
+  }
+
+  function clearAiOverlays(): void {
+    const viewer = viewerRef.value;
+    if (!viewer) return;
+    aiOverlayEntries.forEach(e => viewer.entities.remove(e));
+    aiOverlayEntries.clear();
+    base.requestRender();
+  }
+
   function flyToPreset() {
     base.flyToLocation(riverPresets.task.longitude, riverPresets.task.latitude, riverPresets.task.height, 1.4);
   }
@@ -357,10 +457,9 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
             const cartesian = base.getCartesianFromScreen(event.position);
             if (!cartesian) return;
             const cartographic = Cartographic.fromCartesian(cartesian);
-            createDynamicMark(
-              CesiumMath.toDegrees(cartographic.longitude),
-              CesiumMath.toDegrees(cartographic.latitude)
-            );
+            const lon = CesiumMath.toDegrees(cartographic.longitude);
+            const lat = CesiumMath.toDegrees(cartographic.latitude);
+            createDynamicMark(lon, lat);
             emitStatus(cartesian);
           }
         });
@@ -381,9 +480,9 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     }
   }
 
-  function initMapOverlays() {
+  function initMapOverlays(showPlanFirst = true) {
     addStaticEntities();
-    showPlan(activePlan);
+    if (showPlanFirst) showPlan(activePlan);
     flyToPreset();
     emitStatus(Cartesian3.fromDegrees(riverPresets.task.longitude, riverPresets.task.latitude, 0));
   }
@@ -409,6 +508,12 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     showRejectedRoutes,
     clearRejectedEntities,
     focusRejectedRoute,
+    drawAiMark,
+    drawAiLine,
+    drawAiPolygon,
+    drawAiText,
+    removeAiOverlay,
+    clearAiOverlays,
     is2dMode: base.is2dMode,
     toggleViewMode: base.toggleViewMode,
     // 矢量图层（通用组合层）

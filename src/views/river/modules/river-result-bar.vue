@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { CrossingPlanCard, RejectedRouteData, RiverPlanKey } from './types';
 
 const props = defineProps<{
@@ -23,6 +23,17 @@ const emit = defineEmits<{
 const expandedCard = ref<number | null>(null);
 const expandAll = ref(false);
 const showRejected = ref(false);
+
+// 推荐方案默认展开详情，其余卡片折叠，突出主推方案
+watch(
+  () => props.plans,
+  plans => {
+    if (expandedCard.value !== null || plans.length === 0) return;
+    const recommended = plans.find(p => p.isRecommended) ?? plans[0];
+    expandedCard.value = recommended.rank;
+  },
+  { immediate: true }
+);
 
 const allExpanded = computed(() => expandAll.value && props.plans.length > 0);
 
@@ -83,12 +94,6 @@ function getSafetyColor(safety: string): string {
       </div>
 
       <template v-else>
-        <div class="plan-desc">
-          共生成
-          <strong>{{ plans.length }}</strong>
-          项可行方案，综合知识库检索与智能体推理分析，按推荐指数排序：
-        </div>
-
         <!-- ══ 已淘汰方式（可点击查看路线） ══ -->
         <div v-if="rejected && rejected.length > 0" class="rejected-section">
           <div class="rejected-header" @click="toggleRejected">

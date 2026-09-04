@@ -56,7 +56,7 @@ export function setupElegantRouter() {
         'data-center_catalog': { title: '数据目录', icon: 'mdi:database', order: 1 },
         'data-center_vector': { title: '矢量数据管理', icon: 'mdi:map-clock', order: 2 },
         'data-center_dataservice': { title: '数据服务', icon: 'mdi:share-variant', order: 3 },
-        river: { title: '渡河保障方案', order: 5, icon: 'mdi:ferry' },
+        river: { title: '渡河工程保障', order: 5, icon: 'mdi:ferry' },
         planning: { title: '机动路线规划', order: 6, icon: 'mdi:routes' },
         knowledge: { title: '地理环境知识库', order: 7, icon: 'mdi:book-open-variant' },
         agent: { title: '智能体', order: 8, icon: 'mdi:robot' }

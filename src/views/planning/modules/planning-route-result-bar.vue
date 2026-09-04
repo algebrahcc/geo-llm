@@ -28,6 +28,21 @@ function getScoreColor(score: number): string {
   if (score >= 80) return '#29b6ff';
   return '#fbbf24';
 }
+
+/** 路况等级色：畅通绿 / 基本畅通蓝 / 缓行黄 / 拥堵红 */
+function getTrafficColor(level: string): string {
+  if (level === '畅通') return '#2ee59d';
+  if (level === '基本畅通') return '#29b6ff';
+  if (level === '缓行') return '#fbbf24';
+  return '#fb7185';
+}
+
+function getSegmentColor(level: string): string {
+  if (level.includes('拥堵')) return '#fb7185';
+  if (level.includes('缓行')) return '#fbbf24';
+  if (level.includes('畅通') && level !== '畅通') return '#29b6ff';
+  return '#2ee59d';
+}
 </script>
 
 <template>
@@ -97,6 +112,40 @@ function getScoreColor(score: number): string {
             <div v-for="(h, i) in card.highlights.slice(0, 3)" :key="i" class="highlight-item">
               <span class="highlight-dot" />
               {{ h }}
+            </div>
+          </div>
+
+          <!-- 交通状况分析 -->
+          <div v-if="card.traffic" class="card-traffic">
+            <div class="traffic-header">
+              <span class="traffic-title">🚦 交通状况</span>
+              <span
+                class="traffic-level"
+                :style="{
+                  color: getTrafficColor(card.traffic.level),
+                  borderColor: `${getTrafficColor(card.traffic.level)}55`
+                }"
+              >
+                {{ card.traffic.level }}
+              </span>
+              <span class="traffic-stat">
+                均速 {{ card.traffic.avgSpeed }}
+                <template v-if="card.traffic.delayMin > 0">· 延误 +{{ card.traffic.delayMin }}min</template>
+                <template v-else>· 无延误</template>
+              </span>
+            </div>
+            <div class="traffic-segments">
+              <div v-for="seg in card.traffic.segments" :key="seg.name" class="traffic-segment">
+                <span class="segment-dot" :style="{ background: getSegmentColor(seg.level) }" />
+                <span class="segment-name">{{ seg.name }}</span>
+                <span class="segment-level" :style="{ color: getSegmentColor(seg.level) }">{{ seg.level }}</span>
+                <span class="segment-note">{{ seg.note }}</span>
+              </div>
+            </div>
+            <div class="traffic-impacts">
+              <div v-for="(impact, i) in card.traffic.impacts.slice(0, 2)" :key="i" class="traffic-impact">
+                {{ impact }}
+              </div>
             </div>
           </div>
         </div>
@@ -344,5 +393,103 @@ function getScoreColor(score: number): string {
   border-radius: 50%;
   background: #29b6ff;
   flex-shrink: 0;
+}
+
+/* ──── 交通状况分析 ──── */
+.card-traffic {
+  margin-top: 10px;
+  padding: 8px 10px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.traffic-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.traffic-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.traffic-level {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 8px;
+  border: 1px solid;
+}
+
+.traffic-stat {
+  flex: 1;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.traffic-segments {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+
+.traffic-segment {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.segment-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.segment-name {
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.segment-level {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.segment-note {
+  color: rgba(255, 255, 255, 0.42);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.traffic-impacts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+.traffic-impact {
+  font-size: 11px;
+  color: rgba(255, 199, 100, 0.75);
+  line-height: 1.45;
+}
+
+.traffic-impact::before {
+  content: '▸ ';
+  color: rgba(255, 199, 100, 0.5);
 }
 </style>

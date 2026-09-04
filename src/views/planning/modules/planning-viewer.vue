@@ -27,6 +27,7 @@ const {
   setActiveTool,
   setLayerVisible,
   showRoute,
+  revealRoutes,
   showWaypoints,
   setStartPoint,
   setEndPoint,
@@ -47,7 +48,14 @@ const {
   toggleService,
   setServiceOpacity,
   switchImagery,
-  reorderService
+  reorderService,
+  flyToLocation,
+  drawAiMark,
+  drawAiLine,
+  drawAiPolygon,
+  drawAiText,
+  removeAiOverlay,
+  clearAiOverlays
 } = useCesiumPlanning({
   onStatusChange(status) {
     emit('statusChange', status);
@@ -66,6 +74,7 @@ defineExpose({
   setActiveTool: (tool: PlanningInteractiveTool) => setActiveTool(tool),
   setLayerVisible: (key: PlanningLayerKey, visible: boolean) => setLayerVisible(key, visible),
   showRoute: (routeKey: PlanningRouteKey) => showRoute(routeKey),
+  revealRoutes: (routeKey: PlanningRouteKey) => revealRoutes(routeKey),
   showWaypoints: (waypoints: PlanningWaypoint[]) => showWaypoints(waypoints),
   setStartPoint: (longitude: number | null, latitude: number | null, name?: string) =>
     setStartPoint(longitude, latitude, name),
@@ -91,7 +100,19 @@ defineExpose({
   toggleService,
   setServiceOpacity,
   switchImagery,
-  reorderService
+  reorderService,
+  /** 视角定位（智能体标绘 flyTo 指令用） */
+  flyToLocation,
+  /** 智能体标绘层：点/线/面/文字 + 单删/全清 */
+  drawAiMark: (item: { id?: string; lon: number; lat: number; name?: string; color?: string }) => drawAiMark(item),
+  drawAiLine: (item: { id?: string; name?: string; color?: string; positions: Array<[number, number]> }) =>
+    drawAiLine(item),
+  drawAiPolygon: (item: { id?: string; name?: string; color?: string; positions: Array<[number, number]> }) =>
+    drawAiPolygon(item),
+  drawAiText: (item: { id?: string; lon: number; lat: number; text: string; name?: string; color?: string }) =>
+    drawAiText(item),
+  removeAiOverlay: (id: string) => removeAiOverlay(id),
+  clearAiOverlays: () => clearAiOverlays()
 });
 </script>
 

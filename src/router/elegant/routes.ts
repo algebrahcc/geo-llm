@@ -135,7 +135,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     path: '/river',
     component: 'layout.base$view.river',
     meta: {
-      title: '渡河保障方案',
+      title: '渡河工程保障',
       order: 5,
       icon: 'mdi:ferry'
     }

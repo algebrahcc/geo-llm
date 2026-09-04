@@ -39,7 +39,7 @@ export interface RiverPointOverlay {
   color: string;
 }
 
-// ─────────────────── 渡河保障方案类型 ───────────────────
+// ─────────────────── 渡河工程保障类型 ───────────────────
 
 /** 左侧设置表单 */
 export interface CrossingSettingForm {

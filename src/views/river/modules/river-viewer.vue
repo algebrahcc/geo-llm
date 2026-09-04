@@ -33,6 +33,12 @@ const {
   showRejectedRoutes,
   clearRejectedEntities,
   focusRejectedRoute,
+  drawAiMark,
+  drawAiLine,
+  drawAiPolygon,
+  drawAiText,
+  removeAiOverlay,
+  clearAiOverlays,
   is2dMode,
   toggleViewMode,
   loadVectorLayer,
@@ -54,6 +60,8 @@ const {
 
 onMounted(async () => {
   await initViewer();
+  // 页面加载即显示态势底图（通道/集结区），方案路线待分析完成后再绘出
+  initMapOverlays(false);
   emit('ready');
 });
 
@@ -76,6 +84,16 @@ defineExpose({
   showRejectedRoutes: (routes: RejectedRouteData[]) => showRejectedRoutes(routes),
   clearRejectedEntities: () => clearRejectedEntities(),
   focusRejectedRoute: (id: string) => focusRejectedRoute(id),
+  /** 智能体标绘层：点/线/面/文字 + 单删/全清 */
+  drawAiMark: (item: { id?: string; lon: number; lat: number; name?: string; color?: string }) => drawAiMark(item),
+  drawAiLine: (item: { id?: string; name?: string; color?: string; positions: Array<[number, number]> }) =>
+    drawAiLine(item),
+  drawAiPolygon: (item: { id?: string; name?: string; color?: string; positions: Array<[number, number]> }) =>
+    drawAiPolygon(item),
+  drawAiText: (item: { id?: string; lon: number; lat: number; text: string; name?: string; color?: string }) =>
+    drawAiText(item),
+  removeAiOverlay: (id: string) => removeAiOverlay(id),
+  clearAiOverlays: () => clearAiOverlays(),
   is2dMode,
   toggleViewMode,
   /** 加载矢量图层（通过 mvt-imagery-provider 渲染后端 MVT 瓦片，后续只切换 show） */

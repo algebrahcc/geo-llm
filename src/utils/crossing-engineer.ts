@@ -289,23 +289,21 @@ function evaluateMethod(
 const REJECTED_COLORS = ['#fb7185', '#f97316', '#a855f7'];
 
 /**
- * 淡水河段河道中心线（与主渡河通道 mock 坐标一致，保证渡场点落在河面上）。
- * 河道整体呈东北走向，相邻点间距约 500m。
+ * 淡水河关渡段河道中心线（与主渡河通道 mock 坐标一致，保证渡场点落在河面上）。
+ * 关渡大桥点 (121.4572, 25.1256) 为公开资料验证值，其余沿真实河道走向插值。
+ * 河道自关渡大桥向西南（上游，经社子岛头—芦洲）延伸，相邻点间距约 500m。
  */
 const RIVER_CENTERLINE: Array<[number, number]> = [
-  [121.465, 25.085],
-  [121.467, 25.09],
-  [121.469, 25.095],
-  [121.47, 25.1],
-  [121.473, 25.105],
-  [121.476, 25.11],
-  [121.478, 25.115],
-  [121.482, 25.122],
-  [121.485, 25.13]
+  [121.4572, 25.1256],
+  [121.4592, 25.1205],
+  [121.4608, 25.115],
+  [121.4622, 25.1116],
+  [121.464, 25.1076],
+  [121.469, 25.1002]
 ];
 
-/** 垂直于河道走向的两岸偏移向量（河道走向约 (0.02, 0.045)，归一化后旋转 90°） */
-const CROSS_OFFSET: [number, number] = [0.0055, -0.0024];
+/** 垂直于河道走向的两岸偏移向量（河道走向约 (0.34, -0.94)，法向指向东岸，半幅约 250m） */
+const CROSS_OFFSET: [number, number] = [0.0024, 0.0008];
 
 /**
  * 为淘汰方式生成路线数据：渡场锚点取河道中心线上不同位置（沿河段错开），
@@ -433,7 +431,8 @@ function parseTimeConstraintMin(s: string): number {
 /** 根据数据完整度、检索命中、方案质量计算置信度 */
 export function calculateConfidence(dataCompleteness: number, knowledgeHits: number, bestScore: number): number {
   const dataPart = Math.min(dataCompleteness, 100) * 0.25;
-  const knowledgePart = Math.min(knowledgeHits / 20, 1) * 30;
+  // 单篇高相关文档即可贡献较高置信度：约 8 条命中即视为饱和
+  const knowledgePart = Math.min(knowledgeHits / 8, 1) * 30;
   const qualityPart = Math.min(bestScore, 100) * 0.45;
   return Math.round(dataPart + knowledgePart + qualityPart);
 }

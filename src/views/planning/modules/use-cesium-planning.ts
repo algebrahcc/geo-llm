@@ -55,11 +55,16 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
   const selectedRiskEntities: Entity[] = [];
   const selectedObstacleEntities: Entity[] = [];
   const waypointMarkerEntities: Entity[] = [];
+  // 智能体标绘层（AI 指令产生的点/线/面/文字，按 id 管理，可单删/全清）
+  const aiOverlayEntries = new Map<string, Entity>();
+  let aiPlotSeq = 0;
 
   let startMarkerEntity: Entity | null = null;
   let endMarkerEntity: Entity | null = null;
   let activeTool: PlanningInteractiveTool = 'browse';
   let currentRoute: PlanningRouteKey = 'route-a';
+  // 路线/风险/障碍是否可见：页面初始只显示起终点标记，AI 智能规划完成后 revealRoutes() 打开
+  let routesVisible = false;
 
   const layerVisibility: Record<PlanningLayerKey, boolean> = {
     imagery: true,
@@ -218,6 +223,12 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
 
       if (!entity?.polyline) return;
 
+      // 规划未完成时隐藏全部路线；完成后按选中/候选样式显示
+      if (!routesVisible) {
+        entity.show = false;
+        return;
+      }
+
       const selected = key === currentRoute;
       entity.polyline.width = new ConstantProperty(selected ? 5 : 3);
       entity.polyline.material = new ColorMaterialProperty(base.getColor(scene.route.color, selected ? 0.96 : 0.28));
@@ -259,6 +270,11 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     const scene = planningRouteScenes[routeKey];
     updateRouteStyles();
 
+    if (!routesVisible) {
+      base.requestRender();
+      return;
+    }
+
     scene.risks.forEach(item => {
       const entity = createPolygonEntity(item);
       if (entity) {
@@ -277,6 +293,13 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
 
     emitStatus();
     base.requestRender();
+  }
+
+  /** AI 智能规划完成后调用：显示全部候选路线（选中路线高亮 + 其余候选淡显），并绘出风险/障碍 */
+  function revealRoutes(routeKey: PlanningRouteKey = currentRoute) {
+    if (routesVisible) return;
+    routesVisible = true;
+    showRoute(routeKey);
   }
 
   function updateMarker(kind: 'start' | 'end', point: { longitude: number; latitude: number; name: string } | null) {
@@ -422,12 +445,106 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     }
   }
 
+  // ─── 智能体标绘层（AI 指令 → 点/线/面/文字，按 id 管理） ───
+
+  interface AiOverlayItem {
+    id?: string;
+    name?: string;
+    color?: string;
+  }
+
+  function resolveAiId(item: AiOverlayItem): string {
+    return item.id || `ai-plot-${++aiPlotSeq}`;
+  }
+
+  function drawAiMark(item: AiOverlayItem & { lon: number; lat: number }): string {
+    const id = resolveAiId(item);
+    const viewer = viewerRef.value;
+    if (!viewer) return id;
+    const existing = viewer.entities.getById(id);
+    if (existing) viewer.entities.remove(existing);
+    const entity = createPointEntity({
+      id,
+      name: item.name || 'AI 标注',
+      longitude: item.lon,
+      latitude: item.lat,
+      color: item.color || '#fb7185'
+    });
+    if (entity) {
+      aiOverlayEntries.set(id, entity);
+      base.requestRender();
+    }
+    return id;
+  }
+
+  function drawAiText(item: AiOverlayItem & { lon: number; lat: number; text: string }): string {
+    return drawAiMark({ ...item, name: item.text });
+  }
+
+  function drawAiLine(item: AiOverlayItem & { positions: Array<[number, number]> }): string {
+    const id = resolveAiId(item);
+    const viewer = viewerRef.value;
+    if (!viewer) return id;
+    const existing = viewer.entities.getById(id);
+    if (existing) viewer.entities.remove(existing);
+    const entity = createPolylineEntity({
+      id,
+      name: item.name || 'AI 标绘线',
+      color: item.color || '#f7b267',
+      positions: item.positions,
+      width: 4
+    });
+    if (entity) {
+      aiOverlayEntries.set(id, entity);
+      base.requestRender();
+    }
+    return id;
+  }
+
+  function drawAiPolygon(item: AiOverlayItem & { positions: Array<[number, number]> }): string {
+    const id = resolveAiId(item);
+    const viewer = viewerRef.value;
+    if (!viewer) return id;
+    const existing = viewer.entities.getById(id);
+    if (existing) viewer.entities.remove(existing);
+    const entity = createPolygonEntity({
+      id,
+      name: item.name || 'AI 标绘区域',
+      color: item.color || '#fb7185',
+      positions: item.positions
+    });
+    if (entity) {
+      aiOverlayEntries.set(id, entity);
+      base.requestRender();
+    }
+    return id;
+  }
+
+  function removeAiOverlay(id: string): boolean {
+    const entity = aiOverlayEntries.get(id);
+    const viewer = viewerRef.value;
+    if (!entity || !viewer) return false;
+    viewer.entities.remove(entity);
+    aiOverlayEntries.delete(id);
+    base.requestRender();
+    return true;
+  }
+
+  function clearAiOverlays(): void {
+    const viewer = viewerRef.value;
+    if (!viewer) return;
+    aiOverlayEntries.forEach(e => viewer.entities.remove(e));
+    aiOverlayEntries.clear();
+    base.requestRender();
+  }
+
   return {
     containerRef,
     initViewer,
     setActiveTool,
     setLayerVisible,
     showRoute,
+    revealRoutes,
     showWaypoints,
     setStartPoint,
     setEndPoint,
@@ -450,6 +567,15 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     toggleService: services.toggleService,
     setServiceOpacity: services.setOpacity,
     switchImagery: services.switchImagery,
-    reorderService: services.reorder
+    reorderService: services.reorder,
+    // 视角定位（智能体标绘 flyTo 指令用）
+    flyToLocation: base.flyToLocation,
+    // 智能体标绘层：点/线/面/文字 + 单删/全清
+    drawAiMark,
+    drawAiLine,
+    drawAiPolygon,
+    drawAiText,
+    removeAiOverlay,
+    clearAiOverlays
   };
 }

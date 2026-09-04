@@ -84,7 +84,7 @@ export const screenHotKeywords = [
 
 export const screenAiRank = [
   { name: '机动路线规划智能体', value: 64 },
-  { name: '渡河保障方案智能体', value: 52 },
+  { name: '渡河工程保障智能体', value: 52 },
   { name: '障碍物识别智能体', value: 35 },
   { name: '态势研判智能体', value: 29 }
 ];

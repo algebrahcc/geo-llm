@@ -115,7 +115,8 @@ export const knowledgeDocuments = reactive<KnowledgeDocument[]>([
     source: '外部专题录入',
     reviewer: '交通组',
     tags: ['节点', '道路', '交通'],
-    summary: '整理台湾西岸骨干道路、港口连接线和关键交通节点说明。',
+    summary:
+      '整理台湾西岸骨干道路（台61西滨快速、台15、台2、台2乙淡金公路）、桥梁（关渡大桥、淡江大桥）与关键交通节点说明，覆盖台北北部路网的通行条件与衔接要点。',
     format: 'DOCX',
     size: '6.7 MB',
     chunkCount: 11,
@@ -123,7 +124,47 @@ export const knowledgeDocuments = reactive<KnowledgeDocument[]>([
     indexedAt: '2026-05-21 13:48',
     updatedAt: '2026-05-24 08:12',
     lastUsedAt: '2026-05-24 09:56',
-    status: 'failed',
+    status: 'ready',
+    indexMode: '混合切分',
+    moduleRefs: ['planning']
+  },
+  {
+    id: 'doc-007',
+    name: '淡水河关渡段渡河保障要点',
+    collection: 'coast-theater',
+    source: '外部专题录入',
+    reviewer: '渡河保障组',
+    tags: ['淡水河', '渡河', '潮汐', '关渡'],
+    summary:
+      '汇总淡水河关渡段渡河保障所需的水文潮汐、两岸滩地、红树林保育区与既有桥梁分布，覆盖门桥漕渡、登陆艇泊岸、冲锋舟突击、浮桥架设在感潮河段的适用要点与平潮窗口选择。',
+    format: 'PDF',
+    size: '5.2 MB',
+    chunkCount: 8,
+    hits: 47,
+    indexedAt: '2026-05-23 09:30',
+    updatedAt: '2026-05-24 10:05',
+    lastUsedAt: '2026-05-24 10:08',
+    status: 'ready',
+    indexMode: '混合切分',
+    moduleRefs: ['river']
+  },
+  {
+    id: 'doc-008',
+    name: '台北北部道路投送机动要点',
+    collection: 'coast-theater',
+    source: '外部专题录入',
+    reviewer: '机动保障组',
+    tags: ['南港', '淡水', '道路', '投送'],
+    summary:
+      '汇总南港装载地域至淡水沙崙卸载地域的部队投送机动路线规划要点，覆盖基隆路、成功路、堤顶大道、剑南路、洲美快速道路、大度路、台2乙淡金公路等台北北部真实道路的通行条件、桥梁限高限重与编队梯次机动要求。',
+    format: 'PDF',
+    size: '6.1 MB',
+    chunkCount: 9,
+    hits: 51,
+    indexedAt: '2026-05-24 11:20',
+    updatedAt: '2026-05-24 11:42',
+    lastUsedAt: '2026-05-24 11:45',
+    status: 'ready',
     indexMode: '混合切分',
     moduleRefs: ['planning']
   }
@@ -156,7 +197,7 @@ const detailRecords = knowledgeDocuments.reduce<Record<string, KnowledgeDocument
     references: [
       {
         id: `${document.id}-ref-1`,
-        name: '渡河保障方案研判任务',
+        name: '渡河工程保障研判任务',
         type: '任务',
         description: '在智能分析阶段引用该文档作为背景资料进行河床、堤防等要素判读。',
         module: 'river' as const,

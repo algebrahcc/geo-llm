@@ -30,18 +30,26 @@ const emit = defineEmits<{
   (e: 'send-message', msg: string): void;
 }>();
 
-// ──── 区块折叠状态 ────
+// ──── 区块折叠状态（默认只展开核心区块：输入参数核心行 + 分析过程） ────
 const sectionCollapsed = ref<Record<string, boolean>>({
-  intro: false,
+  intro: true,
   params: false,
-  resources: false,
+  resources: true,
   progress: false,
-  knowledge: false
+  knowledge: true
 });
 
 function toggleSection(key: string) {
   sectionCollapsed.value[key] = !sectionCollapsed.value[key];
 }
+
+// 分析进行中强制展开"分析过程"，保证进度始终可见
+watch(
+  () => props.running,
+  running => {
+    if (running) sectionCollapsed.value.progress = false;
+  }
+);
 
 // ──── 对话 ────
 const chatInput = ref('');
@@ -49,7 +57,7 @@ const messages = ref<ChatMessage[]>([
   {
     id: 'welcome',
     role: 'assistant',
-    content: '您好，我是渡河工程方案助手。基于您提供的要求参数，我将为您进行智能分析并生成最优渡河保障方案。',
+    content: '您好，我是渡河工程方案助手。基于您提供的要求参数，我将为您进行智能分析并生成最优渡河工程保障。',
     timestamp: Date.now()
   }
 ]);
@@ -64,10 +72,16 @@ let abortController: AbortController | null = null;
 onUnmounted(() => abortController?.abort());
 
 const expandedKnowledge = ref<string | null>(null);
-const capabilityTags = ['知识库检索', '方案材料导出', '地图标注'];
+const capabilityTags = ['知识库检索', '参数感知问答', '多轮会话'];
 
 // ──── 参数回显列表 ────
 const paramList = ref<Array<{ label: string; value: string }>>([]);
+
+// ──── 参数回显：核心参数常显，其余折叠在"全部参数"下 ────
+const coreParamLabels = ['任务名称', '渡河位置', '保障兵力', '时间约束'];
+const showAllParams = ref(false);
+const coreParams = computed(() => paramList.value.filter(p => coreParamLabels.includes(p.label)));
+const extraParams = computed(() => paramList.value.filter(p => !coreParamLabels.includes(p.label)));
 
 watch(
   () => props.form,
@@ -266,9 +280,21 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
         </div>
         <div v-show="!sectionCollapsed.params" class="section-body section-body--compact">
           <div class="param-list">
-            <div v-for="item in paramList" :key="item.label" class="param-item">
+            <div v-for="item in coreParams" :key="item.label" class="param-item">
               <span class="param-label">{{ item.label }}</span>
               <span class="param-value">{{ item.value }}</span>
+            </div>
+          </div>
+          <div v-if="extraParams.length" class="param-more">
+            <button type="button" class="param-more-btn" @click="showAllParams = !showAllParams">
+              {{ showAllParams ? '收起' : `全部参数（${extraParams.length}）` }}
+              <SvgIcon class="param-more-chevron" :icon="showAllParams ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
+            </button>
+            <div v-show="showAllParams" class="param-list">
+              <div v-for="item in extraParams" :key="item.label" class="param-item">
+                <span class="param-label">{{ item.label }}</span>
+                <span class="param-value">{{ item.value }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -768,6 +794,36 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ──── 全部参数折叠 ──── */
+.param-more {
+  margin-top: 4px;
+}
+
+.param-more-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(141, 184, 255, 0.75);
+  cursor: pointer;
+  font-size: 11px;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.param-more-btn:hover {
+  border-color: rgba(94, 164, 255, 0.4);
+  color: #cbe3ff;
+}
+
+.param-more-chevron {
+  font-size: 14px;
 }
 
 /* ──── 可用资源属性卡片 ──── */
