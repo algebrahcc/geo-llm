@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue';
+import MarkdownIt from 'markdown-it';
 import { crossingResourceSpecs } from '@/mock/river';
 import type {
   AiAnalysisStep,
@@ -11,6 +12,12 @@ import type {
 } from './types';
 import { fetchDifyChatStream } from '@/service/api/dify-stream';
 import { useAuthStore } from '@/store/modules/auth';
+
+/** AI 回答 markdown 渲染（html:false 防 XSS） */
+const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
+function renderMarkdown(text: string): string {
+  return md.render(text);
+}
 
 const props = defineProps<{
   collapsed: boolean;
@@ -219,7 +226,6 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   <div class="ai-panel" :class="{ 'ai-panel--collapsed': collapsed }">
     <!-- ── 标题栏 ── -->
     <div class="panel-header">
-      <span class="header-icon">🤖</span>
       <span class="header-title">渡河工程方案助手</span>
       <span
         class="agent-status"
@@ -253,13 +259,11 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
       <!-- ══════ AI 介绍区 ══════ -->
       <div class="content-section">
         <div class="section-header-bar" @click="toggleSection('intro')">
-          <span class="section-quick-icon">🧠</span>
           <span class="section-quick-title">关于助手</span>
           <SvgIcon class="section-chevron" :icon="sectionCollapsed.intro ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
         </div>
         <div v-show="!sectionCollapsed.intro" class="section-body">
           <div class="intro-greeting">
-            <span class="greeting-icon">💬</span>
             <span class="greeting-text">{{ messages[0]?.content }}</span>
           </div>
           <div class="capability-tags">
@@ -273,8 +277,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
       <!-- ══════ 输入参数回显 ══════ -->
       <div v-if="paramList.length > 0" class="content-section">
         <div class="section-header-bar" @click="toggleSection('params')">
-          <span class="section-quick-icon">📝</span>
-          <span class="section-quick-title">输入参数</span>
+          <span class="section-quick-title">任务要素</span>
           <span class="section-badge">{{ paramList.length }}</span>
           <SvgIcon class="section-chevron" :icon="sectionCollapsed.params ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
         </div>
@@ -303,8 +306,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
       <!-- ══════ 可用资源属性 ══════ -->
       <div v-if="selectedResourceSpecs.length > 0" class="content-section">
         <div class="section-header-bar" @click="toggleSection('resources')">
-          <span class="section-quick-icon">🛠️</span>
-          <span class="section-quick-title">可用资源属性</span>
+          <span class="section-quick-title">装备编成</span>
           <span class="section-badge section-badge--purple">{{ selectedResourceSpecs.length }}</span>
           <SvgIcon class="section-chevron" :icon="sectionCollapsed.resources ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
         </div>
@@ -344,8 +346,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
       <!-- ══════ 智能体分析进度 ══════ -->
       <div v-if="steps.length > 0" class="content-section">
         <div class="section-header-bar" @click="toggleSection('progress')">
-          <span class="section-quick-icon">📊</span>
-          <span class="section-quick-title">分析过程</span>
+          <span class="section-quick-title">研判进程</span>
           <span class="section-badge section-badge--accent">{{ completedStepsCount() }}/{{ totalStepsCount() }}</span>
           <SvgIcon class="section-chevron" :icon="sectionCollapsed.progress ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
         </div>
@@ -384,7 +385,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
                     {{ step.duration }}
                   </span>
                 </div>
-                <div v-if="step.tool" class="step-tool">🔧 调用：{{ step.tool }}</div>
+                <div v-if="step.tool" class="step-tool">调用：{{ step.tool }}</div>
                 <div v-if="step.description" class="step-desc">{{ step.description }}</div>
               </div>
             </div>
@@ -395,8 +396,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
       <!-- ══════ 知识库检索结果 ══════ -->
       <div v-if="knowledgeHits.length > 0" class="content-section">
         <div class="section-header-bar" @click="toggleSection('knowledge')">
-          <span class="section-quick-icon">📚</span>
-          <span class="section-quick-title">知识库命中</span>
+          <span class="section-quick-title">知识检索</span>
           <span class="section-badge section-badge--green">{{ knowledgeHits.length }}</span>
           <SvgIcon class="section-chevron" :icon="sectionCollapsed.knowledge ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
         </div>
@@ -444,7 +444,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 
       <!-- ══════ 引用来源 ══════ -->
       <div v-if="references.length > 0" class="references-section">
-        <div class="ref-label">🔗 引用来源</div>
+        <div class="ref-label">引用来源</div>
         <div class="ref-tags">
           <span
             v-for="(ref, i) in references"
@@ -461,9 +461,12 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
       <div v-if="messages.length > 1" class="chat-messages">
         <div class="chat-divider"><span>对话记录</span></div>
         <div v-for="msg in messages.slice(1)" :key="msg.id" class="chat-msg" :class="`chat-msg--${msg.role}`">
-          <span class="msg-avatar">{{ msg.role === 'user' ? '👤' : '🤖' }}</span>
+          <span class="msg-avatar"><SvgIcon :icon="msg.role === 'user' ? 'mdi:account' : 'mdi:robot-outline'" /></span>
           <div class="msg-bubble" :class="`msg-bubble--${msg.role}`">
             <template v-if="msg.role === 'assistant' && msg.streaming && !msg.content">正在思考…</template>
+            <template v-else-if="msg.role === 'assistant'">
+              <div class="chat-md" v-html="renderMarkdown(msg.content)" />
+            </template>
             <template v-else>{{ msg.content }}</template>
           </div>
         </div>
@@ -542,15 +545,15 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .agent-status--online {
-  background: rgba(34, 197, 94, 0.12);
-  color: #22c55e;
-  border-color: rgba(34, 197, 94, 0.25);
+  background: rgba(106, 174, 138, 0.1);
+  color: #6aae8a;
+  border-color: rgba(106, 174, 138, 0.3);
 }
 
 .agent-status--busy {
-  background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
-  border-color: rgba(245, 158, 11, 0.25);
+  background: rgba(201, 164, 92, 0.1);
+  color: #c9a45c;
+  border-color: rgba(201, 164, 92, 0.32);
 }
 
 .header-actions {
@@ -609,7 +612,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 
 .toolbar-fill {
   height: 100%;
-  background: #3b82f6;
+  background: #4a7dbd;
   border-radius: 2px;
   transition: width 0.4s ease-out;
 }
@@ -694,18 +697,18 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .section-badge--accent {
-  background: rgba(43, 107, 255, 0.15);
-  color: #4d8fff;
+  background: rgba(74, 125, 189, 0.14);
+  color: #8db0dd;
 }
 
 .section-badge--green {
-  background: rgba(34, 197, 94, 0.12);
-  color: #22c55e;
+  background: rgba(106, 174, 138, 0.12);
+  color: #6aae8a;
 }
 
 .section-badge--purple {
-  background: rgba(168, 85, 247, 0.14);
-  color: #c084fc;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .section-chevron {
@@ -969,14 +972,14 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .step-dot--success {
-  border-color: rgba(34, 197, 94, 0.5);
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  border-color: rgba(106, 174, 138, 0.55);
+  background: rgba(106, 174, 138, 0.14);
+  color: #6aae8a;
 }
 
 .step-dot--running {
-  border-color: rgba(59, 130, 246, 0.5);
-  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(74, 125, 189, 0.55);
+  background: rgba(74, 125, 189, 0.14);
 }
 
 .dot-check {
@@ -988,7 +991,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 2px solid #2b6bff;
+  border: 2px solid #3d6fb4;
   border-top-color: transparent;
   animation: spin 0.8s linear infinite;
 }
@@ -1053,13 +1056,13 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .tag-success {
-  background: rgba(34, 197, 94, 0.12);
-  color: #22c55e;
+  background: rgba(106, 174, 138, 0.1);
+  color: #6aae8a;
 }
 
 .tag-running {
-  background: rgba(59, 130, 246, 0.1);
-  color: #60a5fa;
+  background: rgba(74, 125, 189, 0.12);
+  color: #8db0dd;
 }
 
 .tag-waiting {
@@ -1211,8 +1214,8 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   font-size: 10px;
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(43, 107, 255, 0.12);
-  color: #4d8fff;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -1240,7 +1243,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 
 .score-fill {
   height: 100%;
-  background: #3b82f6;
+  background: #4a7dbd;
   border-radius: 2px;
   transition: width 0.4s ease-out;
 }
@@ -1280,9 +1283,9 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .ref-tag--doc {
-  background: rgba(245, 158, 11, 0.08);
-  color: #f59e0b;
-  border-color: rgba(245, 158, 11, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .ref-tag--sys {
@@ -1400,7 +1403,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   height: 38px;
   border: none;
   border-radius: 10px;
-  background: #3b82f6;
+  background: #3d6fb4;
   color: #fff;
   cursor: pointer;
   font-size: 16px;
@@ -1422,5 +1425,57 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 .send-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+/* markdown 内容 */
+.chat-md :deep(p) {
+  margin: 0 0 6px;
+}
+.chat-md :deep(p:last-child) {
+  margin-bottom: 0;
+}
+.chat-md :deep(ul),
+.chat-md :deep(ol) {
+  margin: 4px 0 6px;
+  padding-left: 18px;
+}
+.chat-md :deep(li) {
+  margin: 2px 0;
+}
+.chat-md :deep(code) {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Consolas', monospace;
+}
+.chat-md :deep(pre) {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  margin: 6px 0;
+}
+.chat-md :deep(pre code) {
+  background: transparent;
+  padding: 0;
+}
+.chat-md :deep(table) {
+  border-collapse: collapse;
+  margin: 6px 0;
+  font-size: 11px;
+}
+.chat-md :deep(th),
+.chat-md :deep(td) {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 8px;
+}
+.chat-md :deep(h1),
+.chat-md :deep(h2),
+.chat-md :deep(h3),
+.chat-md :deep(h4) {
+  font-size: 13px;
+  margin: 8px 0 4px;
 }
 </style>

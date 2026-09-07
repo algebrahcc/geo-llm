@@ -24,7 +24,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'toggle', id: number, visible: boolean): void;
-  (e: 'opacity', id: number, opacity: number): void;
   (e: 'remove', id: number): void;
   (e: 'reorder', fromIndex: number, toIndex: number): void;
   (e: 'fly', id: number): void;
@@ -44,12 +43,12 @@ const CATEGORY_ORDER: string[] = ['imagery', 'terrain', 'threed', 'vector', 'str
 
 /** 分类默认主色（图标着色 / 图例回退色） */
 const CATEGORY_COLORS: Record<string, string> = {
-  imagery: '#22c55e',
-  terrain: '#a855f7',
-  threed: '#f97316',
-  vector: '#5ea4ff',
-  streetview: '#ec4899',
-  analysis: '#facc15'
+  imagery: '#6aae8a',
+  terrain: '#9b8ec4',
+  threed: '#c98a5c',
+  vector: '#4a7dbd',
+  streetview: '#c47ba8',
+  analysis: '#c9a45c'
 };
 
 /** 分类类型图标（替代名称前主色块，信息更直观） */
@@ -73,7 +72,7 @@ function categoryIcon(category: string): string {
 }
 
 function categoryColor(category: string): string {
-  return CATEGORY_COLORS[category] ?? '#8db8ff';
+  return CATEGORY_COLORS[category] ?? '#8db0dd';
 }
 
 // ─── 分组（grouped 模式） ────────────────────────────────
@@ -163,24 +162,6 @@ function onDragEnd(): void {
   dragIndex.value = null;
   overIndex.value = null;
 }
-
-// ─── 透明度（展开式，本地记忆当前值） ─────────────────────
-
-const opacityOpenId = ref<number | null>(null);
-const opacityMap = ref<Record<number, number>>({});
-
-function getOpacity(id: number): number {
-  return opacityMap.value[id] ?? 1;
-}
-
-function toggleOpacity(id: number): void {
-  opacityOpenId.value = opacityOpenId.value === id ? null : id;
-}
-
-function onOpacityInput(id: number, value: number): void {
-  opacityMap.value = { ...opacityMap.value, [id]: value };
-  emit('opacity', id, value);
-}
 </script>
 
 <template>
@@ -254,11 +235,6 @@ function onOpacityInput(id: number, value: number): void {
             <SvgIcon :icon="entry.handle.visible ? 'mdi:eye' : 'mdi:eye-off'" />
           </button>
 
-          <!-- 分类类型图标（替代名称前主色块） -->
-          <span class="layer-icon" :style="{ color: categoryColor(entry.handle.category) }">
-            <SvgIcon :icon="categoryIcon(entry.handle.category)" />
-          </span>
-
           <!-- 主体信息 -->
           <div class="layer-meta">
             <div class="layer-name-row">
@@ -289,15 +265,6 @@ function onOpacityInput(id: number, value: number): void {
           <div class="layer-actions">
             <button
               type="button"
-              class="act-btn"
-              :class="{ 'act-btn--active': opacityOpenId === entry.handle.id }"
-              title="透明度"
-              @click="toggleOpacity(entry.handle.id)"
-            >
-              <SvgIcon icon="mdi:opacity" />
-            </button>
-            <button
-              type="button"
               class="act-btn act-btn--danger"
               title="移除图层（不删除配置）"
               @click="emit('remove', entry.handle.id)"
@@ -307,21 +274,6 @@ function onOpacityInput(id: number, value: number): void {
           </div>
         </div>
       </template>
-
-      <!-- 展开的透明度滑杆 -->
-      <div v-if="opacityOpenId !== null" class="opacity-expand">
-        <span class="opacity-label">透明度</span>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          :value="getOpacity(opacityOpenId)"
-          class="opacity-range"
-          @input="onOpacityInput(opacityOpenId, Number(($event.target as HTMLInputElement).value))"
-        />
-        <span class="opacity-value">{{ Math.round(getOpacity(opacityOpenId) * 100) }}%</span>
-      </div>
     </div>
   </div>
 </template>
@@ -346,7 +298,7 @@ function onOpacityInput(id: number, value: number): void {
 
 .header-icon {
   font-size: 20px;
-  color: #62c4ff;
+  color: #8db0dd;
 }
 
 .header-title {
@@ -360,8 +312,8 @@ function onOpacityInput(id: number, value: number): void {
   font-size: 11px;
   padding: 3px 9px;
   border-radius: 10px;
-  background: rgba(141, 184, 255, 0.12);
-  color: #8db8ff;
+  background: rgba(74, 125, 189, 0.14);
+  color: #8db0dd;
   font-weight: 600;
 }
 
@@ -392,7 +344,7 @@ function onOpacityInput(id: number, value: number): void {
   line-height: 1.7;
 }
 .layer-empty a {
-  color: #62c4ff;
+  color: #8db0dd;
   text-decoration: none;
 }
 .layer-empty a:hover {
@@ -463,7 +415,7 @@ function onOpacityInput(id: number, value: number): void {
     border-color 0.15s;
 }
 .layer-item:hover {
-  background: rgba(43, 107, 255, 0.07);
+  background: rgba(93, 140, 200, 0.08);
 }
 .layer-item--dragging {
   opacity: 0.4;
@@ -516,7 +468,7 @@ function onOpacityInput(id: number, value: number): void {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #62c4ff;
+  color: #8db0dd;
   cursor: pointer;
   font-size: 19px;
   flex-shrink: 0;
@@ -537,28 +489,6 @@ function onOpacityInput(id: number, value: number): void {
 }
 
 /* 分类类型图标（替代主色块） */
-.layer-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  flex-shrink: 0;
-  font-size: 17px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0.02) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    transform 0.15s;
-}
-.layer-item:hover .layer-icon {
-  background: linear-gradient(180deg, rgba(98, 196, 255, 0.1) 0%, rgba(98, 196, 255, 0.03) 100%);
-  border-color: rgba(98, 196, 255, 0.18);
-  transform: translateY(-1px);
-}
 
 .layer-meta {
   display: flex;
@@ -577,7 +507,7 @@ function onOpacityInput(id: number, value: number): void {
 .layer-name {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.96);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -653,41 +583,10 @@ function onOpacityInput(id: number, value: number): void {
   color: rgba(255, 255, 255, 0.9);
 }
 .act-btn--active {
-  color: #62c4ff;
+  color: #8db0dd;
 }
 .act-btn--danger:hover {
-  background: rgba(248, 113, 113, 0.16);
-  color: #f87171;
-}
-
-/* 展开的透明度滑杆 */
-.opacity-expand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 2px 12px 6px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: rgba(43, 107, 255, 0.08);
-  border: 1px solid rgba(98, 196, 255, 0.16);
-}
-.opacity-label {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.55);
-  flex-shrink: 0;
-}
-.opacity-range {
-  flex: 1;
-  height: 4px;
-  accent-color: #62c4ff;
-  cursor: pointer;
-}
-.opacity-value {
-  font-size: 11px;
-  font-weight: 600;
-  color: #62c4ff;
-  width: 34px;
-  text-align: right;
-  flex-shrink: 0;
+  background: rgba(194, 91, 91, 0.18);
+  color: #c25b5b;
 }
 </style>

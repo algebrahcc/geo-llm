@@ -30,13 +30,13 @@ withDefaults(defineProps<Props>(), {
   font-weight: 700;
   letter-spacing: 1px;
   color: transparent;
-  background: linear-gradient(90deg, #29b6ff, #00d4aa);
+  background: linear-gradient(90deg, #4a7dbd, #3d6fb4);
   background-clip: text;
   -webkit-background-clip: text;
   text-shadow: 0 6px 18px rgba(41, 182, 255, 0.18);
 }
 html.dark .brand-title {
-  background: linear-gradient(90deg, #29b6ff, #00d4aa);
+  background: linear-gradient(90deg, #4a7dbd, #3d6fb4);
   background-clip: text;
   -webkit-background-clip: text;
 }

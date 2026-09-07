@@ -279,6 +279,14 @@ const FORM_SCHEMA: Record<string, DynamicField[]> = {
   ],
   'threed:3dtiles': [
     {
+      key: 'position',
+      label: '摆放位置（WGS84，可选）',
+      component: 'textarea',
+      target: 'params',
+      span: 'full',
+      placeholder: '{"lon":121.459,"lat":25.120,"height":-12}（数据无定位时必填，height 负值为地下）'
+    },
+    {
       key: 'extent',
       label: '空间范围（可选定位）',
       component: 'textarea',
@@ -288,6 +296,14 @@ const FORM_SCHEMA: Record<string, DynamicField[]> = {
     }
   ],
   'threed:glb': [
+    {
+      key: 'position',
+      label: '摆放位置（WGS84，可选）',
+      component: 'textarea',
+      target: 'params',
+      span: 'full',
+      placeholder: '{"lon":121.459,"lat":25.120,"height":-12}（数据无定位时必填，height 负值为地下）'
+    },
     {
       key: 'extent',
       label: '空间范围（可选定位）',
@@ -848,6 +864,7 @@ onMounted(() => loadList(true));
       </div>
       <div class="ds-table-wrap">
         <NDataTable
+          flex-height
           :columns="columns"
           :data="list"
           :loading="loading"
@@ -1451,6 +1468,7 @@ onMounted(() => loadList(true));
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
 }
 
 .ds-data-table {

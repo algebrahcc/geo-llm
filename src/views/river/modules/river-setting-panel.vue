@@ -40,6 +40,20 @@ const forceScaleOptions = [
   { label: '1个团', value: '1个团' }
 ];
 
+// ──── 区块折叠（次要信息默认折叠，点击标题展开） ────
+const sectionCollapsed = ref<Record<string, boolean>>({
+  mission: false,
+  basic: true,
+  hydrology: false,
+  env: true,
+  resource: false,
+  constraint: true
+});
+
+function toggleSection(key: string) {
+  sectionCollapsed.value[key] = !sectionCollapsed.value[key];
+}
+
 // ──── 表单变化 ────
 function handleFormChange() {
   emit('update-form', { ...localForm.value });
@@ -64,7 +78,6 @@ function handleSubmit() {
   <div class="setting-panel" :class="{ 'setting-panel--collapsed': collapsed }">
     <!-- ══ 标题栏 ══ -->
     <div class="panel-header">
-      <span class="header-icon">⚙️</span>
       <span class="header-title">渡河工程方案设置</span>
       <div class="header-actions">
         <button type="button" class="action-btn" title="折叠" @click="emit('toggle-collapse')">
@@ -80,8 +93,11 @@ function handleSubmit() {
     <div v-show="!collapsed" class="panel-content">
       <!-- 作战任务 -->
       <div class="form-section">
-        <div class="section-label section-label--mission">作战任务</div>
-        <div class="section-body">
+        <div class="section-label section-label--mission" @click="toggleSection('mission')">
+          作战任务
+          <SvgIcon class="section-chevron" :icon="sectionCollapsed.mission ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
+        </div>
+        <div v-show="!sectionCollapsed.mission" class="section-body">
           <div class="form-field">
             <label class="field-label">任务名称</label>
             <input v-model="localForm.taskName" type="text" class="field-input" @input="handleFormChange" />
@@ -98,8 +114,11 @@ function handleSubmit() {
 
       <!-- 任务基础 -->
       <div class="form-section">
-        <div class="section-label section-label--basic">任务基础</div>
-        <div class="section-body">
+        <div class="section-label section-label--basic" @click="toggleSection('basic')">
+          任务基础
+          <SvgIcon class="section-chevron" :icon="sectionCollapsed.basic ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
+        </div>
+        <div v-show="!sectionCollapsed.basic" class="section-body">
           <div class="form-row">
             <div class="form-field flex-1">
               <label class="field-label">任务类型</label>
@@ -127,17 +146,21 @@ function handleSubmit() {
         </div>
       </div>
 
-      <!-- 环境条件 -->
-      <div class="form-section">
-        <div class="section-label section-label--env">环境条件</div>
-        <div class="section-body">
+      <!-- 水文要素（渡河决策核心） -->
+      <div class="form-section form-section--hydrology">
+        <div class="section-label section-label--hydrology" @click="toggleSection('hydrology')">
+          水文要素
+          <span class="section-hint">渡河决策核心</span>
+          <SvgIcon class="section-chevron" :icon="sectionCollapsed.hydrology ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
+        </div>
+        <div v-show="!sectionCollapsed.hydrology" class="section-body">
           <div class="form-row">
             <div class="form-field flex-1">
               <label class="field-label">河宽 (m)</label>
               <input
                 v-model.number="localForm.riverWidth"
                 type="number"
-                class="field-input"
+                class="field-input field-input--accent"
                 @input="handleFormChange"
               />
             </div>
@@ -146,7 +169,7 @@ function handleSubmit() {
               <input
                 v-model="localForm.waterDepthRange"
                 type="text"
-                class="field-input"
+                class="field-input field-input--accent"
                 placeholder="8~15m"
                 @input="handleFormChange"
               />
@@ -158,7 +181,7 @@ function handleSubmit() {
               <input
                 v-model="localForm.flowVelocity"
                 type="text"
-                class="field-input"
+                class="field-input field-input--accent"
                 placeholder="2.5~3.5 m/s"
                 @input="handleFormChange"
               />
@@ -168,12 +191,22 @@ function handleSubmit() {
               <input
                 v-model="localForm.riverbedTerrain"
                 type="text"
-                class="field-input"
+                class="field-input field-input--accent"
                 placeholder="砂卵石为主"
                 @input="handleFormChange"
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- 环境条件 -->
+      <div class="form-section">
+        <div class="section-label section-label--env" @click="toggleSection('env')">
+          环境条件
+          <SvgIcon class="section-chevron" :icon="sectionCollapsed.env ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
+        </div>
+        <div v-show="!sectionCollapsed.env" class="section-body">
           <div class="form-row">
             <div class="form-field flex-1">
               <label class="field-label">天气条件</label>
@@ -210,8 +243,11 @@ function handleSubmit() {
 
       <!-- 可用资源 -->
       <div class="form-section">
-        <div class="section-label section-label--resource">可用资源</div>
-        <div class="section-body">
+        <div class="section-label section-label--resource" @click="toggleSection('resource')">
+          可用资源
+          <SvgIcon class="section-chevron" :icon="sectionCollapsed.resource ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
+        </div>
+        <div v-show="!sectionCollapsed.resource" class="section-body">
           <div class="resource-grid">
             <label
               v-for="opt in resourceOptions"
@@ -232,9 +268,15 @@ function handleSubmit() {
 
       <!-- 约束与其他 -->
       <div class="form-section">
-        <div class="section-label section-label--constraint">约束与其他</div>
-        <div class="section-body">
-          <div class="form-field">
+        <div class="section-label section-label--constraint" @click="toggleSection('constraint')">
+          约束与其他
+          <SvgIcon
+            class="section-chevron"
+            :icon="sectionCollapsed.constraint ? 'mdi:chevron-down' : 'mdi:chevron-up'"
+          />
+        </div>
+        <div v-show="!sectionCollapsed.constraint" class="section-body">
+          <div class="form-field form-field--key">
             <label class="field-label">时间约束</label>
             <input
               v-model="localForm.timeConstraint"
@@ -255,8 +297,6 @@ function handleSubmit() {
     <!-- ══ 提交按钮（sticky底部） ══ -->
     <div v-show="!collapsed" class="submit-area">
       <button type="button" class="submit-btn" :disabled="running" @click="handleSubmit">
-        <span v-if="running" class="btn-icon is-loading">⏳</span>
-        <span v-else class="btn-icon">🧠</span>
         <span class="btn-text">{{ running ? 'AI 分析中...' : '提交给 AI 智能分析' }}</span>
       </button>
     </div>
@@ -356,36 +396,67 @@ function handleSubmit() {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
-  font-size: 12px;
+  padding: 8px 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.6);
   background: rgba(255, 255, 255, 0.02);
   letter-spacing: 0.02em;
+  border-left: 2px solid rgba(93, 140, 200, 0.45);
+  cursor: pointer;
+  user-select: none;
 }
 
-.section-label::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.section-label:hover {
+  color: rgba(255, 255, 255, 0.85);
 }
 
-.section-label--mission::before {
-  background: #f59e0b;
+.section-chevron {
+  margin-left: auto;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.35);
 }
-.section-label--basic::before {
-  background: #3b82f6;
+
+/* ──── 水文要素重点区块（仅字号与底色层级，黑白灰） ──── */
+.form-section--hydrology {
+  border-color: rgba(93, 140, 200, 0.4);
+  background: rgba(93, 140, 200, 0.05);
 }
-.section-label--env::before {
-  background: #22c55e;
+
+.section-label--hydrology {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.94);
+  background: rgba(93, 140, 200, 0.09);
+  border-left: 2px solid rgba(120, 170, 230, 0.95);
 }
-.section-label--resource::before {
-  background: #a855f7;
+
+.section-hint {
+  font-size: 10px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.38);
+  letter-spacing: 0.04em;
 }
-.section-label--constraint::before {
-  background: #ef4444;
+
+/* 水文参数输入：字号略大 + 等宽数字 */
+.field-input--accent {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 时间约束（硬条件）：琥珀语义 */
+.form-field--key .field-label {
+  color: #c9a45c;
+  font-weight: 600;
+}
+
+.form-field--key .field-input {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  border-color: rgba(201, 164, 92, 0.45);
+  background: rgba(201, 164, 92, 0.05);
 }
 
 .section-body {
@@ -444,8 +515,8 @@ function handleSubmit() {
 
 .field-input:focus,
 .field-textarea:focus {
-  border-color: rgba(94, 164, 255, 0.4);
-  background: rgba(59, 130, 246, 0.04);
+  border-color: rgba(93, 140, 200, 0.5);
+  background: rgba(93, 140, 200, 0.05);
 }
 
 .field-textarea {
@@ -495,12 +566,12 @@ function handleSubmit() {
 }
 
 .resource-checkbox--checked {
-  background: rgba(43, 107, 255, 0.08);
-  border-color: rgba(43, 107, 255, 0.2);
+  background: rgba(93, 140, 200, 0.09);
+  border-color: rgba(93, 140, 200, 0.42);
 }
 
 .resource-checkbox input[type='checkbox'] {
-  accent-color: #2b6bff;
+  accent-color: #4a7dbd;
   width: 14px;
   height: 14px;
   flex-shrink: 0;
@@ -535,7 +606,7 @@ function handleSubmit() {
   padding: 11px 16px;
   border: none;
   border-radius: 8px;
-  background: #2563eb;
+  background: #3d6fb4;
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -545,7 +616,7 @@ function handleSubmit() {
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: #35619f;
 }
 
 .submit-btn:active:not(:disabled) {
@@ -556,23 +627,6 @@ function handleSubmit() {
   opacity: 0.6;
   cursor: not-allowed;
   box-shadow: none;
-}
-
-.btn-icon {
-  font-size: 16px;
-}
-
-.btn-icon.is-loading {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .btn-text {

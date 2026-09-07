@@ -15,6 +15,7 @@ export interface VectorLayerItem {
 </script>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import type { ServiceLayerHandle } from '@/composables/cesium/service-loader';
 
 defineOptions({
@@ -25,6 +26,8 @@ const props = defineProps<{
   collapsed: boolean;
   vectorLayers: VectorLayerItem[];
   vectorLoading: boolean;
+  /** 地表透视（地下模式）开关状态 */
+  surfaceTranslucent?: boolean;
   /** 数据服务激活图层句柄（阶段二，来自 useCesiumServices.handles） */
   serviceHandles?: ServiceLayerHandle[];
 }>();
@@ -35,11 +38,18 @@ const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'toggle-service', id: number, visible: boolean): void;
   (e: 'remove-service', id: number): void;
-  (e: 'opacity-service', id: number, opacity: number): void;
   (e: 'reorder-service', fromIndex: number, toIndex: number): void;
   (e: 'fly-service', id: number): void;
   (e: 'fly-vector', id: string): void;
+  (e: 'toggle-translucency', enabled: boolean): void;
 }>();
+
+// 矢量图层分组折叠（与数据服务分组交互一致）
+const vectorGroupCollapsed = ref(false);
+
+function toggleVectorGroup() {
+  vectorGroupCollapsed.value = !vectorGroupCollapsed.value;
+}
 
 const visibleCount = () => {
   let c = props.vectorLayers.filter(l => l.visible).length;
@@ -47,12 +57,6 @@ const visibleCount = () => {
   return c;
 };
 const totalCount = () => props.vectorLayers.length + (props.serviceHandles?.length ?? 0);
-
-/** 给每个矢量图层分配一个颜色（循环取色） */
-const VECTOR_COLORS = ['#ff6600', '#5ea4ff', '#2ee59d', '#ffcf5c', '#a855f7', '#ec4899', '#14b8a6', '#f97316'];
-function vectorColor(index: number) {
-  return VECTOR_COLORS[index % VECTOR_COLORS.length];
-}
 </script>
 
 <template>
@@ -62,9 +66,18 @@ function vectorColor(index: number) {
       <span class="header-icon">
         <SvgIcon icon="mdi:layers-outline" />
       </span>
-      <span class="header-title">图层</span>
+      <span class="header-title">图层管理</span>
       <span class="layer-count">{{ visibleCount() }}/{{ totalCount() }}</span>
       <div class="header-actions">
+        <button
+          type="button"
+          class="action-btn"
+          :class="{ 'action-btn--active': surfaceTranslucent }"
+          :title="surfaceTranslucent ? '关闭地表透视' : '地表透视（查看地下要素）'"
+          @click="emit('toggle-translucency', !surfaceTranslucent)"
+        >
+          <SvgIcon icon="mdi:earth" />
+        </button>
         <button type="button" class="action-btn" :title="collapsed ? '展开' : '折叠'" @click="emit('toggle-collapse')">
           <SvgIcon :icon="collapsed ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
         </button>
@@ -82,48 +95,48 @@ function vectorColor(index: number) {
         :show-header="false"
         grouped
         @toggle="(id: number, v: boolean) => emit('toggle-service', id, v)"
-        @opacity="(id: number, o: number) => emit('opacity-service', id, o)"
         @remove="(id: number) => emit('remove-service', id)"
         @reorder="(from: number, to: number) => emit('reorder-service', from, to)"
         @fly="(id: number) => emit('fly-service', id)"
       />
 
       <!-- ====== Section 2：矢量图层 ====== -->
-      <div class="layer-section-title">
+      <div class="layer-section-title layer-section-title--toggle" @click="toggleVectorGroup">
         矢量图层
+        <span class="group-count">{{ vectorLayers.length }}</span>
         <span v-if="vectorLoading" class="loading-dot">加载中…</span>
+        <SvgIcon class="group-chevron" :icon="vectorGroupCollapsed ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
       </div>
 
-      <div v-if="vectorLayers.length === 0 && !vectorLoading" class="layer-empty">
-        暂无矢量图层，请先在
-        <a href="/#/data-center/vector" target="_blank">矢量数据管理</a>
-        上传数据
-      </div>
+      <div v-show="!vectorGroupCollapsed">
+        <div v-if="vectorLayers.length === 0 && !vectorLoading" class="layer-empty">
+          暂无矢量图层，请先在
+          <a href="/#/data-center/vector" target="_blank">矢量数据管理</a>
+          上传数据
+        </div>
 
-      <div
-        v-for="(layer, idx) in vectorLayers"
-        :key="layer.id"
-        class="layer-item"
-        :class="{ 'layer-item--active': layer.visible }"
-        :title="`${layer.label}（双击定位到数据范围）`"
-        @dblclick="emit('fly-vector', layer.id)"
-      >
-        <button
-          type="button"
-          class="eye-btn"
-          :class="{ 'eye-btn--off': !layer.visible }"
-          :title="layer.visible ? '隐藏图层' : '显示图层'"
-          @click="emit('toggle-vector', layer.id)"
+        <div
+          v-for="layer in vectorLayers"
+          :key="layer.id"
+          class="layer-item"
+          :class="{ 'layer-item--active': layer.visible }"
+          :title="`${layer.label}（双击定位到数据范围）`"
+          @dblclick="emit('fly-vector', layer.id)"
         >
-          <SvgIcon :icon="layer.visible ? 'mdi:eye' : 'mdi:eye-off'" />
-        </button>
-        <span
-          class="layer-accent"
-          :style="{ background: vectorColor(idx), boxShadow: `0 0 8px ${vectorColor(idx)}66` }"
-        />
-        <div class="layer-meta">
-          <span class="layer-name" :class="{ 'layer-name--dim': !layer.visible }">{{ layer.label }}</span>
-          <span class="layer-sub">{{ layer.sourceType }} · {{ layer.featureCount }} 要素</span>
+          <button
+            type="button"
+            class="eye-btn"
+            :class="{ 'eye-btn--off': !layer.visible }"
+            :title="layer.visible ? '隐藏图层' : '显示图层'"
+            @click="emit('toggle-vector', layer.id)"
+          >
+            <SvgIcon :icon="layer.visible ? 'mdi:eye' : 'mdi:eye-off'" />
+          </button>
+          <span class="layer-accent" />
+          <div class="layer-meta">
+            <span class="layer-name" :class="{ 'layer-name--dim': !layer.visible }">{{ layer.label }}</span>
+            <span class="layer-sub">{{ layer.sourceType }} · {{ layer.featureCount }} 要素</span>
+          </div>
         </div>
       </div>
     </div>
@@ -150,7 +163,7 @@ function vectorColor(index: number) {
 
 .header-icon {
   font-size: 20px;
-  color: #62c4ff;
+  color: #8db0dd;
 }
 
 .header-title {
@@ -164,8 +177,8 @@ function vectorColor(index: number) {
   font-size: 11px;
   padding: 3px 9px;
   border-radius: 10px;
-  background: rgba(141, 184, 255, 0.12);
-  color: #8db8ff;
+  background: rgba(74, 125, 189, 0.14);
+  color: #8db0dd;
   font-weight: 600;
 }
 
@@ -192,7 +205,7 @@ function vectorColor(index: number) {
 }
 
 .action-btn:hover {
-  background: rgba(43, 107, 255, 0.16);
+  background: rgba(93, 140, 200, 0.18);
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -216,6 +229,11 @@ function vectorColor(index: number) {
   background: rgba(141, 184, 255, 0.24);
 }
 
+.action-btn--active {
+  color: #8db0dd;
+  background: rgba(93, 140, 200, 0.18);
+}
+
 /* ──── Section 标题 ──── */
 .layer-section-title {
   font-size: 11px;
@@ -231,6 +249,31 @@ function vectorColor(index: number) {
 .layer-section-title:first-child {
   padding-top: 4px;
 }
+.layer-section-title--toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.layer-section-title--toggle:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.group-count {
+  font-size: 10px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: rgba(74, 125, 189, 0.14);
+  color: #8db0dd;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.group-chevron {
+  margin-left: auto;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
 .loading-dot {
   font-size: 11px;
   color: rgba(141, 184, 255, 0.7);
@@ -244,7 +287,7 @@ function vectorColor(index: number) {
   line-height: 1.7;
 }
 .layer-empty a {
-  color: #62c4ff;
+  color: #8db0dd;
   text-decoration: none;
 }
 .layer-empty a:hover {
@@ -265,7 +308,7 @@ function vectorColor(index: number) {
     border-color 0.15s;
 }
 .layer-item:hover {
-  background: rgba(43, 107, 255, 0.07);
+  background: rgba(93, 140, 200, 0.08);
 }
 .layer-item--active {
   background: rgba(255, 255, 255, 0.025);
@@ -280,7 +323,7 @@ function vectorColor(index: number) {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #62c4ff;
+  color: #8db0dd;
   cursor: pointer;
   font-size: 19px;
   flex-shrink: 0;
@@ -299,9 +342,10 @@ function vectorColor(index: number) {
 .layer-accent {
   width: 3px;
   height: 22px;
-  border-radius: 2px;
+  border-radius: 1px;
   flex-shrink: 0;
   margin-top: 2px;
+  background: rgba(74, 125, 189, 0.65);
 }
 .layer-meta {
   display: flex;

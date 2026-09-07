@@ -66,7 +66,7 @@
 
 <style scoped>
 .app-logo {
-  --logo-color-start: #29b6ff;
+  --logo-color-start: #4a7dbd;
   --logo-color-end: #00d4aa;
 }
 html.dark .app-logo {

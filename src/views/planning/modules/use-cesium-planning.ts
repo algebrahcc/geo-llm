@@ -139,11 +139,14 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
         heightReference: HeightReference.CLAMP_TO_GROUND
       },
       label: {
+        // 超采样：2 倍字号栅格化 + scale 0.5 显示，消除高分屏下文字发虚
         text: item.name,
-        font: '12px Microsoft YaHei',
+        font: '24px Microsoft YaHei',
+        scale: 0.5,
         fillColor: Color.WHITE,
         showBackground: true,
-        backgroundColor: base.getColor('#0f172a', 0.78),
+        backgroundColor: base.getColor('#050d18', 0.9),
+        backgroundPadding: new Cartesian2(9, 6),
         pixelOffset: new Cartesian2(0, -22),
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
         style: LabelStyle.FILL,
@@ -381,6 +384,8 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
       prepareViewer(viewer) {
         viewer.scene.globe.depthTestAgainstTerrain = false;
         viewer.scene.requestRenderMode = true;
+        // 按设备推荐分辨率（DPR）渲染，高分屏（Windows 125%/150% 缩放）下文字/线划不发虚
+        viewer.useBrowserRecommendedResolution = true;
         viewer.camera.percentageChanged = 0.01;
         viewer.scene.screenSpaceCameraController.zoomFactor = 2.2;
         viewer.scene.screenSpaceCameraController.inertiaZoom = 0.35;
@@ -542,6 +547,7 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     containerRef,
     initViewer,
     setActiveTool,
+    setGlobeSurfaceTranslucent: base.setGlobeSurfaceTranslucent,
     setLayerVisible,
     showRoute,
     revealRoutes,

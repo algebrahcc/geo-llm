@@ -31,12 +31,16 @@ export interface RiverPolygonOverlay {
   positions: readonly Coordinate[];
 }
 
+/** 军事符号点：square=渡场/作业点，circle=登陆/接引点，triangle=观察哨，label=纯文字注记（如河幅） */
+export type RiverPointSymbol = 'square' | 'circle' | 'triangle' | 'label';
+
 export interface RiverPointOverlay {
   id: string;
   name: string;
   longitude: number;
   latitude: number;
   color: string;
+  symbol?: RiverPointSymbol;
 }
 
 // ─────────────────── 渡河工程保障类型 ───────────────────

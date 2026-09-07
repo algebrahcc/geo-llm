@@ -25,14 +25,14 @@ const emit = defineEmits<{
 
 function getScoreColor(score: number): string {
   if (score >= 90) return '#2ee59d';
-  if (score >= 80) return '#29b6ff';
+  if (score >= 80) return '#4a7dbd';
   return '#fbbf24';
 }
 
 /** 路况等级色：畅通绿 / 基本畅通蓝 / 缓行黄 / 拥堵红 */
 function getTrafficColor(level: string): string {
   if (level === '畅通') return '#2ee59d';
-  if (level === '基本畅通') return '#29b6ff';
+  if (level === '基本畅通') return '#4a7dbd';
   if (level === '缓行') return '#fbbf24';
   return '#fb7185';
 }
@@ -40,7 +40,7 @@ function getTrafficColor(level: string): string {
 function getSegmentColor(level: string): string {
   if (level.includes('拥堵')) return '#fb7185';
   if (level.includes('缓行')) return '#fbbf24';
-  if (level.includes('畅通') && level !== '畅通') return '#29b6ff';
+  if (level.includes('畅通') && level !== '畅通') return '#4a7dbd';
   return '#2ee59d';
 }
 </script>
@@ -207,7 +207,7 @@ function getSegmentColor(level: string): string {
 
 .bar-title-icon {
   font-size: 16px;
-  color: #29b6ff;
+  color: #4a7dbd;
 }
 
 .bar-close-btn {
@@ -270,7 +270,7 @@ function getSegmentColor(level: string): string {
 }
 
 .plan-card--selected {
-  border-color: #29b6ff;
+  border-color: #4a7dbd;
   background: rgba(41, 163, 255, 0.08);
   box-shadow: 0 0 0 1px rgba(41, 163, 255, 0.3);
 }
@@ -320,7 +320,7 @@ function getSegmentColor(level: string): string {
 
 .card-tag--info {
   background: rgba(41, 163, 255, 0.1);
-  color: #29b6ff;
+  color: #4a7dbd;
 }
 
 .card-tag--warning {
@@ -357,7 +357,7 @@ function getSegmentColor(level: string): string {
 }
 
 .metric-value--dist {
-  color: #29b6ff;
+  color: #4a7dbd;
 }
 
 .metric-label {
@@ -391,7 +391,7 @@ function getSegmentColor(level: string): string {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #29b6ff;
+  background: #4a7dbd;
   flex-shrink: 0;
 }
 

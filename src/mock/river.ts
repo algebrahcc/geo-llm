@@ -24,73 +24,13 @@ export const riverPresets = {
   }
 } as const;
 
-/**
- * 淡水河河道中心线（WGS84）。
- * 关渡大桥坐标为公开资料验证值（121.4572, 25.1256），其余点沿真实河道走向插值（±150m）。
- * 详见 docs/渡河场景点位表.md。
- */
-export const riverStaticChannels = [
-  {
-    id: 'river-channel-main',
-    name: '关渡段主渡河通道',
-    color: '#5ea4ff',
-    positions: [
-      [121.4572, 25.1256],
-      [121.4583, 25.123],
-      [121.4592, 25.1205],
-      [121.46, 25.1178],
-      [121.4608, 25.115],
-      [121.4622, 25.1116],
-      [121.464, 25.1076]
-    ]
-  },
-  {
-    id: 'river-channel-alt',
-    name: '上游备用浮渡段',
-    color: '#8de1ff',
-    positions: [
-      [121.464, 25.1076],
-      [121.4662, 25.1038],
-      [121.469, 25.1002],
-      [121.4722, 25.0968],
-      [121.4762, 25.093],
-      [121.4812, 25.089]
-    ]
-  }
-] as const;
-
-export const riverStaticAssemblyZones = [
-  {
-    id: 'assembly-south',
-    name: '八里岸集结区',
-    color: '#2ee59d',
-    positions: [
-      [121.4455, 25.1155],
-      [121.452, 25.116],
-      [121.4525, 25.1225],
-      [121.446, 25.1215]
-    ]
-  },
-  {
-    id: 'assembly-support',
-    name: '五股器材展开区',
-    color: '#ffcf5c',
-    positions: [
-      [121.447, 25.106],
-      [121.4535, 25.1065],
-      [121.454, 25.1115],
-      [121.4475, 25.111]
-    ]
-  }
-] as const;
-
 export const riverPlanSummaries = {
   'plan-a': {
     key: 'plan-a',
     label: '方案一',
     title: '门桥漕渡主渡方案（关渡大桥上游渡场）',
     summary:
-      '西岸狮子头滩地集结，门桥编组于关渡大桥上游约1km处漕渡横越约450m河幅，在关渡宫南侧登陆场上岸，优先保证主突击群过河时效。',
+      '西岸狮子头滩地集结，门桥编组于关渡大桥上游约1km处漕渡横越实测491m河幅，在关渡宫南侧登陆场上岸，优先保证主突击群过河时效。',
     metrics: [
       { label: '完成时长', value: '82 分钟', tone: 'primary' },
       { label: '资源消耗', value: '中等', tone: 'success' },
@@ -170,44 +110,51 @@ export const riverPlanScenes = {
       id: 'plan-a-route',
       name: '方案一渡河路线',
       color: '#63e6be',
-      // 八里岸集结 → 狮子头下水 → 横渡约500m → 关渡宫南侧登陆 → 纵深机动
+      // 八里岸集结 → 狮子头下水 → 横渡（水线坐标为 OSM 水域面量算值） → 关渡宫南侧登陆 → 纵深机动
       positions: [
         [121.4468, 25.1192],
         [121.4515, 25.1196],
-        [121.4552, 25.1198],
-        [121.4592, 25.1205],
-        [121.4608, 25.1208],
+        [121.45705, 25.1202],
+        [121.45945, 25.12057],
+        [121.46185, 25.12094],
         [121.4665, 25.1215]
       ]
     },
-    riskZones: [
+    // 风险区色块标绘已按演示反馈移除（半透明区域难以理解），风险描述保留在方案卡片与点位表
+    riskZones: [],
+    marks: [
       {
-        id: 'plan-a-risk-1',
-        name: '关渡大桥火力封锁区',
-        color: '#fb7185',
-        positions: [
-          [121.4585, 25.1193],
-          [121.4623, 25.1217],
-          [121.4559, 25.1319],
-          [121.4521, 25.1295]
-        ]
+        id: 'plan-a-mark-1',
+        name: '主渡场下水点',
+        longitude: 121.45705,
+        latitude: 25.1202,
+        color: '#63e6be',
+        symbol: 'square'
       },
       {
-        id: 'plan-a-risk-2',
-        name: '红树林滩地风险区',
-        color: '#fb7185',
-        positions: [
-          [121.4595, 25.113],
-          [121.4645, 25.1135],
-          [121.466, 25.117],
-          [121.4615, 25.1178]
-        ]
+        id: 'plan-a-mark-2',
+        name: '关渡登陆场',
+        longitude: 121.46185,
+        latitude: 25.12094,
+        color: '#63e6be',
+        symbol: 'circle'
+      },
+      {
+        id: 'plan-a-mark-3',
+        name: '狮子头观察哨',
+        longitude: 121.453,
+        latitude: 25.1225,
+        color: '#63e6be',
+        symbol: 'triangle'
+      },
+      {
+        id: 'plan-a-mark-4',
+        name: '河幅 ≈ 491 m',
+        longitude: 121.45945,
+        latitude: 25.12057,
+        color: '#bfe0ff',
+        symbol: 'label'
       }
-    ],
-    marks: [
-      { id: 'plan-a-mark-1', name: '主渡场下水点', longitude: 121.4552, latitude: 25.1198, color: '#63e6be' },
-      { id: 'plan-a-mark-2', name: '关渡登陆场', longitude: 121.4608, latitude: 25.1208, color: '#63e6be' },
-      { id: 'plan-a-mark-3', name: '狮子头观察哨', longitude: 121.453, latitude: 25.1225, color: '#ffd166' }
     ]
   },
   'plan-b': {
@@ -215,43 +162,42 @@ export const riverPlanScenes = {
       id: 'plan-b-route',
       name: '方案二渡河路线',
       color: '#5ea4ff',
-      // 五股器材转换场 → 西岸桥头 → 浮桥桥位（河心） → 社子岛头接引 → 岛内纵深
+      // 五股器材转换场 → 西岸桥头 → 浮桥桥位（河心） → 社子岛头接引 → 岛内纵深（水线为量算值）
       positions: [
         [121.448, 25.113],
-        [121.4555, 25.1134],
-        [121.4595, 25.1136],
-        [121.4635, 25.114],
+        [121.45901, 25.11328],
+        [121.46142, 25.11364],
+        [121.46383, 25.11399],
         [121.4685, 25.115]
       ]
     },
-    riskZones: [
+    // 风险区色块标绘已按演示反馈移除
+    riskZones: [],
+    marks: [
       {
-        id: 'plan-b-risk-1',
-        name: '感潮强流带',
-        color: '#fb7185',
-        positions: [
-          [121.458, 25.115],
-          [121.4638, 25.1148],
-          [121.468, 25.104],
-          [121.4622, 25.1042]
-        ]
+        id: 'plan-b-mark-1',
+        name: '浮桥桥位',
+        longitude: 121.46142,
+        latitude: 25.11364,
+        color: '#8de1ff',
+        symbol: 'square'
       },
       {
-        id: 'plan-b-risk-2',
-        name: '器材转换滞留区',
-        color: '#ff9f43',
-        positions: [
-          [121.447, 25.109],
-          [121.453, 25.1095],
-          [121.4535, 25.1125],
-          [121.4475, 25.112]
-        ]
+        id: 'plan-b-mark-2',
+        name: '社子岛头接引点',
+        longitude: 121.4655,
+        latitude: 25.1135,
+        color: '#8de1ff',
+        symbol: 'circle'
+      },
+      {
+        id: 'plan-b-mark-3',
+        name: '五股器材转换场',
+        longitude: 121.45,
+        latitude: 25.111,
+        color: '#8de1ff',
+        symbol: 'square'
       }
-    ],
-    marks: [
-      { id: 'plan-b-mark-1', name: '浮桥桥位', longitude: 121.4595, latitude: 25.1136, color: '#8de1ff' },
-      { id: 'plan-b-mark-2', name: '社子岛头接引点', longitude: 121.4655, latitude: 25.1135, color: '#63e6be' },
-      { id: 'plan-b-mark-3', name: '五股器材转换场', longitude: 121.45, latitude: 25.111, color: '#ffcf5c' }
     ]
   },
   'plan-c': {
@@ -259,31 +205,34 @@ export const riverPlanScenes = {
       id: 'plan-c-route',
       name: '方案三渡河路线',
       color: '#f7b267',
-      // 八里渡船头下水 → 横渡 → 竹围岸段多点登陆 → 向淡水方向纵深
+      // 八里渡船头下水（水线） → 横渡 → 竹围岸段多点登陆 → 向淡水方向纵深（水线为量算值）
       positions: [
         [121.436, 25.142],
-        [121.4395, 25.1435],
-        [121.4428, 25.1452],
-        [121.4462, 25.1468],
-        [121.45, 25.1485]
+        [121.44692, 25.14525],
+        [121.45166, 25.1467],
+        [121.45641, 25.14816],
+        [121.46, 25.1493]
       ]
     },
-    riskZones: [
-      {
-        id: 'plan-c-risk-1',
-        name: '河口强潮区',
-        color: '#fbbf24',
-        positions: [
-          [121.4425, 25.148],
-          [121.447, 25.1495],
-          [121.443, 25.156],
-          [121.4385, 25.1545]
-        ]
-      }
-    ],
+    // 风险区色块标绘已按演示反馈移除
+    riskZones: [],
     marks: [
-      { id: 'plan-c-mark-1', name: '渡船头下水面', longitude: 121.4398, latitude: 25.1438, color: '#f7b267' },
-      { id: 'plan-c-mark-2', name: '竹围登陆点', longitude: 121.4462, latitude: 25.1468, color: '#2ee59d' }
+      {
+        id: 'plan-c-mark-1',
+        name: '渡船头下水面',
+        longitude: 121.44692,
+        latitude: 25.14525,
+        color: '#f7b267',
+        symbol: 'square'
+      },
+      {
+        id: 'plan-c-mark-2',
+        name: '竹围登陆点',
+        longitude: 121.45641,
+        latitude: 25.14816,
+        color: '#f7b267',
+        symbol: 'circle'
+      }
     ]
   }
 } as const;
@@ -297,7 +246,7 @@ export const defaultCrossingSettingForm: CrossingSettingForm = {
   taskType: '渡河保障',
   actionTime: '2026-06-15 06:00',
   forceScale: '1个合成营',
-  riverWidth: 450,
+  riverWidth: 491,
   waterDepthRange: '4~8m',
   flowVelocity: '0.8~1.8 m/s',
   riverbedTerrain: '泥沙质为主',
@@ -474,7 +423,7 @@ export const crossingPlanCards: CrossingPlanCard[] = [
     capacity: '1个营/h',
     safety: '优',
     scenario: '门桥+浮桥混合编组，适合关渡窄段快速突渡',
-    routeDesc: '八里狮子头滩地集结，于关渡大桥上游约1km渡场漕渡横越约450m，在关渡宫南侧登陆场上岸',
+    routeDesc: '八里狮子头滩地集结，于关渡大桥上游约1km渡场漕渡横越实测491m，在关渡宫南侧登陆场上岸',
     keyEquipment: ['冲锋舟×8', '重型浮桥1套', '工兵作业车×4'],
     advantages: ['渡河速度最快，可在3小时内完成', '混合编组灵活性强', '狮子头高地观察条件好'],
     risks: ['涨落潮时流速增大，须利用平潮窗口', '东岸登陆须避开红树林保育区北缘'],
@@ -495,7 +444,7 @@ export const crossingPlanCards: CrossingPlanCard[] = [
     keyEquipment: ['重型浮桥2套', '舟桥器材32套', '架桥坦克×2'],
     advantages: ['通行能力最强，适合重装部队', '浮桥稳定性好', '可多段并行'],
     risks: ['架设时间较长，桥位暴露于主槽', '社子岛地势低洼，纵深机动受限'],
-    conditions: ['河宽<1000m', '水深<12m', '岸滩坡度<8°']
+    conditions: ['河宽<600m', '水深<12m', '岸滩坡度<8°']
   },
   {
     rank: 3,

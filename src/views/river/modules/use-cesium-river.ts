@@ -13,18 +13,12 @@ import {
   LabelStyle,
   Math as CesiumMath,
   NearFarScalar,
+  PolylineArrowMaterialProperty,
   PolylineDashMaterialProperty,
   PolygonHierarchy,
   VerticalOrigin
 } from 'cesium';
-import {
-  riverFlowTemplate,
-  riverPlanScenes,
-  riverPlanSummaries,
-  riverPresets,
-  riverStaticAssemblyZones,
-  riverStaticChannels
-} from '@/mock/river';
+import { riverFlowTemplate, riverPlanScenes, riverPlanSummaries, riverPresets } from '@/mock/river';
 import { sleep } from '@/utils/async';
 import { unwrapResponseData } from '@/service/request/envelope';
 import type {
@@ -57,11 +51,7 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
   // 矢量图层组合层（通用）：mvt-imagery-provider 按瓦片渲染后端 MVT
   const vectorLayers = useCesiumVectorLayer(base);
 
-  // ─── mock 静态/方案 entities（保留分析流程用） ───
-  const staticEntities: Record<'channel' | 'assembly', Entity[]> = {
-    channel: [],
-    assembly: []
-  };
+  // ─── 方案 entities（分析完成后上图；路线/标注点，无色块区域） ───
   const planEntities: Record<'route' | 'risk' | 'mark', Entity[]> = {
     route: [],
     risk: [],
@@ -91,6 +81,43 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
   function emitStatus(cartesian?: Cartesian3 | null) {
     options.onStatusChange?.(computeStatus(cartesian) as unknown as RiverStatusInfo);
   }
+
+  // ─── 军事符号纹理（白框深底制式点标：方=渡场/作业，圆=登陆/接引，三角=观察哨） ───
+  const symbolTextureCache = new Map<string, HTMLCanvasElement>();
+
+  function createSymbolTexture(symbol: 'square' | 'circle' | 'triangle'): HTMLCanvasElement {
+    const cached = symbolTextureCache.get(symbol);
+    if (cached) return cached;
+    // 2 倍分辨率栅格化（显示 18px），billboard 缩小采样保持符号边缘锐利
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+    const cx = size / 2;
+    const cy = size / 2;
+    ctx.fillStyle = 'rgba(255, 250, 244, 0.96)';
+    ctx.strokeStyle = '#d5443c';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    if (symbol === 'square') {
+      ctx.rect(cx - 18, cy - 18, 36, 36);
+    } else if (symbol === 'circle') {
+      ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+    } else {
+      ctx.moveTo(cx, cy - 22);
+      ctx.lineTo(cx + 22, cy + 18);
+      ctx.lineTo(cx - 22, cy + 18);
+      ctx.closePath();
+    }
+    ctx.fill();
+    ctx.stroke();
+    symbolTextureCache.set(symbol, canvas);
+    return canvas;
+  }
+
+  const CN_INDEX = ['①', '②', '③', '④', '⑤', '⑥'];
 
   // ─── Entity 创建（模块特有样式） ────────────────────
 
@@ -130,34 +157,60 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     return entity;
   }
 
-  function createPointEntity(layerKey: RiverLayerKey, item: RiverPointOverlay) {
+  /** 方案机动路线：我方要素按我军标图惯例用红色——选中=红色机动箭头实线，候选=暗红虚线（预备路线） */
+  function createRouteEntity(item: RiverLineOverlay, selected: boolean) {
     const viewer = viewerRef.value;
     if (!viewer) return null;
+    const entity = viewer.entities.add({
+      id: selected ? item.id : `${item.id}-candidate`,
+      name: item.name,
+      polyline: {
+        positions: item.positions.map(p => Cartesian3.fromDegrees(p[0], p[1])),
+        width: selected ? 8 : 2,
+        material: selected
+          ? new PolylineArrowMaterialProperty(Color.fromCssColorString('#d5443c'))
+          : new PolylineDashMaterialProperty({ color: base.getColor('#d5443c', 0.3) }),
+        clampToGround: true
+      }
+    });
+    entity.show = layerVisibility.imagery;
+    return entity;
+  }
+
+  function createPointEntity(layerKey: RiverLayerKey, item: RiverPointOverlay, index?: number) {
+    const viewer = viewerRef.value;
+    if (!viewer) return null;
+    const symbol = item.symbol ?? 'circle';
+    const isTextOnly = symbol === 'label';
+    // 注记规范：非文字要素带编号（① 主渡场下水点），文字注记（河幅）不编号
+    const labelText = index ? `${CN_INDEX[index - 1] ?? ''} ${item.name}` : item.name;
     const entity = viewer.entities.add({
       id: item.id,
       name: item.name,
       position: Cartesian3.fromDegrees(item.longitude, item.latitude),
-      point: {
-        pixelSize: 14,
-        color: base.getColor(item.color),
-        outlineColor: Color.WHITE,
-        outlineWidth: 3,
-        heightReference: HeightReference.CLAMP_TO_GROUND,
-        disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        scaleByDistance: new NearFarScalar(500, 1.8, 50000, 0.4)
-      },
+      billboard: isTextOnly
+        ? undefined
+        : {
+            image: createSymbolTexture(symbol),
+            width: 18,
+            height: 18,
+            heightReference: HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            scaleByDistance: new NearFarScalar(800, 1.0, 60000, 0.55),
+            verticalOrigin: VerticalOrigin.CENTER
+          },
       label: {
-        text: item.name,
-        font: 'bold 13px Microsoft YaHei',
+        // 超采样：2 倍字号栅格化 + scale 0.5 显示，消除高分屏下 Cesium 文字发虚
+        text: labelText,
+        font: 'bold 24px Microsoft YaHei',
+        scale: 0.5,
         fillColor: Color.WHITE,
         showBackground: true,
-        backgroundColor: base.getColor('#0a1628', 0.85),
-        backgroundPadding: new Cartesian2(6, 4),
-        pixelOffset: new Cartesian2(0, -24),
+        backgroundColor: base.getColor('#050d18', 0.92),
+        backgroundPadding: new Cartesian2(9, 6),
+        pixelOffset: new Cartesian2(0, isTextOnly ? -14 : -22),
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        style: LabelStyle.FILL_AND_OUTLINE,
-        outlineColor: base.getColor(item.color, 0.9),
-        outlineWidth: 2,
+        style: LabelStyle.FILL,
         verticalOrigin: VerticalOrigin.BOTTOM,
         horizontalOrigin: HorizontalOrigin.CENTER
       }
@@ -172,12 +225,6 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     const { imageryLayers } = base;
     imageryLayers.forEach(layer => {
       layer.show = layerVisibility.imagery;
-    });
-    staticEntities.channel.forEach(e => {
-      e.show = layerVisibility.imagery;
-    });
-    staticEntities.assembly.forEach(e => {
-      e.show = layerVisibility.imagery;
     });
     planEntities.route.forEach(e => {
       e.show = layerVisibility.imagery;
@@ -210,29 +257,25 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     });
   }
 
-  function addStaticEntities() {
-    riverStaticChannels.forEach(item => {
-      const entity = createPolylineEntity('imagery', item);
-      if (entity) staticEntities.channel.push(entity);
-    });
-    riverStaticAssemblyZones.forEach(item => {
-      const entity = createPolygonEntity('imagery', item);
-      if (entity) staticEntities.assembly.push(entity);
-    });
-  }
-
   function showPlan(planKey: RiverPlanKey) {
     activePlan = planKey;
     clearPlanEntities();
+    // 三条路线同图：选中方案=机动箭头实线，候选方案=灰虚线（预备路线军线语义）
+    (Object.keys(riverPlanScenes) as RiverPlanKey[]).forEach(key => {
+      const entity = createRouteEntity(riverPlanScenes[key].route, key === planKey);
+      if (entity) planEntities.route.push(entity);
+    });
     const scene = riverPlanScenes[planKey];
-    const routeEntity = createPolylineEntity('imagery', scene.route);
-    if (routeEntity) planEntities.route.push(routeEntity);
     scene.riskZones.forEach(item => {
       const entity = createPolygonEntity('imagery', item);
       if (entity) planEntities.risk.push(entity);
     });
+    // 点位制式符号：非文字要素按顺序编号（①②③），文字注记（河幅）不编号
+    let markIndex = 0;
     scene.marks.forEach(item => {
-      const entity = createPointEntity('imagery', item);
+      const isText = item.symbol === 'label';
+      if (!isText) markIndex += 1;
+      const entity = createPointEntity('imagery', item, isText ? undefined : markIndex);
       if (entity) planEntities.mark.push(entity);
     });
     syncLayerVisibility();
@@ -441,6 +484,8 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
       prepareViewer(viewer) {
         viewer.scene.globe.depthTestAgainstTerrain = false;
         viewer.scene.requestRenderMode = true;
+        // 按设备推荐分辨率（DPR）渲染，高分屏（Windows 125%/150% 缩放）下文字/线划不发虚
+        viewer.useBrowserRecommendedResolution = true;
         viewer.camera.percentageChanged = 0.01;
         viewer.scene.screenSpaceCameraController.zoomFactor = 3.0;
         viewer.scene.screenSpaceCameraController.inertiaZoom = 0.35;
@@ -481,7 +526,6 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
   }
 
   function initMapOverlays(showPlanFirst = true) {
-    addStaticEntities();
     if (showPlanFirst) showPlan(activePlan);
     flyToPreset();
     emitStatus(Cartesian3.fromDegrees(riverPresets.task.longitude, riverPresets.task.latitude, 0));
@@ -491,6 +535,7 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     containerRef,
     initViewer,
     initMapOverlays,
+    setGlobeSurfaceTranslucent: base.setGlobeSurfaceTranslucent,
     setActiveTool,
     setLayerVisible,
     flyToPreset,

@@ -16,6 +16,7 @@ const {
   containerRef,
   initViewer,
   initMapOverlays,
+  setGlobeSurfaceTranslucent,
   setActiveTool,
   setLayerVisible,
   flyToPreset,
@@ -60,13 +61,12 @@ const {
 
 onMounted(async () => {
   await initViewer();
-  // 页面加载即显示态势底图（通道/集结区），方案路线待分析完成后再绘出
-  initMapOverlays(false);
   emit('ready');
 });
 
 defineExpose({
   initMapOverlays,
+  setGlobeSurfaceTranslucent: (enabled: boolean) => setGlobeSurfaceTranslucent(enabled),
   setActiveTool: (tool: RiverInteractiveTool | 'browse') => setActiveTool(tool),
   setLayerVisible: (key: RiverLayerKey, visible: boolean) => setLayerVisible(key, visible),
   flyToPreset,

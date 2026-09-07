@@ -34,6 +34,8 @@ export interface ViewerInitHooks {
 }
 
 export interface CesiumBaseReturn {
+  /** 地表透视（地下模式）：globe 半透明，透视查看地下要素 */
+  setGlobeSurfaceTranslucent: (enabled: boolean) => void;
   containerRef: Ref<HTMLDivElement | null>;
   viewerRef: Ref<Viewer | null>;
   imageryLayers: ImageryLayer[];
@@ -487,6 +489,26 @@ export function useCesiumBase(): CesiumBaseReturn {
 
   onBeforeUnmount(destroyViewer);
 
+  // ─── 地表透视（地下模式）：地表半透明，透视查看地下管线/模型 ───
+  let surfaceTranslucent = false;
+
+  function setGlobeSurfaceTranslucent(enabled: boolean) {
+    const viewer = viewerRef.value;
+    if (!viewer || surfaceTranslucent === enabled) return;
+    surfaceTranslucent = enabled;
+    const globe = viewer.scene.globe;
+    globe.translucency.enabled = enabled;
+    globe.translucency.frontFaceAlpha = enabled ? 0.32 : 1.0;
+    globe.translucency.backFaceAlpha = enabled ? 0.12 : 1.0;
+    // 透视模式需要地表参与深度测试，否则半透明混合顺序不正确
+    globe.depthTestAgainstTerrain = enabled;
+    // 地下漫游：关闭相机碰撞检测（默认开启会把相机挡在椭球面/地形之上，无法进入地下模型内部），
+    // 并放宽最小缩放距离，允许贴近视点观察
+    viewer.scene.screenSpaceCameraController.enableCollisionDetection = !enabled;
+    viewer.scene.screenSpaceCameraController.minimumZoomDistance = enabled ? 0.2 : 1.0;
+    requestRender();
+  }
+
   return {
     containerRef,
     viewerRef,
@@ -495,6 +517,7 @@ export function useCesiumBase(): CesiumBaseReturn {
     destroyViewer,
     applyServices,
     requestRender,
+    setGlobeSurfaceTranslucent,
     getColor,
     getCartesianFromScreen,
     createEmitStatus,

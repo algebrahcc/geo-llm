@@ -33,6 +33,8 @@ defineOptions({
 // ──── Viewer 引用 ────
 interface ViewerExpose {
   initMapOverlays: () => void;
+  setGlobeSurfaceTranslucent: (enabled: boolean) => void;
+  flyToPreset: () => void;
   resetView: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
@@ -61,7 +63,6 @@ interface ViewerExpose {
   serviceHandles: ServiceLayerHandle[];
   toggleService: (id: number, visible: boolean) => void;
   removeService: (id: number) => void;
-  setServiceOpacity: (id: number, opacity: number) => void;
   reorderService: (fromIndex: number, toIndex: number) => void;
 }
 
@@ -83,7 +84,7 @@ const resultCollapsed = ref(false);
 const layerCollapsed = ref(false);
 
 // ──── 面板拖拽 ────
-const settingDrag = useDraggable({ anchor: 'left', initialX: 72, initialY: 72 });
+const settingDrag = useDraggable({ anchor: 'left', initialX: 62, initialY: 10 });
 const aiDrag = useDraggable({ anchor: 'right', initialX: 18, initialY: 18 });
 const agentDrag = useDraggable({ anchor: 'right', initialX: 18, initialY: 72 });
 // 智能体面板宽高（默认 520×660，右下角可拖拽缩放）
@@ -96,6 +97,7 @@ const agentPanelStyle = computed(() => ({
 // 结果面板：中间偏右竖向浮动面板（参考路线规划页）
 const resultDrag = useDraggable({ anchor: 'right', initialX: 460, initialY: 72 });
 const layerDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 18 });
+const surfaceTranslucent = ref(false);
 
 // ──── 表单数据 ────
 const settingForm = ref<CrossingSettingForm>({ ...defaultCrossingSettingForm });
@@ -188,10 +190,6 @@ function handleToggleService(id: number, visible: boolean) {
 
 function handleRemoveService(id: number) {
   viewerRef.value?.removeService(id);
-}
-
-function handleOpacityService(id: number, opacity: number) {
-  viewerRef.value?.setServiceOpacity(id, opacity);
 }
 
 function handleReorderService(fromIndex: number, toIndex: number) {
@@ -318,11 +316,18 @@ async function handleSubmitAnalysis() {
   resultVisible.value = true;
   resultCollapsed.value = false;
 
-  viewerRef.value?.initMapOverlays();
-  const recommended = crossingPlanCards.find(p => p.isRecommended) ?? crossingPlanCards[0];
-  if (recommended) {
-    activePlanKey.value = recommended.key;
-    viewerRef.value?.showPlan(recommended.key);
+  try {
+    const recommended = crossingPlanCards.find(p => p.isRecommended) ?? crossingPlanCards[0];
+    if (recommended) {
+      activePlanKey.value = recommended.key;
+      // 态势底图（集结区/器材展开区）挂载时已绘出，此处只上图当前方案并回到任务区视角
+      viewerRef.value?.showPlan(recommended.key);
+      viewerRef.value?.flyToPreset();
+    }
+  } catch (e) {
+    // 上图失败不阻塞流程收尾：按钮状态必须复位，并给出可见错误提示
+    console.error('[River] 分析结果上图失败:', e);
+    window.$message?.error('分析结果上图失败，请重试');
   }
 
   analysisRunning.value = false;
@@ -375,6 +380,11 @@ function handleResultClose() {
 function handleLayerClose() {
   layerPanelVisible.value = false;
   activeRightTool.value = null;
+}
+
+function handleSurfaceTranslucent(enabled: boolean) {
+  surfaceTranslucent.value = enabled;
+  viewerRef.value?.setGlobeSurfaceTranslucent(enabled);
 }
 
 function handleToggleLayerPanel() {
@@ -632,13 +642,14 @@ function handleToggleResult() {
             :vector-layers="vectorLayers"
             :vector-loading="vectorLoading"
             :service-handles="serviceHandles"
+            :surface-translucent="surfaceTranslucent"
             @toggle-vector="handleToggleVector"
             @toggle-service="handleToggleService"
             @remove-service="handleRemoveService"
-            @opacity-service="handleOpacityService"
             @reorder-service="handleReorderService"
             @fly-service="handleFlyService"
             @fly-vector="handleFlyVector"
+            @toggle-translucency="handleSurfaceTranslucent"
             @toggle-collapse="layerCollapsed = !layerCollapsed"
             @close="handleLayerClose"
           />

@@ -24,6 +24,7 @@ const emit = defineEmits<{
 const {
   containerRef,
   initViewer,
+  setGlobeSurfaceTranslucent,
   setActiveTool,
   setLayerVisible,
   showRoute,
@@ -71,6 +72,7 @@ onMounted(async () => {
 });
 
 defineExpose({
+  setGlobeSurfaceTranslucent: (enabled: boolean) => setGlobeSurfaceTranslucent(enabled),
   setActiveTool: (tool: PlanningInteractiveTool) => setActiveTool(tool),
   setLayerVisible: (key: PlanningLayerKey, visible: boolean) => setLayerVisible(key, visible),
   showRoute: (routeKey: PlanningRouteKey) => showRoute(routeKey),

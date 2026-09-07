@@ -25,7 +25,7 @@ const emit = defineEmits<{
 
 function getScoreColor(score: number): string {
   if (score >= 90) return '#2ee59d';
-  if (score >= 80) return '#29b6ff';
+  if (score >= 80) return '#4a7dbd';
   if (score >= 70) return '#fbbf24';
   return '#fb7185';
 }
@@ -279,7 +279,7 @@ function getScoreColor(score: number): string {
 
 .card-tag--info {
   background: rgba(41, 163, 255, 0.1);
-  color: #29b6ff;
+  color: #4a7dbd;
 }
 
 .card-tag--warning {
@@ -344,7 +344,7 @@ function getScoreColor(score: number): string {
 }
 
 .metric-value--dist {
-  color: #29b6ff;
+  color: #4a7dbd;
 }
 
 .metric-label {

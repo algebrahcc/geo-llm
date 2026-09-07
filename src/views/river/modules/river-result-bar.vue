@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import type { CrossingPlanCard, RejectedRouteData, RiverPlanKey } from './types';
 
 const props = defineProps<{
@@ -24,16 +24,7 @@ const expandedCard = ref<number | null>(null);
 const expandAll = ref(false);
 const showRejected = ref(false);
 
-// 推荐方案默认展开详情，其余卡片折叠，突出主推方案
-watch(
-  () => props.plans,
-  plans => {
-    if (expandedCard.value !== null || plans.length === 0) return;
-    const recommended = plans.find(p => p.isRecommended) ?? plans[0];
-    expandedCard.value = recommended.rank;
-  },
-  { immediate: true }
-);
+// 军用设计原则：方案默认折叠，点击卡片展开详情；"展开全部"供比选
 
 const allExpanded = computed(() => expandAll.value && props.plans.length > 0);
 
@@ -52,28 +43,14 @@ function toggleExpandAll() {
 function toggleRejected() {
   showRejected.value = !showRejected.value;
 }
-
-function getStars(stars: number): string {
-  return '★'.repeat(stars) + '☆'.repeat(5 - stars);
-}
-
-function getSafetyColor(safety: string): string {
-  if (safety === '优') return '#22c55e';
-  if (safety === '良') return '#3b82f6';
-  return '#f59e0b';
-}
 </script>
 
 <template>
   <div class="result-bar" :class="{ 'result-bar--collapsed': collapsed }">
     <!-- ── 标题栏 ── -->
     <div class="bar-header">
-      <span class="header-icon">🏆</span>
       <span class="header-title">渡河方案推荐</span>
-      <span v-if="confidence > 0" class="confidence-badge">
-        <span class="conf-dot" />
-        置信度 {{ confidence }}%
-      </span>
+      <span v-if="confidence > 0" class="confidence-badge">置信度 {{ confidence }}%</span>
       <button v-if="plans.length > 0 && !collapsed" type="button" class="expand-all-btn" @click="toggleExpandAll">
         {{ allExpanded ? '折叠全部' : '展开全部' }}
       </button>
@@ -89,7 +66,6 @@ function getSafetyColor(safety: string): string {
 
     <div v-show="!collapsed" class="bar-content">
       <div v-if="plans.length === 0" class="empty-state">
-        <span class="empty-icon">📋</span>
         <span class="empty-text">尚未生成方案，请先在左侧面板提交分析</span>
       </div>
 
@@ -111,7 +87,6 @@ function getSafetyColor(safety: string): string {
                 @click="emit('select-rejected', r.id)"
               >
                 <div class="rejected-row">
-                  <span class="rejected-icon">{{ r.icon }}</span>
                   <span class="rejected-name">{{ r.name }}</span>
                   <span class="rejected-reason">{{ r.reason }}</span>
                   <SvgIcon class="rejected-locate" icon="mdi:crosshairs-gps" />
@@ -131,9 +106,8 @@ function getSafetyColor(safety: string): string {
             class="plan-card"
             :class="{ 'plan-card--recommended': plan.isRecommended, 'plan-card--active': plan.key === props.activeKey }"
           >
-            <!-- ══ 卡片内侧容器（竖向排列，展开时详情向下展开） ══ -->
             <div class="card-body">
-              <!-- ══ 卡片头部 ══ -->
+              <!-- ══ 卡片头部（默认折叠：编号 + 名称 + 三项关键指标） ══ -->
               <div
                 class="card-header"
                 @click="
@@ -143,46 +117,48 @@ function getSafetyColor(safety: string): string {
               >
                 <div class="card-header-top">
                   <div class="card-identity">
-                    <span class="plan-badge" :class="{ 'plan-badge--gold': plan.isRecommended }">
-                      {{ plan.label }}
-                    </span>
-                    <span v-if="plan.isRecommended" class="recommend-star">★ 推荐</span>
+                    <span class="plan-badge">{{ plan.label }}</span>
+                    <span v-if="plan.isRecommended" class="recommend-flag">主推</span>
                   </div>
-                  <div class="card-stars">{{ getStars(plan.stars) }}</div>
+                  <SvgIcon
+                    class="hint-chevron"
+                    :icon="allExpanded || expandedCard === plan.rank ? 'mdi:chevron-up' : 'mdi:chevron-down'"
+                  />
                 </div>
                 <div class="plan-name">{{ plan.title }}</div>
 
-                <!-- 关键指标条 -->
+                <!-- 关键指标条（重点因素：数值大字加粗，标签小字置灰） -->
                 <div class="metric-strip">
                   <div class="metric-chip">
-                    <span class="chip-icon">⏱</span>
                     <span class="chip-val">{{ plan.duration }}</span>
-                    <span class="chip-label">用时</span>
+                    <span class="chip-label">完成用时</span>
                   </div>
                   <div class="metric-divider" />
                   <div class="metric-chip">
-                    <span class="chip-icon">🚛</span>
                     <span class="chip-val">{{ plan.capacity }}</span>
-                    <span class="chip-label">能力</span>
+                    <span class="chip-label">渡河运力</span>
                   </div>
                   <div class="metric-divider" />
                   <div class="metric-chip">
-                    <span class="chip-icon">🛡</span>
-                    <span class="chip-val" :style="{ color: getSafetyColor(plan.safety) }">{{ plan.safety }}</span>
+                    <span
+                      class="chip-val"
+                      :class="{
+                        'chip-val--s-you': plan.safety === '优',
+                        'chip-val--s-liang': plan.safety === '良',
+                        'chip-val--s-zhong': plan.safety === '中',
+                        'chip-val--s-cha': plan.safety === '差'
+                      }"
+                    >
+                      {{ plan.safety }}
+                    </span>
                     <span class="chip-label">安全性</span>
                   </div>
                 </div>
 
-                <div class="card-expand-hint">
-                  <SvgIcon
-                    class="hint-chevron"
-                    :icon="allExpanded || expandedCard === plan.rank ? 'mdi:chevron-right' : 'mdi:chevron-down'"
-                  />
-                  <span>{{ allExpanded || expandedCard === plan.rank ? '收起' : '查看详情' }}</span>
-                </div>
+                <div v-if="!(allExpanded || expandedCard === plan.rank)" class="card-expand-hint">展开详情</div>
               </div>
 
-              <!-- ══ 展开详情（CSS 过渡高度，避免 v-if 跳变） ══ -->
+              <!-- ══ 展开详情 ══ -->
               <div
                 class="card-detail-wrapper"
                 :class="{ 'card-detail-wrapper--open': allExpanded || expandedCard === plan.rank }"
@@ -190,38 +166,38 @@ function getSafetyColor(safety: string): string {
                 <div class="card-detail">
                   <div class="detail-grid">
                     <div class="detail-block">
-                      <div class="detail-label">📌 推荐场景</div>
+                      <div class="detail-label">态势与场景</div>
                       <div class="detail-text">{{ plan.scenario }}</div>
                     </div>
-                    <div class="detail-block">
-                      <div class="detail-label">🗺️ 路线说明</div>
+                    <div class="detail-block detail-block--key">
+                      <div class="detail-label">机动路线</div>
                       <div class="detail-text">{{ plan.routeDesc }}</div>
                     </div>
                   </div>
 
                   <div class="detail-block">
-                    <div class="detail-label">🔧 关键装备</div>
+                    <div class="detail-label">关键装备</div>
                     <div class="detail-tags">
                       <span v-for="eq in plan.keyEquipment" :key="eq" class="detail-tag">{{ eq }}</span>
                     </div>
                   </div>
 
                   <div class="detail-grid detail-grid--cols3">
-                    <div class="detail-block">
-                      <div class="detail-label detail-label--pos">✅ 优势</div>
+                    <div class="detail-block detail-block--adv">
+                      <div class="detail-label detail-label--adv">优势</div>
                       <ul class="detail-list">
                         <li v-for="(adv, i) in plan.advantages" :key="i">{{ adv }}</li>
                       </ul>
                     </div>
-                    <div class="detail-block">
-                      <div class="detail-label detail-label--warn">⚠️ 风险</div>
-                      <ul class="detail-list detail-list--warn">
+                    <div class="detail-block detail-block--risk">
+                      <div class="detail-label detail-label--risk">风险</div>
+                      <ul class="detail-list">
                         <li v-for="(risk, i) in plan.risks" :key="i">{{ risk }}</li>
                       </ul>
                     </div>
-                    <div class="detail-block">
-                      <div class="detail-label detail-label--info">📋 适用条件</div>
-                      <ul class="detail-list detail-list--info">
+                    <div class="detail-block detail-block--cond">
+                      <div class="detail-label">适用条件</div>
+                      <ul class="detail-list">
                         <li v-for="(cond, i) in plan.conditions" :key="i">{{ cond }}</li>
                       </ul>
                     </div>
@@ -256,10 +232,6 @@ function getSafetyColor(safety: string): string {
   flex-shrink: 0;
 }
 
-.header-icon {
-  font-size: 16px;
-}
-
 .header-title {
   font-size: 13px;
   font-weight: 700;
@@ -274,17 +246,10 @@ function getSafetyColor(safety: string): string {
   font-size: 11px;
   padding: 3px 9px;
   border-radius: 999px;
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
+  background: rgba(93, 140, 200, 0.1);
+  color: #9db8dd;
   font-weight: 600;
-  border: 1px solid rgba(34, 197, 94, 0.2);
-}
-
-.conf-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #22c55e;
+  border: 1px solid rgba(93, 140, 200, 0.35);
 }
 
 .expand-all-btn {
@@ -367,10 +332,6 @@ function getSafetyColor(safety: string): string {
   padding: 32px 0;
 }
 
-.empty-icon {
-  font-size: 28px;
-}
-
 .empty-text {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.35);
@@ -414,27 +375,23 @@ function getSafetyColor(safety: string): string {
 }
 
 .plan-card--recommended {
-  border-color: rgba(34, 197, 94, 0.25);
-  background: rgba(34, 197, 94, 0.02);
+  border-color: rgba(93, 140, 200, 0.42);
+  background: rgba(93, 140, 200, 0.05);
 }
 
 .plan-card--recommended:hover {
-  border-color: rgba(34, 197, 94, 0.4);
+  border-color: rgba(93, 140, 200, 0.6);
 }
 
 .plan-card--active {
-  border-color: rgba(94, 164, 255, 0.6);
-  box-shadow:
-    0 0 0 1px rgba(94, 164, 255, 0.35),
-    0 4px 16px rgba(94, 164, 255, 0.15);
-  background: rgba(94, 164, 255, 0.04);
+  border-color: rgba(93, 140, 200, 0.6);
+  box-shadow: 0 0 0 1px rgba(93, 140, 200, 0.2);
+  background: rgba(93, 140, 200, 0.06);
 }
 
 .plan-card--active.plan-card--recommended {
-  border-color: rgba(34, 197, 94, 0.55);
-  box-shadow:
-    0 0 0 1px rgba(34, 197, 94, 0.35),
-    0 4px 16px rgba(34, 197, 94, 0.15);
+  border-color: rgba(93, 140, 200, 0.72);
+  box-shadow: 0 0 0 1px rgba(93, 140, 200, 0.26);
 }
 
 /* ──── 卡片 body（弹性容器） ──── */
@@ -472,29 +429,23 @@ function getSafetyColor(safety: string): string {
 .plan-badge {
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 6px;
-  background: rgba(141, 184, 255, 0.1);
-  color: #8db8ff;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
   font-weight: 700;
-  border: 1px solid rgba(141, 184, 255, 0.18);
+  letter-spacing: 0.06em;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.plan-badge--gold {
-  background: rgba(245, 158, 11, 0.12);
-  color: #fbbf24;
-  border-color: rgba(245, 158, 11, 0.2);
-}
-
-.recommend-star {
+.recommend-flag {
   font-size: 10px;
-  color: #fbbf24;
-  font-weight: 600;
-}
-
-.card-stars {
-  font-size: 11px;
-  letter-spacing: 0.5px;
-  color: #fbbf24;
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: #3d6fb4;
+  border: 1px solid rgba(147, 178, 220, 0.55);
 }
 
 .plan-name {
@@ -523,15 +474,24 @@ function getSafetyColor(safety: string): string {
   gap: 1px;
 }
 
-.chip-icon {
-  font-size: 12px;
-  margin-bottom: 2px;
+.chip-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  font-variant-numeric: tabular-nums;
 }
 
-.chip-val {
-  font-size: 13px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.85);
+.chip-val--s-you {
+  color: #6aae8a;
+}
+.chip-val--s-liang {
+  color: #7f9fc9;
+}
+.chip-val--s-zhong {
+  color: #c9a45c;
+}
+.chip-val--s-cha {
+  color: #c25b5b;
 }
 
 .chip-label {
@@ -618,22 +578,65 @@ function getSafetyColor(safety: string): string {
   margin-bottom: 4px;
 }
 
-.detail-label--warn {
-  color: #f59e0b;
-}
-
-.detail-label--pos {
-  color: #22c55e;
-}
-
-.detail-label--info {
-  color: #3b82f6;
+.detail-label {
+  border-left: 2px solid rgba(93, 140, 200, 0.55);
+  padding-left: 6px;
+  color: rgba(180, 202, 230, 0.85);
 }
 
 .detail-text {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.48);
+  color: rgba(255, 255, 255, 0.5);
   line-height: 1.55;
+}
+
+/* 优势=绿 */
+.detail-block--adv .detail-label--adv {
+  border-left-color: rgba(106, 174, 138, 0.9);
+  color: #6aae8a;
+  font-weight: 700;
+}
+
+.detail-block--adv .detail-list {
+  color: rgba(168, 205, 182, 0.8);
+}
+
+/* 风险=黄 */
+.detail-block--risk .detail-label--risk {
+  border-left-color: rgba(201, 164, 92, 0.9);
+  color: #c9a45c;
+  font-weight: 700;
+}
+
+.detail-block--risk .detail-list {
+  color: rgba(210, 193, 152, 0.82);
+}
+
+/* 重点要素：机动路线（方案核心动作） */
+.detail-block--key .detail-label {
+  border-left-color: rgba(120, 170, 230, 0.95);
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 700;
+}
+
+.detail-block--key .detail-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.96);
+  line-height: 1.6;
+}
+
+/* 次级强调：适用条件（硬约束） */
+.detail-block--cond .detail-label {
+  border-left-color: rgba(201, 164, 92, 0.75);
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+}
+
+.detail-block--cond .detail-list {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 500;
 }
 
 .detail-tags {
@@ -643,29 +646,21 @@ function getSafetyColor(safety: string): string {
 }
 
 .detail-tag {
-  font-size: 10px;
+  font-size: 10.5px;
   padding: 2px 7px;
-  border-radius: 5px;
-  background: rgba(43, 107, 255, 0.08);
-  color: #7da8ff;
-  border: 1px solid rgba(43, 107, 255, 0.12);
-  font-weight: 500;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-weight: 600;
 }
 
 .detail-list {
   margin: 0;
   padding-left: 14px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.48);
+  color: rgba(255, 255, 255, 0.58);
   line-height: 1.6;
-}
-
-.detail-list--warn {
-  color: rgba(245, 158, 11, 0.7);
-}
-
-.detail-list--info {
-  color: rgba(59, 130, 246, 0.7);
 }
 
 .detail-list li + li {

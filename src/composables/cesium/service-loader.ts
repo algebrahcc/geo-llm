@@ -28,6 +28,7 @@ import {
   PointGraphics,
   Rectangle,
   ScreenSpaceEventHandler,
+  Transforms,
   ScreenSpaceEventType,
   UrlTemplateImageryProvider,
   Viewer,
@@ -174,7 +175,9 @@ function resolveUrl(s: Api.DataService.DataServiceItem): string {
       'http://localhost:8000';
     return `${baseUrl}${s.url}`;
   }
-  return `${import.meta.env.BASE_URL}${s.url}`;
+  // BASE_URL 为 "/" 时直接拼接会产生 "//xxx" 的协议相对 URL（浏览器把首段当主机名），需归一化
+  const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+  return `${base}${s.url}`;
 }
 
 function toTilingScheme(value?: string): GeographicTilingScheme | WebMercatorTilingScheme {
@@ -336,11 +339,40 @@ async function createTerrainHandle(s: Api.DataService.DataServiceItem, viewer: V
 
 async function createTilesetHandle(s: Api.DataService.DataServiceItem, viewer: Viewer): Promise<ServiceLayerHandle> {
   const url = resolveUrl(s);
+  // 摆放位置（可选），兼容两种配置结构：
+  // ① 表单差异字段：params.position = '{"lon":121.46,"lat":25.12,"height":-10}'（字符串或对象）
+  // ② 顶层直写：params = {"lon":121.46,"lat":25.12,"height":-10}
+  // 未配置时模型/瓦片位于 WGS84 原点（数据本身无 transform 的场景）
+  const parsedParams = parseJson<Record<string, unknown>>(s.params);
+  const rawPosition: unknown = parsedParams?.position;
+  const positionConf =
+    typeof rawPosition === 'string'
+      ? parseJson<{ lon?: number; lat?: number; height?: number }>(rawPosition)
+      : (rawPosition as { lon?: number; lat?: number; height?: number } | undefined);
+  const positionSource = positionConf ?? (parsedParams as { lon?: number; lat?: number; height?: number } | undefined);
+  let positionLonLat: { lon: number; lat: number; height: number } | undefined;
+  if (positionSource && positionSource.lon != null && positionSource.lat != null) {
+    positionLonLat = { lon: positionSource.lon, lat: positionSource.lat, height: positionSource.height ?? 0 };
+  }
+  const position = positionLonLat
+    ? Cartesian3.fromDegrees(positionLonLat.lon, positionLonLat.lat, positionLonLat.height)
+    : undefined;
+  // 运行时诊断：摆放未配置/JSON 解析失败都会静默落到 WGS84 原点，控制台明示原因
+  if (positionLonLat) {
+    console.info(
+      `[DataService] ${s.name} 已摆放到 lon=${positionLonLat.lon}, lat=${positionLonLat.lat}, h=${positionLonLat.height}`
+    );
+  } else {
+    console.warn(
+      `[DataService] ${s.name} 未应用摆放位置（params.position 未填或 JSON 格式错误），模型位于 WGS84 原点，地图上不可见`
+    );
+  }
+  const modelMatrix = position ? Transforms.eastNorthUpToFixedFrame(position) : undefined;
   let primitive: Cesium3DTileset | Model;
   if (s.type === 'gltf' || s.type === 'glb') {
-    primitive = await Model.fromGltfAsync({ url });
+    primitive = await Model.fromGltfAsync({ url, modelMatrix });
   } else {
-    primitive = await Cesium3DTileset.fromUrl(url);
+    primitive = await Cesium3DTileset.fromUrl(url, modelMatrix ? { modelMatrix } : undefined);
   }
   viewer.scene.primitives.add(primitive);
   const handle: ServiceLayerHandle = {
@@ -376,6 +408,13 @@ async function createTilesetHandle(s: Api.DataService.DataServiceItem, viewer: V
         return;
       }
       if (viewer.isDestroyed()) return;
+      if (position) {
+        // 模型被摆放后，primitive.boundingSphere 仍是本地坐标，需以摆放点为球心飞行
+        viewer.camera.flyToBoundingSphere(new BoundingSphere(position, Math.max(primitive.boundingSphere.radius, 80)), {
+          duration: FLY_DURATION
+        });
+        return;
+      }
       if (primitive instanceof Model) {
         // glTF/glb：按模型包围球飞行（viewer.flyTo 不接受 Model）
         viewer.camera.flyToBoundingSphere(primitive.boundingSphere, { duration: FLY_DURATION });

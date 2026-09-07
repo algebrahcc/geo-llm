@@ -45,6 +45,7 @@ defineOptions({
 });
 
 interface PlanningViewerExposed {
+  setGlobeSurfaceTranslucent: (enabled: boolean) => void;
   setActiveTool: (tool: PlanningInteractiveTool) => void;
   setLayerVisible: (key: PlanningLayerKey, visible: boolean) => void;
   showRoute: (routeKey: PlanningRouteKey) => void;
@@ -75,7 +76,6 @@ interface PlanningViewerExposed {
   serviceHandles: ServiceLayerHandle[];
   toggleService: (id: number, visible: boolean) => void;
   removeService: (id: number) => void;
-  setServiceOpacity: (id: number, opacity: number) => void;
   reorderService: (fromIndex: number, toIndex: number) => void;
 }
 
@@ -551,10 +551,6 @@ function handleRemoveService(id: number) {
   viewerRef.value?.removeService(id);
 }
 
-function handleOpacityService(id: number, opacity: number) {
-  viewerRef.value?.setServiceOpacity(id, opacity);
-}
-
 function handleReorderService(fromIndex: number, toIndex: number) {
   viewerRef.value?.reorderService(fromIndex, toIndex);
 }
@@ -925,7 +921,6 @@ function handleSupportAiSend(message: string) {
             @toggle-vector="handleToggleVector"
             @toggle-service="handleToggleService"
             @remove-service="handleRemoveService"
-            @opacity-service="handleOpacityService"
             @reorder-service="handleReorderService"
             @toggle-collapse="layerCollapsed = !layerCollapsed"
             @close="handleLayerClose"
@@ -1168,7 +1163,7 @@ function handleSupportAiSend(message: string) {
 }
 
 .panel-tab--active::after {
-  background: #2b6bff;
+  background: #3d6fb4;
   left: 10%;
   right: 10%;
 }

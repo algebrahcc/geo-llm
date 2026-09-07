@@ -289,7 +289,7 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
 
 .settings-title-icon {
   font-size: 16px;
-  color: #29b6ff;
+  color: #4a7dbd;
 }
 
 .settings-subtitle {
@@ -315,7 +315,7 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
 
 .collapse-btn:hover {
   background: rgba(41, 163, 255, 0.15);
-  color: #29b6ff;
+  color: #4a7dbd;
 }
 
 /* 滚动区 */
@@ -363,7 +363,7 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
   justify-content: center;
   border-radius: 50%;
   background: rgba(41, 163, 255, 0.18);
-  color: #29b6ff;
+  color: #4a7dbd;
   font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
@@ -461,7 +461,7 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
 .weight-val {
   font-size: 12px;
   font-weight: 600;
-  color: #29b6ff;
+  color: #4a7dbd;
   min-width: 32px;
   text-align: right;
 }
@@ -488,7 +488,7 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
   margin-top: 4px;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #29b6ff 0%, #2b6bff 100%);
+  background: linear-gradient(135deg, #4a7dbd 0%, #3d6fb4 100%);
   color: #fff;
   font-size: 14px;
   font-weight: 700;

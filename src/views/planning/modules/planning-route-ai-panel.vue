@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue';
+import MarkdownIt from 'markdown-it';
 import { planningRouteQuickTags } from '@/mock/planning';
 import { fetchDifyChatStream } from '@/service/api/dify-stream';
 import { useAuthStore } from '@/store/modules/auth';
@@ -18,6 +19,12 @@ interface Props {
   knowledgeHits?: { docCount: number; chunkCount: number; docNames: string[] } | null;
   /** 绑定的 Dify 应用 ID（规划场景参谋应用；不传走后端默认应用） */
   appId?: string | number;
+}
+
+/** AI 回答 markdown 渲染（html:false 防 XSS） */
+const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
+function renderMarkdown(text: string): string {
+  return md.render(text);
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -214,6 +221,9 @@ function getStatusIcon(step: PlanningAnalysisStep) {
           <span class="msg-avatar">{{ msg.role === 'user' ? '👤' : '🤖' }}</span>
           <div class="msg-bubble" :class="[`msg-bubble--${msg.role}`]">
             <template v-if="msg.role === 'assistant' && msg.streaming && !msg.content">正在思考…</template>
+            <template v-else-if="msg.role === 'assistant'">
+              <div class="chat-md" v-html="renderMarkdown(msg.content)" />
+            </template>
             <template v-else>{{ msg.content }}</template>
           </div>
         </div>
@@ -471,7 +481,7 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 }
 
 .step-line--active {
-  background: linear-gradient(180deg, #29b6ff, #2b6bff);
+  background: linear-gradient(180deg, #4a7dbd, #3d6fb4);
 }
 
 .step-node-row {
@@ -494,12 +504,12 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 
 .step-circle--completed {
   background: rgba(41, 163, 255, 0.2);
-  color: #29b6ff;
+  color: #4a7dbd;
 }
 
 .step-circle--running {
   background: rgba(41, 163, 255, 0.25);
-  color: #29b6ff;
+  color: #4a7dbd;
   animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -534,7 +544,7 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 }
 
 .step-item--running .step-label {
-  color: #29b6ff;
+  color: #4a7dbd;
   font-weight: 500;
 }
 
@@ -547,7 +557,7 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 }
 
 .step-item--running .step-status-text {
-  color: #29b6ff;
+  color: #4a7dbd;
 }
 
 .step-item--pending .step-status-text {
@@ -573,14 +583,14 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 .progress-bar__fill {
   height: 100%;
   border-radius: 3px;
-  background: linear-gradient(90deg, #29b6ff 0%, #2b6bff 100%);
+  background: linear-gradient(90deg, #4a7dbd 0%, #3d6fb4 100%);
   transition: width 0.5s ease;
 }
 
 .progress-percent {
   font-size: 13px;
   font-weight: 600;
-  color: #29b6ff;
+  color: #4a7dbd;
   min-width: 36px;
   text-align: right;
 }
@@ -605,7 +615,7 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 
 .kb-icon {
   font-size: 18px;
-  color: #29b6ff;
+  color: #4a7dbd;
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -619,7 +629,7 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 .kb-title {
   font-size: 12px;
   font-weight: 600;
-  color: #29b6ff;
+  color: #4a7dbd;
 }
 
 .kb-detail {
@@ -749,5 +759,57 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 .send-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+/* markdown 内容 */
+.chat-md :deep(p) {
+  margin: 0 0 6px;
+}
+.chat-md :deep(p:last-child) {
+  margin-bottom: 0;
+}
+.chat-md :deep(ul),
+.chat-md :deep(ol) {
+  margin: 4px 0 6px;
+  padding-left: 18px;
+}
+.chat-md :deep(li) {
+  margin: 2px 0;
+}
+.chat-md :deep(code) {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Consolas', monospace;
+}
+.chat-md :deep(pre) {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  margin: 6px 0;
+}
+.chat-md :deep(pre code) {
+  background: transparent;
+  padding: 0;
+}
+.chat-md :deep(table) {
+  border-collapse: collapse;
+  margin: 6px 0;
+  font-size: 11px;
+}
+.chat-md :deep(th),
+.chat-md :deep(td) {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 8px;
+}
+.chat-md :deep(h1),
+.chat-md :deep(h2),
+.chat-md :deep(h3),
+.chat-md :deep(h4) {
+  font-size: 13px;
+  margin: 8px 0 4px;
 }
 </style>

@@ -121,7 +121,7 @@ const r = computed(() => {
 
 // ---- Color palette for charts (matching reference design) ----
 const CHART_COLORS = {
-  primary: '#29b6ff',
+  primary: '#4a7dbd',
   secondary: '#00d4aa',
   warning: '#ffb020',
   danger: '#ff5c5c',
@@ -129,7 +129,7 @@ const CHART_COLORS = {
   purple: '#a78bfa'
 };
 
-const PIE_COLORS = ['#29b6ff', '#00d4aa', '#ffb020', '#7b8cff', '#ff7eb3'];
+const PIE_COLORS = ['#4a7dbd', '#00d4aa', '#ffb020', '#7b8cff', '#ff7eb3'];
 
 // ---- Task Distribution Donut Chart (compact with center total) ----
 const taskTotal = screenTaskDistribution.reduce((sum, item) => sum + item.value, 0);
@@ -361,7 +361,7 @@ const { domRef: hotKeywordsDomRef, updateOptions: updateHotKeywords } = useEchar
 );
 
 // ---- AI Ranking Horizontal Bar Chart ----
-const aiRankColors = ['#ff5c5c', '#ffb020', '#29b6ff', '#7b8cff', '#a78bfa'];
+const aiRankColors = ['#ff5c5c', '#ffb020', '#4a7dbd', '#7b8cff', '#a78bfa'];
 const { domRef: aiRankDomRef, updateOptions: updateAiRank } = useEcharts(() => ({
   tooltip: {
     trigger: 'axis',
@@ -809,7 +809,7 @@ function getKpiIcon(key: string): string {
   --sd-text-primary: #e4f2ff;
   --sd-text-secondary: rgba(175, 208, 245, 0.72);
   --sd-text-muted: rgba(135, 178, 230, 0.5);
-  --sd-accent-blue: #29b6ff;
+  --sd-accent-blue: #4a7dbd;
   --sd-accent-cyan: #00d4aa;
   --sd-accent-orange: #ffb020;
   --sd-accent-red: #ff5c5c;
@@ -1240,7 +1240,7 @@ function getKpiIcon(key: string): string {
 }
 
 .scene-mode-btn.active {
-  color: #29b6ff;
+  color: #4a7dbd;
   background: rgba(41, 182, 255, 0.12);
   border-color: rgba(41, 182, 255, 0.35);
 }

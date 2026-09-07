@@ -9,10 +9,17 @@ import { useAgentSelection } from './use-agent';
 import { useDifyApps } from './use-dify-app';
 import { useAuthStore } from '@/store/modules/auth';
 import { useAgentChat } from './use-agent-chat';
+import MarkdownIt from 'markdown-it';
 
 defineOptions({
   name: 'AgentTestPage'
 });
+
+/** AI 回答 markdown 渲染（html:false 防 XSS） */
+const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
+function renderMarkdown(text: string): string {
+  return md.render(text);
+}
 
 const route = useRoute();
 const router = useRouter();
@@ -142,8 +149,11 @@ function handleSelect(key: typeof agentKey.value) {
                       <div class="think-panel__body">{{ msg.reasoning }}</div>
                     </details>
                     <div v-if="msg.content" class="chat-bubble__text">
-                      {{ msg.content }}
-                      <span v-if="msg.streaming" class="type-cursor">▍</span>
+                      <template v-if="msg.role !== 'user'">
+                        <div class="chat-md" v-html="renderMarkdown(msg.content)" />
+                        <span v-if="msg.streaming" class="type-cursor">▍</span>
+                      </template>
+                      <template v-else>{{ msg.content }}</template>
                     </div>
                     <div v-else-if="msg.streaming && !msg.reasoning" class="chat-bubble__loading">
                       <span class="dot" />
@@ -925,5 +935,57 @@ function handleSelect(key: typeof agentKey.value) {
   .chat-bubble {
     max-width: 92%;
   }
+}
+
+/* markdown 内容 */
+.chat-md :deep(p) {
+  margin: 0 0 6px;
+}
+.chat-md :deep(p:last-child) {
+  margin-bottom: 0;
+}
+.chat-md :deep(ul),
+.chat-md :deep(ol) {
+  margin: 4px 0 6px;
+  padding-left: 18px;
+}
+.chat-md :deep(li) {
+  margin: 2px 0;
+}
+.chat-md :deep(code) {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Consolas', monospace;
+}
+.chat-md :deep(pre) {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  margin: 6px 0;
+}
+.chat-md :deep(pre code) {
+  background: transparent;
+  padding: 0;
+}
+.chat-md :deep(table) {
+  border-collapse: collapse;
+  margin: 6px 0;
+  font-size: 11px;
+}
+.chat-md :deep(th),
+.chat-md :deep(td) {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 8px;
+}
+.chat-md :deep(h1),
+.chat-md :deep(h2),
+.chat-md :deep(h3),
+.chat-md :deep(h4) {
+  font-size: 13px;
+  margin: 8px 0 4px;
 }
 </style>

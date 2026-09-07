@@ -507,7 +507,7 @@ function getStatusIcon(step: PlanningAnalysisStep) {
 .progress-percent {
   font-size: 13px;
   font-weight: 600;
-  color: #29b6ff;
+  color: #4a7dbd;
   min-width: 36px;
   text-align: right;
 }

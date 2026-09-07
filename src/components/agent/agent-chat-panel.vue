@@ -87,11 +87,23 @@ function renderMarkdown(text: string): string {
 
 // ──── 会话与消息 ────
 let messageSeq = 0;
-const welcomeMessage = (): PanelChatMessage => ({
-  id: `welcome-${++messageSeq}`,
-  role: 'assistant',
-  content: props.welcomeText
-});
+// 用户手动切换智能体后，欢迎语随应用动态生成，不再使用宿主页固定文案
+let appSwitched = false;
+const appOptions = ref<AppOption[]>([]);
+const currentAppId = ref<string | null>(props.appId != null ? String(props.appId) : null);
+const currentAppName = computed(() => appOptions.value.find(o => o.value === currentAppId.value)?.label ?? '');
+
+function welcomeMessage(): PanelChatMessage {
+  const appName = appSwitched ? currentAppName.value : '';
+  const content = appName
+    ? `已切换至智能体「${appName}」。\n\n可以结合当前任务回答专业问题，也可以用自然语言下达标绘指令（如「标注某个点位」「画一条机动路线」「圈出警戒区域」）。`
+    : props.welcomeText;
+  return {
+    id: `welcome-${++messageSeq}`,
+    role: 'assistant',
+    content
+  };
+}
 const messages = ref<PanelChatMessage[]>([welcomeMessage()]);
 const conversationId = ref('');
 const input = ref('');
@@ -103,9 +115,7 @@ interface AppOption {
   label: string;
   value: string;
 }
-const appOptions = ref<AppOption[]>([]);
 const appsLoading = ref(false);
-const currentAppId = ref<string | null>(props.appId != null ? String(props.appId) : null);
 
 async function loadApps() {
   appsLoading.value = true;
@@ -137,7 +147,8 @@ const conversations = ref<Api.Dify.ConversationItem[]>([]);
 const conversationsOpen = ref(false);
 
 function handleAppChange() {
-  // 切换应用：会话与历史不跨应用，全部重置后重新拉取
+  // 切换应用：欢迎语随应用重建，会话与历史不跨应用，全部重置后重新拉取
+  appSwitched = true;
   resetConversation();
   conversations.value = [];
   conversationsOpen.value = false;
@@ -413,6 +424,15 @@ onUnmounted(() => abortController?.abort());
         <SvgIcon icon="mdi:robot-outline" />
       </span>
       <span class="header-title">{{ title }}</span>
+      <NSelect
+        v-model:value="currentAppId"
+        class="app-selector-select"
+        size="small"
+        :options="appOptions"
+        :loading="appsLoading"
+        placeholder="选择智能体应用"
+        @update:value="handleAppChange"
+      />
       <span class="agent-status">
         <span class="status-dot" />
         {{ streaming ? '对话中' : '在线' }}
@@ -431,20 +451,6 @@ onUnmounted(() => abortController?.abort());
           <SvgIcon icon="mdi:close" />
         </button>
       </div>
-    </div>
-
-    <!-- ── 智能体应用选择器 ── -->
-    <div class="app-selector">
-      <SvgIcon class="app-selector-icon" icon="mdi:apps" />
-      <NSelect
-        v-model:value="currentAppId"
-        class="app-selector-select"
-        size="small"
-        :options="appOptions"
-        :loading="appsLoading"
-        placeholder="选择智能体应用"
-        @update:value="handleAppChange"
-      />
     </div>
 
     <!-- ── 历史会话下拉 ── -->
@@ -644,25 +650,11 @@ onUnmounted(() => abortController?.abort());
   color: rgba(255, 255, 255, 0.85);
 }
 
-/* ──── 智能体应用选择器 ──── */
-.app-selector {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  flex-shrink: 0;
-}
-
-.app-selector-icon {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.4);
-  flex-shrink: 0;
-  display: flex;
-}
-
+/* ──── 标题栏内联应用选择器（标题右侧） ──── */
 .app-selector-select {
-  flex: 1;
+  flex: 1 1 120px;
+  min-width: 100px;
+  max-width: 240px;
 }
 
 /* ──── 历史会话下拉 ──── */

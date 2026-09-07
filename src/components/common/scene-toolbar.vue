@@ -128,8 +128,8 @@ function handleToggle2d3d() {
 
 .toolbar-btn--active {
   background: rgba(41, 163, 255, 0.14);
-  border-color: #29b6ff;
-  color: #29b6ff;
+  border-color: #4a7dbd;
+  color: #4a7dbd;
   box-shadow: 0 0 10px rgba(41, 163, 255, 0.15);
 }
 
