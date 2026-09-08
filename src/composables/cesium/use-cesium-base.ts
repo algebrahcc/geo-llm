@@ -49,6 +49,14 @@ export interface CesiumBaseReturn {
   getColor: (css: string, alpha?: number) => Color;
   getCartesianFromScreen: (position: Cartesian2) => Cartesian3 | null;
 
+  /** 当前鼠标在地球表面的经纬度/地表高程/视点高度，供 Viewer 右下角坐标浮窗展示 */
+  cursorCoordinates: Ref<{
+    longitude: string;
+    latitude: string;
+    altitude: string;
+    cameraHeight: string;
+  }>;
+
   /** 构建带模块扩展字段的 emitStatus */
   createEmitStatus: <T extends Record<string, unknown>>(
     extraFieldsFn: () => T
@@ -119,6 +127,14 @@ export function useCesiumBase(): CesiumBaseReturn {
   const containerRef: Ref<HTMLDivElement | null> = shallowRef(null);
   const viewerRef: Ref<Viewer | null> = shallowRef(null);
   const imageryLayers: ImageryLayer[] = [];
+
+  /** 当前鼠标在地球表面的经纬度/地表高程/视点高度，供 Viewer 右下角坐标浮窗展示 */
+  const cursorCoordinates = ref({
+    longitude: '--',
+    latitude: '--',
+    altitude: '--',
+    cameraHeight: '--'
+  });
 
   const globalImageryUrl = getGlobalImageryUrl();
   const regionImageryUrl = getRegionImageryUrl();
@@ -393,9 +409,26 @@ export function useCesiumBase(): CesiumBaseReturn {
     eventHandler?.destroy();
     eventHandler = new ScreenSpaceEventHandler(viewer.scene.canvas);
 
-    if (handlers.onMouseMove) {
-      eventHandler.setInputAction(handlers.onMouseMove, ScreenSpaceEventType.MOUSE_MOVE);
-    }
+    eventHandler.setInputAction((movement: { endPosition: Cartesian2 }) => {
+      const cartesian = getCartesianFromScreen(movement.endPosition);
+      if (cartesian) {
+        const cartographic = Cartographic.fromCartesian(cartesian);
+        cursorCoordinates.value = {
+          longitude: `${CesiumMath.toDegrees(cartographic.longitude).toFixed(5)}°`,
+          latitude: `${CesiumMath.toDegrees(cartographic.latitude).toFixed(5)}°`,
+          altitude: `${Math.max(cartographic.height, 0).toFixed(0)} m`,
+          cameraHeight: `${(viewer.camera.positionCartographic.height / 1000).toFixed(1)} km`
+        };
+      } else {
+        cursorCoordinates.value = {
+          longitude: '--',
+          latitude: '--',
+          altitude: '--',
+          cameraHeight: '--'
+        };
+      }
+      handlers.onMouseMove?.(movement);
+    }, ScreenSpaceEventType.MOUSE_MOVE);
 
     if (handlers.onLeftClick) {
       eventHandler.setInputAction(handlers.onLeftClick, ScreenSpaceEventType.LEFT_CLICK);
@@ -520,6 +553,7 @@ export function useCesiumBase(): CesiumBaseReturn {
     setGlobeSurfaceTranslucent,
     getColor,
     getCartesianFromScreen,
+    cursorCoordinates,
     createEmitStatus,
     computeBaseStatus,
     bindMouseEvents,

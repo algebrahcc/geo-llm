@@ -3,11 +3,9 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   planningDefaultRouteSettingsForm,
-  planningDefaultSupportSettingsForm,
   planningRouteAnalysisSteps,
   planningRouteSummaries,
-  planningRouteTraffic,
-  planningSupportAnalysisSteps
+  planningRouteTraffic
 } from '@/mock/planning';
 import { runKnowledgeRetrieval } from '@/mock/knowledge';
 import { sleep } from '@/utils/async';
@@ -16,9 +14,6 @@ import type { ServiceLayerHandle } from '@/composables/cesium/service-loader';
 import PlanningRouteAiPanel from './modules/planning-route-ai-panel.vue';
 import PlanningRouteResultBar from './modules/planning-route-result-bar.vue';
 import PlanningRouteSettingsPanel from './modules/planning-route-settings-panel.vue';
-import PlanningSupportAiPanel from './modules/planning-support-ai-panel.vue';
-import PlanningSupportResultBar from './modules/planning-support-result-bar.vue';
-import PlanningSupportSettingsPanel from './modules/planning-support-settings-panel.vue';
 import SceneToolbar from '@/components/common/scene-toolbar.vue';
 import AgentChatPanel from '@/components/agent/agent-chat-panel.vue';
 import type { PlotInstruction } from '@/components/agent/plot-instruction';
@@ -31,12 +26,10 @@ import type {
   PlanningAnalysisStep,
   PlanningInteractiveTool,
   PlanningLayerKey,
-  PlanningPageMode,
   PlanningPickedPoint,
   PlanningRouteKey,
   PlanningRouteResultCard,
   PlanningRouteSettingsForm,
-  PlanningSupportSettingsForm,
   PlanningWaypoint
 } from './modules/types';
 
@@ -83,7 +76,6 @@ const viewerRef = ref<PlanningViewerExposed | null>(null);
 const router = useRouter();
 
 // ──── 页面模式（Tab切换） ────
-const pageMode = ref<PlanningPageMode>('route');
 
 // ──── routePreference 旧映射：新表单 → 旧 taskForm ────
 function mapPreferenceToLegacy(pref: string): 'fastest' | 'shortest' | 'safest' {
@@ -126,7 +118,6 @@ const routeResultCards = computed<PlanningRouteResultCard[]>(() => {
 
 // ──── 新表单数据 ────
 const routeSettingsForm = ref<PlanningRouteSettingsForm>({ ...planningDefaultRouteSettingsForm });
-const supportSettingsForm = ref<PlanningSupportSettingsForm>({ ...planningDefaultSupportSettingsForm });
 
 // ──── 面板可见与折叠 ────
 const leftPanelVisible = ref(true);
@@ -142,40 +133,23 @@ const layerCollapsed = ref(false);
 
 // ──── 分析步骤与进度 ────
 const routeAnalysisSteps = ref<PlanningAnalysisStep[]>(planningRouteAnalysisSteps.map(s => ({ ...s })));
-const supportAnalysisSteps = ref<PlanningAnalysisStep[]>(planningSupportAnalysisSteps.map(s => ({ ...s })));
 const routeProgress = ref(0);
-const supportProgress = ref(0);
 const routeStatusText = ref('');
-const supportStatusText = ref('');
 const routeRunning = ref(false);
-const supportRunning = ref(false);
 
 // ──── 知识库命中结果 ────
 const routeKnowledgeHits = ref<{ docCount: number; chunkCount: number; docNames: string[] } | null>(null);
-const supportKnowledgeHits = ref<{ docCount: number; chunkCount: number; docNames: string[] } | null>(null);
 
 // ──── 方案选择 ────
 const selectedRouteCard = ref<string | null>(null);
-const selectedSupportCard = ref<string | null>(null);
 
 // ──── 场景智能体（AgentChatPanel） ────
 // Dify 应用 id：规划场景参谋应用（在系统管理-应用管理录入 Dify 控制台创建的 Agent 应用后，
 // 把该记录的本地主键 id 填到这里）；未配置时组件拉取已发布 Agent 列表默认选第一个
 const agentAppId = ref<string | number | undefined>(undefined);
 const agentNotice = ref<string | null>(null);
-// 场景上下文（按当前 Tab 模式给 route / mission 表单快照）
+// 场景上下文（机动规划表单快照）
 const agentContext = computed(() => {
-  if (pageMode.value === 'mission') {
-    return {
-      page: 'planning',
-      mode: 'mission',
-      missionName: supportSettingsForm.value.missionName,
-      supportType: supportSettingsForm.value.supportType,
-      forceScale: supportSettingsForm.value.forceScale,
-      plannedRoute: supportSettingsForm.value.plannedRoute,
-      selectedSupport: selectedSupportCard.value
-    };
-  }
   return {
     page: 'planning',
     mode: 'route',
@@ -183,6 +157,7 @@ const agentContext = computed(() => {
     startName: routeSettingsForm.value.startName,
     endName: routeSettingsForm.value.endName,
     routePreference: routeSettingsForm.value.routePreference,
+    advancePriority: routeSettingsForm.value.advancePriority ?? 'time',
     forceScale: routeSettingsForm.value.forceScale,
     roadGrades: (routeSettingsForm.value.roadGrades ?? []).join('、'),
     selectedRoute: selectedRouteCard.value
@@ -190,7 +165,7 @@ const agentContext = computed(() => {
 });
 
 // ──── 拖拽状态 ────
-const leftDrag = useDraggable({ anchor: 'left', initialX: 72, initialY: 72 });
+const leftDrag = useDraggable({ anchor: 'left', initialX: 62, initialY: 10 });
 const rightDrag = useDraggable({ anchor: 'right', initialX: 16, initialY: 72 });
 const agentDrag = useDraggable({ anchor: 'right', initialX: 16, initialY: 120 });
 // 智能体面板宽高（默认 520×660，右下角可拖拽缩放）
@@ -215,16 +190,7 @@ const {
   setPlanningState
 } = usePlanning();
 
-// ──── Tab 切换 ────
-function handleTabSwitch(mode: PlanningPageMode) {
-  pageMode.value = mode;
-}
-
 // ──── 面板折叠 ────
-function handleLeftPanelCollapse() {
-  leftPanelCollapsed.value = !leftPanelCollapsed.value;
-}
-
 function handleRightPanelCollapse() {
   rightPanelCollapsed.value = !rightPanelCollapsed.value;
 }
@@ -431,74 +397,9 @@ function getRouteStepText(label: string): string {
   return map[label] || '处理中...';
 }
 
-// ──── 机动保障提交 ────
-async function handleSupportPlan() {
-  if (supportRunning.value) return;
-  supportRunning.value = true;
-  // 打开右侧AI面板，但底部结果面板先不显示
-  rightPanelVisible.value = true;
-  rightPanelCollapsed.value = false;
-
-  const steps = [...planningSupportAnalysisSteps];
-  for (let i = 0; i < steps.length; i++) {
-    supportAnalysisSteps.value = steps.map((step, index) => ({
-      ...step,
-      status: index < i ? 'completed' : index === i ? 'running' : 'pending'
-    }));
-    supportProgress.value = Math.min(95, Math.round(((i + 1) / steps.length) * 100));
-
-    // 步骤0：实际调用知识库检索
-    if (steps[i].label === '知识库检索') {
-      const query = `${supportSettingsForm.value.missionName} 机动保障方案`;
-      const results = runKnowledgeRetrieval(query);
-      const docCount = results.length;
-      const topDocs = results.slice(0, 3).map(r => r.document.name);
-      const chunkCount = results.reduce((s, r) => s + r.matches.length, 0);
-      supportKnowledgeHits.value = { docCount, chunkCount, docNames: topDocs };
-      supportStatusText.value =
-        docCount > 0
-          ? `正在检索知识库... 命中 ${docCount} 篇文档（${topDocs.slice(0, 2).join('、')}），共 ${chunkCount} 条片段`
-          : '正在检索知识库... 未命中相关文档，使用默认模板';
-    } else {
-      supportStatusText.value = getSupportStepText(steps[i].label);
-    }
-    await sleep(700);
-  }
-
-  supportAnalysisSteps.value = steps.map(step => ({ ...step, status: 'completed' }));
-  supportProgress.value = 100;
-  supportStatusText.value = '分析完成，已生成4条保障方案';
-  selectedSupportCard.value = 'support-card-a';
-  supportRunning.value = false;
-
-  // 分析完成后再打开底部结果面板
-  bottomPanelVisible.value = true;
-  bottomPanelCollapsed.value = false;
-  window.$message?.success('机动保障方案生成完成');
-  // 衔接智能体面板：注入系统消息
-  agentNotice.value = `已完成机动保障方案生成，可打开"场景智能体"向我提问（如"各保障方案的油料/补给差异"）。`;
-}
-
-function getSupportStepText(label: string): string {
-  const map: Record<string, string> = {
-    路网解析: '正在解析路网数据...',
-    障碍识别: '正在识别障碍区域...',
-    预案生成: '正在生成保障预案...',
-    兵力车量计算: '正在计算兵力与车辆配置...',
-    油料计算: '正在计算油料需求...',
-    保障布设: '正在规划保障站点布设...',
-    方案评估: '正在评估方案可行性...'
-  };
-  return map[label] || '处理中...';
-}
-
 // ──── 表单更新 ────
 function handleRouteSettingsUpdate(form: PlanningRouteSettingsForm) {
   routeSettingsForm.value = form;
-}
-
-function handleSupportSettingsUpdate(form: PlanningSupportSettingsForm) {
-  supportSettingsForm.value = form;
 }
 
 // ──── 图层管理（与渡河保障一致：矢量图层 + 数据服务） ────
@@ -567,24 +468,18 @@ function handlePickEnd() {
 }
 
 // ──── 方案选择 ────
+const ROUTE_LABELS: Record<string, string> = {
+  'route-card-route-a': '方案一',
+  'route-card-route-b': '方案二',
+  'route-card-route-c': '方案三'
+};
+
 function handleRouteCardSelect(key: string) {
   selectedRouteCard.value = key;
-  if (key === 'route-card-route-a') {
-    setCurrentRoute('route-a');
-    viewerRef.value?.showRoute('route-a');
-  } else if (key === 'route-card-route-b') {
-    setCurrentRoute('route-b');
-    viewerRef.value?.showRoute('route-b');
-  } else if (key === 'route-card-route-c') {
-    setCurrentRoute('route-c');
-    viewerRef.value?.showRoute('route-c');
-  }
-  window.$message?.info(`已切换到${key}`);
-}
-
-function handleSupportCardSelect(key: string) {
-  selectedSupportCard.value = key;
-  window.$message?.info(`已选择保障方案: ${key}`);
+  const routeKey = key.replace('route-card-', '') as PlanningRouteKey;
+  setCurrentRoute(routeKey);
+  viewerRef.value?.showRoute(routeKey);
+  window.$message?.info(`已切换到${ROUTE_LABELS[key] ?? key}`);
 }
 
 // ──── 右侧工具栏 ────
@@ -679,15 +574,6 @@ function handleRouteAiSend(message: string) {
   if (routeKnowledgeHits.value && routeKnowledgeHits.value.docCount > 0) {
     const docRef = routeKnowledgeHits.value.docNames.slice(0, 2).join('、');
     window.$message?.success(`[智能体] 已结合"${docRef}"等知识库文档分析，规划方案已推送至地图与底部面板`);
-  } else {
-    window.$message?.info(`[智能体] 已收到: ${message}`);
-  }
-}
-
-function handleSupportAiSend(message: string) {
-  if (supportKnowledgeHits.value && supportKnowledgeHits.value.docCount > 0) {
-    const docRef = supportKnowledgeHits.value.docNames.slice(0, 2).join('、');
-    window.$message?.success(`[智能体] 已结合"${docRef}"等知识库文档分析，保障方案已推送至底部面板`);
   } else {
     window.$message?.info(`[智能体] 已收到: ${message}`);
   }
@@ -799,39 +685,18 @@ function handleSupportAiSend(message: string) {
             </button>
           </div>
 
-          <!-- Tab 切换（机动保障模式暂隐藏，仅保留机动规划） -->
-          <div class="panel-tabs">
-            <button type="button" class="panel-tab panel-tab--active" @click="handleTabSwitch('route')">
-              <SvgIcon icon="mdi:routes" class="tab-icon" />
-              机动规划
-            </button>
-          </div>
-
           <!-- 面板内容 -->
           <div class="panel-body">
             <PlanningRouteSettingsPanel
-              v-if="pageMode === 'route'"
               :form="routeSettingsForm"
               :running="routeRunning"
-              :collapsed="leftPanelCollapsed"
               :pick-mode-label="
                 planningState === 'picking-start' ? '选取起点' : planningState === 'picking-end' ? '选取终点' : '待规划'
               "
               @plan="handleRoutePlan"
-              @toggle-collapse="handleLeftPanelCollapse"
               @update-form="handleRouteSettingsUpdate"
               @pick-start="handlePickStart"
               @pick-end="handlePickEnd"
-            />
-
-            <PlanningSupportSettingsPanel
-              v-if="pageMode === 'mission'"
-              :form="supportSettingsForm"
-              :running="supportRunning"
-              :collapsed="leftPanelCollapsed"
-              @plan="handleSupportPlan"
-              @toggle-collapse="handleLeftPanelCollapse"
-              @update-form="handleSupportSettingsUpdate"
             />
           </div>
         </div>
@@ -851,7 +716,6 @@ function handleSupportAiSend(message: string) {
 
           <!-- AI面板内容 -->
           <PlanningRouteAiPanel
-            v-if="pageMode === 'route'"
             :collapsed="rightPanelCollapsed"
             :running="routeRunning"
             :steps="routeAnalysisSteps"
@@ -861,18 +725,6 @@ function handleSupportAiSend(message: string) {
             :app-id="agentAppId"
             @toggle-collapse="handleRightPanelCollapse"
             @send="handleRouteAiSend"
-          />
-
-          <PlanningSupportAiPanel
-            v-if="pageMode === 'mission'"
-            :collapsed="rightPanelCollapsed"
-            :running="supportRunning"
-            :steps="supportAnalysisSteps"
-            :progress="supportProgress"
-            :status-text="supportStatusText"
-            :knowledge-hits="supportKnowledgeHits"
-            @toggle-collapse="handleRightPanelCollapse"
-            @send="handleSupportAiSend"
           />
         </div>
       </Transition>
@@ -942,20 +794,11 @@ function handleSupportAiSend(message: string) {
 
           <!-- 结果面板内容 -->
           <PlanningRouteResultBar
-            v-if="pageMode === 'route'"
             :collapsed="bottomPanelCollapsed"
             :selected-key="selectedRouteCard"
             :cards="routeResultCards"
             @toggle-collapse="handleBottomPanelCollapse"
             @select="handleRouteCardSelect"
-          />
-
-          <PlanningSupportResultBar
-            v-if="pageMode === 'mission'"
-            :collapsed="bottomPanelCollapsed"
-            :selected-key="selectedSupportCard"
-            @toggle-collapse="handleBottomPanelCollapse"
-            @select="handleSupportCardSelect"
           />
         </div>
       </Transition>
@@ -1111,72 +954,13 @@ function handleSupportAiSend(message: string) {
   color: #fb7185;
 }
 
-/* ──── Tab 栏 ──── */
-.panel-tabs {
-  display: flex;
-  gap: 0;
-  padding: 0;
-  flex-shrink: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.panel-tab {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  position: relative;
-  transition:
-    background-color 0.18s ease,
-    color 0.18s ease;
-}
-
-.panel-tab::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 20%;
-  right: 20%;
-  height: 2px;
-  background: transparent;
-  border-radius: 1px;
-  transition: background-color 0.18s ease;
-}
-
-.panel-tab:hover {
-  color: rgba(255, 255, 255, 0.72);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.panel-tab--active {
-  color: #8db8ff;
-  background: rgba(43, 107, 255, 0.08);
-}
-
-.panel-tab--active::after {
-  background: #3d6fb4;
-  left: 10%;
-  right: 10%;
-}
-
-.tab-icon {
-  font-size: 14px;
-}
-
 /* ──── 面板内容 ──── */
 .panel-body {
   flex: 1;
-  overflow-y: auto;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   scrollbar-width: thin;
   scrollbar-color: rgba(141, 184, 255, 0.24) transparent;
 }
@@ -1201,8 +985,7 @@ function handleSupportAiSend(message: string) {
 }
 
 /* ──── 面板内嵌组件覆盖 ──── */
-.left-panel :deep(.route-settings),
-.left-panel :deep(.support-settings) {
+.left-panel :deep(.route-settings) {
   width: 100% !important;
   border: none !important;
   background: transparent !important;
@@ -1210,8 +993,7 @@ function handleSupportAiSend(message: string) {
   border-radius: 0 !important;
 }
 
-.right-panel :deep(.route-ai-panel),
-.right-panel :deep(.support-ai-panel) {
+.right-panel :deep(.route-ai-panel) {
   width: 100% !important;
   border: none !important;
   background: transparent !important;
@@ -1250,8 +1032,7 @@ function handleSupportAiSend(message: string) {
   border-bottom-right-radius: 2px;
 }
 
-.bottom-panel :deep(.route-result-bar),
-.bottom-panel :deep(.support-result-bar) {
+.bottom-panel :deep(.route-result-bar) {
   width: 100% !important;
   border: none !important;
   background: transparent !important;

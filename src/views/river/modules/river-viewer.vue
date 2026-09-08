@@ -14,6 +14,7 @@ const emit = defineEmits<{
 
 const {
   containerRef,
+  cursorCoordinates,
   initViewer,
   initMapOverlays,
   setGlobeSurfaceTranslucent,
@@ -116,6 +117,15 @@ defineExpose({
 <template>
   <div class="river-viewer-shell">
     <div ref="containerRef" class="river-viewer-container" />
+    <div class="coordinate-indicator" aria-live="polite">
+      <span>经度 {{ cursorCoordinates.longitude }}</span>
+      <span class="coordinate-indicator__divider" />
+      <span>纬度 {{ cursorCoordinates.latitude }}</span>
+      <span class="coordinate-indicator__divider" />
+      <span>高程 {{ cursorCoordinates.altitude }}</span>
+      <span class="coordinate-indicator__divider" />
+      <span>视高 {{ cursorCoordinates.cameraHeight }}</span>
+    </div>
   </div>
 </template>
 
@@ -131,6 +141,31 @@ defineExpose({
 .river-viewer-container {
   height: 100%;
   width: 100%;
+}
+.coordinate-indicator {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border: 1px solid rgba(92, 184, 255, 0.32);
+  border-radius: 4px;
+  background: rgba(4, 19, 40, 0.84);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  color: rgba(214, 237, 255, 0.9);
+  font-family: 'DIN', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+}
+.coordinate-indicator__divider {
+  width: 1px;
+  height: 12px;
+  background: rgba(120, 190, 255, 0.28);
 }
 .river-viewer-shell :deep(.cesium-widget-credits),
 .river-viewer-shell :deep(.cesium-viewer-bottom),

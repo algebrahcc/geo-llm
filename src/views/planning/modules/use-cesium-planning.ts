@@ -545,6 +545,7 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
 
   return {
     containerRef,
+    cursorCoordinates: base.cursorCoordinates,
     initViewer,
     setActiveTool,
     setGlobeSurfaceTranslucent: base.setGlobeSurfaceTranslucent,

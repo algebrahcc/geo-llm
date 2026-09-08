@@ -146,44 +146,13 @@ export interface PlanningRouteSettingsForm {
   distanceWeight?: number;
   riskWeight?: number;
   advanceAreas?: string[];
+  advancePriority?: string;
   roadGrade?: string;
   difficultyLevels?: string[];
   taskType?: string;
   fleetScale?: string;
   vehicleModel?: string;
   arrivalDeadline?: string;
-  missionName?: string;
-}
-
-// ──── 保障设置表单 ────
-export interface PlanningSupportSettingsForm {
-  taskName: string;
-  supportType: string;
-  forceScale: string;
-  totalPersonnel: number;
-  totalVehicles: number;
-  fuelType: string;
-  fuelConsumption: string;
-  fuelReserveDays: number;
-  plannedRoute: string;
-  supportRequirement: string;
-  timeConstraint?: string;
-  departTime?: string;
-  arriveTime?: string;
-  durationLimit?: string;
-  constraints?: string[];
-  avgFuelConsumption?: number;
-  fuelAmount?: number;
-  supportLevel?: string | number;
-  needRepair?: boolean;
-  needRushRepair?: boolean;
-  otherNeeds?: string;
-  missionCause?: string;
-  missionDesc?: string;
-  personnelCount?: number;
-  vehicleCount?: number;
-  deadline?: string;
-  vehicleType?: string;
   missionName?: string;
 }
 
@@ -216,21 +185,6 @@ export interface PlanningRouteResultCard {
   mainPath?: string;
   /** 交通状况分析 */
   traffic?: RouteTrafficAnalysis;
-}
-
-// ──── 保障结果卡片 ────
-export interface PlanningSupportResultCard {
-  key: string;
-  title: string;
-  subtitle: string;
-  tag: string;
-  tagType: 'success' | 'info' | 'warning' | 'error';
-  isRecommended: boolean;
-  rating: number;
-  score: number;
-  duration: string;
-  distance: string;
-  highlights: string[];
 }
 
 // ──── 任务表单 ────

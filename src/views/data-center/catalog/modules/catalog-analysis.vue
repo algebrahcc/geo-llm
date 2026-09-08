@@ -72,6 +72,7 @@ interface AnalysisCategory {
 /** 真实 AI 检测模型（YOLOv8 服务），key 与后端 /api/vision/models 的模型名一致 */
 const realModelMeta: Record<string, { label: string; description: string }> = {
   military: { label: '军事目标检测', description: '火炮/导弹/雷达/火箭炮/士兵/坦克/车辆 7 类' },
+  obstacle: { label: '工程障碍检测', description: '断桥/废墟/塌陷坑 3 类灾害目标' },
   road: { label: '道路障碍物检测', description: '行人/车辆/动物等道路动态障碍（COCO）' }
 };
 
@@ -93,6 +94,7 @@ const analysisCategories: AnalysisCategory[] = [
     icon: 'mdi:target',
     items: [
       { key: 'military', label: realModelMeta.military.label },
+      { key: 'obstacle', label: realModelMeta.obstacle.label },
       { key: 'road', label: realModelMeta.road.label }
     ]
   }
@@ -105,6 +107,7 @@ function getSubItemIcon(key: string): string {
     water: 'mdi:water',
     vegetation: 'mdi:pine-tree',
     military: 'mdi:radar',
+    obstacle: 'mdi:alert-octagon',
     'road-damage': 'mdi:road-variant',
     barrier: 'mdi:alert-octagon',
     fortification: 'mdi:shield-outline'
@@ -1167,15 +1170,6 @@ onBeforeUnmount(() => {
     font-size: 15px;
     color: var(--catalog-accent, #29a3ff);
     opacity: 0.6;
-  }
-
-  &__footnote {
-    margin-top: auto;
-    padding: 12px 18px;
-    font-size: 11px;
-    line-height: 1.6;
-    color: rgba(147, 196, 255, 0.45);
-    border-top: 1px solid rgba(25, 95, 176, 0.15);
   }
 }
 

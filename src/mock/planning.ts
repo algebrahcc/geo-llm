@@ -9,8 +9,6 @@ import type {
   PlanningRouteScene,
   PlanningRouteSettingsForm,
   PlanningRouteSummary,
-  PlanningSupportResultCard,
-  PlanningSupportSettingsForm,
   PlanningTaskForm,
   RouteTrafficAnalysis
 } from '@/views/planning/modules/types';
@@ -321,12 +319,70 @@ export const planningAnalysisSteps: readonly PlanningAnalysisStep[] = [
 ];
 
 // ──── 机动规划 - 推进区域选项 ────
-export const planningAdvanceAreaOptions = [
-  { label: '施工区', value: 'construction' },
-  { label: '洪涝区', value: 'flood' },
-  { label: '地质灾害区', value: 'geological' },
-  { label: '管制区域', value: 'restricted' },
-  { label: '其他区域', value: 'other' }
+// ──── 机动规划 AI 助手 - 分析步骤 ────
+// 首位为知识库检索，体现知识库联动
+export const planningRouteAnalysisSteps: readonly PlanningAnalysisStep[] = [
+  { id: 'route-step-0', label: '知识库检索', icon: 'mdi:book-search-outline', status: 'pending' },
+  { id: 'route-step-1', label: '路网数据解析', icon: 'mdi:database-check-outline', status: 'pending' },
+  { id: 'route-step-2', label: '障碍识别分析', icon: 'mdi:shield-alert-outline', status: 'pending' },
+  { id: 'route-step-3', label: '交通状况评估', icon: 'mdi:traffic-light', status: 'pending' },
+  { id: 'route-step-4', label: '多路径规划', icon: 'mdi:source-branch', status: 'pending' },
+  { id: 'route-step-5', label: '路线风险评估', icon: 'mdi:shield-check-outline', status: 'pending' },
+  { id: 'route-step-6', label: '方案优化排序', icon: 'mdi:sort-ascending', status: 'pending' },
+  { id: 'route-step-7', label: '结果输出', icon: 'mdi:export-variant', status: 'pending' }
+];
+
+// ──── 机动规划结果卡片（默认静态数据，供结果面板兜底展示） ────
+export const planningRouteResultCards: readonly PlanningRouteResultCard[] = [
+  {
+    key: 'route-card-route-a',
+    title: '推荐方案',
+    subtitle: planningRouteSummaries['route-a'].subtitle,
+    tag: '推荐',
+    tagType: 'success',
+    isRecommended: true,
+    score: Number(planningRouteSummaries['route-a'].metrics.find(m => m.label === '通行评分')?.value ?? 85),
+    duration: planningRouteSummaries['route-a'].metrics.find(m => m.label === '行程时间')?.value ?? '--',
+    distance: planningRouteSummaries['route-a'].metrics.find(m => m.label === '总里程')?.value ?? '--',
+    highlights: [...planningRouteSummaries['route-a'].highlights],
+    mainPath: planningRouteSummaries['route-a'].title,
+    traffic: planningRouteTraffic['route-a']
+  },
+  {
+    key: 'route-card-route-b',
+    title: '最快方案',
+    subtitle: planningRouteSummaries['route-b'].subtitle,
+    tag: '最快',
+    tagType: 'info',
+    isRecommended: false,
+    score: Number(planningRouteSummaries['route-b'].metrics.find(m => m.label === '通行评分')?.value ?? 78),
+    duration: planningRouteSummaries['route-b'].metrics.find(m => m.label === '行程时间')?.value ?? '--',
+    distance: planningRouteSummaries['route-b'].metrics.find(m => m.label === '总里程')?.value ?? '--',
+    highlights: [...planningRouteSummaries['route-b'].highlights],
+    mainPath: planningRouteSummaries['route-b'].title,
+    traffic: planningRouteTraffic['route-b']
+  },
+  {
+    key: 'route-card-route-c',
+    title: '最稳方案',
+    subtitle: planningRouteSummaries['route-c'].subtitle,
+    tag: '最稳',
+    tagType: 'warning',
+    isRecommended: false,
+    score: Number(planningRouteSummaries['route-c'].metrics.find(m => m.label === '通行评分')?.value ?? 72),
+    duration: planningRouteSummaries['route-c'].metrics.find(m => m.label === '行程时间')?.value ?? '--',
+    distance: planningRouteSummaries['route-c'].metrics.find(m => m.label === '总里程')?.value ?? '--',
+    highlights: [...planningRouteSummaries['route-c'].highlights],
+    mainPath: planningRouteSummaries['route-c'].title,
+    traffic: planningRouteTraffic['route-c']
+  }
+];
+
+// ──── 机动规划 - 推进优先级选项 ────
+export const planningAdvancePriorityOptions = [
+  { label: '时间优先', value: 'time' },
+  { label: '距离优先', value: 'distance' },
+  { label: '安全优先', value: 'safety' }
 ] as const satisfies readonly PlanningOption[];
 
 // ──── 机动规划 - 道路等级选项 ────
@@ -402,15 +458,6 @@ export const planningFuelTypeOptions = [
   { label: '混合', value: 'mixed' }
 ] as const satisfies readonly PlanningOption[];
 
-// ──── 机动保障 - 约束条件选项 ────
-export const planningSupportConstraintOptions = [
-  { label: '必须避开城区', value: 'avoid-urban' },
-  { label: '必须经过补给站', value: 'via-supply' },
-  { label: '夜间隐蔽机动', value: 'night-stealth' },
-  { label: '全程通信覆盖', value: 'comms-coverage' },
-  { label: '规避桥梁隧道', value: 'avoid-bridge-tunnel' }
-] as const satisfies readonly PlanningOption[];
-
 // ──── 机动规划默认表单 ────
 export const planningDefaultRouteSettingsForm: PlanningRouteSettingsForm = {
   taskName: '台北北部部队投送机动规划',
@@ -431,6 +478,7 @@ export const planningDefaultRouteSettingsForm: PlanningRouteSettingsForm = {
   distanceWeight: 30,
   riskWeight: 40,
   advanceAreas: ['construction', 'flood'],
+  advancePriority: 'time',
   roadGrade: 'highway-national',
   difficultyLevels: ['highway', 'national'],
   taskType: 'troop-projection',
@@ -438,161 +486,6 @@ export const planningDefaultRouteSettingsForm: PlanningRouteSettingsForm = {
   vehicleModel: 'wheeled-apc',
   arrivalDeadline: '4h'
 };
-
-export const planningDefaultSupportSettingsForm: PlanningSupportSettingsForm = {
-  taskName: '台北城区机动保障支援',
-  supportType: 'logistics',
-  forceScale: 'company',
-  totalPersonnel: 120,
-  totalVehicles: 25,
-  fuelType: 'diesel',
-  fuelConsumption: '35L/100km',
-  fuelReserveDays: 3,
-  plannedRoute: 'route-a',
-  supportRequirement: '油料补给与车辆维修',
-  missionName: '台北城区机动保障支援',
-  missionCause: 'combat-ready',
-  missionDesc: '为前线部队提供油料与维修保障支援',
-  personnelCount: 120,
-  vehicleCount: 25,
-  deadline: '24h',
-  vehicleType: 'wheeled',
-  avgFuelConsumption: 35,
-  fuelAmount: 5000,
-  supportLevel: 80,
-  needRepair: true,
-  needRushRepair: false,
-  otherNeeds: '',
-  departTime: '06:00',
-  arriveTime: '18:00',
-  durationLimit: '12h',
-  constraints: ['via-supply', 'comms-coverage']
-};
-
-// ──── 机动规划方案卡片数据 ────
-export const planningRouteResultCards: readonly PlanningRouteResultCard[] = [
-  {
-    key: 'route-card-a',
-    title: '方案一',
-    subtitle: '风险最低路线',
-    tag: '推荐',
-    tagType: 'success',
-    score: 92.5,
-    duration: '34 分钟',
-    distance: '27.8 km',
-    highlights: ['全程暴露风险最低', '适合大编组稳妥推进', '可规避主要威胁区域'],
-    mainPath: '南港保障点 → 城区快速路 → 淡水北岸',
-    isRecommended: true
-  },
-  {
-    key: 'route-card-b',
-    title: '方案二',
-    subtitle: '时间最短路线',
-    tag: '最快',
-    tagType: 'info',
-    score: 87.3,
-    duration: '26 分钟',
-    distance: '22.4 km',
-    highlights: ['全程时效最优', '需穿越桥头瓶颈区', '适合紧急增援任务'],
-    mainPath: '南港保障点 → 滨海大道 → 淡水北岸',
-    isRecommended: false
-  },
-  {
-    key: 'route-card-c',
-    title: '方案三',
-    subtitle: '距离最短路线',
-    tag: '最短',
-    tagType: 'warning',
-    score: 84.1,
-    duration: '31 分钟',
-    distance: '19.6 km',
-    highlights: ['行驶距离最短', '途经城区较密集路段', '中途调整灵活'],
-    mainPath: '南港保障点 → 城区主干道 → 淡水北岸',
-    isRecommended: false
-  }
-];
-
-// ──── 机动保障方案卡片数据 ────
-export const planningSupportResultCards: readonly PlanningSupportResultCard[] = [
-  {
-    key: 'support-card-a',
-    title: '方案一',
-    subtitle: '综合保障方案',
-    tag: '综合最优',
-    tagType: 'success',
-    rating: 5,
-    score: 94.2,
-    duration: '16小时30分',
-    distance: '1,758 km',
-    highlights: ['补给点覆盖均匀', '全程通信保障', '维修站点分布合理'],
-    isRecommended: true
-  },
-  {
-    key: 'support-card-b',
-    title: '方案二',
-    subtitle: '快速保障方案',
-    tag: '快速',
-    tagType: 'info',
-    rating: 4,
-    score: 89.5,
-    duration: '12小时15分',
-    distance: '1,820 km',
-    highlights: ['优先高速通行', '最短到达时间', '燃油消耗较高'],
-    isRecommended: false
-  },
-  {
-    key: 'support-card-c',
-    title: '方案三',
-    subtitle: '经济保障方案',
-    tag: '经济',
-    tagType: 'warning',
-    rating: 4,
-    score: 86.8,
-    duration: '18小时40分',
-    distance: '1,612 km',
-    highlights: ['燃油消耗最低', '路线距离最短', '保障资源需求少'],
-    isRecommended: false
-  },
-  {
-    key: 'support-card-d',
-    title: '方案四',
-    subtitle: '最小保障方案',
-    tag: '轻量',
-    tagType: 'error',
-    rating: 3,
-    score: 78.3,
-    duration: '20小时10分',
-    distance: '1,680 km',
-    highlights: ['保障人员最少', '补给站仅必要节点', '适合低风险场景'],
-    isRecommended: false
-  }
-];
-
-// ──── 机动规划 AI 助手 - 分析步骤 ────
-// 首位为知识库检索，体现知识库联动
-export const planningRouteAnalysisSteps: readonly PlanningAnalysisStep[] = [
-  { id: 'route-step-0', label: '知识库检索', icon: 'mdi:book-search-outline', status: 'pending' },
-  { id: 'route-step-1', label: '路网数据解析', icon: 'mdi:database-check-outline', status: 'pending' },
-  { id: 'route-step-2', label: '障碍识别分析', icon: 'mdi:shield-alert-outline', status: 'pending' },
-  { id: 'route-step-3', label: '交通状况评估', icon: 'mdi:traffic-light', status: 'pending' },
-  { id: 'route-step-4', label: '多路径规划', icon: 'mdi:source-branch', status: 'pending' },
-  { id: 'route-step-5', label: '路线风险评估', icon: 'mdi:shield-check-outline', status: 'pending' },
-  { id: 'route-step-6', label: '方案优化排序', icon: 'mdi:sort-ascending', status: 'pending' },
-  { id: 'route-step-7', label: '结果输出', icon: 'mdi:export-variant', status: 'pending' }
-];
-
-// ──── 机动保障 AI 助手 - 分析步骤 ────
-// 首位为知识库检索，体现知识库联动
-export const planningSupportAnalysisSteps: readonly PlanningAnalysisStep[] = [
-  { id: 'support-step-0', label: '知识库检索', icon: 'mdi:book-search-outline', status: 'pending' },
-  { id: 'support-step-1', label: '路网解析', icon: 'mdi:database-check-outline', status: 'pending' },
-  { id: 'support-step-2', label: '障碍识别', icon: 'mdi:shield-alert-outline', status: 'pending' },
-  { id: 'support-step-3', label: '预案生成', icon: 'mdi:file-document-edit-outline', status: 'pending' },
-  { id: 'support-step-4', label: '兵力车量计算', icon: 'mdi:truck-outline', status: 'pending' },
-  { id: 'support-step-5', label: '油料计算', icon: 'mdi:gas-station-outline', status: 'pending' },
-  { id: 'support-step-6', label: '保障布设', icon: 'mdi:map-marker-radius-outline', status: 'pending' },
-  { id: 'support-step-7', label: '方案评估', icon: 'mdi:clipboard-check-outline', status: 'pending' }
-];
 
 // ──── 机动规划 AI 助手 - 快捷操作标签 ────
 export const planningRouteQuickTags = [
@@ -604,12 +497,4 @@ export const planningRouteQuickTags = [
   { label: '风险评估', icon: 'mdi:shield-check-outline' }
 ];
 
-// ──── 机动保障 AI 助手 - 快捷操作标签 ────
-export const planningSupportQuickTags = [
-  { label: '路网', icon: 'mdi:road-variant' },
-  { label: '障碍', icon: 'mdi:shield-alert-outline' },
-  { label: '预案', icon: 'mdi:file-document-edit-outline' },
-  { label: '兵力', icon: 'mdi:account-group-outline' },
-  { label: '油料', icon: 'mdi:gas-station-outline' },
-  { label: '布设', icon: 'mdi:map-marker-radius-outline' }
-];
+// ──── 机动规划 AI 助手 - 快捷操作标签 ────

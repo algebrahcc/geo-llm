@@ -533,6 +533,7 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
 
   return {
     containerRef,
+    cursorCoordinates: base.cursorCoordinates,
     initViewer,
     initMapOverlays,
     setGlobeSurfaceTranslucent: base.setGlobeSurfaceTranslucent,

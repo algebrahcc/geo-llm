@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import {
-  planningAdvanceAreaOptions,
+  planningAdvancePriorityOptions,
   planningArrivalDeadlineOptions,
   planningDifficultyOptions,
   planningFleetScaleOptions,
@@ -18,7 +19,6 @@ defineOptions({
 interface Props {
   form: PlanningRouteSettingsForm;
   running: boolean;
-  collapsed: boolean;
   pickModeLabel: string;
 }
 
@@ -26,7 +26,6 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
   plan: [];
-  toggleCollapse: [];
   updateForm: [value: PlanningRouteSettingsForm];
   pickStart: [];
   pickEnd: [];
@@ -36,30 +35,34 @@ const emit = defineEmits<{
 function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: PlanningRouteSettingsForm[K]) {
   emit('updateForm', { ...props.form, [key]: value });
 }
+
+// ──── 分区折叠（每个步骤可收缩） ────
+const sectionCollapsed = ref<Record<string, boolean>>({ s1: false, s2: false, s3: false, s4: false, s5: false });
+
+function toggleSection(key: string) {
+  sectionCollapsed.value[key] = !sectionCollapsed.value[key];
+}
 </script>
 
 <template>
-  <div class="route-settings" :class="{ 'route-settings--collapsed': collapsed }">
-    <!-- 标题栏 -->
+  <div class="route-settings">
+    <!-- 标题栏（对标渡河工程方案设置面板：仅标题） -->
     <div class="settings-header">
       <div class="settings-title">
         <SvgIcon icon="mdi:routes" class="settings-title-icon" />
         <span>机动规划设置</span>
-        <span class="settings-subtitle">(作为AI输入)</span>
       </div>
-      <button type="button" class="collapse-btn" @click="emit('toggleCollapse')">
-        <SvgIcon :icon="collapsed ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
-      </button>
     </div>
 
-    <template v-if="!collapsed">
-      <div class="settings-scroll">
-        <div class="settings-body">
-          <div class="section">
-            <div class="section-title">
-              <span class="section-num">1</span>
-              起点与途经点
-            </div>
+    <div class="settings-scroll">
+      <div class="settings-body">
+        <div class="section">
+          <button type="button" class="section-title" @click="toggleSection('s1')">
+            <span class="section-num">1</span>
+            <span class="section-name">起点与途经点</span>
+            <SvgIcon class="section-chevron" :icon="sectionCollapsed.s1 ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
+          </button>
+          <div v-show="!sectionCollapsed.s1" class="section-body">
             <div class="pick-group">
               <label class="form-label">起点</label>
               <div class="pick-input-row">
@@ -103,13 +106,16 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- §2 规划偏好 -->
-          <div class="section">
-            <div class="section-title">
-              <span class="section-num">2</span>
-              规划偏好
-            </div>
+        <!-- §2 规划偏好 -->
+        <div class="section">
+          <button type="button" class="section-title" @click="toggleSection('s2')">
+            <span class="section-num">2</span>
+            <span class="section-name">规划偏好</span>
+            <SvgIcon class="section-chevron" :icon="sectionCollapsed.s2 ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
+          </button>
+          <div v-show="!sectionCollapsed.s2" class="section-body">
             <div class="form-group">
               <label class="form-label">路线偏好</label>
               <NSelect
@@ -158,27 +164,42 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- §3 推进区域 -->
-          <div class="section">
-            <div class="section-title">
-              <span class="section-num">3</span>
-              推进区域
+        <!-- §3 推进区域 -->
+        <div class="section">
+          <button type="button" class="section-title" @click="toggleSection('s3')">
+            <span class="section-num">3</span>
+            <span class="section-name">推进区域</span>
+            <SvgIcon class="section-chevron" :icon="sectionCollapsed.s3 ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
+          </button>
+          <div v-show="!sectionCollapsed.s3" class="section-body">
+            <div class="form-group">
+              <label class="form-label">推进优先级</label>
+              <div class="priority-row">
+                <button
+                  v-for="opt in planningAdvancePriorityOptions"
+                  :key="opt.value"
+                  type="button"
+                  class="priority-pill"
+                  :class="{ 'priority-pill--active': form.advancePriority === opt.value }"
+                  @click="updateField('advancePriority', opt.value)"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
             </div>
-            <NCheckboxGroup
-              :value="form.advanceAreas"
-              :options="[...planningAdvanceAreaOptions]"
-              class="checkbox-grid"
-              @update:value="updateField('advanceAreas', $event as string[])"
-            />
           </div>
+        </div>
 
-          <!-- §4 道路与通行条件 -->
-          <div class="section">
-            <div class="section-title">
-              <span class="section-num">4</span>
-              道路与通行条件
-            </div>
+        <!-- §4 道路与通行条件 -->
+        <div class="section">
+          <button type="button" class="section-title" @click="toggleSection('s4')">
+            <span class="section-num">4</span>
+            <span class="section-name">道路与通行条件</span>
+            <SvgIcon class="section-chevron" :icon="sectionCollapsed.s4 ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
+          </button>
+          <div v-show="!sectionCollapsed.s4" class="section-body">
             <div class="form-group">
               <label class="form-label">道路等级</label>
               <NSelect
@@ -198,13 +219,16 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
               />
             </div>
           </div>
+        </div>
 
-          <!-- §5 任务车辆编组信息 -->
-          <div class="section">
-            <div class="section-title">
-              <span class="section-num">5</span>
-              任务车辆编组信息
-            </div>
+        <!-- §5 任务车辆编组信息 -->
+        <div class="section">
+          <button type="button" class="section-title" @click="toggleSection('s5')">
+            <span class="section-num">5</span>
+            <span class="section-name">任务车辆编组信息</span>
+            <SvgIcon class="section-chevron" :icon="sectionCollapsed.s5 ? 'mdi:chevron-down' : 'mdi:chevron-up'" />
+          </button>
+          <div v-show="!sectionCollapsed.s5" class="section-body">
             <div class="form-group">
               <label class="form-label">任务类型</label>
               <NSelect
@@ -244,16 +268,18 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
               />
             </div>
           </div>
-
-          <!-- 底部提交按钮 -->
-          <button type="button" class="submit-btn" :disabled="running" @click="emit('plan')">
-            <SvgIcon v-if="running" icon="mdi:loading" class="btn-spin" />
-            <SvgIcon v-else icon="mdi:lightning-bolt" />
-            {{ running ? '正在规划中...' : '提交给AI智能规划' }}
-          </button>
         </div>
       </div>
-    </template>
+    </div>
+
+    <!-- 底部提交按钮（固定在面板底部，不随内容滚动，同渡河工程方案面板） -->
+    <div class="submit-area">
+      <button type="button" class="submit-btn" :disabled="running" @click="emit('plan')">
+        <SvgIcon v-if="running" icon="mdi:loading" class="btn-spin" />
+        <SvgIcon v-else icon="mdi:lightning-bolt" />
+        {{ running ? '正在规划中...' : '提交给AI智能规划' }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -261,10 +287,17 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
 .route-settings {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.route-settings--collapsed .settings-scroll {
-  display: none;
+/* 底部提交按钮区（固定在面板底部，不随内容滚动，同渡河工程方案面板） */
+.submit-area {
+  padding: 10px 14px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(15, 20, 35, 0.95);
+  flex-shrink: 0;
 }
 
 /* 标题栏 */
@@ -289,32 +322,6 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
 
 .settings-title-icon {
   font-size: 16px;
-  color: #4a7dbd;
-}
-
-.settings-subtitle {
-  font-size: 12px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.collapse-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.56);
-  cursor: pointer;
-  font-size: 16px;
-  transition: all 0.2s ease;
-}
-
-.collapse-btn:hover {
-  background: rgba(41, 163, 255, 0.15);
   color: #4a7dbd;
 }
 
@@ -343,16 +350,50 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
 /* 分区 */
 .section {
   margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
 }
 
+/* 分区标题（可点击折叠） */
 .section-title {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.88);
-  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  transition: background 0.15s ease;
+  text-align: left;
+}
+
+.section-title:hover {
+  background: rgba(41, 163, 255, 0.07);
+}
+
+.section-name {
+  flex: 1;
+}
+
+.section-chevron {
+  font-size: 15px;
+  color: rgba(147, 196, 255, 0.55);
+  transition: transform 0.2s ease;
+}
+
+.section-title:hover .section-chevron {
+  color: rgba(41, 163, 255, 0.9);
+}
+
+/* 分区内容 */
+.section-body {
+  padding: 2px 12px 12px;
 }
 
 .section-num {
@@ -485,7 +526,6 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
   gap: 8px;
   width: 100%;
   height: 42px;
-  margin-top: 4px;
   border: none;
   border-radius: 10px;
   background: linear-gradient(135deg, #4a7dbd 0%, #3d6fb4 100%);
@@ -519,5 +559,35 @@ function updateField<K extends keyof PlanningRouteSettingsForm>(key: K, value: P
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ──── 推进优先级 ──── */
+.priority-row {
+  display: flex;
+  gap: 8px;
+}
+
+.priority-pill {
+  flex: 1;
+  padding: 7px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(203, 227, 255, 0.75);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.priority-pill:hover {
+  border-color: rgba(41, 163, 255, 0.45);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.priority-pill--active {
+  border-color: rgba(41, 163, 255, 0.65);
+  background: rgba(41, 163, 255, 0.14);
+  color: #8db8ff;
+  font-weight: 600;
 }
 </style>
