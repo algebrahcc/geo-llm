@@ -98,6 +98,7 @@ const agentPanelStyle = computed(() => ({
 const resultDrag = useDraggable({ anchor: 'right', initialX: 460, initialY: 72 });
 const layerDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 18 });
 const surfaceTranslucent = ref(false);
+const situationRecommended = ref<RiverPlanKey | null>(null);
 
 // ──── 表单数据 ────
 const settingForm = ref<CrossingSettingForm>({ ...defaultCrossingSettingForm });
@@ -137,7 +138,6 @@ const agentContext = computed(() => ({
 }));
 
 // ──── 智能体信息 ────
-const agentInfo = { status: 'online' as const };
 
 // ──── 矢量图层（真实数据） ────
 const vectorLayers = ref<VectorLayerItem[]>([]);
@@ -225,6 +225,25 @@ function handleFormUpdate(form: CrossingSettingForm) {
 }
 
 // ──── 核心流程：提交给AI智能分析 ────
+/**
+ * 战场态势激活：仅记录综合推荐结论，不立即改动方案卡片与地图标绘。
+ * 统一等用户发出"重新生成方案"指令后，在 handleSubmitAnalysis 收尾阶段
+ * 一次性应用，避免连续注入多条态势时地图反复跳变。
+ */
+function handleSituationApplied(title: string, recommendedKey: RiverPlanKey) {
+  situationRecommended.value = recommendedKey;
+  window.$message?.warning('战场态势：' + title + '，已记录；输入"重新生成方案"后应用');
+}
+
+/** 离线演示：对话中的"生成方案"指令 -> 重新执行智能分析并更新推荐 */
+function handleChatGeneratePlan() {
+  if (analysisRunning.value) {
+    window.$message?.warning('正在分析中，请稍候');
+    return;
+  }
+  void handleSubmitAnalysis();
+}
+
 async function handleSubmitAnalysis() {
   if (analysisRunning.value) return;
   analysisRunning.value = true;
@@ -317,10 +336,14 @@ async function handleSubmitAnalysis() {
   resultCollapsed.value = false;
 
   try {
-    const recommended = crossingPlanCards.find(p => p.isRecommended) ?? crossingPlanCards[0];
+    const situationKey = situationRecommended.value;
+    const recommended = situationKey
+      ? crossingPlanCards.find(p => p.key === situationKey)
+      : (crossingPlanCards.find(p => p.isRecommended) ?? crossingPlanCards[0]);
     if (recommended) {
       activePlanKey.value = recommended.key;
       // 态势底图（集结区/器材展开区）挂载时已绘出，此处只上图当前方案并回到任务区视角
+      planCards.value = planCards.value.map(p => ({ ...p, isRecommended: p.key === recommended.key }));
       viewerRef.value?.showPlan(recommended.key);
       viewerRef.value?.flyToPreset();
     }
@@ -670,10 +693,11 @@ function handleToggleResult() {
             :steps="analysisSteps"
             :knowledge-hits="knowledgeHits"
             :references="references"
-            :agent-online="agentInfo.status === 'online' || agentInfo.status === 'busy'"
             @toggle-collapse="aiCollapsed = !aiCollapsed"
+            @situation-applied="handleSituationApplied"
             @close="handleAiClose"
             @setting-close="handleSettingClose"
+            @generate-plan="handleChatGeneratePlan"
           />
         </div>
       </Transition>

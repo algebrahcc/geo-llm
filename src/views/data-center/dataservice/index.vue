@@ -125,7 +125,7 @@ async function loadList(reset = false) {
   loading.value = true;
   try {
     const params: Record<string, unknown> = {
-      current: pagination.value.page,
+      page: pagination.value.page,
       size: pagination.value.pageSize
     };
     if (keyword.value.trim()) params.name = keyword.value.trim();

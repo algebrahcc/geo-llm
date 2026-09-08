@@ -505,24 +505,35 @@ function buildPageParams() {
   return params;
 }
 
+let loadSeq = 0;
+
 async function loadData() {
+  // 请求序号守卫：快速翻页时丢弃迟到的旧响应，避免表格显示回旧页数据
+  const seq = ++loadSeq;
   isLoading.value = true;
   try {
     const res = await fetchCatalogPage(buildPageParams());
+    if (seq !== loadSeq) return;
     const pageData = res.data;
     const pageResult = Array.isArray(pageData)
       ? (pageData as unknown as Api.Catalog.PageResult<Api.Catalog.CatalogItem>)
       : (pageData as Api.Catalog.PageResult<Api.Catalog.CatalogItem>);
-    dataList.value = (pageResult?.records ?? []).map(adaptItem);
+    // Continew 全局包装为 { list, total }，IPage 原生为 { records, total }——双结构兼容
+    const rawList =
+      (pageResult as { list?: Api.Catalog.CatalogItem[] }).list ??
+      (pageResult as { records?: Api.Catalog.CatalogItem[] }).records ??
+      [];
+    dataList.value = rawList.map(adaptItem);
     total.value = Number(pageResult?.total ?? 0);
     // 加载全量统计（仅用于顶部指标）
     loadStatistics();
   } catch {
+    if (seq !== loadSeq) return;
     dataList.value = [];
     total.value = 0;
     window.$message?.error('数据目录加载失败');
   } finally {
-    isLoading.value = false;
+    if (seq === loadSeq) isLoading.value = false;
   }
 }
 
@@ -531,9 +542,9 @@ async function loadStatistics() {
   try {
     const res = await fetchCatalogPage({ page: 1, size: 1000 });
     const pageData = res.data;
-    const records = Array.isArray(pageData)
-      ? pageData
-      : ((pageData as { records?: Api.Catalog.CatalogItem[] })?.records ?? []);
+    // Continew 全局包装为 { list, total }，IPage 原生为 { records, total }——双结构兼容
+    const wrapped = pageData as { list?: Api.Catalog.CatalogItem[]; records?: Api.Catalog.CatalogItem[] };
+    const records = Array.isArray(pageData) ? pageData : (wrapped?.list ?? wrapped?.records ?? []);
     statDataList.value = records.map(adaptItem);
   } catch {
     statDataList.value = [];
