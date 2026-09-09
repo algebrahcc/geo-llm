@@ -70,11 +70,11 @@ const props = withDefaults(
   }
 );
 
-const emit = defineEmits<{
-  (e: 'toggle-collapse'): void;
-  (e: 'close'): void;
-  (e: 'plot-instruction', instruction: PlotInstruction): void;
-}>();
+type Emits = import('@/typings/panel-emits').PanelEmits & {
+  'plot-instruction': [instruction: PlotInstruction];
+};
+
+const emit = defineEmits<Emits>();
 
 const authStore = useAuthStore();
 const userId = computed(() => String(authStore.userInfo.userId ?? ''));

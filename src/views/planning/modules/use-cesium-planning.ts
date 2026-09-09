@@ -1,4 +1,5 @@
 import { useCesiumBase } from '@/composables/cesium/use-cesium-base';
+import { useCesiumAiPlot } from '@/composables/cesium/use-cesium-ai-plot';
 import { useCesiumServices } from '@/composables/cesium/use-cesium-services';
 import { useCesiumVectorLayer } from '@/composables/cesium/use-cesium-vector-layer';
 import { fetchEnabledDataServices } from '@/service/api/dataservice';
@@ -51,13 +52,19 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
   // 矢量图层组合层（通用）：mvt-imagery-provider 按瓦片渲染后端 MVT
   const vectorLayers = useCesiumVectorLayer(base);
 
+  // 智能体标绘层（共享）：AI 指令 → 点/线/面/文字，按 id 管理，可单删/全清
+  const aiPlot = useCesiumAiPlot({
+    viewerRef,
+    requestRender: base.requestRender,
+    createPoint: item => createPointEntity(item),
+    createLine: item => createPolylineEntity(item),
+    createPolygon: item => createPolygonEntity(item)
+  });
+
   const routeEntities: Partial<Record<PlanningRouteKey, Entity>> = {};
   const selectedRiskEntities: Entity[] = [];
   const selectedObstacleEntities: Entity[] = [];
   const waypointMarkerEntities: Entity[] = [];
-  // 智能体标绘层（AI 指令产生的点/线/面/文字，按 id 管理，可单删/全清）
-  const aiOverlayEntries = new Map<string, Entity>();
-  let aiPlotSeq = 0;
 
   let startMarkerEntity: Entity | null = null;
   let endMarkerEntity: Entity | null = null;
@@ -65,6 +72,8 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
   let currentRoute: PlanningRouteKey = 'route-a';
   // 路线/风险/障碍是否可见：页面初始只显示起终点标记，AI 智能规划完成后 revealRoutes() 打开
   let routesVisible = false;
+  // 事件排除的路线：重新规划后在地图上隐藏其折线（方案面板同步过滤）
+  const excludedRouteKeys = new Set<PlanningRouteKey>();
 
   const layerVisibility: Record<PlanningLayerKey, boolean> = {
     imagery: true,
@@ -226,6 +235,12 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
 
       if (!entity?.polyline) return;
 
+      // 事件排除的路线：直接隐藏
+      if (excludedRouteKeys.has(key)) {
+        entity.show = false;
+        return;
+      }
+
       // 规划未完成时隐藏全部路线；完成后按选中/候选样式显示
       if (!routesVisible) {
         entity.show = false;
@@ -303,6 +318,15 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     if (routesVisible) return;
     routesVisible = true;
     showRoute(routeKey);
+  }
+
+  /** 事件排除：隐藏被排除的候选路线（调用方随后 showRoute 指定当前路线） */
+  function setExcludedRoutes(excluded: PlanningRouteKey[], active?: PlanningRouteKey) {
+    excludedRouteKeys.clear();
+    excluded.forEach(k => excludedRouteKeys.add(k));
+    if (active) currentRoute = active;
+    updateRouteStyles();
+    base.requestRender();
   }
 
   function updateMarker(kind: 'start' | 'end', point: { longitude: number; latitude: number; name: string } | null) {
@@ -450,99 +474,6 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     }
   }
 
-  // ─── 智能体标绘层（AI 指令 → 点/线/面/文字，按 id 管理） ───
-
-  interface AiOverlayItem {
-    id?: string;
-    name?: string;
-    color?: string;
-  }
-
-  function resolveAiId(item: AiOverlayItem): string {
-    return item.id || `ai-plot-${++aiPlotSeq}`;
-  }
-
-  function drawAiMark(item: AiOverlayItem & { lon: number; lat: number }): string {
-    const id = resolveAiId(item);
-    const viewer = viewerRef.value;
-    if (!viewer) return id;
-    const existing = viewer.entities.getById(id);
-    if (existing) viewer.entities.remove(existing);
-    const entity = createPointEntity({
-      id,
-      name: item.name || 'AI 标注',
-      longitude: item.lon,
-      latitude: item.lat,
-      color: item.color || '#fb7185'
-    });
-    if (entity) {
-      aiOverlayEntries.set(id, entity);
-      base.requestRender();
-    }
-    return id;
-  }
-
-  function drawAiText(item: AiOverlayItem & { lon: number; lat: number; text: string }): string {
-    return drawAiMark({ ...item, name: item.text });
-  }
-
-  function drawAiLine(item: AiOverlayItem & { positions: Array<[number, number]> }): string {
-    const id = resolveAiId(item);
-    const viewer = viewerRef.value;
-    if (!viewer) return id;
-    const existing = viewer.entities.getById(id);
-    if (existing) viewer.entities.remove(existing);
-    const entity = createPolylineEntity({
-      id,
-      name: item.name || 'AI 标绘线',
-      color: item.color || '#f7b267',
-      positions: item.positions,
-      width: 4
-    });
-    if (entity) {
-      aiOverlayEntries.set(id, entity);
-      base.requestRender();
-    }
-    return id;
-  }
-
-  function drawAiPolygon(item: AiOverlayItem & { positions: Array<[number, number]> }): string {
-    const id = resolveAiId(item);
-    const viewer = viewerRef.value;
-    if (!viewer) return id;
-    const existing = viewer.entities.getById(id);
-    if (existing) viewer.entities.remove(existing);
-    const entity = createPolygonEntity({
-      id,
-      name: item.name || 'AI 标绘区域',
-      color: item.color || '#fb7185',
-      positions: item.positions
-    });
-    if (entity) {
-      aiOverlayEntries.set(id, entity);
-      base.requestRender();
-    }
-    return id;
-  }
-
-  function removeAiOverlay(id: string): boolean {
-    const entity = aiOverlayEntries.get(id);
-    const viewer = viewerRef.value;
-    if (!entity || !viewer) return false;
-    viewer.entities.remove(entity);
-    aiOverlayEntries.delete(id);
-    base.requestRender();
-    return true;
-  }
-
-  function clearAiOverlays(): void {
-    const viewer = viewerRef.value;
-    if (!viewer) return;
-    aiOverlayEntries.forEach(e => viewer.entities.remove(e));
-    aiOverlayEntries.clear();
-    base.requestRender();
-  }
-
   return {
     containerRef,
     cursorCoordinates: base.cursorCoordinates,
@@ -552,6 +483,7 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     setLayerVisible,
     showRoute,
     revealRoutes,
+    setExcludedRoutes,
     showWaypoints,
     setStartPoint,
     setEndPoint,
@@ -578,11 +510,11 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     // 视角定位（智能体标绘 flyTo 指令用）
     flyToLocation: base.flyToLocation,
     // 智能体标绘层：点/线/面/文字 + 单删/全清
-    drawAiMark,
-    drawAiLine,
-    drawAiPolygon,
-    drawAiText,
-    removeAiOverlay,
-    clearAiOverlays
+    drawAiMark: aiPlot.drawAiMark,
+    drawAiLine: aiPlot.drawAiLine,
+    drawAiPolygon: aiPlot.drawAiPolygon,
+    drawAiText: aiPlot.drawAiText,
+    removeAiOverlay: aiPlot.removeAiOverlay,
+    clearAiOverlays: aiPlot.clearAiOverlays
   };
 }

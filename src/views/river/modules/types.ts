@@ -1,4 +1,4 @@
-export type Coordinate = readonly [number, number];
+import type { Coordinate } from '@/typings/cesium';
 
 export type RiverPlanKey = 'plan-a' | 'plan-b' | 'plan-c';
 

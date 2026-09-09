@@ -1,22 +1,7 @@
-<script lang="ts">
-/**
- * 矢量图层（桥接后端 VectorItem + 前端显隐状态）
- *
- * 通用地图图层面板使用的图层条目类型，供 river/planning/globe/building 等地图页复用。
- */
-export interface VectorLayerItem {
-  key: string; // 'vector-{id}'
-  id: string; // 后端矢量图层 ID
-  label: string; // vectorName
-  sourceType: string; // GeoJSON / Shapefile
-  featureCount: number;
-  visible: boolean;
-}
-</script>
-
 <script setup lang="ts">
 import { ref } from 'vue';
 import type { ServiceLayerHandle } from '@/composables/cesium/service-loader';
+import type { VectorLayerItem } from '@/typings/cesium';
 
 defineOptions({
   name: 'MapLayerPanel'
@@ -32,17 +17,17 @@ const props = defineProps<{
   serviceHandles?: ServiceLayerHandle[];
 }>();
 
-const emit = defineEmits<{
-  (e: 'toggle-vector', id: string): void;
-  (e: 'toggle-collapse'): void;
-  (e: 'close'): void;
-  (e: 'toggle-service', id: number, visible: boolean): void;
-  (e: 'remove-service', id: number): void;
-  (e: 'reorder-service', fromIndex: number, toIndex: number): void;
-  (e: 'fly-service', id: number): void;
-  (e: 'fly-vector', id: string): void;
-  (e: 'toggle-translucency', enabled: boolean): void;
-}>();
+type Emits = import('@/typings/panel-emits').PanelEmits & {
+  'toggle-vector': [id: string];
+  'toggle-service': [id: number, visible: boolean];
+  'remove-service': [id: number];
+  'reorder-service': [fromIndex: number, toIndex: number];
+  'fly-service': [id: number];
+  'fly-vector': [id: string];
+  'toggle-translucency': [enabled: boolean];
+};
+
+const emit = defineEmits<Emits>();
 
 // 矢量图层分组折叠（与数据服务分组交互一致）
 const vectorGroupCollapsed = ref(false);

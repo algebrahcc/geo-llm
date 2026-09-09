@@ -128,19 +128,6 @@ const items = computed(() => props.agents ?? []);
   overflow: auto;
 }
 
-.sidebar-panel__body::-webkit-scrollbar {
-  width: 8px;
-}
-
-.sidebar-panel__body::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgba(48, 127, 212, 0.58);
-}
-
-.sidebar-panel__body::-webkit-scrollbar-track {
-  background: rgba(4, 20, 40, 0.45);
-}
-
 .agent-item {
   width: 100%;
   padding: 10px 12px;

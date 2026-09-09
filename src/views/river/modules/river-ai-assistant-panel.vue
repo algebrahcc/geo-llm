@@ -1,16 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import MarkdownIt from 'markdown-it';
-import { crossingResourceSpecs } from '@/mock/river';
-import type {
-  AiAnalysisStep,
-  ChatMessage,
-  CrossingResourceAttr,
-  CrossingResourceSpec,
-  CrossingSettingForm,
-  KnowledgeHitDisplay,
-  RiverPlanKey
-} from './types';
+import { createRiverSituationEngine } from './situation-engine';
+import type { AiAnalysisStep, ChatMessage, CrossingSettingForm, KnowledgeHitDisplay, RiverPlanKey } from './types';
 
 /** AI 回答 markdown 渲染（html:false 防 XSS） */
 const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
@@ -24,47 +16,48 @@ const props = defineProps<{
   form: CrossingSettingForm | null;
   steps: AiAnalysisStep[];
   knowledgeHits: KnowledgeHitDisplay[];
-  references: string[];
 }>();
 
-const emit = defineEmits<{
-  (e: 'toggle-collapse'): void;
-  (e: 'close'): void;
-  (e: 'send-message', msg: string): void;
-  (e: 'generate-plan'): void;
+type Emits = import('@/typings/panel-emits').PanelEmits & {
+  'send-message': [msg: string];
+  'generate-plan': [];
   /** 战场态势注入：事件名须与父组件 @situation-applied 一致，否则推荐方案不会切换 */
-  (e: 'situation-applied', title: string, recommendedKey: RiverPlanKey): void;
-}>();
+  'situation-applied': [title: string, recommendedKey: RiverPlanKey];
+};
+
+const emit = defineEmits<Emits>();
 
 // ──── 离线演示模式：未绑定 Dify 应用时，按预置问答库生成固定回答 ────
 
 // ──── 区块折叠状态（默认只展开核心区块：输入参数核心行 + 分析过程） ────
 const sectionCollapsed = ref<Record<string, boolean>>({
   params: false,
-  resources: true,
   progress: false,
   knowledge: true
 });
 
 /**
- * 上下文区展开态：首次进入时若已存在研判步骤则默认展开，
- * 让分析过程（研判进程时间线）直接可见。
+ * 上下文区展开态：默认收起，把空间留给对话区；分析运行时临时展开供观察
  */
-const contextExpanded = ref(props.steps.length > 0);
+const contextExpanded = ref(false);
 
 function toggleSection(key: string) {
   sectionCollapsed.value[key] = !sectionCollapsed.value[key];
 }
 
-// 分析开始：同时展开上下文区与"研判进程"，实时呈现分析过程
+// 分析开始时展开上下文区呈现进度；分析结束后自动收起，把空间还给对话区。
+// immediate：面板在分析进行中才打开时（running 初始即为 true），挂载即展开，不依赖状态变化。
 watch(
   () => props.running,
   running => {
     if (running) {
       sectionCollapsed.value.progress = false;
       contextExpanded.value = true;
+    } else {
+      contextExpanded.value = false;
     }
-  }
+  },
+  { immediate: true }
 );
 
 // ──── 对话 ────
@@ -103,7 +96,7 @@ let typeOutSkip = false;
 const expandedKnowledge = ref<string | null>(null);
 
 /** 空状态快捷提问：一键发起高频问题与态势注入 */
-const quickAsks = ['为什么推荐方案一？', '当前水文条件如何？', '关渡大桥遭袭损毁', '重新生成方案'];
+const quickAsks = ['说明推荐方案一的理由', '报告当前水文情况', '关渡大桥遭袭损毁', '重新拟定渡河方案'];
 
 // ──── 参数回显列表 ────
 const paramList = ref<Array<{ label: string; value: string }>>([]);
@@ -140,39 +133,11 @@ watch(
   { immediate: true, deep: true }
 );
 
-// ──── 所选可用资源的规格属性（长度/宽度/高度等） ────
-const selectedResourceSpecs = computed<CrossingResourceSpec[]>(() => {
-  const resources = props.form?.availableResources ?? [];
-  return resources
-    .map(name => crossingResourceSpecs[name])
-    .filter((spec): spec is CrossingResourceSpec => Boolean(spec));
-});
-
-/** 手风琴展开的资源名（默认全部折叠，仅显示尺寸摘要行） */
-const expandedResource = ref<string | null>(null);
-
-function toggleResource(name: string) {
-  expandedResource.value = expandedResource.value === name ? null : name;
-}
-
-/** 折叠态摘要：长 × 宽 × 高（从属性中按标签匹配尺寸项） */
-function getResourceDims(spec: CrossingResourceSpec): string {
-  const dims = [
-    spec.attrs.find(a => a.label.includes('长度')),
-    spec.attrs.find(a => a.label.includes('宽度')),
-    spec.attrs.find(a => a.label.includes('高度'))
-  ].filter((a): a is CrossingResourceAttr => Boolean(a));
-  if (dims.length === 0) return spec.model;
-  const nums = dims.map(a => a.value.replace(/[^\d.]/g, ''));
-  const unit = dims[0].value.replace(/[\d.\s]/g, '') || '';
-  return `${nums.join(' × ')} ${unit}`.trim();
-}
-
 // ──── 计算完成/总数 ────
 const completedStepsCount = () => props.steps.filter(s => s.status === 'success').length;
 const totalStepsCount = () => props.steps.length;
 
-/** 整体研判进度百分比（顶部进度条使用） */
+/** 整体分析进度百分比（顶部进度条使用） */
 const progressPercent = computed(() => {
   const total = props.steps.length;
   if (total === 0) return 0;
@@ -185,354 +150,15 @@ const summaryChips = computed(() => coreParams.value.slice(0, 4).map(p => ({ lab
 
 /** 存在任意可展开上下文时才渲染摘要条 */
 const hasContext = computed(
-  () =>
-    paramList.value.length > 0 ||
-    selectedResourceSpecs.value.length > 0 ||
-    props.knowledgeHits.length > 0 ||
-    props.steps.length > 0
+  () => paramList.value.length > 0 || props.knowledgeHits.length > 0 || props.steps.length > 0
 );
 
-// ──── 离线演示：预置问答库（回答注入当前任务要素与三方案上下文） ────
-interface OfflineQA {
-  keywords: string[];
-  answer: (ctx: { riverWidth: number; forceScale: string; timeConstraint: string }) => string;
-}
-
-const OFFLINE_QA: OfflineQA[] = [
-  {
-    keywords: ['为什么', '推荐', '门桥'],
-    answer: c =>
-      `**方案一（门桥漕渡主渡方案）是当前条件下的最优解**，理由有三：
-
-1. **渡段最优**：渡场选在关渡大桥上游约 1km 的窄段，实测河幅约 ${c.riverWidth}m，单程漕渡时间最短；
-2. **观察条件好**：西岸狮子头为突出部高地，可通视桥区与对岸登陆场；
-3. **避让约束**：登陆场设在关渡宫南侧，避开了红树林保育区北缘。
-
-对比：方案二通行能力强但桥位暴露、社子岛纵深受限；方案三只能送轻装人员。需要我详细对比三个方案吗？`
-  },
-  {
-    keywords: ['方案二', '浮桥'],
-    answer: () =>
-      `**方案二（浮桥分段架设方案）**：在社子岛头—五股段架设浮桥，重型舟桥器材 2 套（530m 架设能力）覆盖约 492m 断面。
-
-- **优势**：通行能力最强（2 个营/h），适合重装梯队连续通过
-- **风险**：架设期间桥位暴露于主槽；社子岛为滞洪区、堤防高，上岸后纵深机动受限
-- **适用**：常规投送与保障编组，或方案一受阻时接替
-
-作为**备案**保留，主攻仍建议方案一。`
-  },
-  {
-    keywords: ['方案三', '冲锋舟', '突击'],
-    answer: () =>
-      `**方案三（冲锋舟突击方案）**：应急选项——从八里渡船头下水面出发，在下游竹围岸段多点突击登陆。
-
-- **优势**：部署最快（约 1h50min）、隐蔽性好、多点分散降低暴露
-- **风险**：仅能输送轻装人员；靠近河口强潮区，必须严格按**平潮窗口**行动
-- **定位**：前两条路线受阻时的应急预案，或配合正面佯渡使用`
-  },
-  {
-    keywords: ['水文', '河宽', '河幅', '流速', '水深'],
-    answer: c =>
-      `当前任务水文要素（已录入分析）：
-
-| 要素 | 值 |
-| --- | --- |
-| 河幅 | 实测 ${c.riverWidth}m（关渡段断面） |
-| 水深 | 4~8m（感潮段主槽较深） |
-| 流速 | 0.8~1.8 m/s（涨落潮时增大） |
-| 河床 | 泥沙质为主，利于门桥泊岸 |
-
-该段为**感潮河段**，作业窗口须结合潮汐计算。`
-  },
-  {
-    keywords: ['潮汐', '平潮', '涨潮', '潮流'],
-    answer: () =>
-      `**平潮窗口**是本渡河的关键约束：
-
-- 淡水河关渡段为半日潮感潮河段，每日两涨两落，潮差约 2.3m
-- 涨落潮中间各有约 **1.5~2 小时平潮期**，流速接近 0，是漕渡与浮桥架设的最佳窗口
-- 高流速时段（>1.5m/s）门桥操纵困难，须暂停作业或转上游渡场
-
-建议：装载与编组在平潮前完成，窗口开启后立即下水。`
-  },
-  {
-    keywords: ['红树林', '保育', '登陆'],
-    answer: () =>
-      `**红树林约束**：东岸关渡自然保留区分布红树林滩地（渡场约束之一），滩面不可通行。
-
-处置：登陆场特意选在**关渡宫南侧**（红树林北缘以南），门桥直接泊岸硬质滩区；上岸后由引导分队标识安全通道，防止车辆误入滩地陷淤。`
-  },
-  {
-    keywords: ['装备', '资源', '编成', '登陆艇'],
-    answer: () =>
-      `当前可用装备编成（按所选资源）：${Object.values(crossingResourceSpecs)
-        .slice(0, 4)
-        .map(
-          spec =>
-            `\n- **${spec.name}**×${spec.count}：${spec.attrs.find(a => a.label.includes('长度'))?.value ?? ''} 起，参数齐备`
-        )
-        .join('')}
-
-完整规格可在上方"装备编成"区展开查看。`
-  },
-  {
-    keywords: ['时间', '时限', '小时'],
-    answer: c =>
-      `**时限分析**：任务要求 ${c.timeConstraint}。
-
-- 方案一总耗时约 2h46min，满足时限且有余量
-- 方案二约 3h20min（含浮桥架设）；方案三约 1h50min（仅轻装）
-
-结论：主攻按方案一组织，预留 15 分钟编队缓冲即可。`
-  }
-];
-
-// ──── 战场态势事件引擎：态势注入 → 方案影响矩阵 → 综合推荐结论变更 ────
-
-/** 方案受影响级别 */
-type ImpactLevel = 'blocked' | 'limited' | 'ok' | 'boost';
-
-interface SituationImpact {
-  level: ImpactLevel;
-  text: string;
-}
-
-/** 级别 → 展示文案 */
-const IMPACT_LABEL: Record<ImpactLevel, string> = {
-  blocked: '不可行',
-  limited: '受限',
-  ok: '可行',
-  boost: '可行性上升'
-};
-
-/** 级别 → 综合评分权重（不可行为否决项，给予极大负分） */
-const IMPACT_SCORE: Record<ImpactLevel, number> = {
-  blocked: -100,
-  limited: -1,
-  ok: 1,
-  boost: 2
-};
-
-const PLAN_LABEL: Record<RiverPlanKey, string> = {
-  'plan-a': '方案一 门桥漕渡',
-  'plan-b': '方案二 浮桥架设',
-  'plan-c': '方案三 冲锋舟突击'
-};
-
-/** 基线推荐：无态势激活时的默认主推方案 */
-const BASELINE_PLAN: RiverPlanKey = 'plan-a';
-
-interface SituationRule {
-  id: string;
-  keywords: string[];
-  title: string;
-  answer: (ctx: { riverWidth: number; forceScale: string; timeConstraint: string }) => string;
-  impacts: { planA: SituationImpact; planB: SituationImpact; planC: SituationImpact };
-}
-
-const SITUATION_RULES: SituationRule[] = [
-  {
-    id: 'bridge-down',
-    keywords: ['大桥损毁', '大桥被炸', '大桥坍塌', '大桥中断', '大桥封锁', '大桥遭袭'],
-    title: '关渡大桥遭袭损毁',
-    answer: () => `**桥区已划为禁航区**，落水构件对下游 300m 范围构成漂流物威胁。`,
-    impacts: {
-      planA: {
-        level: 'limited',
-        text: '渡场在桥上游约 1km 不受坍落物直接影响，但需加强对空/对岸观察，漂流物警戒分队前出'
-      },
-      planB: { level: 'boost', text: '桥区禁航后西岸器材机动改陆路，浮桥架设安全边界反而扩大' },
-      planC: { level: 'ok', text: '竹围段远离桥区' }
-    }
-  },
-  {
-    id: 'landing-blocked',
-    keywords: ['登陆场受阻', '登陆场被占', '红树林起火', '滩地布雷', '登陆点被封'],
-    title: '关渡登陆场受阻',
-    answer: () => `**关渡宫南侧登陆场不可用**，方案一的主要上陆点失效，必须转换上陆点或更换渡河方式。`,
-    impacts: {
-      planA: { level: 'blocked', text: '主登陆场失效，强渡将造成部队拥挤于滩地边缘' },
-      planB: { level: 'ok', text: '改在社子岛头接引，浮桥直通岛内延平北路纵深' },
-      planC: { level: 'limited', text: '竹围段距目标纵深过远，仅能作辅助方向' }
-    }
-  },
-  {
-    id: 'flow-surge',
-    keywords: ['流速超限', '洪峰', '暴雨', '水位暴涨', '涨潮提前'],
-    title: '水文条件突变（流速超限）',
-    answer: () => `**实测流速已超装备适应上限**，漕渡与浮桥架设暂停，等待下一个平潮窗口（约 1.5~2 小时）。`,
-    impacts: {
-      planA: { level: 'limited', text: '门桥漕渡暂停，已下水门桥就近锚泊' },
-      planB: { level: 'limited', text: '浮桥架设中断，已锚定节段加固待平潮' },
-      planC: { level: 'ok', text: '冲锋舟轻载可控，但仅限小批次梯次渡送' }
-    }
-  },
-  {
-    id: 'enemy-fire',
-    keywords: ['敌方', '火力', '设防', '伏击', '被炮火', '遭火力'],
-    title: '对岸发现敌火力点',
-    answer: () => `**对岸关渡方向发现敌火力配系**，正面渡场处于直瞄火力覆盖下，正面强渡代价过高。`,
-    impacts: {
-      planA: { level: 'limited', text: '转为佯渡方向，保持压力牵制敌兵力' },
-      planB: { level: 'blocked', text: '浮桥目标大且架设时间长，暂缓' },
-      planC: { level: 'ok', text: '冲锋舟多点分散夜渡，配合佯渡方向实施主突' }
-    }
-  },
-  {
-    id: 'night-op',
-    keywords: ['夜暗', '夜间', '能见度骤降', '大雾'],
-    title: '转入夜暗/低能见度条件',
-    answer: () => `**能见度低于作业标准**，门桥编队与浮桥架设的目视协同失效，转入夜间隐蔽机动条件。`,
-    impacts: {
-      planA: { level: 'limited', text: '漕渡协同困难，暂缓至能见度恢复' },
-      planB: { level: 'limited', text: '架设作业照明将暴露位置，暂缓' },
-      planC: { level: 'ok', text: '冲锋舟夜渡隐蔽性最好，配合灯火管制实施' }
-    }
-  },
-  {
-    id: 'equipment-loss',
-    keywords: ['装备损失', '器材损毁', '登陆艇损毁', '冲锋舟损失', '浮桥被毁'],
-    title: '渡河装备遭损',
-    answer: () => `**部分渡河装备遭损**，运力结构变化，需重新核算各方式可输送量。`,
-    impacts: {
-      planA: { level: 'ok', text: '门桥漕渡受影响最小，成为当前主力方式' },
-      planB: { level: 'limited', text: '浮桥器材损失后架设能力下降，需补充器材' },
-      planC: { level: 'limited', text: '冲锋舟损失直接削减突击运力' }
-    }
-  }
-];
-
-/** 已激活的战场态势（持续影响后续问答与方案推荐） */
-const activeSituations = ref<Array<{ id: string; title: string }>>([]);
-
-/**
- * 综合所有已激活态势的评分，得出当前推荐方案。
- * 多条态势叠加时取累计分最高者，而非沿用最后一条注入的结论。
- */
-function resolveRecommendedPlan(): RiverPlanKey {
-  const score: Record<RiverPlanKey, number> = { 'plan-a': 0, 'plan-b': 0, 'plan-c': 0 };
-  for (const s of activeSituations.value) {
-    const rule = SITUATION_RULES.find(r => r.id === s.id);
-    if (!rule) continue;
-    score['plan-a'] += IMPACT_SCORE[rule.impacts.planA.level];
-    score['plan-b'] += IMPACT_SCORE[rule.impacts.planB.level];
-    score['plan-c'] += IMPACT_SCORE[rule.impacts.planC.level];
-  }
-  return (Object.keys(score) as RiverPlanKey[]).reduce(
-    (best, key) => (score[key] > score[best] ? key : best),
-    BASELINE_PLAN
-  );
-}
-
-function resolveSituation(question: string): SituationRule | null {
-  return (
-    SITUATION_RULES.find(
-      r => !activeSituations.value.some(s => s.id === r.id) && r.keywords.some(k => question.includes(k))
-    ) ?? null
-  );
-}
-
-function buildSituationAnswer(
-  rule: SituationRule,
-  ctx: { riverWidth: number; forceScale: string; timeConstraint: string }
-): string {
-  const impactRow = (label: string, key: 'planA' | 'planB' | 'planC') => {
-    const impact = rule.impacts[key];
-    return `| ${label} | ${IMPACT_LABEL[impact.level]} | ${impact.text} |`;
-  };
-  // 本条态势已先入栈，故此处算得的是叠加后的综合结论
-  const recommended = resolveRecommendedPlan();
-  const changed = recommended !== BASELINE_PLAN;
-  return `**态势已注入：${rule.title}**（当前激活态势 ${activeSituations.value.length} 条）
-
-对三个候选方案的影响：
-
-| 方案 | 影响评估 | 说明 |
-| --- | --- | --- |
-${impactRow('方案一 门桥漕渡', 'planA')}
-${impactRow('方案二 浮桥架设', 'planB')}
-${impactRow('方案三 冲锋舟突击', 'planC')}
-
-📌 **推荐结论${changed ? '将变更' : '维持'}**：${changed ? `主推方案由${PLAN_LABEL[BASELINE_PLAN]}调整为**${PLAN_LABEL[recommended]}**` : `主推方案维持**${PLAN_LABEL[recommended]}**`}，任务要素：${ctx.forceScale}、渡区河幅 ${ctx.riverWidth}m、时限 ${ctx.timeConstraint}。
-
-⚠ 该结论**尚未上图**：保持当前方案与地图标绘不变，输入"重新生成方案"后才会一次性更新方案面板与地图。`;
-}
-
-const GENERATE_INTENT = /(生成|重新|给出|制定|输出).{0,6}(方案|推荐|分析)/;
-
-function buildOfflineAnswer(question: string): {
-  answer: string;
-  isGenerate: boolean;
-  situationTitle?: string;
-  recommendedKey?: RiverPlanKey;
-} {
-  const ctx = {
-    riverWidth: props.form?.riverWidth ?? 491,
-    forceScale: props.form?.forceScale ?? '1个合成营',
-    timeConstraint: props.form?.timeConstraint ?? '3小时内完成渡河'
-  };
-  // ① 生成方案指令：按已激活态势重新推荐
-  if (GENERATE_INTENT.test(question)) {
-    const active = activeSituations.value.map(s => s.title).join('、') || '无（基线条件）';
-    return {
-      isGenerate: true,
-      answer: `好的，已按当前战场态势重新执行智能分析：
-
-- 激活态势：${active}
-- 综合推荐：**${PLAN_LABEL[resolveRecommendedPlan()]}**
-- 任务规模：${ctx.forceScale}
-- 渡区河幅：实测 ${ctx.riverWidth}m（关渡段断面）
-- 时限要求：${ctx.timeConstraint}
-
-方案面板与地图标绘已同步更新，请查看推荐结论。`
-    };
-  }
-  // ② 战场态势注入：激活态势并输出影响矩阵
-  const situation = resolveSituation(question);
-  if (situation) {
-    activeSituations.value.push({ id: situation.id, title: situation.title });
-    return {
-      answer: buildSituationAnswer(situation, ctx),
-      isGenerate: false,
-      situationTitle: situation.title,
-      recommendedKey: resolveRecommendedPlan()
-    };
-  }
-  // ③ 态势汇总查询
-  if (question.includes('当前态势') || question.includes('态势汇总') || question.includes('影响评估')) {
-    if (activeSituations.value.length === 0) {
-      return {
-        isGenerate: false,
-        answer: `当前**无激活态势**，基线条件下的推荐结论为**${PLAN_LABEL[BASELINE_PLAN]}（门桥漕渡主渡方案）**。\n\n可注入的战场态势示例："关渡大桥遭袭损毁""登陆场被占""流速超限""对岸发现敌火力""转入夜间"。`
-      };
-    }
-    const matrix = activeSituations.value.map(s => `- ${s.title}`).join('\n');
-    return {
-      isGenerate: false,
-      answer: `当前已激活 ${activeSituations.value.length} 条战场态势：\n\n${matrix}\n\n综合影响下的推荐结论为**${PLAN_LABEL[resolveRecommendedPlan()]}**——输入"重新生成方案"按态势更新推荐。`
-    };
-  }
-  // ④ 静态问答（方案/水文/潮汐/装备等）
-  for (const qa of OFFLINE_QA) {
-    if (qa.keywords.some(k => question.includes(k))) {
-      const prefix =
-        activeSituations.value.length > 0
-          ? `> ⚠ 当前态势修正：${activeSituations.value.map(s => s.title).join('；')}\n\n`
-          : '';
-      return { answer: prefix + qa.answer(ctx), isGenerate: false };
-    }
-  }
-  // ⑤ 兜底引导
-  return {
-    isGenerate: false,
-    answer: `我可以结合当前任务与三个方案回答问题，也可以接收**战场态势变化**并评估其对渡河方案的影响。示例：
-
-- "为什么推荐方案一？"
-- "当前水文条件怎么样？"
-- **注入态势**："关渡大桥遭袭损毁""流速超限""对岸发现敌火力""转入夜间"
-- 输入"重新生成方案"按态势更新推荐`
-  };
-}
+// ──── 离线推演引擎：规则库 / 评分 / 问答模板已下沉至 ./situation-engine（纯逻辑，可单测） ────
+const { activeSituations, answer: resolveOfflineAnswer } = createRiverSituationEngine(() => ({
+  riverWidth: props.form?.riverWidth ?? 491,
+  forceScale: props.form?.forceScale ?? '1个合成营',
+  timeConstraint: props.form?.timeConstraint ?? '3小时内完成渡河'
+}));
 
 /** 模拟流式输出（打字机），增强演示真实感 */
 function typeOut(msgId: string, full: string): Promise<void> {
@@ -566,7 +192,7 @@ async function offlineReply(question: string) {
     streaming: true
   });
   streaming.value = true;
-  const { answer, isGenerate, situationTitle, recommendedKey } = buildOfflineAnswer(question);
+  const { answer, isGenerate, situationTitle, recommendedKey } = resolveOfflineAnswer(question);
   await typeOut(assistantId, answer);
   const msg = messages.value.find(m => m.id === assistantId);
   if (msg) msg.streaming = false;
@@ -655,10 +281,10 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
       </div>
     </header>
 
-    <!-- ── 整体研判进度 ── -->
+    <!-- ── 整体分析进度 ── -->
     <div v-if="totalStepsCount() > 0" class="progress-strip">
       <div class="progress-head">
-        <span class="progress-label">研判进度</span>
+        <span class="progress-label">分析进度</span>
         <span class="progress-count">{{ completedStepsCount() }}/{{ totalStepsCount() }}</span>
       </div>
       <div
@@ -702,9 +328,6 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
               <span class="context-chip__label">{{ chip.label }}</span>
               <span class="context-chip__value">{{ chip.value }}</span>
             </span>
-            <span v-if="selectedResourceSpecs.length > 0" class="context-chip context-chip--violet">
-              装备 {{ selectedResourceSpecs.length }}
-            </span>
             <span v-if="knowledgeHits.length > 0" class="context-chip context-chip--green">
               检索 {{ knowledgeHits.length }}
             </span>
@@ -727,7 +350,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
               @keydown.enter.prevent="toggleSection('progress')"
               @keydown.space.prevent="toggleSection('progress')"
             >
-              <span class="section-quick-title">研判进程</span>
+              <span class="section-quick-title">分析进程</span>
               <span class="section-badge section-badge--accent">{{ steps.length }} 步</span>
               <SvgIcon
                 class="section-chevron"
@@ -823,67 +446,6 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
             </div>
           </section>
 
-          <!-- ┐── 可用资源属性 ┐── -->
-          <section v-if="selectedResourceSpecs.length > 0" class="content-section">
-            <div
-              class="section-header-bar"
-              role="button"
-              :aria-expanded="!sectionCollapsed.resources"
-              tabindex="0"
-              @click="toggleSection('resources')"
-              @keydown.enter.prevent="toggleSection('resources')"
-              @keydown.space.prevent="toggleSection('resources')"
-            >
-              <span class="section-quick-title">装备编成</span>
-              <span class="section-badge section-badge--violet">{{ selectedResourceSpecs.length }}</span>
-              <SvgIcon
-                class="section-chevron"
-                :class="{ 'section-chevron--open': !sectionCollapsed.resources }"
-                icon="mdi:chevron-down"
-              />
-            </div>
-            <div v-show="!sectionCollapsed.resources" class="section-body section-body--compact">
-              <div class="resource-spec-list">
-                <div
-                  v-for="spec in selectedResourceSpecs"
-                  :key="spec.name"
-                  class="resource-spec-card"
-                  :class="{ 'resource-spec-card--expanded': expandedResource === spec.name }"
-                >
-                  <!-- 折叠态：一行摘要（名称 + 长×宽×高） -->
-                  <div
-                    class="resource-spec-row"
-                    role="button"
-                    :aria-expanded="expandedResource === spec.name"
-                    tabindex="0"
-                    @click="toggleResource(spec.name)"
-                    @keydown.enter.prevent="toggleResource(spec.name)"
-                    @keydown.space.prevent="toggleResource(spec.name)"
-                  >
-                    <span class="resource-spec-icon">{{ spec.icon }}</span>
-                    <span class="resource-spec-name">{{ spec.name }}</span>
-                    <span class="resource-spec-dims">{{ getResourceDims(spec) }}</span>
-                    <SvgIcon
-                      class="resource-spec-chevron"
-                      :class="{ 'resource-spec-chevron--open': expandedResource === spec.name }"
-                      icon="mdi:chevron-down"
-                    />
-                  </div>
-                  <!-- 展开态：型号 + 完整属性 -->
-                  <div v-if="expandedResource === spec.name" class="resource-spec-detail">
-                    <div class="resource-spec-model">{{ spec.model }}</div>
-                    <div class="resource-attr-grid">
-                      <div v-for="attr in spec.attrs" :key="attr.label" class="resource-attr-item">
-                        <span class="attr-label">{{ attr.label }}</span>
-                        <span class="attr-value">{{ attr.value }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
           <!-- ┐── 知识库检索结果 ┐── -->
           <section v-if="knowledgeHits.length > 0" class="content-section">
             <div
@@ -958,28 +520,15 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 
       <!-- ══ 对话区（全宽） ══ -->
       <div ref="scrollBodyRef" class="chat-scroll">
-        <!-- ┐── 引用来源 ┐── -->
-        <div v-if="references.length > 0" class="references-section">
-          <div class="ref-label">引用来源</div>
-          <div class="ref-tags">
-            <span
-              v-for="(ref, i) in references"
-              :key="i"
-              class="ref-tag"
-              :class="i < references.length - 2 ? 'ref-tag--doc' : 'ref-tag--sys'"
-            >
-              {{ ref }}
-            </span>
-          </div>
-        </div>
-
         <!-- ┐── 空状态引导 ┐── -->
         <div v-if="messages.length <= 1" class="chat-empty">
           <span class="empty-icon">
             <SvgIcon icon="mdi:robot-outline" />
           </span>
           <p class="empty-title">有什么可以帮您？</p>
-          <p class="empty-desc">可询问方案对比、水文与潮汐条件，也可注入战场态势触发重新研判</p>
+          <p class="empty-desc">
+            方案对比、水文潮汐可以直接问。有突发情况——桥被炸、流速超限、发现敌火力——直接说，我评估对方案的影响，重新分析时调整部署
+          </p>
           <div class="quick-asks">
             <button v-for="q in quickAsks" :key="q" type="button" class="quick-ask" @click="void sendText(q)">
               {{ q }}
@@ -1017,7 +566,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
           v-model="chatInput"
           type="text"
           class="chat-input"
-          placeholder="输入消息与助手对话，或注入战场态势…"
+          placeholder="问方案、水文，有情况直接说"
           :disabled="streaming"
           @keyup.enter="handleSend"
         />
@@ -1062,21 +611,21 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   --ai-accent: #8db8ff;
   --ai-accent-soft: rgb(141 184 255 / 12%);
 
-  /* ── 语义色 ── */
-  --ai-success: #6aae8a;
-  --ai-success-soft: rgb(106 174 138 / 13%);
-  --ai-warning: #c9a45c;
-  --ai-warning-soft: rgb(201 164 92 / 13%);
-  --ai-danger: #c25b5b;
-  --ai-danger-soft: rgb(194 91 91 / 14%);
+  /* ── 语义色（高亮 400 系，替代偏暗的 600 系） ── */
+  --ai-success: #34d399;
+  --ai-success-soft: rgb(52 211 153 / 13%);
+  --ai-warning: #fbbf24;
+  --ai-warning-soft: rgb(251 191 36 / 13%);
+  --ai-danger: #f87171;
+  --ai-danger-soft: rgb(248 113 113 / 14%);
   --ai-violet: #a78bfa;
   --ai-violet-soft: rgb(167 139 250 / 13%);
 
-  /* ── 文本层级 ── */
-  --ai-text-1: rgb(255 255 255 / 92%);
-  --ai-text-2: rgb(255 255 255 / 72%);
-  --ai-text-3: rgb(255 255 255 / 48%);
-  --ai-text-4: rgb(255 255 255 / 32%);
+  /* ── 文本层级（白系为主，弱化用不透明度而非发灰，保证深色底可读） ── */
+  --ai-text-1: rgb(255 255 255 / 97%);
+  --ai-text-2: rgb(255 255 255 / 88%);
+  --ai-text-3: rgb(255 255 255 / 75%);
+  --ai-text-4: rgb(255 255 255 / 62%);
 
   /* ── 面与线 ── */
   --ai-surface: rgb(255 255 255 / 2%);
@@ -1174,8 +723,8 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .header-subtitle {
-  font-size: 10px;
-  color: var(--ai-text-4);
+  font-size: 11px;
+  color: var(--ai-text-3);
   letter-spacing: 0.04em;
 }
 
@@ -1203,13 +752,13 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 .agent-status--online {
   background: var(--ai-success-soft);
   color: var(--ai-success);
-  border-color: rgb(106 174 138 / 32%);
+  border-color: rgb(52 211 153 / 32%);
 }
 
 .agent-status--busy {
   background: var(--ai-warning-soft);
   color: var(--ai-warning);
-  border-color: rgb(201 164 92 / 36%);
+  border-color: rgb(251 191 36 / 36%);
 }
 
 .agent-status--busy .status-dot {
@@ -1265,7 +814,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   outline-offset: 1px;
 }
 
-/* ─────────── 研判进度条 ─────────── */
+/* ─────────── 分析进度条 ─────────── */
 .progress-strip {
   padding: 9px 14px 10px;
   border-bottom: 1px solid var(--ai-line);
@@ -1378,7 +927,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .context-chip__label {
-  color: var(--ai-text-4);
+  color: var(--ai-text-3);
   flex-shrink: 0;
 }
 
@@ -1397,7 +946,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 
 .context-chip--green {
   background: var(--ai-success-soft);
-  border-color: rgb(106 174 138 / 32%);
+  border-color: rgb(52 211 153 / 32%);
   color: var(--ai-success);
 }
 
@@ -1414,7 +963,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 
 /* 展开的上下文详情：限高并自身滚动，保证对话区始终保留可视空间 */
 .context-body {
-  max-height: 42vh;
+  max-height: 32vh;
   overflow-y: auto;
   padding: 6px 8px 8px;
   border-top: 1px solid var(--ai-line);
@@ -1463,9 +1012,10 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 
 .section-quick-title {
   flex: 1;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ai-text-2);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ai-text-1);
+  letter-spacing: 0.02em;
 }
 
 .section-badge {
@@ -1495,7 +1045,6 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 
 /* 折叠指示箭头：单一图标 + 旋转过渡，避免换图标导致的跳变 */
 .section-chevron,
-.resource-spec-chevron,
 .doc-chevron,
 .param-more-chevron {
   font-size: 14px;
@@ -1505,7 +1054,6 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .section-chevron--open,
-.resource-spec-chevron--open,
 .doc-chevron--open,
 .param-more-chevron--open {
   transform: rotate(180deg);
@@ -1581,114 +1129,6 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   color: #cbe3ff;
 }
 
-/* ─────────── 装备编成卡片 ─────────── */
-.resource-spec-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.resource-spec-card {
-  border: 1px solid var(--ai-line-2);
-  border-radius: var(--ai-r-sm);
-  overflow: hidden;
-  transition: border-color var(--ai-fast) var(--ai-ease);
-}
-
-.resource-spec-card:hover {
-  border-color: rgb(167 139 250 / 40%);
-}
-
-.resource-spec-card--expanded {
-  border-color: rgb(167 139 250 / 48%);
-  background: var(--ai-violet-soft);
-}
-
-.resource-spec-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 9px;
-  cursor: pointer;
-  user-select: none;
-  transition: background var(--ai-fast) var(--ai-ease);
-}
-
-.resource-spec-row:hover {
-  background: rgb(167 139 250 / 8%);
-}
-
-.resource-spec-row:focus-visible {
-  outline: 2px solid var(--ai-violet);
-  outline-offset: -2px;
-}
-
-.resource-spec-icon {
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.resource-spec-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ai-text-1);
-  flex-shrink: 0;
-}
-
-.resource-spec-dims {
-  flex: 1;
-  font-size: 11px;
-  color: var(--ai-text-3);
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-variant-numeric: tabular-nums;
-}
-
-.resource-spec-detail {
-  padding: 6px 9px 7px;
-  border-top: 1px solid var(--ai-line);
-}
-
-.resource-spec-model {
-  font-size: 10px;
-  color: var(--ai-violet);
-  margin-bottom: 4px;
-  opacity: 0.85;
-}
-
-.resource-attr-grid {
-  display: flex;
-  flex-direction: column;
-}
-
-.resource-attr-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  padding: 2px 0;
-  font-size: 11px;
-  border-bottom: 1px solid rgb(255 255 255 / 3%);
-}
-
-.resource-attr-item:last-child {
-  border-bottom: none;
-}
-
-.attr-label {
-  color: var(--ai-text-3);
-  flex-shrink: 0;
-}
-
-.attr-value {
-  color: var(--ai-text-1);
-  font-weight: 500;
-  text-align: right;
-  white-space: nowrap;
-}
-
 /* ─────────── 战场态势 ─────────── */
 .situation-chips {
   display: flex;
@@ -1697,7 +1137,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   gap: 6px;
   padding: 8px 11px;
   margin: 6px 8px;
-  border: 1px solid rgb(201 164 92 / 35%);
+  border: 1px solid rgb(251 191 36 / 35%);
   border-radius: var(--ai-r-sm);
   background: var(--ai-warning-soft);
 }
@@ -1713,13 +1153,13 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 4px;
-  background: rgb(201 164 92 / 18%);
+  background: rgb(251 191 36 / 18%);
   color: var(--ai-warning);
-  border: 1px solid rgb(201 164 92 / 38%);
+  border: 1px solid rgb(251 191 36 / 38%);
   font-weight: 500;
 }
 
-/* ─────────── 研判进程时间线 ─────────── */
+/* ─────────── 分析进程时间线 ─────────── */
 .step-list {
   display: flex;
   flex-direction: column;
@@ -1752,7 +1192,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .step-dot--success {
-  border-color: rgb(106 174 138 / 60%);
+  border-color: rgb(52 211 153 / 60%);
   background: var(--ai-success-soft);
   color: var(--ai-success);
 }
@@ -1793,7 +1233,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .step-line--done {
-  background: rgb(106 174 138 / 32%);
+  background: rgb(52 211 153 / 32%);
 }
 
 .step-body {
@@ -2040,46 +1480,6 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   color: var(--ai-text-4);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-}
-
-/* ─────────── 引用来源 ─────────── */
-.references-section {
-  padding: 2px 0 10px;
-  border-bottom: 1px solid var(--ai-line);
-  margin-bottom: 10px;
-}
-
-.ref-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ai-text-3);
-  margin-bottom: 6px;
-}
-
-.ref-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.ref-tag {
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 5px;
-  border: 1px solid transparent;
-  font-weight: 500;
-}
-
-.ref-tag--doc {
-  background: var(--ai-surface-2);
-  color: var(--ai-text-2);
-  border-color: var(--ai-line-2);
-}
-
-.ref-tag--sys {
-  background: var(--ai-surface);
-  color: var(--ai-text-4);
-  border-color: var(--ai-line);
 }
 
 /* ─────────── 空状态引导 ─────────── */
@@ -2334,7 +1734,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 .send-btn--stop {
   background: var(--ai-danger-soft);
   color: #f0a0a0;
-  border: 1px solid rgb(194 91 91 / 40%);
+  border: 1px solid rgb(248 113 113 / 40%);
 }
 
 .send-btn:focus-visible {

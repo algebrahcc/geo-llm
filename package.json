@@ -41,7 +41,6 @@
     "prepare": "simple-git-hooks",
     "preview": "vite preview",
     "release": "sa release",
-    "test": "tsx --test src/**/*.test.ts",
     "typecheck": "vue-tsc --noEmit --skipLibCheck",
     "update-pkg": "sa update-pkg"
   },

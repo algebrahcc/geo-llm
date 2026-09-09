@@ -8,7 +8,7 @@ import {
   planningRouteTraffic
 } from '@/mock/planning';
 import { runKnowledgeRetrieval } from '@/mock/knowledge';
-import { sleep } from '@/utils/async';
+import { runAnalysis, type StepDefinition, type StepState } from '@/utils/analysis-runner';
 import { fetchVectorPage } from '@/service/api/vector';
 import type { ServiceLayerHandle } from '@/composables/cesium/service-loader';
 import PlanningRouteAiPanel from './modules/planning-route-ai-panel.vue';
@@ -21,7 +21,9 @@ import { useDraggable } from '@/composables/use-draggable';
 import { usePanelResize } from '@/composables/use-panel-resize';
 import PlanningViewer from './modules/planning-viewer.vue';
 import { usePlanning } from './modules/use-planning';
-import MapLayerPanel, { type VectorLayerItem } from '@/components/cesium/map-layer-panel.vue';
+import type { RouteSituationPlot } from './modules/route-situation-engine';
+import MapLayerPanel from '@/components/cesium/map-layer-panel.vue';
+import type { VectorLayerItem } from '@/typings/cesium';
 import type {
   PlanningAnalysisStep,
   PlanningInteractiveTool,
@@ -43,6 +45,8 @@ interface PlanningViewerExposed {
   setLayerVisible: (key: PlanningLayerKey, visible: boolean) => void;
   showRoute: (routeKey: PlanningRouteKey) => void;
   revealRoutes: (routeKey: PlanningRouteKey) => void;
+  /** 事件排除：在地图上隐藏被排除的候选路线 */
+  setExcludedRoutes: (excluded: PlanningRouteKey[], active?: PlanningRouteKey) => void;
   showWaypoints: (waypoints: PlanningWaypoint[]) => void;
   setStartPoint: (longitude: number | null, latitude: number | null, name?: string) => void;
   setEndPoint: (longitude: number | null, latitude: number | null, name?: string) => void;
@@ -143,6 +147,21 @@ const routeKnowledgeHits = ref<{ docCount: number; chunkCount: number; docNames:
 // ──── 方案选择 ────
 const selectedRouteCard = ref<string | null>(null);
 
+// ──── 事件排除：事件注入时记录受影响路线，待"重新规划路线"后过滤方案与地图 ────
+const excludedRouteKeys = ref<PlanningRouteKey[]>([]);
+
+/** 当前推荐方案（默认路线一），重新规划后随事件排除更新 */
+const recommendedRouteCard = ref('route-card-route-a');
+
+/** 排除事件影响路线后的可见方案卡（重新规划后仅展示剩余候选），推荐方案标记"推荐" */
+const visibleRouteCards = computed(() =>
+  routeResultCards.value
+    .filter(c => !excludedRouteKeys.value.includes(c.key.replace('route-card-', '') as PlanningRouteKey))
+    .map(c =>
+      c.key === recommendedRouteCard.value ? { ...c, isRecommended: true, tag: '推荐', tagType: 'success' as const } : c
+    )
+);
+
 // ──── 场景智能体（AgentChatPanel） ────
 // Dify 应用 id：规划场景参谋应用（在系统管理-应用管理录入 Dify 控制台创建的 Agent 应用后，
 // 把该记录的本地主键 id 填到这里）；未配置时组件拉取已发布 Agent 列表默认选第一个
@@ -163,6 +182,13 @@ const agentContext = computed(() => {
     selectedRoute: selectedRouteCard.value
   };
 });
+
+// ──── 路线方案展示名（结果卡片 key → 中文标签） ────
+const ROUTE_LABELS: Record<string, string> = {
+  'route-card-route-a': '路线一',
+  'route-card-route-b': '路线二',
+  'route-card-route-c': '路线三'
+};
 
 // ──── 拖拽状态 ────
 const leftDrag = useDraggable({ anchor: 'left', initialX: 62, initialY: 10 });
@@ -303,33 +329,38 @@ async function handleRoutePlan() {
   rightPanelVisible.value = true;
   rightPanelCollapsed.value = false;
 
-  const steps = [...planningRouteAnalysisSteps];
-  for (let i = 0; i < steps.length; i++) {
-    routeAnalysisSteps.value = steps.map((step, index) => ({
-      ...step,
-      status: index < i ? 'completed' : index === i ? 'running' : 'pending'
-    }));
-    routeProgress.value = Math.min(95, Math.round(((i + 1) / steps.length) * 100));
-
-    // 步骤0：实际调用知识库检索
-    if (steps[i].label === '知识库检索') {
-      const query = `${routeSettingsForm.value.startName} ${routeSettingsForm.value.endName} 机动路线规划`;
-      const results = runKnowledgeRetrieval(query);
-      const docCount = results.length;
-      const topDocs = results.slice(0, 3).map(r => r.document.name);
-      const chunkCount = results.reduce((s, r) => s + r.matches.length, 0);
-      routeKnowledgeHits.value = { docCount, chunkCount, docNames: topDocs };
-      routeStatusText.value =
-        docCount > 0
-          ? `正在检索知识库... 命中 ${docCount} 篇文档（${topDocs.slice(0, 2).join('、')}），共 ${chunkCount} 条片段`
-          : '正在检索知识库... 未命中相关文档，使用默认模板';
-    } else {
-      routeStatusText.value = getRouteStepText(steps[i].label);
+  const stepDefs: StepDefinition[] = planningRouteAnalysisSteps.map(step => ({
+    key: step.id,
+    label: step.label,
+    run: async ({ wait }) => {
+      // 步骤0：实际调用知识库检索
+      if (step.label === '知识库检索') {
+        const query = `${routeSettingsForm.value.startName} ${routeSettingsForm.value.endName} 机动路线规划`;
+        const results = runKnowledgeRetrieval(query);
+        const docCount = results.length;
+        const topDocs = results.slice(0, 3).map(r => r.document.name);
+        const chunkCount = results.reduce((s, r) => s + r.matches.length, 0);
+        routeKnowledgeHits.value = { docCount, chunkCount, docNames: topDocs };
+        routeStatusText.value =
+          docCount > 0
+            ? `正在检索知识库... 命中 ${docCount} 篇文档（${topDocs.slice(0, 2).join('、')}），共 ${chunkCount} 条片段`
+            : '正在检索知识库... 未命中相关文档，使用默认模板';
+      } else {
+        routeStatusText.value = getRouteStepText(step.label);
+      }
+      await wait(700);
     }
-    await sleep(700);
-  }
+  }));
 
-  routeAnalysisSteps.value = steps.map(step => ({ ...step, status: 'completed' }));
+  await runAnalysis({
+    steps: stepDefs,
+    onChange: snapshot => {
+      routeAnalysisSteps.value = snapshot.map(toPlanningStep);
+      routeProgress.value = calcRouteProgress(snapshot);
+    }
+  });
+
+  routeAnalysisSteps.value = planningRouteAnalysisSteps.map(step => ({ ...step, status: 'completed' }));
   routeProgress.value = 100;
 
   // 同步 routeSettingsForm 到旧 taskForm，确保 startPlanning 使用最新数据
@@ -353,7 +384,17 @@ async function handleRoutePlan() {
   setPlanningState('analyzing');
   try {
     await startPlanning();
-    // 根据 setCurrentRoute 的结果更新地图标绘（首次分析完成时同时显示全部候选路线）
+    setPlanningState('done');
+  } catch (e) {
+    // 规划计算失败：方案结果不可用，按失败处理
+    console.error('[planning] 路线规划计算失败：', e);
+    setPlanningState('idle');
+    window.$message?.error('路线规划失败');
+  }
+
+  // 地图呈现（独立处理）：绘图方法缺失/异常不应让整个规划流程报失败，
+  // 方案卡片与推荐结果照常产出
+  try {
     viewerRef.value?.revealRoutes(currentRoute.value);
     viewerRef.value?.setStartPoint(
       routeSettingsForm.value.startLongitude,
@@ -365,16 +406,26 @@ async function handleRoutePlan() {
       routeSettingsForm.value.endLatitude,
       routeSettingsForm.value.endName
     );
-    setPlanningState('done');
 
-    const matchedCard = routeResultCards.value.find(c => c.score >= 82)?.key;
-    selectedRouteCard.value = matchedCard ?? 'route-card-route-a';
-    routeStatusText.value = '分析完成，已生成3条推荐方案';
-    window.$message?.success('机动路线规划完成');
-  } catch {
-    setPlanningState('idle');
-    window.$message?.error('路线规划失败');
+    // 事件排除后的重新规划：只保留未受影响的路线，推荐优先级 路线一→路线二→路线三
+    const remaining = (['route-a', 'route-b', 'route-c'] as PlanningRouteKey[]).filter(
+      k => !excludedRouteKeys.value.includes(k)
+    );
+    const recommendedRoute = remaining[0] ?? 'route-a';
+    setCurrentRoute(recommendedRoute);
+    viewerRef.value?.setExcludedRoutes(excludedRouteKeys.value, recommendedRoute);
+    viewerRef.value?.showRoute(recommendedRoute);
+    selectedRouteCard.value = `route-card-${recommendedRoute}`;
+    recommendedRouteCard.value = `route-card-${recommendedRoute}`;
+  } catch (e) {
+    console.warn('[planning] 地图呈现异常（方案结果不受影响）：', e);
   }
+
+  routeStatusText.value =
+    excludedRouteKeys.value.length > 0
+      ? `分析完成，已排除 ${excludedRouteKeys.value.map(k => ROUTE_LABELS[`route-card-${k}`]).join('、')}，推荐剩余路线`
+      : '分析完成，已生成3条推荐方案';
+  window.$message?.success('机动路线规划完成');
 
   // 分析完成后再打开底部结果面板
   bottomPanelVisible.value = true;
@@ -395,6 +446,25 @@ function getRouteStepText(label: string): string {
     结果输出: '正在整理输出结果...'
   };
   return map[label] || '处理中...';
+}
+
+/** 编排器步骤状态 → 路线规划 UI 步骤模型（对齐状态枚举并保留 icon） */
+function toPlanningStep(s: StepState): PlanningAnalysisStep {
+  const src = planningRouteAnalysisSteps.find(p => p.id === s.key);
+  return {
+    id: s.key,
+    label: src?.label ?? s.label,
+    icon: src?.icon ?? 'mdi:circle-outline',
+    status: s.status === 'success' ? 'completed' : s.status === 'running' ? 'running' : 'pending'
+  };
+}
+
+/** 与原实现一致：按「当前进行到的步序」计算进度，上限 95%（100% 留到全部收尾后再置） */
+function calcRouteProgress(snapshot: StepState[]): number {
+  const runningIdx = snapshot.findIndex(s => s.status === 'running');
+  const done = snapshot.filter(s => s.status === 'success').length;
+  const current = runningIdx >= 0 ? runningIdx + 1 : done;
+  return Math.min(95, Math.round((current / snapshot.length) * 100));
 }
 
 // ──── 表单更新 ────
@@ -468,18 +538,39 @@ function handlePickEnd() {
 }
 
 // ──── 方案选择 ────
-const ROUTE_LABELS: Record<string, string> = {
-  'route-card-route-a': '方案一',
-  'route-card-route-b': '方案二',
-  'route-card-route-c': '方案三'
-};
-
 function handleRouteCardSelect(key: string) {
   selectedRouteCard.value = key;
   const routeKey = key.replace('route-card-', '') as PlanningRouteKey;
   setCurrentRoute(routeKey);
   viewerRef.value?.showRoute(routeKey);
   window.$message?.info(`已切换到${ROUTE_LABELS[key] ?? key}`);
+}
+
+// ──── 环境变化注入 / 重新规划 / 标绘 ────
+/**
+ * 事件注入：记录受影响路线（去重），不立即改动方案卡片与地图标绘。
+ * 统一等用户发出"重新规划路线"指令后，在 handleRoutePlan 收尾阶段一次性过滤方案并隐藏路线。
+ */
+function handleRoutesExcluded(excluded: PlanningRouteKey[]) {
+  excludedRouteKeys.value = Array.from(new Set([...excludedRouteKeys.value, ...excluded])) as PlanningRouteKey[];
+  window.$message?.warning('情况已记录，重新规划时将避开受影响的路线');
+}
+
+/** AI 助手"重新规划路线"指令 -> 重新执行规划并应用事件排除 */
+function handleGenerateRoute() {
+  if (routeRunning.value) {
+    window.$message?.warning('正在规划中，请稍候');
+    return;
+  }
+  void handleRoutePlan();
+}
+
+/** 事件/点名标绘 -> 地图标绘并定位（AI 标绘层，同 id 重复标绘自动覆盖） */
+function handleRouteSituationPlot(plot: RouteSituationPlot) {
+  const viewer = viewerRef.value;
+  if (!viewer) return;
+  viewer.drawAiMark({ id: plot.id, lon: plot.lon, lat: plot.lat, name: plot.label, color: plot.color });
+  viewer.flyToLocation(plot.lon, plot.lat, 5000, 1.2);
 }
 
 // ──── 右侧工具栏 ────
@@ -568,16 +659,7 @@ function handlePointPicked(payload: PlanningPickedPoint) {
   setPlanningState('idle');
 }
 
-// ──── AI 对话发送 ────
-// 模拟智能体基于知识库的回复
-function handleRouteAiSend(message: string) {
-  if (routeKnowledgeHits.value && routeKnowledgeHits.value.docCount > 0) {
-    const docRef = routeKnowledgeHits.value.docNames.slice(0, 2).join('、');
-    window.$message?.success(`[智能体] 已结合"${docRef}"等知识库文档分析，规划方案已推送至地图与底部面板`);
-  } else {
-    window.$message?.info(`[智能体] 已收到: ${message}`);
-  }
-}
+// AI 助手面板的提问由面板自身流式应答（知识命中亦在面板内展示），父页面不再弹 toast
 </script>
 
 <template>
@@ -675,15 +757,16 @@ function handleRouteAiSend(message: string) {
 
       <!-- ══════ 左侧设置面板（可拖拽/关闭） ══════ -->
       <Transition name="panel-slide-left">
-        <div v-if="leftPanelVisible" class="floating-panel left-panel" :style="leftDrag.style.value">
-          <!-- 拖拽手柄 -->
-          <div class="panel-drag-handle" @mousedown="leftDrag.onDragStart">
-            <span class="drag-dots">⋮⋮</span>
-            <span class="drag-label">机动规划</span>
-            <button type="button" class="panel-close-btn" @click.stop="leftPanelVisible = false">
-              <SvgIcon icon="mdi:close" />
-            </button>
-          </div>
+        <ScenePanel v-if="leftPanelVisible" class="floating-panel left-panel" :style="leftDrag.style.value">
+          <template #header>
+            <div class="panel-drag-handle" @mousedown="leftDrag.onDragStart">
+              <span class="drag-dots">⋮⋮</span>
+              <span class="drag-label">机动规划</span>
+              <button type="button" class="panel-close-btn" @click.stop="leftPanelVisible = false">
+                <SvgIcon icon="mdi:close" />
+              </button>
+            </div>
+          </template>
 
           <!-- 面板内容 -->
           <div class="panel-body">
@@ -699,20 +782,21 @@ function handleRouteAiSend(message: string) {
               @pick-end="handlePickEnd"
             />
           </div>
-        </div>
+        </ScenePanel>
       </Transition>
 
       <!-- ══════ 右侧AI助手面板（可拖拽/关闭） ══════ -->
       <Transition name="panel-slide-right">
-        <div v-if="rightPanelVisible" class="floating-panel right-panel" :style="rightDrag.style.value">
-          <!-- 拖拽手柄 -->
-          <div class="panel-drag-handle" @mousedown="rightDrag.onDragStart">
-            <span class="drag-dots">⋮⋮</span>
-            <span class="drag-label">AI助手</span>
-            <button type="button" class="panel-close-btn" @click.stop="rightPanelVisible = false">
-              <SvgIcon icon="mdi:close" />
-            </button>
-          </div>
+        <ScenePanel v-if="rightPanelVisible" class="floating-panel right-panel" :style="rightDrag.style.value">
+          <template #header>
+            <div class="panel-drag-handle" @mousedown="rightDrag.onDragStart">
+              <span class="drag-dots">⋮⋮</span>
+              <span class="drag-label">AI助手</span>
+              <button type="button" class="panel-close-btn" @click.stop="rightPanelVisible = false">
+                <SvgIcon icon="mdi:close" />
+              </button>
+            </div>
+          </template>
 
           <!-- AI面板内容 -->
           <PlanningRouteAiPanel
@@ -722,23 +806,31 @@ function handleRouteAiSend(message: string) {
             :progress="routeProgress"
             :status-text="routeStatusText"
             :knowledge-hits="routeKnowledgeHits"
-            :app-id="agentAppId"
+            :form="routeSettingsForm"
             @toggle-collapse="handleRightPanelCollapse"
-            @send="handleRouteAiSend"
+            @routes-excluded="handleRoutesExcluded"
+            @generate-route="handleGenerateRoute"
+            @plot="handleRouteSituationPlot"
           />
-        </div>
+        </ScenePanel>
       </Transition>
 
       <!-- ══════ 右侧：场景智能体面板 ══════ -->
       <Transition name="panel-slide-right">
-        <div v-if="agentPanelVisible" class="floating-panel right-panel agent-panel-wrapper" :style="agentPanelStyle">
-          <div class="panel-drag-handle" @mousedown="agentDrag.onDragStart">
-            <span class="drag-dots">⋮⋮</span>
-            <span class="drag-label">场景智能体</span>
-            <button type="button" class="panel-close-btn" @click.stop="handleAgentClose">
-              <SvgIcon icon="mdi:close" />
-            </button>
-          </div>
+        <ScenePanel
+          v-if="agentPanelVisible"
+          class="floating-panel right-panel agent-panel-wrapper"
+          :style="agentPanelStyle"
+        >
+          <template #header>
+            <div class="panel-drag-handle" @mousedown="agentDrag.onDragStart">
+              <span class="drag-dots">⋮⋮</span>
+              <span class="drag-label">场景智能体</span>
+              <button type="button" class="panel-close-btn" @click.stop="handleAgentClose">
+                <SvgIcon icon="mdi:close" />
+              </button>
+            </div>
+          </template>
           <AgentChatPanel
             :collapsed="agentCollapsed"
             title="场景智能体"
@@ -752,19 +844,21 @@ function handleRouteAiSend(message: string) {
             @plot-instruction="handlePlotInstruction"
           />
           <button type="button" class="resize-handle" title="拖拽调整大小" @mousedown="agentResize.onResizeStart" />
-        </div>
+        </ScenePanel>
       </Transition>
 
       <!-- ══════ 图层面板（与渡河保障一致的图层管理） ══════ -->
       <Transition name="panel-slide-right">
-        <div v-if="layerPanelVisible" class="floating-panel layer-panel-wrapper" :style="layerDrag.style.value">
-          <div class="panel-drag-handle" @mousedown="layerDrag.onDragStart">
-            <span class="drag-dots">⋮⋮</span>
-            <span class="drag-label">图层面板</span>
-            <button type="button" class="panel-close-btn" @click.stop="handleLayerClose">
-              <SvgIcon icon="mdi:close" />
-            </button>
-          </div>
+        <ScenePanel v-if="layerPanelVisible" class="floating-panel layer-panel-wrapper" :style="layerDrag.style.value">
+          <template #header>
+            <div class="panel-drag-handle" @mousedown="layerDrag.onDragStart">
+              <span class="drag-dots">⋮⋮</span>
+              <span class="drag-label">图层面板</span>
+              <button type="button" class="panel-close-btn" @click.stop="handleLayerClose">
+                <SvgIcon icon="mdi:close" />
+              </button>
+            </div>
+          </template>
           <MapLayerPanel
             :collapsed="layerCollapsed"
             :vector-layers="vectorLayers"
@@ -777,30 +871,31 @@ function handleRouteAiSend(message: string) {
             @toggle-collapse="layerCollapsed = !layerCollapsed"
             @close="handleLayerClose"
           />
-        </div>
+        </ScenePanel>
       </Transition>
 
       <!-- ══════ 中间结果面板（可拖拽/关闭） ══════ -->
       <Transition name="panel-slide-center">
-        <div v-if="bottomPanelVisible" class="floating-panel bottom-panel" :style="bottomDrag.style.value">
-          <!-- 拖拽手柄 -->
-          <div class="panel-drag-handle bottom-drag-handle" @mousedown="bottomDrag.onDragStart">
-            <span class="drag-dots">⋮⋮</span>
-            <span class="drag-label">方案推荐</span>
-            <button type="button" class="panel-close-btn" @click.stop="bottomPanelVisible = false">
-              <SvgIcon icon="mdi:close" />
-            </button>
-          </div>
+        <ScenePanel v-if="bottomPanelVisible" class="floating-panel bottom-panel" :style="bottomDrag.style.value">
+          <template #header>
+            <div class="panel-drag-handle bottom-drag-handle" @mousedown="bottomDrag.onDragStart">
+              <span class="drag-dots">⋮⋮</span>
+              <span class="drag-label">方案推荐</span>
+              <button type="button" class="panel-close-btn" @click.stop="bottomPanelVisible = false">
+                <SvgIcon icon="mdi:close" />
+              </button>
+            </div>
+          </template>
 
           <!-- 结果面板内容 -->
           <PlanningRouteResultBar
             :collapsed="bottomPanelCollapsed"
             :selected-key="selectedRouteCard"
-            :cards="routeResultCards"
+            :cards="visibleRouteCards"
             @toggle-collapse="handleBottomPanelCollapse"
             @select="handleRouteCardSelect"
           />
-        </div>
+        </ScenePanel>
       </Transition>
     </div>
   </div>

@@ -2,8 +2,9 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { calculateConfidence, calculateCrossingPlans } from '@/utils/crossing-engineer';
+import { runAnalysis, type StepDefinition, type StepState } from '@/utils/analysis-runner';
 import { runKnowledgeRetrieval, type KnowledgeRetrievalResult } from '@/mock/knowledge';
-import { aiAnalysisStepTemplate, crossingPlanCards, defaultCrossingSettingForm } from '@/mock/river';
+import { crossingPlanCards, defaultCrossingSettingForm } from '@/mock/river';
 import { fetchVectorPage } from '@/service/api/vector';
 import type { ServiceLayerHandle } from '@/composables/cesium/service-loader';
 import RiverAiAssistantPanel from './modules/river-ai-assistant-panel.vue';
@@ -16,7 +17,8 @@ import type { PlotInstruction } from '@/components/agent/plot-instruction';
 import RiverViewer from './modules/river-viewer.vue';
 import { useDraggable } from '@/composables/use-draggable';
 import { usePanelResize } from '@/composables/use-panel-resize';
-import MapLayerPanel, { type VectorLayerItem } from '@/components/cesium/map-layer-panel.vue';
+import MapLayerPanel from '@/components/cesium/map-layer-panel.vue';
+import type { VectorLayerItem } from '@/typings/cesium';
 import type {
   AiAnalysisStep,
   CrossingPlanCard,
@@ -107,7 +109,6 @@ const settingForm = ref<CrossingSettingForm>({ ...defaultCrossingSettingForm });
 const analysisRunning = ref(false);
 const analysisSteps = ref<AiAnalysisStep[]>([]);
 const knowledgeHits = ref<KnowledgeHitDisplay[]>([]);
-const references = ref<string[]>([]);
 const planCards = ref<CrossingPlanCard[]>([]);
 const confidence = ref(0);
 const rejectedWays = ref<RejectedRouteData[]>([]);
@@ -251,86 +252,105 @@ async function handleSubmitAnalysis() {
   aiPanelVisible.value = true;
   aiCollapsed.value = false;
 
-  analysisSteps.value = aiAnalysisStepTemplate.map(s => ({ ...s, status: 'waiting' as const }));
   knowledgeHits.value = [];
-  references.value = [];
   planCards.value = [];
   confidence.value = 0;
 
   const form = settingForm.value;
 
-  // ── 阶段 1：环境参数解析（约 6s） ──
-  await runStep(0, '解析河宽、水深、流速、地形等环境参数', 2000);
+  // 跨步骤共享的中间结果：编排器按序执行，用闭包共享即可，无需提升到模块级
+  let totalHits = 0;
+  let dataCompleteness = 0;
 
-  // ── 阶段 2：知识库检索（约 8s） ──
-  analysisSteps.value[1].status = 'running';
-  analysisSteps.value[1].description = '构建检索关键词并匹配历史案例';
-  const step2Start = Date.now();
-  await delay(1000);
-  analysisSteps.value[1].description = '执行混合检索（BM25 + 向量召回）';
-  await delay(1000);
+  const steps: StepDefinition[] = [
+    {
+      key: 'env',
+      label: '环境与水文条件分析',
+      run: async ({ note, wait }) => {
+        note('解析河宽、水深、流速、地形等环境参数');
+        await wait(2000);
+      }
+    },
+    {
+      key: 'retrieve',
+      label: '知识库检索与匹配',
+      run: async ({ note, wait }) => {
+        note('构建检索关键词并匹配历史案例');
+        await wait(1000);
+        note('执行混合检索（BM25 + 向量召回）');
+        await wait(1000);
 
-  const query = `${form.taskType} ${form.riverWidth}m ${form.flowVelocity} ${form.waterDepthRange} ${form.riverbedTerrain} ${form.availableResources.join(' ')}`;
-  const retrievalResults: KnowledgeRetrievalResult[] = runKnowledgeRetrieval(query);
-  const totalHits = retrievalResults.reduce((sum, r) => sum + r.matches.length, 0);
-  const hitDocCount = retrievalResults.length;
+        const query = `${form.taskType} ${form.riverWidth}m ${form.flowVelocity} ${form.waterDepthRange} ${form.riverbedTerrain} ${form.availableResources.join(' ')}`;
+        const results: KnowledgeRetrievalResult[] = runKnowledgeRetrieval(query);
+        totalHits = results.reduce((sum, r) => sum + r.matches.length, 0);
+        const hitDocCount = results.length;
 
-  knowledgeHits.value = retrievalResults.map(r => ({
-    documentName: r.document.name,
-    documentCategory: '',
-    documentFormat: r.document.format,
-    matchCount: r.matches.length,
-    topSnippets: r.matches.slice(0, 3).map(m => ({
-      chunkTitle: m.chunkTitle,
-      snippet: m.snippet,
-      score: m.score
-    }))
-  }));
+        knowledgeHits.value = results.map(r => ({
+          documentName: r.document.name,
+          documentCategory: '',
+          documentFormat: r.document.format,
+          matchCount: r.matches.length,
+          topSnippets: r.matches.slice(0, 3).map(m => ({
+            chunkTitle: m.chunkTitle,
+            snippet: m.snippet,
+            score: m.score
+          }))
+        }));
 
-  const retrieveDesc =
-    totalHits > 0 ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk` : '未命中相关文档，使用默认知识模板';
+        await wait(600);
+        note(totalHits > 0 ? `命中 ${hitDocCount} 篇文档、${totalHits} 条 chunk` : '未命中相关文档，使用默认知识模板');
+      }
+    },
+    {
+      key: 'crossing',
+      label: '渡场点选择与路线分析',
+      run: async ({ note, wait }) => {
+        note('基于知识库匹配结果选择最优渡场点，规划进出路线');
+        await wait(1800);
+      }
+    },
+    {
+      key: 'risk',
+      label: '风险评估与综合分析',
+      run: async ({ note, wait }) => {
+        note('计算各渡河方式的可行性与耗时');
+        await wait(1000);
+        note('校验水文约束与资源适配性');
+        await wait(1200);
+        // 数据完整度用于置信度计算；方案固定使用三套预设方案，不做淘汰
+        dataCompleteness = calculateCrossingPlans(form).dataCompleteness;
+        note(`生成 ${crossingPlanCards.length} 项可行方案`);
+        await wait(1000);
+      }
+    },
+    {
+      key: 'recommend',
+      label: '首选方案推荐',
+      run: async ({ note, wait }) => {
+        note('综合时效性、安全性、资源消耗加权评分');
+        await wait(1000);
+        const conf = calculateConfidence(dataCompleteness, totalHits, 85);
+        confidence.value = conf;
+        planCards.value = [...crossingPlanCards];
+        note(`推荐方案一，置信度 ${conf}%`);
+      }
+    }
+  ];
 
-  await delay(600);
-  analysisSteps.value[1].status = 'success';
-  analysisSteps.value[1].description = retrieveDesc;
-  analysisSteps.value[1].duration = `${((Date.now() - step2Start) / 1000).toFixed(1)}s`;
-
-  references.value =
-    totalHits > 0
-      ? [...retrievalResults.slice(0, 3).map(r => r.document.name), '运行模板', '智能体默认配置']
-      : ['无相关命中文档', '运行模板', '智能体默认配置'];
-
-  // ── 阶段 3：渡场点与路线分析（约 7s） ──
-  await runStep(2, '基于知识库匹配结果选择最优渡场点，规划进出路线', 1800);
-
-  // ── 阶段 4：方案计算与评估（约 9s） ──
-  analysisSteps.value[3].status = 'running';
-  analysisSteps.value[3].description = '计算各渡河方式的可行性与耗时';
-  const step4Start = Date.now();
-  await delay(1000);
-  analysisSteps.value[3].description = '校验水文约束与资源适配性';
-  await delay(1200);
-
-  // 数据完整度用于置信度计算；方案固定使用三套预设方案，不做淘汰
-  const { dataCompleteness } = calculateCrossingPlans(form);
-  analysisSteps.value[3].description = `生成 ${crossingPlanCards.length} 项可行方案`;
-  await delay(1000);
-  analysisSteps.value[3].status = 'success';
-  analysisSteps.value[3].duration = `${((Date.now() - step4Start) / 1000).toFixed(1)}s`;
-
-  // ── 阶段 5：综合评分推荐（约 5s） ──
-  analysisSteps.value[4].status = 'running';
-  analysisSteps.value[4].description = '综合时效性、安全性、资源消耗加权评分';
-  const step5Start = Date.now();
-  await delay(1000);
-
-  const conf = calculateConfidence(dataCompleteness, totalHits, 85);
-  confidence.value = conf;
-  planCards.value = [...crossingPlanCards];
-
-  analysisSteps.value[4].status = 'success';
-  analysisSteps.value[4].description = `推荐方案一，置信度 ${conf}%`;
-  analysisSteps.value[4].duration = `${((Date.now() - step5Start) / 1000).toFixed(1)}s`;
+  try {
+    await runAnalysis({
+      steps,
+      onChange: snapshot => {
+        analysisSteps.value = snapshot.map(toAiStep);
+      }
+    });
+  } catch (e) {
+    // 步骤执行失败：必须复位按钮状态，避免卡在「分析中」
+    console.error('[River] 智能分析失败:', e);
+    analysisRunning.value = false;
+    window.$message?.error('智能分析失败，请重试');
+    return;
+  }
 
   resultVisible.value = true;
   resultCollapsed.value = false;
@@ -356,20 +376,21 @@ async function handleSubmitAnalysis() {
   analysisRunning.value = false;
   window.$message?.success('AI 智能分析完成，已生成渡河工程保障');
   // 衔接智能体面板：注入一条系统消息，提示可追问
-  agentNotice.value = `已完成对「${settingForm.value.taskName}」的智能分析，生成 ${planCards.value.length} 套方案，可打开"场景智能体"向我提问（如"方案一为什么被推荐"）。`;
+  agentNotice.value = `已完成对「${settingForm.value.taskName}」的智能分析，生成 ${planCards.value.length} 套方案，可打开“场景智能体”向我提问（如“方案一为什么被推荐”）。`;
 }
 
-async function runStep(index: number, description: string, durationMs: number = 800) {
-  analysisSteps.value[index].status = 'running';
-  analysisSteps.value[index].description = description;
-  const start = Date.now();
-  await delay(durationMs);
-  analysisSteps.value[index].status = 'success';
-  analysisSteps.value[index].duration = `${((Date.now() - start) / 1000).toFixed(1)}s`;
-}
+/** 编排器步骤状态 → 面板 UI 步骤模型（对齐状态枚举并补回 tool） */
+const STEP_TOOLS: Record<string, string> = { retrieve: '知识库检索' };
 
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+function toAiStep(s: StepState): AiAnalysisStep {
+  return {
+    key: s.key,
+    label: s.label,
+    status: s.status === 'success' ? 'success' : s.status === 'running' ? 'running' : 'waiting',
+    description: s.description ?? '',
+    tool: STEP_TOOLS[s.key],
+    duration: s.duration
+  };
 }
 
 function handleSettingClose() {
@@ -636,11 +657,13 @@ function handleToggleResult() {
 
       <!-- ══════ 左侧：设置面板 ══════ -->
       <Transition name="panel-slide-left">
-        <div v-if="settingVisible" class="side-panel left-panel" :style="settingDrag.style.value">
-          <div class="panel-drag-handle" @mousedown="settingDrag.onDragStart">
-            <span class="drag-dots">⋮⋮</span>
-            <span>设置面板</span>
-          </div>
+        <ScenePanel v-if="settingVisible" class="side-panel left-panel" :style="settingDrag.style.value">
+          <template #header>
+            <div class="panel-drag-handle" @mousedown="settingDrag.onDragStart">
+              <span class="drag-dots">⋮⋮</span>
+              <span>设置面板</span>
+            </div>
+          </template>
           <RiverSettingPanel
             :form="settingForm"
             :collapsed="settingCollapsed"
@@ -650,16 +673,18 @@ function handleToggleResult() {
             @toggle-collapse="settingCollapsed = !settingCollapsed"
             @close="handleSettingClose"
           />
-        </div>
+        </ScenePanel>
       </Transition>
 
       <!-- ══════ 右侧：图层面板 ══════ -->
       <Transition name="panel-slide-right">
-        <div v-if="layerPanelVisible" class="side-panel layer-panel-wrapper" :style="layerDrag.style.value">
-          <div class="panel-drag-handle" @mousedown="layerDrag.onDragStart">
-            <span class="drag-dots">⋮⋮</span>
-            <span>图层面板</span>
-          </div>
+        <ScenePanel v-if="layerPanelVisible" class="side-panel layer-panel-wrapper" :style="layerDrag.style.value">
+          <template #header>
+            <div class="panel-drag-handle" @mousedown="layerDrag.onDragStart">
+              <span class="drag-dots">⋮⋮</span>
+              <span>图层面板</span>
+            </div>
+          </template>
           <MapLayerPanel
             :collapsed="layerCollapsed"
             :vector-layers="vectorLayers"
@@ -676,39 +701,46 @@ function handleToggleResult() {
             @toggle-collapse="layerCollapsed = !layerCollapsed"
             @close="handleLayerClose"
           />
-        </div>
+        </ScenePanel>
       </Transition>
 
       <!-- ══════ 右侧：AI 助手面板 ══════ -->
       <Transition name="panel-slide-right">
-        <div v-if="aiPanelVisible" class="side-panel ai-panel-wrapper" :style="aiDrag.style.value">
-          <div class="panel-drag-handle" @mousedown="aiDrag.onDragStart">
-            <span class="drag-dots">⋮⋮</span>
-            <span>AI 助手</span>
-          </div>
+        <ScenePanel v-if="aiPanelVisible" class="side-panel ai-panel-wrapper" :style="aiDrag.style.value">
+          <template #header>
+            <div class="panel-drag-handle" @mousedown="aiDrag.onDragStart">
+              <span class="drag-dots">⋮⋮</span>
+              <span>AI 助手</span>
+            </div>
+          </template>
           <RiverAiAssistantPanel
             :form="settingForm"
             :collapsed="aiCollapsed"
             :running="analysisRunning"
             :steps="analysisSteps"
             :knowledge-hits="knowledgeHits"
-            :references="references"
             @toggle-collapse="aiCollapsed = !aiCollapsed"
             @situation-applied="handleSituationApplied"
             @close="handleAiClose"
             @setting-close="handleSettingClose"
             @generate-plan="handleChatGeneratePlan"
           />
-        </div>
+        </ScenePanel>
       </Transition>
 
       <!-- ══════ 右侧：场景智能体面板 ══════ -->
       <Transition name="panel-slide-right">
-        <div v-if="agentPanelVisible" class="side-panel ai-panel-wrapper agent-panel-wrapper" :style="agentPanelStyle">
-          <div class="panel-drag-handle" @mousedown="agentDrag.onDragStart">
-            <span class="drag-dots">⋮⋮</span>
-            <span>场景智能体</span>
-          </div>
+        <ScenePanel
+          v-if="agentPanelVisible"
+          class="side-panel ai-panel-wrapper agent-panel-wrapper"
+          :style="agentPanelStyle"
+        >
+          <template #header>
+            <div class="panel-drag-handle" @mousedown="agentDrag.onDragStart">
+              <span class="drag-dots">⋮⋮</span>
+              <span>场景智能体</span>
+            </div>
+          </template>
           <AgentChatPanel
             :collapsed="agentCollapsed"
             title="场景智能体"
@@ -720,16 +752,18 @@ function handleToggleResult() {
             @plot-instruction="handlePlotInstruction"
           />
           <button type="button" class="resize-handle" title="拖拽调整大小" @mousedown="agentResize.onResizeStart" />
-        </div>
+        </ScenePanel>
       </Transition>
 
       <!-- ══════ 中部：方案结果面板（竖向浮动） ══════ -->
       <Transition name="panel-slide-right">
-        <div v-if="resultVisible" class="result-panel" :style="resultDrag.style.value">
-          <div class="panel-drag-handle" @mousedown="resultDrag.onDragStart">
-            <span class="drag-dots">⠿</span>
-            <span>方案结果</span>
-          </div>
+        <ScenePanel v-if="resultVisible" class="result-panel" :style="resultDrag.style.value">
+          <template #header>
+            <div class="panel-drag-handle" @mousedown="resultDrag.onDragStart">
+              <span class="drag-dots">⠿</span>
+              <span>方案结果</span>
+            </div>
+          </template>
           <RiverResultBar
             :collapsed="resultCollapsed"
             :plans="planCards"
@@ -742,7 +776,7 @@ function handleToggleResult() {
             @toggle-collapse="resultCollapsed = !resultCollapsed"
             @close="handleResultClose"
           />
-        </div>
+        </ScenePanel>
       </Transition>
 
       <!-- ══════ 右侧工具栏 ══════ -->

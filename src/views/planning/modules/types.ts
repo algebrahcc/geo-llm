@@ -1,4 +1,4 @@
-export type Coordinate = readonly [number, number];
+import type { Coordinate } from '@/typings/cesium';
 
 // ──── 页面模式 ────
 export type PlanningPageMode = 'route' | 'mission';

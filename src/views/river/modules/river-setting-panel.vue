@@ -9,12 +9,12 @@ const props = defineProps<{
   running: boolean;
 }>();
 
-const emit = defineEmits<{
-  (e: 'update-form', form: CrossingSettingForm): void;
-  (e: 'submit'): void;
-  (e: 'toggle-collapse'): void;
-  (e: 'close'): void;
-}>();
+type Emits = import('@/typings/panel-emits').PanelEmits & {
+  'update-form': [form: CrossingSettingForm];
+  submit: [];
+};
+
+const emit = defineEmits<Emits>();
 
 const localForm = ref<CrossingSettingForm>({ ...props.form });
 

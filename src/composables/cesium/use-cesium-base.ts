@@ -327,7 +327,8 @@ export function useCesiumBase(): CesiumBaseReturn {
   // ─── 工具函数 ─────────────────────────────────────
 
   function requestRender() {
-    viewerRef.value?.scene.requestRender();
+    // scene 需单独判空：viewer 存在但场景重建/未初始化时直接调用会抛错
+    viewerRef.value?.scene?.requestRender();
   }
 
   function getColor(css: string, alpha = 1) {

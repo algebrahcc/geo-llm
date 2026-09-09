@@ -1,4 +1,5 @@
 import { useCesiumBase } from '@/composables/cesium/use-cesium-base';
+import { useCesiumAiPlot } from '@/composables/cesium/use-cesium-ai-plot';
 import { useCesiumServices } from '@/composables/cesium/use-cesium-services';
 import { useCesiumVectorLayer } from '@/composables/cesium/use-cesium-vector-layer';
 import { fetchEnabledDataServices } from '@/service/api/dataservice';
@@ -51,6 +52,15 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
   // 矢量图层组合层（通用）：mvt-imagery-provider 按瓦片渲染后端 MVT
   const vectorLayers = useCesiumVectorLayer(base);
 
+  // 智能体标绘层（共享）：AI 指令 → 点/线/面/文字，按 id 管理，可单删/全清
+  const aiPlot = useCesiumAiPlot({
+    viewerRef,
+    requestRender: base.requestRender,
+    createPoint: item => createPointEntity('imagery', item),
+    createLine: item => createPolylineEntity('imagery', item),
+    createPolygon: item => createPolygonEntity('imagery', item)
+  });
+
   // ─── 方案 entities（分析完成后上图；路线/标注点，无色块区域） ───
   const planEntities: Record<'route' | 'risk' | 'mark', Entity[]> = {
     route: [],
@@ -61,9 +71,6 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
   // 淘汰方式路线（常驻弱化显示，与可行方案路线并存）
   const rejectedEntities: Entity[] = [];
   let currentRejectedRoutes: RejectedRouteData[] = [];
-  // 智能体标绘层（AI 指令产生的点/线/面/文字，按 id 管理，可单删/全清）
-  const aiOverlayEntries = new Map<string, Entity>();
-  let aiPlotSeq = 0;
 
   const layerVisibility: Record<RiverLayerKey, boolean> = {
     imagery: true
@@ -238,7 +245,7 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     rejectedEntities.forEach(e => {
       e.show = layerVisibility.imagery;
     });
-    aiOverlayEntries.forEach(e => {
+    aiPlot.eachAiOverlay(e => {
       e.show = layerVisibility.imagery;
     });
     base.requestRender();
@@ -325,100 +332,6 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     const route = currentRejectedRoutes.find(r => r.id === id);
     if (!route?.mark) return;
     base.flyToLocation(route.mark.longitude, route.mark.latitude, 3500, 1.4);
-  }
-
-  // ─── 智能体标绘层（AI 指令 → 点/线/面/文字，按 id 管理） ───
-
-  interface AiOverlayItem {
-    id?: string;
-    name?: string;
-    color?: string;
-  }
-
-  function resolveAiId(item: AiOverlayItem): string {
-    return item.id || `ai-plot-${++aiPlotSeq}`;
-  }
-
-  function drawAiMark(item: AiOverlayItem & { lon: number; lat: number }): string {
-    const id = resolveAiId(item);
-    const viewer = viewerRef.value;
-    if (!viewer) return id;
-    // 同 id 实体已存在时先移除，避免多轮对话 id 复用导致 add 冲突
-    const existing = viewer.entities.getById(id);
-    if (existing) viewer.entities.remove(existing);
-    const entity = createPointEntity('imagery', {
-      id,
-      name: item.name || 'AI 标注',
-      longitude: item.lon,
-      latitude: item.lat,
-      color: item.color || '#fb7185'
-    });
-    if (entity) {
-      aiOverlayEntries.set(id, entity);
-      base.requestRender();
-    }
-    return id;
-  }
-
-  function drawAiText(item: AiOverlayItem & { lon: number; lat: number; text: string }): string {
-    return drawAiMark({ ...item, name: item.text });
-  }
-
-  function drawAiLine(item: AiOverlayItem & { positions: Array<[number, number]> }): string {
-    const id = resolveAiId(item);
-    const viewer = viewerRef.value;
-    if (!viewer) return id;
-    const existing = viewer.entities.getById(id);
-    if (existing) viewer.entities.remove(existing);
-    const entity = createPolylineEntity('imagery', {
-      id,
-      name: item.name || 'AI 标绘线',
-      color: item.color || '#f7b267',
-      positions: item.positions,
-      width: 4
-    });
-    if (entity) {
-      aiOverlayEntries.set(id, entity);
-      base.requestRender();
-    }
-    return id;
-  }
-
-  function drawAiPolygon(item: AiOverlayItem & { positions: Array<[number, number]> }): string {
-    const id = resolveAiId(item);
-    const viewer = viewerRef.value;
-    if (!viewer) return id;
-    const existing = viewer.entities.getById(id);
-    if (existing) viewer.entities.remove(existing);
-    const entity = createPolygonEntity('imagery', {
-      id,
-      name: item.name || 'AI 标绘区域',
-      color: item.color || '#fb7185',
-      positions: item.positions
-    });
-    if (entity) {
-      aiOverlayEntries.set(id, entity);
-      base.requestRender();
-    }
-    return id;
-  }
-
-  function removeAiOverlay(id: string): boolean {
-    const entity = aiOverlayEntries.get(id);
-    const viewer = viewerRef.value;
-    if (!entity || !viewer) return false;
-    viewer.entities.remove(entity);
-    aiOverlayEntries.delete(id);
-    base.requestRender();
-    return true;
-  }
-
-  function clearAiOverlays(): void {
-    const viewer = viewerRef.value;
-    if (!viewer) return;
-    aiOverlayEntries.forEach(e => viewer.entities.remove(e));
-    aiOverlayEntries.clear();
-    base.requestRender();
   }
 
   function flyToPreset() {
@@ -554,12 +467,12 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     showRejectedRoutes,
     clearRejectedEntities,
     focusRejectedRoute,
-    drawAiMark,
-    drawAiLine,
-    drawAiPolygon,
-    drawAiText,
-    removeAiOverlay,
-    clearAiOverlays,
+    drawAiMark: aiPlot.drawAiMark,
+    drawAiLine: aiPlot.drawAiLine,
+    drawAiPolygon: aiPlot.drawAiPolygon,
+    drawAiText: aiPlot.drawAiText,
+    removeAiOverlay: aiPlot.removeAiOverlay,
+    clearAiOverlays: aiPlot.clearAiOverlays,
     is2dMode: base.is2dMode,
     toggleViewMode: base.toggleViewMode,
     // 矢量图层（通用组合层）

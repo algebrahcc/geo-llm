@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
+import CoordinateIndicator from '@/components/cesium/coordinate-indicator.vue';
 import { useCesiumPlanning } from './use-cesium-planning';
 import type {
   PlanningInteractiveTool,
@@ -30,6 +31,7 @@ const {
   setLayerVisible,
   showRoute,
   revealRoutes,
+  setExcludedRoutes,
   showWaypoints,
   setStartPoint,
   setEndPoint,
@@ -78,6 +80,8 @@ defineExpose({
   setLayerVisible: (key: PlanningLayerKey, visible: boolean) => setLayerVisible(key, visible),
   showRoute: (routeKey: PlanningRouteKey) => showRoute(routeKey),
   revealRoutes: (routeKey: PlanningRouteKey) => revealRoutes(routeKey),
+  /** 事件排除：隐藏被排除的候选路线 */
+  setExcludedRoutes: (excluded: PlanningRouteKey[], active?: PlanningRouteKey) => setExcludedRoutes(excluded, active),
   showWaypoints: (waypoints: PlanningWaypoint[]) => showWaypoints(waypoints),
   setStartPoint: (longitude: number | null, latitude: number | null, name?: string) =>
     setStartPoint(longitude, latitude, name),
@@ -122,15 +126,12 @@ defineExpose({
 <template>
   <div class="planning-viewer-shell">
     <div ref="containerRef" class="planning-viewer"></div>
-    <div class="coordinate-indicator" aria-live="polite">
-      <span>经度 {{ cursorCoordinates.longitude }}</span>
-      <span class="coordinate-indicator__divider" />
-      <span>纬度 {{ cursorCoordinates.latitude }}</span>
-      <span class="coordinate-indicator__divider" />
-      <span>高程 {{ cursorCoordinates.altitude }}</span>
-      <span class="coordinate-indicator__divider" />
-      <span>视高 {{ cursorCoordinates.cameraHeight }}</span>
-    </div>
+    <CoordinateIndicator
+      :longitude="cursorCoordinates.longitude"
+      :latitude="cursorCoordinates.latitude"
+      :altitude="cursorCoordinates.altitude"
+      :camera-height="cursorCoordinates.cameraHeight"
+    />
   </div>
 </template>
 
@@ -145,33 +146,6 @@ defineExpose({
   height: 100%;
   width: 100%;
   background: #050810;
-}
-
-.coordinate-indicator {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 10px;
-  border: 1px solid rgba(92, 184, 255, 0.32);
-  border-radius: 4px;
-  background: rgba(4, 19, 40, 0.84);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
-  color: rgba(214, 237, 255, 0.9);
-  font-family: 'DIN', Consolas, monospace;
-  font-size: 12px;
-  line-height: 1;
-  pointer-events: none;
-  backdrop-filter: blur(6px);
-}
-
-.coordinate-indicator__divider {
-  width: 1px;
-  height: 12px;
-  background: rgba(120, 190, 255, 0.28);
 }
 
 .planning-viewer :deep(.cesium-widget-credits),

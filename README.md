@@ -162,7 +162,6 @@ npm run dev:prod
 | `npm run release`    | 发布版本                   |
 | `npm run commit`     | 交互式提交（中文）         |
 | `npm run commit:zh`  | 交互式提交（zh-cn 文案）   |
-| `npm run test`       | 运行单元测试（tsx）        |
 
 > 项目使用 **simple-git-hooks**：pre-commit 会自动跑 `typecheck + lint + fmt`，commit-msg 会校验提交信息。
 

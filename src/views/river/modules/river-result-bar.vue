@@ -13,12 +13,11 @@ const props = defineProps<{
   activeRejectedId?: string | null;
 }>();
 
-const emit = defineEmits<{
-  (e: 'toggle-collapse'): void;
-  (e: 'close'): void;
-  (e: 'select', planKey: RiverPlanKey): void;
-  (e: 'select-rejected', id: string): void;
-}>();
+type Emits = import('@/typings/panel-emits').SelectablePanelEmits<RiverPlanKey> & {
+  'select-rejected': [id: string];
+};
+
+const emit = defineEmits<Emits>();
 
 const expandedCard = ref<number | null>(null);
 const expandAll = ref(false);
@@ -164,15 +163,9 @@ function toggleRejected() {
                 :class="{ 'card-detail-wrapper--open': allExpanded || expandedCard === plan.rank }"
               >
                 <div class="card-detail">
-                  <div class="detail-grid">
-                    <div class="detail-block">
-                      <div class="detail-label">态势与场景</div>
-                      <div class="detail-text">{{ plan.scenario }}</div>
-                    </div>
-                    <div class="detail-block detail-block--key">
-                      <div class="detail-label">机动路线</div>
-                      <div class="detail-text">{{ plan.routeDesc }}</div>
-                    </div>
+                  <div class="detail-block detail-block--key">
+                    <div class="detail-label">机动路线</div>
+                    <div class="detail-text">{{ plan.routeDesc }}</div>
                   </div>
 
                   <div class="detail-block">
@@ -182,7 +175,7 @@ function toggleRejected() {
                     </div>
                   </div>
 
-                  <div class="detail-grid detail-grid--cols3">
+                  <div class="detail-grid">
                     <div class="detail-block detail-block--adv">
                       <div class="detail-label detail-label--adv">优势</div>
                       <ul class="detail-list">
@@ -195,12 +188,11 @@ function toggleRejected() {
                         <li v-for="(risk, i) in plan.risks" :key="i">{{ risk }}</li>
                       </ul>
                     </div>
-                    <div class="detail-block detail-block--cond">
-                      <div class="detail-label">适用条件</div>
-                      <ul class="detail-list">
-                        <li v-for="(cond, i) in plan.conditions" :key="i">{{ cond }}</li>
-                      </ul>
-                    </div>
+                  </div>
+
+                  <div v-if="plan.conditions.length" class="cond-strip">
+                    <span class="cond-label">适用条件</span>
+                    <span v-for="(cond, i) in plan.conditions" :key="i" class="cond-item">{{ cond }}</span>
                   </div>
                 </div>
               </div>
@@ -213,8 +205,31 @@ function toggleRejected() {
 </template>
 
 <style scoped>
-/* ──── 根 ──── */
+/* ═══════════════════════════════════════════════════════════════
+   渡河方案推荐 — 深色数据面板设计
+   设计基准（市场主流做法）：
+   - 文字以白色系为主，弱化层级用降低不透明度而非偏灰发暗，
+     保证深色底上的可读性（正文 ≥ rgba(255,255,255,.72)）
+   - 语义色采用高亮 400 系（emerald/amber/sky/red），替代偏暗的 600 系
+   - 字号阶梯：面板标题 14 → 方案名 15 → 小标题 12 → 正文 11.5，
+     小标题恒大于其下方正文
+   ═══════════════════════════════════════════════════════════════ */
 .result-bar {
+  --rb-t1: rgb(255 255 255 / 97%);
+  --rb-t2: rgb(255 255 255 / 88%);
+  --rb-t3: rgb(255 255 255 / 75%);
+  --rb-t4: rgb(255 255 255 / 62%);
+
+  --rb-primary: #4a7dbd;
+  --rb-primary-bright: #7cb8ff;
+  --rb-success: #34d399;
+  --rb-info: #60a5fa;
+  --rb-warning: #fbbf24;
+  --rb-danger: #f87171;
+
+  --rb-line: rgb(255 255 255 / 9%);
+  --rb-line-2: rgb(255 255 255 / 14%);
+
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -228,15 +243,16 @@ function toggleRejected() {
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--rb-line);
   flex-shrink: 0;
 }
 
 .header-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--rb-t1);
   flex-shrink: 0;
+  letter-spacing: 0.02em;
 }
 
 .confidence-badge {
@@ -244,31 +260,33 @@ function toggleRejected() {
   align-items: center;
   gap: 5px;
   font-size: 11px;
-  padding: 3px 9px;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: rgba(93, 140, 200, 0.1);
-  color: #9db8dd;
+  background: rgb(74 125 189 / 14%);
+  color: #a8c8f5;
   font-weight: 600;
-  border: 1px solid rgba(93, 140, 200, 0.35);
+  border: 1px solid rgb(124 184 255 / 35%);
+  font-variant-numeric: tabular-nums;
 }
 
 .expand-all-btn {
   margin-left: auto;
   font-size: 11px;
-  padding: 3px 9px;
+  font-weight: 500;
+  padding: 4px 10px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--rb-line-2);
+  background: rgb(255 255 255 / 5%);
+  color: var(--rb-t2);
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
 }
 
 .expand-all-btn:hover {
-  border-color: rgba(43, 107, 255, 0.35);
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(43, 107, 255, 0.08);
+  border-color: rgb(124 184 255 / 45%);
+  color: #fff;
+  background: rgb(74 125 189 / 14%);
 }
 
 .header-actions {
@@ -285,8 +303,8 @@ function toggleRejected() {
   height: 28px;
   border: none;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.5);
+  background: rgb(255 255 255 / 6%);
+  color: var(--rb-t2);
   cursor: pointer;
   font-size: 16px;
   transition:
@@ -295,8 +313,8 @@ function toggleRejected() {
 }
 
 .action-btn:hover {
-  background: rgba(43, 107, 255, 0.15);
-  color: rgba(255, 255, 255, 0.85);
+  background: rgb(74 125 189 / 18%);
+  color: #fff;
 }
 
 /* ──── 内容滚动区 ──── */
@@ -306,7 +324,7 @@ function toggleRejected() {
   overflow-y: auto;
   padding: 8px 14px 14px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(141, 184, 255, 0.24) transparent;
+  scrollbar-color: rgb(124 184 255 / 32%) transparent;
 }
 
 .bar-content::-webkit-scrollbar {
@@ -319,7 +337,7 @@ function toggleRejected() {
 
 .bar-content::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(141, 184, 255, 0.24);
+  background: rgb(124 184 255 / 32%);
 }
 
 /* ──── 空状态 ──── */
@@ -334,19 +352,7 @@ function toggleRejected() {
 
 .empty-text {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.35);
-}
-
-/* ──── 描述 ──── */
-.plan-desc {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.42);
-  margin-bottom: 10px;
-  line-height: 1.5;
-}
-
-.plan-desc strong {
-  color: #8db8ff;
+  color: var(--rb-t2);
 }
 
 /* ──── 卡片竖排 ──── */
@@ -358,40 +364,43 @@ function toggleRejected() {
 }
 
 .plan-card {
+  position: relative;
   width: 100%;
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--rb-line);
   border-radius: 12px;
   overflow: hidden;
   transition:
     border-color 0.25s,
     box-shadow 0.25s;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.015);
+  background: linear-gradient(180deg, rgb(255 255 255 / 4%), rgb(255 255 255 / 1.5%));
 }
 
 .plan-card:hover {
-  border-color: rgba(43, 107, 255, 0.28);
+  border-color: rgb(124 184 255 / 40%);
 }
 
+/* 主推卡片：描边 + 微弱辉光 + 蓝色底调（不做装饰条） */
 .plan-card--recommended {
-  border-color: rgba(93, 140, 200, 0.42);
-  background: rgba(93, 140, 200, 0.05);
+  border-color: rgb(124 184 255 / 45%);
+  background: linear-gradient(180deg, rgb(74 125 189 / 10%), rgb(74 125 189 / 3%)), rgb(255 255 255 / 2%);
+  box-shadow: 0 6px 20px rgb(74 125 189 / 14%);
 }
 
 .plan-card--recommended:hover {
-  border-color: rgba(93, 140, 200, 0.6);
+  border-color: rgb(124 184 255 / 60%);
 }
 
 .plan-card--active {
-  border-color: rgba(93, 140, 200, 0.6);
-  box-shadow: 0 0 0 1px rgba(93, 140, 200, 0.2);
-  background: rgba(93, 140, 200, 0.06);
+  border-color: rgb(124 184 255 / 65%);
+  box-shadow:
+    0 0 0 1px rgb(124 184 255 / 18%),
+    0 6px 20px rgb(74 125 189 / 16%);
 }
 
 .plan-card--active.plan-card--recommended {
-  border-color: rgba(93, 140, 200, 0.72);
-  box-shadow: 0 0 0 1px rgba(93, 140, 200, 0.26);
+  border-color: rgb(124 184 255 / 75%);
 }
 
 /* ──── 卡片 body（弹性容器） ──── */
@@ -410,7 +419,7 @@ function toggleRejected() {
 }
 
 .card-header:hover {
-  background: rgba(43, 107, 255, 0.03);
+  background: rgb(124 184 255 / 4%);
 }
 
 .card-header-top {
@@ -428,31 +437,33 @@ function toggleRejected() {
 
 .plan-badge {
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.85);
+  padding: 2px 9px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 7%);
+  color: var(--rb-t1);
   font-weight: 700;
-  letter-spacing: 0.06em;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.08em;
+  border: 1px solid var(--rb-line-2);
 }
 
 .recommend-flag {
   font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 3px;
+  padding: 2px 8px;
+  border-radius: 4px;
   color: #fff;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  background: #3d6fb4;
-  border: 1px solid rgba(147, 178, 220, 0.55);
+  letter-spacing: 0.1em;
+  background: linear-gradient(135deg, #5b9bd9 0%, #3d6fb4 100%);
+  border: 1px solid rgb(168 200 245 / 55%);
+  box-shadow: 0 2px 8px rgb(74 125 189 / 35%);
 }
 
 .plan-name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--rb-t1);
   margin-bottom: 10px;
+  letter-spacing: 0.01em;
 }
 
 /* ──── 指标条 ──── */
@@ -460,10 +471,10 @@ function toggleRejected() {
   display: flex;
   align-items: center;
   gap: 0;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.025);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 9px 12px;
+  background: rgb(255 255 255 / 4%);
+  border-radius: 9px;
+  border: 1px solid var(--rb-line);
 }
 
 .metric-chip {
@@ -471,40 +482,41 @@ function toggleRejected() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
 }
 
 .chip-val {
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--rb-t1);
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 .chip-val--s-you {
-  color: #6aae8a;
+  color: var(--rb-success);
 }
 .chip-val--s-liang {
-  color: #7f9fc9;
+  color: var(--rb-info);
 }
 .chip-val--s-zhong {
-  color: #c9a45c;
+  color: var(--rb-warning);
 }
 .chip-val--s-cha {
-  color: #c25b5b;
+  color: var(--rb-danger);
 }
 
 .chip-label {
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.35);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--rb-t2);
+  letter-spacing: 0.06em;
 }
 
 .metric-divider {
   width: 1px;
-  height: 28px;
-  background: rgba(255, 255, 255, 0.06);
+  height: 30px;
+  background: var(--rb-line);
   flex-shrink: 0;
 }
 
@@ -515,17 +527,18 @@ function toggleRejected() {
   justify-content: center;
   gap: 4px;
   margin-top: 10px;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.3);
+  font-size: 10.5px;
+  color: var(--rb-t3);
   transition: color 0.15s;
 }
 
 .card-header:hover .card-expand-hint {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--rb-t1);
 }
 
 .hint-chevron {
-  font-size: 14px;
+  font-size: 15px;
+  color: var(--rb-t2);
 }
 
 /* ──── 详情区域 ──── */
@@ -545,22 +558,18 @@ function toggleRejected() {
 }
 
 .card-detail {
-  padding: 12px 14px;
+  padding: 12px 14px 14px;
   flex: 1;
   overflow-y: auto;
   min-width: 0;
+  border-top: 1px solid var(--rb-line);
 }
 
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px 12px;
-  margin-bottom: 8px;
-}
-
-.detail-grid--cols3 {
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
+  gap: 8px 16px;
+  margin-bottom: 10px;
 }
 
 .detail-block {
@@ -571,72 +580,43 @@ function toggleRejected() {
   margin-bottom: 0;
 }
 
+/* 小标题：纯文字排版（不做侧边色条），字号恒大于下方正文 */
 .detail-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.55);
-  margin-bottom: 4px;
-}
-
-.detail-label {
-  border-left: 2px solid rgba(93, 140, 200, 0.55);
-  padding-left: 6px;
-  color: rgba(180, 202, 230, 0.85);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rb-t1);
+  margin-bottom: 5px;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
 }
 
 .detail-text {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-  line-height: 1.55;
-}
-
-/* 优势=绿 */
-.detail-block--adv .detail-label--adv {
-  border-left-color: rgba(106, 174, 138, 0.9);
-  color: #6aae8a;
-  font-weight: 700;
-}
-
-.detail-block--adv .detail-list {
-  color: rgba(168, 205, 182, 0.8);
-}
-
-/* 风险=黄 */
-.detail-block--risk .detail-label--risk {
-  border-left-color: rgba(201, 164, 92, 0.9);
-  color: #c9a45c;
-  font-weight: 700;
-}
-
-.detail-block--risk .detail-list {
-  color: rgba(210, 193, 152, 0.82);
-}
-
-/* 重点要素：机动路线（方案核心动作） */
-.detail-block--key .detail-label {
-  border-left-color: rgba(120, 170, 230, 0.95);
-  color: rgba(255, 255, 255, 0.92);
-  font-weight: 700;
-}
-
-.detail-block--key .detail-text {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.96);
+  font-size: 11.5px;
+  color: var(--rb-t2);
   line-height: 1.6;
 }
 
-/* 次级强调：适用条件（硬约束） */
-.detail-block--cond .detail-label {
-  border-left-color: rgba(201, 164, 92, 0.75);
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 600;
+/* 优势=绿字（仅着色，不加装饰） */
+.detail-block--adv .detail-label--adv {
+  color: #6ee7b7;
 }
 
-.detail-block--cond .detail-list {
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.82);
-  font-weight: 500;
+.detail-block--adv .detail-list {
+  color: var(--rb-t2);
+}
+
+/* 风险=琥珀字 */
+.detail-block--risk .detail-label--risk {
+  color: #fcd34d;
+}
+
+.detail-block--risk .detail-list {
+  color: var(--rb-t2);
+}
+
+/* 机动路线：与其余正文同规格 */
+.detail-block--key .detail-text {
+  color: var(--rb-t1);
 }
 
 .detail-tags {
@@ -646,34 +626,67 @@ function toggleRejected() {
 }
 
 .detail-tag {
-  font-size: 10.5px;
-  padding: 2px 7px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 6%);
+  color: var(--rb-t1);
+  border: 1px solid var(--rb-line-2);
   font-weight: 600;
 }
 
 .detail-list {
   margin: 0;
-  padding-left: 14px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.58);
+  padding-left: 0;
+  font-size: 11.5px;
+  color: var(--rb-t2);
   line-height: 1.6;
+  list-style: none;
 }
 
 .detail-list li + li {
+  margin-top: 3px;
+}
+
+/* 适用条件：单行紧凑条（替代独立列表块） */
+.cond-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 0;
   margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rb-line);
+}
+
+.cond-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rb-t1);
+  margin-right: 8px;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.cond-item {
+  font-size: 11.5px;
+  color: var(--rb-t2);
+  line-height: 1.6;
+}
+
+.cond-item + .cond-item::before {
+  content: '·';
+  margin: 0 8px;
+  color: var(--rb-t3);
 }
 
 /* ──── 已淘汰方式 ──── */
 .rejected-section {
   margin: 10px 0 12px;
-  border: 1px solid rgba(239, 68, 68, 0.15);
-  border-radius: 8px;
+  border: 1px solid rgb(248 113 113 / 28%);
+  border-radius: 9px;
   overflow: hidden;
-  background: rgba(239, 68, 68, 0.03);
+  background: rgb(248 113 113 / 5%);
 }
 
 .rejected-header {
@@ -687,30 +700,30 @@ function toggleRejected() {
 }
 
 .rejected-header:hover {
-  background: rgba(239, 68, 68, 0.06);
+  background: rgb(248 113 113 / 8%);
 }
 
 .rejected-chevron {
   font-size: 14px;
-  color: rgba(239, 68, 68, 0.6);
+  color: #fda4af;
 }
 
 .rejected-title {
   flex: 1;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  color: rgba(239, 68, 68, 0.8);
+  color: #fda4af;
 }
 
 .rejected-hint {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.3);
+  font-size: 10.5px;
+  color: var(--rb-t2);
   font-weight: 400;
 }
 
 .rejected-list {
   padding: 6px 12px 10px;
-  border-top: 1px solid rgba(239, 68, 68, 0.1);
+  border-top: 1px solid rgb(248 113 113 / 15%);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -718,31 +731,31 @@ function toggleRejected() {
 
 .rejected-item {
   padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgb(255 255 255 / 5%);
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .rejected-item:hover {
-  background: rgba(239, 68, 68, 0.06);
+  background: rgb(248 113 113 / 8%);
 }
 
 .rejected-item--active {
-  background: rgba(239, 68, 68, 0.1);
-  box-shadow: inset 2px 0 0 rgba(239, 68, 68, 0.6);
+  background: rgb(248 113 113 / 12%);
+  box-shadow: inset 2px 0 0 var(--rb-danger);
 }
 
 .rejected-locate {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.25);
+  color: var(--rb-t2);
   flex-shrink: 0;
   transition: color 0.15s;
 }
 
 .rejected-item:hover .rejected-locate,
 .rejected-item--active .rejected-locate {
-  color: rgba(239, 68, 68, 0.75);
+  color: #fda4af;
 }
 
 .rejected-item:last-child {
@@ -755,22 +768,17 @@ function toggleRejected() {
   gap: 6px;
 }
 
-.rejected-icon {
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
 .rejected-name {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--rb-t1);
   flex-shrink: 0;
 }
 
 .rejected-reason {
   flex: 1;
-  font-size: 10px;
-  color: rgba(239, 68, 68, 0.7);
+  font-size: 11px;
+  color: #fca5a5;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -785,8 +793,8 @@ function toggleRejected() {
 }
 
 .rejected-calc {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.35);
+  font-size: 10.5px;
+  color: var(--rb-t2);
   font-variant-numeric: tabular-nums;
 }
 

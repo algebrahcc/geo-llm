@@ -237,23 +237,9 @@ export const planningRouteScenes = {
       color: '#63e6be',
       positions: planningRouteACoords
     },
-    risks: [
-      {
-        id: 'planning-risk-a-1',
-        name: '洲美快速高流量区',
-        color: '#fb7185',
-        positions: [
-          [121.476, 25.119],
-          [121.492, 25.119],
-          [121.494, 25.138],
-          [121.478, 25.138]
-        ] as readonly [number, number][]
-      }
-    ],
-    obstacles: [
-      { id: 'planning-obstacle-a-1', name: '红灯密集路口', longitude: 121.595, latitude: 25.053, color: '#ffd166' },
-      { id: 'planning-obstacle-a-2', name: '洲美快速路瓶颈', longitude: 121.484, latitude: 25.129, color: '#fb7185' }
-    ]
+    // 风险区多边形与障碍点均已移除（地图点位不准确），仅保留路线折线
+    risks: [],
+    obstacles: []
   },
   'route-b': {
     route: {
@@ -262,21 +248,8 @@ export const planningRouteScenes = {
       color: '#5ea4ff',
       positions: planningRouteBCoords
     },
-    risks: [
-      {
-        id: 'planning-risk-b-1',
-        name: '增辟走廊收窄区',
-        color: '#ff9f43',
-        positions: [
-          [121.565, 25.098],
-          [121.582, 25.098],
-          [121.584, 25.112],
-          [121.567, 25.112]
-        ] as readonly [number, number][]
-      }
-    ],
+    risks: [],
     obstacles: [
-      { id: 'planning-obstacle-b-1', name: '剑南路段限速', longitude: 121.559, latitude: 25.101, color: '#ffcf5c' },
       { id: 'planning-obstacle-b-2', name: '中正路交叉口', longitude: 121.442, latitude: 25.171, color: '#8de1ff' }
     ]
   },
@@ -287,21 +260,8 @@ export const planningRouteScenes = {
       color: '#f7b267',
       positions: planningRouteCCoords
     },
-    risks: [
-      {
-        id: 'planning-risk-c-1',
-        name: '长途补给薄弱区',
-        color: '#fbbf24',
-        positions: [
-          [121.528, 25.096],
-          [121.548, 25.096],
-          [121.55, 25.115],
-          [121.53, 25.115]
-        ] as readonly [number, number][]
-      }
-    ],
+    risks: [],
     obstacles: [
-      { id: 'planning-obstacle-c-1', name: '大安段绕行提示', longitude: 121.546, latitude: 25.089, color: '#2ee59d' },
       { id: 'planning-obstacle-c-2', name: '新增绕行检查点', longitude: 121.466, latitude: 25.142, color: '#ffd166' }
     ]
   }

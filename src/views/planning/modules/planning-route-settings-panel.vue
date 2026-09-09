@@ -285,6 +285,14 @@ function toggleSection(key: string) {
 
 <style scoped>
 .route-settings {
+  /* 文本层级（白系为主，弱化用不透明度而非发灰，保证深色底可读） */
+  --sp-t1: rgb(255 255 255 / 97%);
+  --sp-t2: rgb(255 255 255 / 88%);
+  --sp-t3: rgb(255 255 255 / 75%);
+  --sp-accent: #8db8ff;
+  --sp-line: rgb(255 255 255 / 8%);
+  --sp-line-2: rgb(255 255 255 / 13%);
+
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -295,19 +303,18 @@ function toggleSection(key: string) {
 /* 底部提交按钮区（固定在面板底部，不随内容滚动，同渡河工程方案面板） */
 .submit-area {
   padding: 10px 14px 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(15, 20, 35, 0.95);
+  border-top: 1px solid var(--sp-line);
+  background: rgb(15 20 35 / 95%);
   flex-shrink: 0;
 }
 
-/* 标题栏 */
+/* 标题栏（扁平，与 AI 助手面板一致） */
 .settings-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background: linear-gradient(90deg, rgba(41, 163, 255, 0.08) 0%, rgba(43, 107, 255, 0.04) 100%);
-  border-bottom: 1px solid rgba(41, 163, 255, 0.1);
+  border-bottom: 1px solid var(--sp-line);
   flex-shrink: 0;
 }
 
@@ -317,12 +324,12 @@ function toggleSection(key: string) {
   gap: 6px;
   font-size: 14px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--sp-t1);
 }
 
 .settings-title-icon {
   font-size: 16px;
-  color: #4a7dbd;
+  color: var(--sp-accent);
 }
 
 /* 滚动区 */
@@ -331,7 +338,7 @@ function toggleSection(key: string) {
   min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(141, 184, 255, 0.24) transparent;
+  scrollbar-color: rgb(141 184 255 / 24%) transparent;
 }
 
 .settings-scroll::-webkit-scrollbar {
@@ -340,7 +347,7 @@ function toggleSection(key: string) {
 
 .settings-scroll::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(141, 184, 255, 0.24);
+  background: rgb(141 184 255 / 24%);
 }
 
 .settings-body {
@@ -350,13 +357,18 @@ function toggleSection(key: string) {
 /* 分区 */
 .section {
   margin-bottom: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sp-line);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgb(255 255 255 / 2%);
   overflow: hidden;
+  transition: border-color 0.2s ease;
 }
 
-/* 分区标题（可点击折叠） */
+.section:hover {
+  border-color: var(--sp-line-2);
+}
+
+/* 分区标题（可点击折叠；小标题恒大于其下正文） */
 .section-title {
   display: flex;
   align-items: center;
@@ -367,14 +379,14 @@ function toggleSection(key: string) {
   background: transparent;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+  color: var(--sp-t1);
   transition: background 0.15s ease;
   text-align: left;
 }
 
 .section-title:hover {
-  background: rgba(41, 163, 255, 0.07);
+  background: rgb(74 125 189 / 8%);
 }
 
 .section-name {
@@ -383,12 +395,12 @@ function toggleSection(key: string) {
 
 .section-chevron {
   font-size: 15px;
-  color: rgba(147, 196, 255, 0.55);
+  color: var(--sp-t3);
   transition: transform 0.2s ease;
 }
 
 .section-title:hover .section-chevron {
-  color: rgba(41, 163, 255, 0.9);
+  color: var(--sp-accent);
 }
 
 /* 分区内容 */
@@ -403,8 +415,8 @@ function toggleSection(key: string) {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(41, 163, 255, 0.18);
-  color: #4a7dbd;
+  background: rgb(74 125 189 / 22%);
+  color: var(--sp-accent);
   font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
@@ -427,10 +439,10 @@ function toggleSection(key: string) {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid rgba(46, 229, 157, 0.25);
+  border: 1px solid rgb(52 211 153 / 30%);
   border-radius: 6px;
-  background: rgba(46, 229, 157, 0.08);
-  color: #2ee59d;
+  background: rgb(52 211 153 / 8%);
+  color: #34d399;
   cursor: pointer;
   font-size: 16px;
   flex-shrink: 0;
@@ -438,27 +450,29 @@ function toggleSection(key: string) {
 }
 
 .pick-btn:hover {
-  background: rgba(46, 229, 157, 0.18);
-  border-color: rgba(46, 229, 157, 0.45);
+  background: rgb(52 211 153 / 18%);
+  border-color: rgb(52 211 153 / 50%);
 }
 
 .pick-btn--waypoint {
-  border-color: rgba(251, 191, 36, 0.25);
-  background: rgba(251, 191, 36, 0.08);
+  border-color: rgb(251 191 36 / 30%);
+  background: rgb(251 191 36 / 8%);
   color: #fbbf24;
 }
 
 .pick-btn--waypoint:hover {
-  background: rgba(251, 191, 36, 0.18);
-  border-color: rgba(251, 191, 36, 0.45);
+  background: rgb(251 191 36 / 18%);
+  border-color: rgb(251 191 36 / 50%);
 }
 
-/* 表单 */
+/* 表单（标签为字段小标题：加粗白字，恒大于输入内容可读层级） */
 .form-label {
   display: block;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.56);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sp-t1);
   margin-bottom: 5px;
+  letter-spacing: 0.02em;
 }
 
 .form-group {
@@ -490,7 +504,7 @@ function toggleSection(key: string) {
 
 .weight-label {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--sp-t2);
   min-width: 52px;
   flex-shrink: 0;
 }
@@ -502,9 +516,10 @@ function toggleSection(key: string) {
 .weight-val {
   font-size: 12px;
   font-weight: 600;
-  color: #4a7dbd;
+  color: var(--sp-accent);
   min-width: 32px;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 复选框网格 */
@@ -515,7 +530,7 @@ function toggleSection(key: string) {
 }
 
 .checkbox-grid :deep(.n-checkbox) {
-  --n-text-color: rgba(255, 255, 255, 0.78);
+  --n-text-color: var(--sp-t2);
 }
 
 /* 提交按钮 */
@@ -538,7 +553,7 @@ function toggleSection(key: string) {
 }
 
 .submit-btn:hover:not(:disabled) {
-  box-shadow: 0 4px 20px rgba(41, 163, 255, 0.35);
+  box-shadow: 0 4px 20px rgb(74 125 189 / 35%);
   transform: translateY(-1px);
 }
 
@@ -570,24 +585,25 @@ function toggleSection(key: string) {
 .priority-pill {
   flex: 1;
   padding: 7px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--sp-line-2);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(203, 227, 255, 0.75);
+  background: rgb(255 255 255 / 3%);
+  color: var(--sp-t2);
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .priority-pill:hover {
-  border-color: rgba(41, 163, 255, 0.45);
-  color: rgba(255, 255, 255, 0.92);
+  border-color: rgb(124 184 255 / 45%);
+  color: var(--sp-t1);
 }
 
 .priority-pill--active {
-  border-color: rgba(41, 163, 255, 0.65);
-  background: rgba(41, 163, 255, 0.14);
-  color: #8db8ff;
+  border-color: rgb(124 184 255 / 65%);
+  background: rgb(74 125 189 / 16%);
+  color: var(--sp-accent);
   font-weight: 600;
 }
 </style>
