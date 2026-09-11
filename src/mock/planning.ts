@@ -12,7 +12,12 @@ import type {
   PlanningTaskForm,
   RouteTrafficAnalysis
 } from '@/views/planning/modules/types';
-import { planningRouteACoords, planningRouteBCoords, planningRouteCCoords } from './planning-route-coords';
+import {
+  planningRouteA1Coords,
+  planningRouteACoords,
+  planningRouteBCoords,
+  planningRouteCCoords
+} from './planning-route-coords';
 
 // ──── 图层 ────
 export const planningDefaultLayers = [
@@ -168,13 +173,34 @@ export const planningRouteSummaries = {
       { label: '风险等级', value: '低', tone: 'success' },
       { label: '通行评分', value: '79', tone: 'primary' }
     ],
-    highlights: ['全程外围绕行，暴露风险最低', '适合重装车辆与大编组稳妥推进', '作为第一、二线受阻时的低风险备选'],
+    highlights: ['全程外围绕行，暴露风险最低', '适合稳妥推进', '作为第一、二线受阻时的低风险备选'],
     risks: [
       { title: '耗时长', detail: '绕行较远，不利于抢时任务。' },
       { title: '补给跨度', detail: '路线最长，对油料与中途保障要求更高。' }
     ]
   }
 } as const satisfies Record<PlanningRouteKey, PlanningRouteSummary>;
+
+/** 成功桥/成美桥中断时，路线一切换使用的应急绕行方案。 */
+export const planningRouteA1Summary = {
+  key: 'route-a',
+  label: '路线一',
+  title: '快速通达绕行路线',
+  subtitle: '应急绕行·29.9 km',
+  summary:
+    '在原路线一基础上避开成功桥中断点：南港装载地域出发后转入替代道路绕行，避开成功路跨河桥段，再汇回堤顶大道，经剑南路、洲美快速道路、大度路及台2乙抵达淡水沙崙卸载地域，全程约29.9km。',
+  metrics: [
+    { label: '行程时间', value: '40 分钟', tone: 'primary' },
+    { label: '总里程', value: '29.9 km', tone: 'success' },
+    { label: '风险等级', value: '中', tone: 'warning' },
+    { label: '通行评分', value: '84', tone: 'primary' }
+  ],
+  highlights: ['避开成功桥中断点', '较原路线一增加约2.5km', '通行速度介于原路线一与路线二之间'],
+  risks: [
+    { title: '绕行路段转向增多', detail: '桥区替代道路转向较多，编队应提前设置引导车。' },
+    { title: '洲美快速高峰拥堵', detail: '汇回原路线后仍需关注洲美快速道路高峰车流。' }
+  ]
+} satisfies PlanningRouteSummary;
 
 // ──── 各路线交通状况分析（模拟路况感知数据，分段描述 + 延误估算 + 机动建议） ────
 // 分段名称对应台北市真实道路（南港路/成功路/堤顶大道/洲美快速道路/大度路/台2乙等）
@@ -227,6 +253,19 @@ export const planningRouteTraffic: Record<PlanningRouteKey, RouteTrafficAnalysis
   }
 };
 
+/** 路线一启用 A1 绕行后的模拟路况；均速处于原路线一（46）与路线二（40）之间。 */
+export const planningRouteA1Traffic: RouteTrafficAnalysis = {
+  level: '基本畅通',
+  avgSpeed: '43 km/h',
+  delayMin: 6,
+  segments: [
+    { name: '南港装载地域—桥区绕行段', level: '基本畅通', note: '避开成功桥封控点，替代道路转向较多，均速约 38 km/h' },
+    { name: '堤顶大道—剑南路段', level: '畅通', note: '汇回原路线一后道路条件良好，可保持编队连续通行' },
+    { name: '洲美快速—台2乙段', level: '缓行', note: '高峰期可能出现短时排队，需预留机动余量' }
+  ],
+  impacts: ['绕行使里程增加约 2.5 km，预计总用时 40 分钟', '平均通行速度约 43 km/h，介于原路线一与路线二之间']
+};
+
 // ──── 路线场景数据（路线规划模式） ────
 // 所有路线 waypoints 来自 OSRM 真实道路网络引擎
 export const planningRouteScenes = {
@@ -249,9 +288,7 @@ export const planningRouteScenes = {
       positions: planningRouteBCoords
     },
     risks: [],
-    obstacles: [
-      { id: 'planning-obstacle-b-2', name: '中正路交叉口', longitude: 121.442, latitude: 25.171, color: '#8de1ff' }
-    ]
+    obstacles: []
   },
   'route-c': {
     route: {
@@ -261,11 +298,21 @@ export const planningRouteScenes = {
       positions: planningRouteCCoords
     },
     risks: [],
-    obstacles: [
-      { id: 'planning-obstacle-c-2', name: '新增绕行检查点', longitude: 121.466, latitude: 25.142, color: '#ffd166' }
-    ]
+    obstacles: []
   }
 } as const satisfies Record<PlanningRouteKey, PlanningRouteScene>;
+
+/** 成功桥中断时供地图替换路线一折线使用。 */
+export const planningRouteA1Scene: PlanningRouteScene = {
+  route: {
+    id: 'planning-route-a1',
+    name: '快速通达绕行路线',
+    color: '#63e6be',
+    positions: planningRouteA1Coords
+  },
+  risks: [],
+  obstacles: []
+};
 
 // ──── 机动方案 - 分析步骤 ────
 export const planningAnalysisSteps: readonly PlanningAnalysisStep[] = [
@@ -296,9 +343,9 @@ export const planningRouteAnalysisSteps: readonly PlanningAnalysisStep[] = [
 export const planningRouteResultCards: readonly PlanningRouteResultCard[] = [
   {
     key: 'route-card-route-a',
-    title: '推荐方案',
+    title: '最快方案',
     subtitle: planningRouteSummaries['route-a'].subtitle,
-    tag: '推荐',
+    tag: '最快',
     tagType: 'success',
     isRecommended: true,
     score: Number(planningRouteSummaries['route-a'].metrics.find(m => m.label === '通行评分')?.value ?? 85),
@@ -310,9 +357,9 @@ export const planningRouteResultCards: readonly PlanningRouteResultCard[] = [
   },
   {
     key: 'route-card-route-b',
-    title: '最快方案',
+    title: '均衡方案',
     subtitle: planningRouteSummaries['route-b'].subtitle,
-    tag: '最快',
+    tag: '均衡',
     tagType: 'info',
     isRecommended: false,
     score: Number(planningRouteSummaries['route-b'].metrics.find(m => m.label === '通行评分')?.value ?? 78),

@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router';
 import {
   planningDefaultRouteSettingsForm,
   planningRouteAnalysisSteps,
+  planningRouteA1Summary,
+  planningRouteA1Traffic,
   planningRouteSummaries,
   planningRouteTraffic
 } from '@/mock/planning';
@@ -47,6 +49,9 @@ interface PlanningViewerExposed {
   revealRoutes: (routeKey: PlanningRouteKey) => void;
   /** 事件排除：在地图上隐藏被排除的候选路线 */
   setExcludedRoutes: (excluded: PlanningRouteKey[], active?: PlanningRouteKey) => void;
+  setRouteADetour: (enabled: boolean) => void;
+  drawBlockedCross: (item: { id: string; lon: number; lat: number; name: string; color?: string }) => void;
+  loadObstacleTiles: () => Promise<void>;
   showWaypoints: (waypoints: PlanningWaypoint[]) => void;
   setStartPoint: (longitude: number | null, latitude: number | null, name?: string) => void;
   setEndPoint: (longitude: number | null, latitude: number | null, name?: string) => void;
@@ -78,6 +83,8 @@ interface PlanningViewerExposed {
 
 const viewerRef = ref<PlanningViewerExposed | null>(null);
 const router = useRouter();
+/** 成功桥/成美桥中断后，路线一保留但改用 planningRouteA1Coords。 */
+const routeADetourActive = ref(false);
 
 // ──── 页面模式（Tab切换） ────
 
@@ -94,11 +101,11 @@ const routeResultCards = computed<PlanningRouteResultCard[]>(() => {
   const routeKeys: PlanningRouteKey[] = ['route-a', 'route-b', 'route-c'];
   const tagConfig: Record<PlanningRouteKey, { tag: string; tagType: 'success' | 'info' | 'warning' }> = {
     'route-a': { tag: '推荐', tagType: 'success' },
-    'route-b': { tag: '最快', tagType: 'info' },
+    'route-b': { tag: '均衡', tagType: 'info' },
     'route-c': { tag: '最稳', tagType: 'warning' }
   };
   return routeKeys.map((key, i) => {
-    const s = planningRouteSummaries[key];
+    const s = key === 'route-a' && routeADetourActive.value ? planningRouteA1Summary : planningRouteSummaries[key];
     const dur = s.metrics.find(m => m.label === '行程时间')?.value ?? '--';
     const dist = s.metrics.find(m => m.label === '总里程')?.value ?? '--';
     const scoreVal = s.metrics.find(m => m.label === '通行评分')?.value ?? '0';
@@ -114,7 +121,7 @@ const routeResultCards = computed<PlanningRouteResultCard[]>(() => {
       distance: dist,
       highlights: [...s.highlights],
       mainPath: s.title,
-      traffic: planningRouteTraffic[key],
+      traffic: key === 'route-a' && routeADetourActive.value ? planningRouteA1Traffic : planningRouteTraffic[key],
       isRecommended: i === 0
     };
   });
@@ -415,14 +422,16 @@ async function handleRoutePlan() {
     setCurrentRoute(recommendedRoute);
     viewerRef.value?.setExcludedRoutes(excludedRouteKeys.value, recommendedRoute);
     viewerRef.value?.showRoute(recommendedRoute);
+    await viewerRef.value?.loadObstacleTiles();
     selectedRouteCard.value = `route-card-${recommendedRoute}`;
     recommendedRouteCard.value = `route-card-${recommendedRoute}`;
   } catch (e) {
     console.warn('[planning] 地图呈现异常（方案结果不受影响）：', e);
   }
 
-  routeStatusText.value =
-    excludedRouteKeys.value.length > 0
+  routeStatusText.value = routeADetourActive.value
+    ? '分析完成，路线一已改用成功桥应急绕行线，共保留3条推荐方案'
+    : excludedRouteKeys.value.length > 0
       ? `分析完成，已排除 ${excludedRouteKeys.value.map(k => ROUTE_LABELS[`route-card-${k}`]).join('、')}，推荐剩余路线`
       : '分析完成，已生成3条推荐方案';
   window.$message?.success('机动路线规划完成');
@@ -556,6 +565,20 @@ function handleRoutesExcluded(excluded: PlanningRouteKey[]) {
   window.$message?.warning('情况已记录，重新规划时将避开受影响的路线');
 }
 
+/** 有替代折线的事件立即切换路线，不屏蔽方案卡片。 */
+function handleRoutesDetoured(detoured: PlanningRouteKey[]) {
+  if (!detoured.includes('route-a')) return;
+  routeADetourActive.value = true;
+  excludedRouteKeys.value = excludedRouteKeys.value.filter(key => key !== 'route-a');
+  recommendedRouteCard.value = 'route-card-route-a';
+  selectedRouteCard.value = 'route-card-route-a';
+  setCurrentRoute('route-a');
+  viewerRef.value?.setRouteADetour(true);
+  viewerRef.value?.setExcludedRoutes(excludedRouteKeys.value, 'route-a');
+  viewerRef.value?.showRoute('route-a');
+  window.$message?.warning('成功桥不通行，路线一已切换为应急绕行路线');
+}
+
 /** AI 助手"重新规划路线"指令 -> 重新执行规划并应用事件排除 */
 function handleGenerateRoute() {
   if (routeRunning.value) {
@@ -569,7 +592,11 @@ function handleGenerateRoute() {
 function handleRouteSituationPlot(plot: RouteSituationPlot) {
   const viewer = viewerRef.value;
   if (!viewer) return;
-  viewer.drawAiMark({ id: plot.id, lon: plot.lon, lat: plot.lat, name: plot.label, color: plot.color });
+  if (plot.marker === 'cross') {
+    viewer.drawBlockedCross({ id: plot.id, lon: plot.lon, lat: plot.lat, name: `${plot.label}`, color: plot.color });
+  } else {
+    viewer.drawAiMark({ id: plot.id, lon: plot.lon, lat: plot.lat, name: plot.label, color: plot.color });
+  }
   viewer.flyToLocation(plot.lon, plot.lat, 5000, 1.2);
 }
 
@@ -809,6 +836,7 @@ function handlePointPicked(payload: PlanningPickedPoint) {
             :form="routeSettingsForm"
             @toggle-collapse="handleRightPanelCollapse"
             @routes-excluded="handleRoutesExcluded"
+            @routes-detoured="handleRoutesDetoured"
             @generate-route="handleGenerateRoute"
             @plot="handleRouteSituationPlot"
           />

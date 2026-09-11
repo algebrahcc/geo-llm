@@ -14,7 +14,7 @@
  * （路线一 → 路线二 → 路线三）取推荐。
  */
 import { ref } from 'vue';
-import { planningRouteTraffic } from '@/mock/planning';
+import { planningRouteA1Traffic, planningRouteTraffic } from '@/mock/planning';
 import type { PlanningRouteKey } from './types';
 
 /** 推演上下文：由调用方按需提供最新任务要素 */
@@ -34,6 +34,8 @@ export interface RouteSituationPlot {
   lat: number;
   label: string;
   color: string;
+  /** 阻断事件使用红色叉号，普通标绘仍使用点标记。 */
+  marker?: 'point' | 'cross';
 }
 
 /** 单轮问答的产出 */
@@ -42,6 +44,8 @@ export interface RouteOfflineAnswer {
   isGenerate: boolean;
   /** 本次新增需排除的路线（父页面据此过滤方案卡片并在地图上隐藏） */
   excluded?: PlanningRouteKey[];
+  /** 本次切换为应急绕行线、但仍保留在候选方案中的路线。 */
+  detoured?: PlanningRouteKey[];
   /** 地图标绘点 */
   plot?: RouteSituationPlot;
 }
@@ -56,6 +60,8 @@ interface GazetteerEntry {
   label: string;
   /** 经过该地物的候选路线（事件发生时这些路线将被排除） */
   routes: PlanningRouteKey[];
+  /** 该点中断时存在内置替代折线，无需排除路线。 */
+  detourRoute?: PlanningRouteKey;
 }
 
 /**
@@ -64,8 +70,22 @@ interface GazetteerEntry {
  */
 const GAZETTEER: GazetteerEntry[] = [
   // 成功桥/成美桥同为成功路跨基隆河的桥，锚点取 OSRM 折线在河面上的跨河点（121.5910, 25.0619）
-  { aliases: ['成功桥', '成功路'], lon: 121.591, lat: 25.0619, label: '成功桥', routes: ['route-a'] },
-  { aliases: ['成美桥', '成美大桥'], lon: 121.591, lat: 25.0619, label: '成美桥', routes: ['route-a'] },
+  {
+    aliases: ['成功桥', '成功路'],
+    lon: 121.59224,
+    lat: 25.05895,
+    label: '成功桥',
+    routes: ['route-a'],
+    detourRoute: 'route-a'
+  },
+  {
+    aliases: ['成美桥', '成美大桥'],
+    lon: 121.591,
+    lat: 25.0619,
+    label: '成美桥',
+    routes: ['route-a'],
+    detourRoute: 'route-a'
+  },
   {
     aliases: ['洲美快速道路', '洲美快速', '洲美高架', '洲美大桥'],
     lon: 121.488,
@@ -176,6 +196,7 @@ export interface ResolvedPlace {
   label: string;
   /** 该位置涉及（会被排除）的路线 */
   routes: PlanningRouteKey[];
+  detourRoute?: PlanningRouteKey;
 }
 
 /**
@@ -190,7 +211,13 @@ function resolvePlace(question: string): ResolvedPlace | null {
   );
   for (const { alias, entry } of byLength) {
     if (question.includes(alias)) {
-      return { lon: entry.lon, lat: entry.lat, label: entry.label, routes: entry.routes };
+      return {
+        lon: entry.lon,
+        lat: entry.lat,
+        label: entry.label,
+        routes: entry.routes,
+        detourRoute: entry.detourRoute
+      };
     }
   }
   return null;
@@ -252,6 +279,8 @@ export function createRouteSituationEngine(getCtx: () => RouteSituationContext) 
   const activeEvents = ref<Array<{ place: string; routes: PlanningRouteKey[] }>>([]);
   /** 累计需排除的路线 */
   const excludedRoutes = ref<PlanningRouteKey[]>([]);
+  /** 已切换至内置绕行折线的路线（目前为成功桥事件下的路线一 A1）。 */
+  const detouredRoutes = ref<PlanningRouteKey[]>([]);
 
   const remainingRoutes = () => ROUTE_ORDER.filter(r => !excludedRoutes.value.includes(r));
 
@@ -270,12 +299,15 @@ export function createRouteSituationEngine(getCtx: () => RouteSituationContext) 
     if (GENERATE_INTENT.test(question)) {
       const remaining = remainingRoutes();
       const recommended = recommendedRoute();
+      const detourText = detouredRoutes.value.length
+        ? `${detouredRoutes.value.map(r => ROUTE_LABEL[r]).join('、')}已切换为避开${activeEvents.value.map(e => e.place).join('、')}的应急绕行线；`
+        : '';
       const excludedText = excludedRoutes.value.length
         ? `受${activeEvents.value.map(e => e.place).join('、')}情况影响，${excludedRoutes.value.map(r => ROUTE_LABEL[r]).join('、')}已不纳入考虑；`
         : '当前没有需要避开的情况，三条路线均可通行；';
       return {
         isGenerate: true,
-        answer: `已重新规划。${excludedText}剩余路线中，${ROUTE_LABEL[recommended]}条件最好，建议作为主用路线；${
+        answer: `已重新规划。${detourText}${excludedText}剩余路线中，${ROUTE_LABEL[recommended]}条件最好，建议作为主用路线；${
           remaining.length > 1
             ? `其余（${remaining
                 .filter(r => r !== recommended)
@@ -288,14 +320,22 @@ export function createRouteSituationEngine(getCtx: () => RouteSituationContext) 
 
     // ② 事件注入：点名地物 + 事件词 → 排除该地物涉及的路线并标绘
     if (place && eventWord) {
-      const newly = place.routes.filter(r => !excludedRoutes.value.includes(r));
+      const newlyDetoured =
+        place.detourRoute && !detouredRoutes.value.includes(place.detourRoute) ? [place.detourRoute] : [];
+      const newly = place.routes.filter(r => r !== place.detourRoute && !excludedRoutes.value.includes(r));
+      if (newlyDetoured.length) detouredRoutes.value = [...detouredRoutes.value, ...newlyDetoured];
       if (newly.length) {
         excludedRoutes.value = [...excludedRoutes.value, ...newly];
         activeEvents.value.push({ place: place.label, routes: newly });
       }
       const remaining = remainingRoutes();
       let eventAnswer: string;
-      if (newly.length) {
+      if (newlyDetoured.length) {
+        activeEvents.value.push({ place: place.label, routes: newlyDetoured });
+        eventAnswer = `收到。${place.label}发生${eventWord}，已在图上用红色叉号标记为不通行。\n\n路线一不再经过该桥，已自动切换为 A1 应急绕行线。新路线约 29.9 公里、预计 40 分钟，平均通行速度约 43 km/h，介于原路线一与路线二之间；路线一仍保留为推荐候选。`;
+      } else if (place.detourRoute && detouredRoutes.value.includes(place.detourRoute)) {
+        eventAnswer = `${place.label}中断情况此前已记录，图上红色叉号保持显示；路线一当前已使用 A1 应急绕行线，无需屏蔽。`;
+      } else if (newly.length) {
         eventAnswer = `收到。${place.label}发生${eventWord}，位置已标到图上。\n\n该处位于${newly.map(r => ROUTE_LABEL[r]).join('、')}的实际经过段，这部分路线暂时走不了。剩余可选：${remaining.length ? remaining.map(r => ROUTE_LABEL[r]).join('、') : '无'}。需要重新排方案时，输入"重新规划路线"。`;
       } else if (place.routes.length === 0) {
         eventAnswer = `收到，${place.label}的情况已标到图上（${place.lon.toFixed(4)}, ${place.lat.toFixed(4)}）。\n\n这个位置不在候选路线的关键节点上，暂不影响现有方案。`;
@@ -310,8 +350,10 @@ export function createRouteSituationEngine(getCtx: () => RouteSituationContext) 
           lon: place.lon,
           lat: place.lat,
           label: `${place.label}·${eventWord}`,
-          color: '#f87171'
+          color: '#f87171',
+          marker: 'cross'
         },
+        detoured: newlyDetoured,
         answer: eventAnswer
       };
     }
@@ -326,6 +368,21 @@ export function createRouteSituationEngine(getCtx: () => RouteSituationContext) 
     }
 
     // ④ 静态问答（路线/交通等）
+    if (detouredRoutes.value.includes('route-a') && /推荐|理由|为什么|路线一|快速通达/.test(question)) {
+      return {
+        isGenerate: false,
+        answer: `受成功桥/成美桥中断影响，路线一已改用应急绕行线：南港装载地域出发后沿替代道路避开桥区封控点，再汇回堤顶大道，之后经剑南路、洲美快速道路、大度路和台2乙抵达淡水沙崙卸载地域。\n\n绕行后全程约 29.9 公里，预计 40 分钟，均速约 43 km/h；比原路线一慢，但仍快于预计 47 分钟的路线二，因此继续推荐路线一。`
+      };
+    }
+    if (detouredRoutes.value.includes('route-a') && /交通|路况|通行情况|通行状况/.test(question)) {
+      const a1 = planningRouteA1Traffic;
+      const b = planningRouteTraffic['route-b'];
+      const c = planningRouteTraffic['route-c'];
+      return {
+        isGenerate: false,
+        answer: `成功桥已标记为不通行，路线一当前使用 A1 应急绕行线。\n\n路线一：${a1.level}，均速 ${a1.avgSpeed}，预计延误 ${a1.delayMin} 分钟；\n路线二：${b.level}，均速 ${b.avgSpeed}，预计延误 ${b.delayMin} 分钟；\n路线三：${c.level}，均速 ${c.avgSpeed}，无延误但绕行里程较长。\n\n路线一绕行后的速度低于原路线一、高于路线二，预计仍可比路线二早 7 分钟抵达。`
+      };
+    }
     for (const qa of OFFLINE_QA) {
       if (qa.keywords.some(k => question.includes(k))) {
         const prefix =
@@ -343,5 +400,5 @@ export function createRouteSituationEngine(getCtx: () => RouteSituationContext) 
     };
   }
 
-  return { activeEvents, excludedRoutes, recommendedRoute, answer };
+  return { activeEvents, excludedRoutes, detouredRoutes, recommendedRoute, answer };
 }

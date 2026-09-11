@@ -37,6 +37,8 @@ type Emits = import('@/typings/panel-emits').PanelEmits & {
   send: [message: string];
   /** 事件已记录：本次需排除的受影响路线（父组件据此过滤方案并在地图上隐藏） */
   'routes-excluded': [excluded: PlanningRouteKey[]];
+  /** 有内置替代线的路线已切换绕行，不从候选中移除。 */
+  'routes-detoured': [detoured: PlanningRouteKey[]];
   /** 重新规划指令：父组件据此重跑路线规划 */
   'generate-route': [];
   /** 提问附带经纬度时的地图标绘点 */
@@ -216,7 +218,7 @@ async function sendText(raw: string) {
   messages.value.push({ id: assistantId, role: 'assistant', content: '', streaming: true });
   streaming.value = true;
 
-  const { answer, isGenerate, excluded, plot } = resolveOfflineAnswer(text);
+  const { answer, isGenerate, excluded, detoured, plot } = resolveOfflineAnswer(text);
   await typeOut(assistantId, answer);
   const msg = messages.value.find(m => m.id === assistantId);
   if (msg) msg.streaming = false;
@@ -224,6 +226,7 @@ async function sendText(raw: string) {
 
   // 标绘 → 排除路线 → 重新规划：按序分发，保证地图先上图、结论后应用
   if (plot) emit('plot', plot);
+  if (detoured && detoured.length > 0) emit('routes-detoured', detoured);
   if (excluded && excluded.length > 0) emit('routes-excluded', excluded);
   if (isGenerate) emit('generate-route');
 }

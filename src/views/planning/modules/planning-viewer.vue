@@ -32,6 +32,9 @@ const {
   showRoute,
   revealRoutes,
   setExcludedRoutes,
+  setRouteADetour,
+  drawBlockedCross,
+  loadObstacleTiles,
   showWaypoints,
   setStartPoint,
   setEndPoint,
@@ -82,6 +85,12 @@ defineExpose({
   revealRoutes: (routeKey: PlanningRouteKey) => revealRoutes(routeKey),
   /** 事件排除：隐藏被排除的候选路线 */
   setExcludedRoutes: (excluded: PlanningRouteKey[], active?: PlanningRouteKey) => setExcludedRoutes(excluded, active),
+  /** 成功桥中断：路线一切换为 A1 绕行线，并标绘红色叉号。 */
+  setRouteADetour: (enabled: boolean) => setRouteADetour(enabled),
+  drawBlockedCross: (item: { id: string; lon: number; lat: number; name: string; color?: string }) =>
+    drawBlockedCross(item),
+  /** 规划完成后加载三类障碍物瓦片及其可点击气泡。 */
+  loadObstacleTiles,
   showWaypoints: (waypoints: PlanningWaypoint[]) => showWaypoints(waypoints),
   setStartPoint: (longitude: number | null, latitude: number | null, name?: string) =>
     setStartPoint(longitude, latitude, name),
