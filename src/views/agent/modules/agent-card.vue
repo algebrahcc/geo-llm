@@ -129,8 +129,8 @@ const avatarBg = computed(() => {
   }
 
   &__status {
-    font-size: 11px;
-    padding: 2px 8px;
+    font-size: 12px;
+    padding: 3px 9px;
     border-radius: 999px;
 
     &.is-on {
@@ -152,8 +152,9 @@ const avatarBg = computed(() => {
   }
 
   &__title {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
+    letter-spacing: 0.2px;
     color: var(--agent-text);
     white-space: nowrap;
     overflow: hidden;
@@ -161,9 +162,9 @@ const avatarBg = computed(() => {
   }
 
   &__desc {
-    margin-top: 4px;
-    font-size: 12px;
-    line-height: 1.5;
+    margin-top: 5px;
+    font-size: 13px;
+    line-height: 1.6;
     color: var(--agent-text-mute);
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -188,8 +189,8 @@ const avatarBg = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border: none;
   border-radius: 6px;
   background: transparent;

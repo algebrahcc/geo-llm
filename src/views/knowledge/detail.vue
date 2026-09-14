@@ -731,6 +731,10 @@ onUnmounted(() => {
   background: var(--page-bg);
   color: var(--text-primary);
   overflow: auto;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
+  letter-spacing: 0.2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .detail-page--dark {
@@ -806,13 +810,13 @@ onUnmounted(() => {
 }
 
 .panel-head__icon {
-  font-size: 16px;
+  font-size: 18px;
   color: var(--accent);
   filter: drop-shadow(0 0 4px var(--ui-border-40));
 }
 
 .panel-head__title {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-shadow: 0 0 8px var(--ui-border-7);
@@ -865,14 +869,15 @@ onUnmounted(() => {
   margin-top: 14px;
   font-size: 22px;
   font-weight: 700;
+  letter-spacing: 0.3px;
   color: var(--text-primary);
 }
 
 .doc-summary {
   margin-top: 8px;
   max-width: 860px;
-  font-size: 13px;
-  line-height: 22px;
+  font-size: 14px;
+  line-height: 24px;
   color: var(--text-secondary);
 }
 
@@ -893,13 +898,13 @@ onUnmounted(() => {
 }
 
 .field__label {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-tertiary);
   letter-spacing: 0.2px;
 }
 
 .field__value {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--text-primary);
   line-height: 1.5;
   word-break: break-all;
@@ -932,17 +937,17 @@ onUnmounted(() => {
 }
 
 .region-tag {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .confidence-tag {
   display: inline-flex;
   align-items: center;
-  padding: 1px 6px;
+  padding: 2px 8px;
   border-radius: 10px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 18px;
+  line-height: 20px;
 }
 
 .confidence-tag--high {
@@ -961,24 +966,25 @@ onUnmounted(() => {
 }
 
 .log-item {
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 4px;
   background: var(--ui-surface-66);
   border: 1px solid var(--ui-border-49);
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-secondary);
 }
 
 .card-title {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.2px;
   color: var(--text-primary);
 }
 
 .card-desc {
   margin-top: 8px;
-  font-size: 12px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 22px;
   color: var(--text-secondary);
 }
 

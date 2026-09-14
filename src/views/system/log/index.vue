@@ -387,11 +387,11 @@ const statusOptions = [
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 52px;
-  height: 22px;
-  padding: 0 8px;
+  min-width: 56px;
+  height: 24px;
+  padding: 0 11px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
   font-weight: 500;
   &--success {
@@ -412,7 +412,7 @@ const statusOptions = [
 }
 
 .sys-muted-text {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--sys-text3);
 }
 
@@ -426,7 +426,7 @@ const statusOptions = [
   padding: 8px 14px;
   gap: 12px;
   &__total {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--sys-text2);
   }
 }
@@ -438,9 +438,9 @@ const statusOptions = [
   background: var(--ui-surface-31);
   border: 1px solid var(--ui-border-49);
   color: var(--sys-text2);
-  font-size: 12px;
+  font-size: 13px;
   font-family: Consolas, DIN, monospace;
-  line-height: 1.6;
+  line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 180px;
@@ -456,11 +456,12 @@ const statusOptions = [
   --n-th-text-color: var(--ui-text-42) !important;
   --n-td-text-color: var(--ui-text-42) !important;
   --n-th-font-weight: 600 !important;
-  --n-font-size: 13px !important;
+  --n-font-size: 14px !important;
 }
 .sys-table :deep(.n-data-table-th) {
   background: linear-gradient(180deg, var(--ui-surface-20) 0%, var(--ui-surface-21) 100%) !important;
-  font-size: 13px;
+  font-size: 14px;
+  letter-spacing: 0.2px;
   padding: 14px 12px;
 }
 .sys-table :deep(.n-data-table-td) {
@@ -486,8 +487,8 @@ const statusOptions = [
 }
 .sys-table :deep(.action-icon-btn) {
   position: relative;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -499,7 +500,7 @@ const statusOptions = [
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   outline: none;
-  font-size: 16px;
+  font-size: 18px;
 }
 .sys-table :deep(.action-icon-btn:hover) {
   color: #fff;
@@ -519,7 +520,7 @@ const statusOptions = [
   background: var(--ui-surface-22);
   border: 1px solid var(--ui-border-40);
   color: var(--ui-text-86);
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
@@ -544,13 +545,13 @@ const statusOptions = [
   --n-item-border-hover: 1px solid var(--ui-accent-96) !important;
   --n-item-color-hover: var(--ui-accent-97) !important;
   --n-item-border-radius: 5px !important;
-  font-size: 13px;
+  font-size: 14px;
 }
 .sys-table-footer :deep(.n-pagination-item) {
-  min-width: 30px;
-  height: 30px;
+  min-width: 32px;
+  height: 32px;
   border-radius: 5px;
-  font-size: 13px;
+  font-size: 14px;
   transition: all 0.2s;
 }
 .sys-table-footer :deep(.n-pagination-item:hover) {
@@ -598,7 +599,7 @@ const statusOptions = [
   --n-border: 1px solid var(--ui-accent-3);
   --n-border-hover: 1px solid var(--ui-accent-23);
   --n-border-radius: 8px;
-  --n-font-size: 13px;
+  --n-font-size: 14px;
   --n-height: 36px;
   font-weight: 600;
 }
@@ -610,7 +611,7 @@ const statusOptions = [
   --n-border: 1px solid var(--ui-border-20);
   --n-border-hover: 1px solid var(--ui-accent-10);
   --n-border-radius: 8px;
-  --n-font-size: 13px;
+  --n-font-size: 14px;
   --n-height: 36px;
 }
 
@@ -735,7 +736,7 @@ const statusOptions = [
 }
 .sys-detail-header__icon {
   flex-shrink: 0;
-  font-size: 28px;
+  font-size: 30px;
   color: var(--ui-accent-46);
   filter: drop-shadow(0 0 8px var(--ui-accent-47));
   margin-top: 2px;
@@ -771,7 +772,7 @@ const statusOptions = [
   color: var(--sys-text2);
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 18px;
+  font-size: 20px;
   font-family: inherit;
 }
 .sys-detail-close-btn:hover {
@@ -807,7 +808,7 @@ const statusOptions = [
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--sys-accent);
   letter-spacing: 0.3px;
@@ -816,7 +817,7 @@ const statusOptions = [
   border-bottom: 1px solid var(--ui-border-48);
 }
 .sys-detail-section__icon {
-  font-size: 16px;
+  font-size: 18px;
   opacity: 0.85;
 }
 
@@ -834,22 +835,22 @@ const statusOptions = [
   grid-column: 1 / -1;
 }
 .sys-detail-field__label {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--sys-text3);
   letter-spacing: 0.2px;
 }
 .sys-detail-field__value {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--sys-text);
   line-height: 1.5;
   word-break: break-all;
 }
 .sys-detail-field__value--small {
-  font-size: 12px;
+  font-size: 14px;
 }
 .sys-detail-field__value--mono {
   font-family: DIN, Consolas, monospace;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ui-text-112);
   letter-spacing: 0.4px;
 }

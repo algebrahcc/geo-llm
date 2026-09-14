@@ -447,7 +447,8 @@ function handleSelect(key: typeof agentKey.value) {
   gap: 6px;
 
   &__desc {
-    font-size: 12px;
+    font-size: 14px;
+    line-height: 1.6;
     color: var(--ui-text-104);
     margin-bottom: 6px;
   }
@@ -464,14 +465,15 @@ function handleSelect(key: typeof agentKey.value) {
   margin-top: 4px;
 
   &__head {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
+    letter-spacing: 0.2px;
     color: var(--ui-text-33);
     margin-bottom: 8px;
   }
 
   &__empty {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--ui-text-105);
     padding: 16px 0;
     text-align: center;
@@ -484,7 +486,7 @@ function handleSelect(key: typeof agentKey.value) {
   }
 
   &__logtitle {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--ui-text-89);
     margin-bottom: 6px;
@@ -497,8 +499,8 @@ function handleSelect(key: typeof agentKey.value) {
   background: var(--ui-surface-66);
   border: 1px solid var(--ui-border-49);
   color: var(--ui-accent-122);
-  font-size: 13px;
-  line-height: 22px;
+  font-size: 14px;
+  line-height: 24px;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -535,15 +537,16 @@ function handleSelect(key: typeof agentKey.value) {
   }
 
   &__title {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
+    letter-spacing: 0.3px;
     color: var(--ui-text-33);
   }
 
   &__desc {
-    font-size: 12px;
-    max-width: 420px;
-    line-height: 1.6;
+    font-size: 14px;
+    max-width: 440px;
+    line-height: 1.7;
   }
 
   &__prompts {
@@ -582,11 +585,11 @@ function handleSelect(key: typeof agentKey.value) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   flex-shrink: 0;
-  font-size: 16px;
+  font-size: 18px;
   color: #fff;
 
   &.user {
@@ -601,10 +604,10 @@ function handleSelect(key: typeof agentKey.value) {
 
 .chat-bubble {
   max-width: 76%;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-radius: 12px;
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
 
@@ -658,7 +661,9 @@ function handleSelect(key: typeof agentKey.value) {
   }
 
   &__time {
-    font-size: 11px;
+    font-family: 'DIN', 'Consolas', monospace;
+    font-size: 12px;
+    letter-spacing: 0.3px;
     color: var(--ui-text-105);
   }
 
@@ -676,7 +681,7 @@ function handleSelect(key: typeof agentKey.value) {
   border: 1px solid var(--ui-border-48);
   border-radius: 6px;
   background: var(--ui-surface-82);
-  font-size: 12px;
+  font-size: 13px;
 
   &__summary {
     display: flex;
@@ -695,7 +700,7 @@ function handleSelect(key: typeof agentKey.value) {
 
   &__chevron {
     display: inline-block;
-    font-size: 10px;
+    font-size: 11px;
     transition: transform 0.25s ease;
     color: var(--ui-accent-132);
   }
@@ -753,7 +758,7 @@ function handleSelect(key: typeof agentKey.value) {
   padding: 0;
   color: var(--ui-text-96);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   display: inline-flex;
   align-items: center;
 
@@ -811,12 +816,12 @@ function handleSelect(key: typeof agentKey.value) {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--ui-accent-132);
   }
 
   &__hint {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--ui-text-105);
   }
 }
@@ -844,14 +849,14 @@ function handleSelect(key: typeof agentKey.value) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border: none;
   border-radius: 6px;
   background: transparent;
   color: var(--ui-text-89);
   cursor: pointer;
-  font-size: 17px;
+  font-size: 18px;
 
   &:hover {
     background: var(--ui-border-7);
@@ -861,14 +866,15 @@ function handleSelect(key: typeof agentKey.value) {
 
 .runtime-section__title {
   margin: 4px 0 8px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
+  letter-spacing: 0.2px;
   color: var(--ui-text-76);
 }
 
 .prompt-chip {
-  font-size: 12px;
-  padding: 5px 12px;
+  font-size: 13px;
+  padding: 6px 13px;
   border: 1px solid var(--ui-border-40);
   border-radius: 999px;
   background: var(--ui-border-36);
@@ -900,21 +906,21 @@ function handleSelect(key: typeof agentKey.value) {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--ui-text-33);
 
   &__icon {
-    width: 13px;
-    height: 13px;
+    width: 15px;
+    height: 15px;
     color: var(--ui-accent-50);
   }
 }
 
 .step-detail {
   margin-top: 4px;
-  font-size: 11px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 20px;
   color: var(--ui-text-104);
   white-space: pre-wrap;
 }
@@ -956,7 +962,7 @@ function handleSelect(key: typeof agentKey.value) {
   background: var(--ui-surface-91);
   padding: 1px 5px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
   font-family: 'Consolas', monospace;
 }
 .chat-md :deep(pre) {
@@ -974,7 +980,7 @@ function handleSelect(key: typeof agentKey.value) {
 .chat-md :deep(table) {
   border-collapse: collapse;
   margin: 6px 0;
-  font-size: 11px;
+  font-size: 12px;
 }
 .chat-md :deep(th),
 .chat-md :deep(td) {
@@ -985,7 +991,7 @@ function handleSelect(key: typeof agentKey.value) {
 .chat-md :deep(h2),
 .chat-md :deep(h3),
 .chat-md :deep(h4) {
-  font-size: 13px;
+  font-size: 15px;
   margin: 8px 0 4px;
 }
 </style>

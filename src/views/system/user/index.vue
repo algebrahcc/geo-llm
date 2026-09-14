@@ -410,11 +410,11 @@ const statusOptions = [
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 52px;
-  height: 22px;
-  padding: 0 8px;
+  min-width: 56px;
+  height: 24px;
+  padding: 0 11px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
   font-weight: 500;
   &--success {
@@ -452,12 +452,13 @@ const statusOptions = [
   }
   &__title {
     color: var(--sys-text);
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
+    letter-spacing: 0.2px;
   }
   &__sub {
     color: var(--sys-text3);
-    font-size: 11px;
+    font-size: 13px;
   }
 }
 
@@ -470,11 +471,12 @@ const statusOptions = [
   --n-th-text-color: var(--ui-text-42) !important;
   --n-td-text-color: var(--ui-text-42) !important;
   --n-th-font-weight: 600 !important;
-  --n-font-size: 13px !important;
+  --n-font-size: 14px !important;
 }
 .sys-table :deep(.n-data-table-th) {
   background: linear-gradient(180deg, var(--ui-surface-20) 0%, var(--ui-surface-21) 100%) !important;
-  font-size: 13px;
+  font-size: 14px;
+  letter-spacing: 0.2px;
   padding: 14px 12px;
 }
 .sys-table :deep(.n-data-table-td) {
@@ -521,13 +523,13 @@ const statusOptions = [
   --n-item-border-radius: 5px !important;
   --n-input-border: 1px solid var(--ui-border-99) !important;
   --n-input-border-hover: 1px solid var(--ui-accent-96) !important;
-  font-size: 13px;
+  font-size: 14px;
 }
 .sys-table :deep(.n-pagination .n-pagination-item) {
-  min-width: 30px;
-  height: 30px;
+  min-width: 32px;
+  height: 32px;
   border-radius: 5px;
-  font-size: 13px;
+  font-size: 14px;
   transition: all 0.2s;
 }
 .sys-table :deep(.n-pagination .n-pagination-item:hover) {
@@ -552,8 +554,8 @@ const statusOptions = [
 }
 .sys-table :deep(.action-icon-btn) {
   position: relative;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -565,7 +567,7 @@ const statusOptions = [
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   outline: none;
-  font-size: 16px;
+  font-size: 18px;
 }
 .sys-table :deep(.action-icon-btn:hover) {
   color: #fff;
@@ -585,7 +587,7 @@ const statusOptions = [
   background: var(--ui-surface-22);
   border: 1px solid var(--ui-border-40);
   color: var(--ui-text-86);
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
@@ -642,7 +644,7 @@ const statusOptions = [
   --n-border: 1px solid var(--ui-accent-3);
   --n-border-hover: 1px solid var(--ui-accent-23);
   --n-border-radius: 8px;
-  --n-font-size: 13px;
+  --n-font-size: 14px;
   --n-height: 36px;
   font-weight: 600;
 }
@@ -654,7 +656,7 @@ const statusOptions = [
   --n-border: 1px solid var(--ui-border-20);
   --n-border-hover: 1px solid var(--ui-accent-10);
   --n-border-radius: 8px;
-  --n-font-size: 13px;
+  --n-font-size: 14px;
   --n-height: 36px;
 }
 // Modal
@@ -751,7 +753,7 @@ const statusOptions = [
   --n-text-color-hover: #fff;
   --n-border: 1px solid var(--ui-accent-3);
   --n-border-radius: 8px;
-  --n-font-size: 13px;
+  --n-font-size: 14px;
   --n-height: 36px;
   font-weight: 600;
 }
@@ -760,7 +762,7 @@ const statusOptions = [
   --n-text-color: var(--ui-text-15);
   --n-border: 1px solid var(--ui-border-20);
   --n-border-radius: 8px;
-  --n-font-size: 13px;
+  --n-font-size: 14px;
   --n-height: 36px;
 }
 </style>

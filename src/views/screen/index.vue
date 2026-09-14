@@ -15,12 +15,15 @@ import {
   screenTaskDistribution,
   screenTaskTrend
 } from '@/mock/screen';
+import { useThemeStore } from '@/store/modules/theme';
 import ScreenGlobeViewer from './modules/screen-globe-viewer.vue';
 import type { SceneModeKey } from './modules/use-screen-globe';
 
 defineOptions({
   name: 'ScreenPage'
 });
+
+const themeStore = useThemeStore();
 
 const globeRef = ref<InstanceType<typeof ScreenGlobeViewer> | null>(null);
 const activeSceneMode = ref<SceneModeKey>('2d');
@@ -119,26 +122,101 @@ const r = computed(() => {
   };
 });
 
-// ---- Color palette for charts (matching reference design) ----
-const CHART_COLORS = {
-  primary: '#4a7dbd',
-  secondary: '#00d4aa',
-  warning: '#ffb020',
-  danger: '#ff5c5c',
-  info: '#7b8cff',
-  purple: '#a78bfa'
-};
+// ---- Color palette for charts（浅色下加深，保证白底对比度）----
+const CHART_COLORS = computed(() =>
+  themeStore.darkMode
+    ? {
+        primary: '#4a7dbd',
+        secondary: '#00d4aa',
+        warning: '#ffb020',
+        danger: '#ff5c5c',
+        info: '#7b8cff',
+        purple: '#a78bfa'
+      }
+    : {
+        primary: '#2563eb',
+        secondary: '#0d9488',
+        warning: '#b45309',
+        danger: '#dc2626',
+        info: '#4f46e5',
+        purple: '#7c3aed'
+      }
+);
 
 const PIE_COLORS = ['#4a7dbd', '#00d4aa', '#ffb020', '#7b8cff', '#ff7eb3'];
+
+// ---- 图表主题色：深色为默认，浅色下换为白底可读的一套 ----
+const chartTheme = computed(() => {
+  if (!themeStore.darkMode) {
+    return {
+      tooltipBg: 'rgba(255, 255, 255, 0.96)',
+      tooltipBorder: 'rgba(37, 99, 235, 0.25)',
+      tooltipText: '#0f172a',
+      legendText: 'rgba(30, 41, 59, 0.78)',
+      legendTextDim: 'rgba(30, 41, 59, 0.68)',
+      legendTextFaint: 'rgba(51, 65, 85, 0.6)',
+      axisLine: 'rgba(37, 99, 235, 0.22)',
+      axisLabel: 'rgba(51, 65, 85, 0.72)',
+      axisLabelDim: 'rgba(51, 65, 85, 0.6)',
+      splitLine: 'rgba(37, 99, 235, 0.12)',
+      textPrimary: '#0f172a',
+      pieBorder: 'rgba(255, 255, 255, 0.9)',
+      pieShadow: 'rgba(15, 23, 42, 0.12)',
+      areaBlue: ['rgba(37, 99, 235, 0.22)', 'rgba(37, 99, 235, 0.02)'],
+      areaCyan: ['rgba(13, 148, 136, 0.2)', 'rgba(13, 148, 136, 0.02)'],
+      barBlue: ['rgba(37, 99, 235, 0.8)', 'rgba(29, 78, 216, 0.55)'],
+      barBlueSoft: ['rgba(37, 99, 235, 0.16)', 'rgba(37, 99, 235, 0.04)'],
+      barBlueSofter: ['rgba(37, 99, 235, 0.12)', 'rgba(37, 99, 235, 0.03)'],
+      barCyanSoft: ['rgba(13, 148, 136, 0.14)', 'rgba(13, 148, 136, 0.03)'],
+      bandFills: [
+        'rgba(37, 99, 235, 0.06)',
+        'rgba(37, 99, 235, 0.1)',
+        'rgba(37, 99, 235, 0.06)',
+        'rgba(37, 99, 235, 0.03)'
+      ],
+      textFaint: 'rgba(51, 65, 85, 0.68)',
+      textSoft: 'rgba(30, 41, 59, 0.88)'
+    };
+  }
+  return {
+    tooltipBg: 'rgba(6, 20, 40, 0.92)',
+    tooltipBorder: 'rgba(41, 182, 255, 0.25)',
+    tooltipText: '#e0f0ff',
+    legendText: 'rgba(180, 210, 240, 0.72)',
+    legendTextDim: 'rgba(180, 210, 240, 0.65)',
+    legendTextFaint: 'rgba(180, 210, 240, 0.55)',
+    axisLine: 'rgba(60, 130, 200, 0.2)',
+    axisLabel: 'rgba(160, 195, 235, 0.55)',
+    axisLabelDim: 'rgba(160, 195, 235, 0.45)',
+    splitLine: 'rgba(60, 130, 200, 0.1)',
+    textPrimary: '#e4f2ff',
+    pieBorder: 'rgba(4, 16, 32, 0.85)',
+    pieShadow: 'rgba(0, 0, 0, 0.35)',
+    areaBlue: ['rgba(41, 182, 255, 0.28)', 'rgba(41, 182, 255, 0.02)'],
+    areaCyan: ['rgba(0, 212, 170, 0.24)', 'rgba(0, 212, 170, 0.02)'],
+    barBlue: ['rgba(41, 182, 255, 0.82)', 'rgba(15, 95, 190, 0.62)'],
+    barBlueSoft: ['rgba(41, 182, 255, 0.32)', 'rgba(41, 182, 255, 0.02)'],
+    barBlueSofter: ['rgba(41, 182, 255, 0.18)', 'rgba(41, 182, 255, 0.02)'],
+    barCyanSoft: ['rgba(0, 212, 170, 0.15)', 'rgba(0, 212, 170, 0.02)'],
+    bandFills: [
+      'rgba(30, 70, 130, 0.06)',
+      'rgba(30, 70, 130, 0.1)',
+      'rgba(30, 70, 130, 0.06)',
+      'rgba(30, 70, 130, 0.03)'
+    ],
+    textFaint: 'rgba(170, 200, 240, 0.68)',
+    textSoft: 'rgba(228, 242, 255, 0.85)'
+  };
+});
 
 // ---- Task Distribution Donut Chart (compact with center total) ----
 const taskTotal = screenTaskDistribution.reduce((sum, item) => sum + item.value, 0);
 const { domRef: taskDistributionDomRef, updateOptions: updateTaskDist } = useEcharts(() => ({
   tooltip: {
     trigger: 'item',
-    backgroundColor: 'rgba(6, 20, 40, 0.92)',
-    borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: r.value.label },
+    backgroundColor: chartTheme.value.tooltipBg,
+    borderColor: chartTheme.value.tooltipBorder,
+    textStyle: { color: chartTheme.value.tooltipText, fontSize: r.value.label },
     formatter: '{b}: {c} ({d}%)'
   },
   legend: {
@@ -147,7 +225,7 @@ const { domRef: taskDistributionDomRef, updateOptions: updateTaskDist } = useEch
     itemWidth: 10,
     itemHeight: 10,
     itemGap: 14,
-    textStyle: { color: 'rgba(180, 210, 240, 0.72)', fontSize: r.value.legend }
+    textStyle: { color: chartTheme.value.legendText, fontSize: r.value.legend }
   },
   series: [
     {
@@ -158,7 +236,7 @@ const { domRef: taskDistributionDomRef, updateOptions: updateTaskDist } = useEch
       avoidLabelOverlap: true,
       itemStyle: {
         borderRadius: 4,
-        borderColor: 'rgba(4, 16, 32, 0.85)',
+        borderColor: chartTheme.value.pieBorder,
         borderWidth: 2
       },
       label: { show: false },
@@ -177,7 +255,7 @@ const { domRef: taskDistributionDomRef, updateOptions: updateTaskDist } = useEch
         style: {
           text: String(taskTotal),
           textAlign: 'center',
-          fill: '#e4f2ff',
+          fill: chartTheme.value.textPrimary,
           fontSize: r.value.donutNum,
           fontWeight: 800
         }
@@ -190,30 +268,30 @@ const { domRef: taskDistributionDomRef, updateOptions: updateTaskDist } = useEch
 const { domRef: taskTrendDomRef, updateOptions: updateTaskTrend } = useEcharts(() => ({
   tooltip: {
     trigger: 'axis',
-    backgroundColor: 'rgba(6, 20, 40, 0.92)',
-    borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: r.value.label }
+    backgroundColor: chartTheme.value.tooltipBg,
+    borderColor: chartTheme.value.tooltipBorder,
+    textStyle: { color: chartTheme.value.tooltipText, fontSize: r.value.label }
   },
   legend: {
     top: 2,
     right: 8,
     itemWidth: 14,
     itemHeight: 2,
-    textStyle: { color: 'rgba(180, 210, 240, 0.65)', fontSize: r.value.legend }
+    textStyle: { color: chartTheme.value.legendTextDim, fontSize: r.value.legend }
   },
   grid: { left: 12, right: 18, top: 28, bottom: 22, containLabel: true },
   xAxis: {
     type: 'category',
     boundaryGap: false,
     data: screenTaskTrend.dates,
-    axisLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.2)' } },
-    axisLabel: { color: 'rgba(160, 195, 235, 0.55)', fontSize: r.value.axis },
+    axisLine: { lineStyle: { color: chartTheme.value.axisLine } },
+    axisLabel: { color: chartTheme.value.axisLabel, fontSize: r.value.axis },
     axisTick: { show: false }
   },
   yAxis: {
     type: 'value',
-    splitLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.1)', type: 'dashed' } },
-    axisLabel: { color: 'rgba(160, 195, 235, 0.45)', fontSize: r.value.axis }
+    splitLine: { lineStyle: { color: chartTheme.value.splitLine, type: 'dashed' } },
+    axisLabel: { color: chartTheme.value.axisLabelDim, fontSize: r.value.axis }
   },
   series: [
     {
@@ -222,7 +300,7 @@ const { domRef: taskTrendDomRef, updateOptions: updateTaskTrend } = useEcharts((
       smooth: true,
       symbol: 'circle',
       symbolSize: 5,
-      lineStyle: { width: 2, color: CHART_COLORS.primary },
+      lineStyle: { width: 2, color: CHART_COLORS.value.primary },
       areaStyle: {
         color: {
           type: 'linear',
@@ -231,12 +309,12 @@ const { domRef: taskTrendDomRef, updateOptions: updateTaskTrend } = useEcharts((
           x2: 0,
           y2: 1,
           colorStops: [
-            { offset: 0, color: 'rgba(41, 182, 255, 0.28)' },
-            { offset: 1, color: 'rgba(41, 182, 255, 0.02)' }
+            { offset: 0, color: chartTheme.value.areaBlue[0] },
+            { offset: 1, color: chartTheme.value.areaBlue[1] }
           ]
         }
       },
-      itemStyle: { color: CHART_COLORS.primary },
+      itemStyle: { color: CHART_COLORS.value.primary },
       data: screenTaskTrend.created
     },
     {
@@ -245,7 +323,7 @@ const { domRef: taskTrendDomRef, updateOptions: updateTaskTrend } = useEcharts((
       smooth: true,
       symbol: 'circle',
       symbolSize: 5,
-      lineStyle: { width: 2, color: CHART_COLORS.secondary },
+      lineStyle: { width: 2, color: CHART_COLORS.value.secondary },
       areaStyle: {
         color: {
           type: 'linear',
@@ -254,12 +332,12 @@ const { domRef: taskTrendDomRef, updateOptions: updateTaskTrend } = useEcharts((
           x2: 0,
           y2: 1,
           colorStops: [
-            { offset: 0, color: 'rgba(0, 212, 170, 0.24)' },
-            { offset: 1, color: 'rgba(0, 212, 170, 0.02)' }
+            { offset: 0, color: chartTheme.value.areaCyan[0] },
+            { offset: 1, color: chartTheme.value.areaCyan[1] }
           ]
         }
       },
-      itemStyle: { color: CHART_COLORS.secondary },
+      itemStyle: { color: CHART_COLORS.value.secondary },
       data: screenTaskTrend.completed
     }
   ]
@@ -269,23 +347,23 @@ const { domRef: taskTrendDomRef, updateOptions: updateTaskTrend } = useEcharts((
 const { domRef: systemStatusDomRef, updateOptions: updateSystemStatus } = useEcharts(() => ({
   tooltip: {
     trigger: 'axis',
-    backgroundColor: 'rgba(6, 20, 40, 0.92)',
-    borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: r.value.label }
+    backgroundColor: chartTheme.value.tooltipBg,
+    borderColor: chartTheme.value.tooltipBorder,
+    textStyle: { color: chartTheme.value.tooltipText, fontSize: r.value.label }
   },
   grid: { left: 12, right: 18, top: 20, bottom: 12, containLabel: true },
   xAxis: {
     type: 'category',
     data: ['平台健康度', 'CPU使用率', '内存占用', '存储空间'],
-    axisLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.2)' } },
-    axisLabel: { color: 'rgba(160, 195, 235, 0.55)', fontSize: r.value.axis },
+    axisLine: { lineStyle: { color: chartTheme.value.axisLine } },
+    axisLabel: { color: chartTheme.value.axisLabel, fontSize: r.value.axis },
     axisTick: { show: false }
   },
   yAxis: {
     type: 'value',
     max: 100,
-    splitLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.1)', type: 'dashed' } },
-    axisLabel: { color: 'rgba(160, 195, 235, 0.45)', fontSize: r.value.axis, formatter: '{value}%' }
+    splitLine: { lineStyle: { color: chartTheme.value.splitLine, type: 'dashed' } },
+    axisLabel: { color: chartTheme.value.axisLabelDim, fontSize: r.value.axis, formatter: '{value}%' }
   },
   series: [
     {
@@ -301,8 +379,8 @@ const { domRef: systemStatusDomRef, updateOptions: updateSystemStatus } = useEch
           x2: 0,
           y2: 1,
           colorStops: [
-            { offset: 0, color: 'rgba(41, 182, 255, 0.82)' },
-            { offset: 1, color: 'rgba(15, 95, 190, 0.62)' }
+            { offset: 0, color: chartTheme.value.barBlue[0] },
+            { offset: 1, color: chartTheme.value.barBlue[1] }
           ]
         }
       },
@@ -322,9 +400,9 @@ const { domRef: hotKeywordsDomRef, updateOptions: updateHotKeywords } = useEchar
     ({
       tooltip: {
         trigger: 'item',
-        backgroundColor: 'rgba(6, 20, 40, 0.92)',
-        borderColor: 'rgba(41, 182, 255, 0.25)',
-        textStyle: { color: '#e0f0ff', fontSize: r.value.label }
+        backgroundColor: chartTheme.value.tooltipBg,
+        borderColor: chartTheme.value.tooltipBorder,
+        textStyle: { color: chartTheme.value.tooltipText, fontSize: r.value.label }
       },
       series: [
         {
@@ -347,12 +425,12 @@ const { domRef: hotKeywordsDomRef, updateOptions: updateHotKeywords } = useEchar
             textStyle: {
               color:
                 i < 3
-                  ? CHART_COLORS.primary
+                  ? CHART_COLORS.value.primary
                   : i < 7
-                    ? CHART_COLORS.secondary
+                    ? CHART_COLORS.value.secondary
                     : i < 11
-                      ? CHART_COLORS.info
-                      : 'rgba(150, 185, 225, 0.75)'
+                      ? CHART_COLORS.value.info
+                      : chartTheme.value.textFaint
             }
           }))
         }
@@ -366,14 +444,14 @@ const { domRef: aiRankDomRef, updateOptions: updateAiRank } = useEcharts(() => (
   tooltip: {
     trigger: 'axis',
     axisPointer: { type: 'shadow' },
-    backgroundColor: 'rgba(6, 20, 40, 0.92)',
-    borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: r.value.label }
+    backgroundColor: chartTheme.value.tooltipBg,
+    borderColor: chartTheme.value.tooltipBorder,
+    textStyle: { color: chartTheme.value.tooltipText, fontSize: r.value.label }
   },
   grid: { left: 14, right: 42, top: 10, bottom: 6, containLabel: true },
   xAxis: {
     type: 'value',
-    splitLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.06)', type: 'dashed' } },
+    splitLine: { lineStyle: { color: chartTheme.value.splitLine, type: 'dashed' } },
     axisLabel: { show: false },
     axisLine: { show: false },
     axisTick: { show: false }
@@ -385,7 +463,7 @@ const { domRef: aiRankDomRef, updateOptions: updateAiRank } = useEcharts(() => (
     axisLine: { show: false },
     axisTick: { show: false },
     axisLabel: {
-      color: 'rgba(180, 210, 240, 0.78)',
+      color: chartTheme.value.legendText,
       fontSize: r.value.legend,
       width: 90,
       overflow: 'truncate',
@@ -407,20 +485,20 @@ const { domRef: aiRankDomRef, updateOptions: updateAiRank } = useEcharts(() => (
           x2: 1,
           y2: 0,
           colorStops: [
-            { offset: 0, color: 'rgba(41, 182, 255, 0.18)' },
+            { offset: 0, color: chartTheme.value.barBlueSofter[0] },
             { offset: 1, color: aiRankColors[params.dataIndex % aiRankColors.length] }
           ]
         })
       },
       showBackground: true,
       backgroundStyle: {
-        color: 'rgba(30, 60, 100, 0.18)',
+        color: chartTheme.value.splitLine,
         borderRadius: [0, 10, 10, 0]
       },
       label: {
         show: true,
         position: 'right',
-        color: 'rgba(228, 242, 255, 0.85)',
+        color: chartTheme.value.textSoft,
         fontSize: r.value.aiLabel,
         fontWeight: 700,
         fontFamily: "'DIN', 'Consolas', monospace",
@@ -435,9 +513,9 @@ const { domRef: aiRankDomRef, updateOptions: updateAiRank } = useEcharts(() => (
 const { domRef: bottomDistDomRef, updateOptions: updateBottomDist } = useEcharts(() => ({
   tooltip: {
     trigger: 'item',
-    backgroundColor: 'rgba(6, 20, 40, 0.92)',
-    borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: r.value.label },
+    backgroundColor: chartTheme.value.tooltipBg,
+    borderColor: chartTheme.value.tooltipBorder,
+    textStyle: { color: chartTheme.value.tooltipText, fontSize: r.value.label },
     formatter: '{b}: {c}TB ({d}%)'
   },
   legend: {
@@ -447,7 +525,7 @@ const { domRef: bottomDistDomRef, updateOptions: updateBottomDist } = useEcharts
     itemWidth: 9,
     itemHeight: 9,
     itemGap: 10,
-    textStyle: { color: 'rgba(170, 200, 240, 0.68)', fontSize: r.value.legend },
+    textStyle: { color: chartTheme.value.legendTextDim, fontSize: r.value.legend },
     formatter: name => `${name}  `
   },
   series: [
@@ -459,7 +537,7 @@ const { domRef: bottomDistDomRef, updateOptions: updateBottomDist } = useEcharts
       avoidLabelOverlap: true,
       itemStyle: {
         borderRadius: 4,
-        borderColor: 'rgba(4, 16, 32, 0.85)',
+        borderColor: chartTheme.value.pieBorder,
         borderWidth: 2
       },
       label: { show: false },
@@ -469,7 +547,7 @@ const { domRef: bottomDistDomRef, updateOptions: updateBottomDist } = useEcharts
       emphasis: {
         scale: true,
         scaleSize: 6,
-        itemStyle: { shadowBlur: 16, shadowColor: 'rgba(0, 0, 0, 0.35)' }
+        itemStyle: { shadowBlur: 16, shadowColor: chartTheme.value.pieShadow }
       },
       data: screenDataTypeDistribution.map((item, i) => ({
         ...item,
@@ -483,9 +561,9 @@ const { domRef: bottomDistDomRef, updateOptions: updateBottomDist } = useEcharts
 const { domRef: bottomRadarDomRef, updateOptions: updateBottomRadar } = useEcharts(() => ({
   tooltip: {
     trigger: 'item',
-    backgroundColor: 'rgba(6, 20, 40, 0.92)',
-    borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: r.value.label }
+    backgroundColor: chartTheme.value.tooltipBg,
+    borderColor: chartTheme.value.tooltipBorder,
+    textStyle: { color: chartTheme.value.tooltipText, fontSize: r.value.label }
   },
   legend: {
     top: 4,
@@ -493,7 +571,7 @@ const { domRef: bottomRadarDomRef, updateOptions: updateBottomRadar } = useEchar
     itemWidth: 12,
     itemHeight: 3,
     itemGap: 16,
-    textStyle: { color: 'rgba(170, 200, 240, 0.68)', fontSize: r.value.legend }
+    textStyle: { color: chartTheme.value.legendTextDim, fontSize: r.value.legend }
   },
   radar: {
     indicator: [
@@ -508,22 +586,17 @@ const { domRef: bottomRadarDomRef, updateOptions: updateBottomRadar } = useEchar
     shape: 'polygon',
     splitNumber: 4,
     axisName: {
-      color: 'rgba(165, 198, 240, 0.68)',
+      color: chartTheme.value.textFaint,
       fontSize: r.value.axis,
       padding: [2, 4]
     },
     splitArea: {
       areaStyle: {
-        color: [
-          'rgba(30, 70, 130, 0.06)',
-          'rgba(30, 70, 130, 0.1)',
-          'rgba(30, 70, 130, 0.06)',
-          'rgba(30, 70, 130, 0.03)'
-        ]
+        color: chartTheme.value.bandFills
       }
     },
-    splitLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.2)' } },
-    axisLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.25)' } }
+    splitLine: { lineStyle: { color: chartTheme.value.axisLine } },
+    axisLine: { lineStyle: { color: chartTheme.value.axisLine } }
   },
   series: [
     {
@@ -532,14 +605,14 @@ const { domRef: bottomRadarDomRef, updateOptions: updateBottomRadar } = useEchar
       symbol: 'circle',
       symbolSize: 4,
       lineStyle: { width: 2 },
-      itemStyle: { color: CHART_COLORS.primary },
+      itemStyle: { color: CHART_COLORS.value.primary },
       areaStyle: { opacity: 0.18 },
       data: screenSpatialCoverage.map((item, i) => ({
         ...item,
-        lineStyle: { color: i === 0 ? CHART_COLORS.primary : CHART_COLORS.secondary },
-        itemStyle: { color: i === 0 ? CHART_COLORS.primary : CHART_COLORS.secondary },
+        lineStyle: { color: i === 0 ? CHART_COLORS.value.primary : CHART_COLORS.value.secondary },
+        itemStyle: { color: i === 0 ? CHART_COLORS.value.primary : CHART_COLORS.value.secondary },
         areaStyle: {
-          color: i === 0 ? 'rgba(41, 182, 255, 0.18)' : 'rgba(0, 212, 170, 0.15)'
+          color: i === 0 ? chartTheme.value.barBlueSofter[0] : chartTheme.value.barCyanSoft[0]
         }
       }))
     }
@@ -550,16 +623,16 @@ const { domRef: bottomRadarDomRef, updateOptions: updateBottomRadar } = useEchar
 const { domRef: bottomTrendDomRef, updateOptions: updateBottomTrend } = useEcharts(() => ({
   tooltip: {
     trigger: 'axis',
-    backgroundColor: 'rgba(6, 20, 40, 0.92)',
-    borderColor: 'rgba(41, 182, 255, 0.25)',
-    textStyle: { color: '#e0f0ff', fontSize: r.value.label }
+    backgroundColor: chartTheme.value.tooltipBg,
+    borderColor: chartTheme.value.tooltipBorder,
+    textStyle: { color: chartTheme.value.tooltipText, fontSize: r.value.label }
   },
   legend: {
     top: 2,
     right: 8,
     itemWidth: 14,
     itemHeight: 2,
-    textStyle: { color: 'rgba(180, 210, 240, 0.55)', fontSize: r.value.legend },
+    textStyle: { color: chartTheme.value.legendTextFaint, fontSize: r.value.legend },
     data: ['要素更新量']
   },
   grid: { left: 12, right: 18, top: 28, bottom: 22, containLabel: true },
@@ -567,14 +640,14 @@ const { domRef: bottomTrendDomRef, updateOptions: updateBottomTrend } = useEchar
     type: 'category',
     boundaryGap: false,
     data: screenDataUpdateTrend.dates,
-    axisLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.2)' } },
-    axisLabel: { color: 'rgba(160, 195, 235, 0.55)', fontSize: r.value.axis },
+    axisLine: { lineStyle: { color: chartTheme.value.axisLine } },
+    axisLabel: { color: chartTheme.value.axisLabel, fontSize: r.value.axis },
     axisTick: { show: false }
   },
   yAxis: {
     type: 'value',
-    splitLine: { lineStyle: { color: 'rgba(60, 130, 200, 0.1)', type: 'dashed' } },
-    axisLabel: { color: 'rgba(160, 195, 235, 0.45)', fontSize: r.value.axis }
+    splitLine: { lineStyle: { color: chartTheme.value.splitLine, type: 'dashed' } },
+    axisLabel: { color: chartTheme.value.axisLabelDim, fontSize: r.value.axis }
   },
   series: [
     {
@@ -584,7 +657,7 @@ const { domRef: bottomTrendDomRef, updateOptions: updateBottomTrend } = useEchar
       symbol: 'circle',
       symbolSize: 5,
       step: false,
-      lineStyle: { width: 2.5, color: CHART_COLORS.primary },
+      lineStyle: { width: 2.5, color: CHART_COLORS.value.primary },
       areaStyle: {
         color: {
           type: 'linear',
@@ -593,17 +666,17 @@ const { domRef: bottomTrendDomRef, updateOptions: updateBottomTrend } = useEchar
           x2: 0,
           y2: 1,
           colorStops: [
-            { offset: 0, color: 'rgba(41, 182, 255, 0.32)' },
-            { offset: 1, color: 'rgba(41, 182, 255, 0.02)' }
+            { offset: 0, color: chartTheme.value.barBlueSoft[0] },
+            { offset: 1, color: chartTheme.value.areaBlue[1] }
           ]
         }
       },
-      itemStyle: { color: CHART_COLORS.primary },
+      itemStyle: { color: CHART_COLORS.value.primary },
       markPoint: {
         data: [{ type: 'max', name: '最大值' }],
         symbol: 'circle',
         symbolSize: 8,
-        itemStyle: { color: CHART_COLORS.primary, borderColor: '#fff', borderWidth: 2 },
+        itemStyle: { color: CHART_COLORS.value.primary, borderColor: '#fff', borderWidth: 2 },
         label: { color: '#fff', fontSize: r.value.markLabel, fontWeight: 600 }
       },
       data: screenDataUpdateTrend.updates
@@ -616,19 +689,20 @@ const buckets = [0, 720, 1100, 1280, 1440, 1920, Infinity] as const;
 function widthBucket(w: number) {
   return buckets.findIndex(b => w < b);
 }
-watch(
-  () => widthBucket(windowWidth.value),
-  () => {
-    updateTaskDist((_, factory) => factory());
-    updateTaskTrend((_, factory) => factory());
-    updateSystemStatus((_, factory) => factory());
-    updateHotKeywords((_, factory) => factory());
-    updateAiRank((_, factory) => factory());
-    updateBottomDist((_, factory) => factory());
-    updateBottomRadar((_, factory) => factory());
-    updateBottomTrend((_, factory) => factory());
-  }
-);
+function refreshAllCharts() {
+  updateTaskDist((_, factory) => factory());
+  updateTaskTrend((_, factory) => factory());
+  updateSystemStatus((_, factory) => factory());
+  updateHotKeywords((_, factory) => factory());
+  updateAiRank((_, factory) => factory());
+  updateBottomDist((_, factory) => factory());
+  updateBottomRadar((_, factory) => factory());
+  updateBottomTrend((_, factory) => factory());
+}
+
+// 窗口宽度跨断点、或明暗主题切换时，按最新配色重建全部图表
+watch(() => widthBucket(windowWidth.value), refreshAllCharts);
+watch(() => themeStore.darkMode, refreshAllCharts);
 </script>
 
 <script lang="ts">
@@ -802,26 +876,88 @@ function getKpiIcon(key: string): string {
 
 /* ---------- Global Variables ---------- */
 .screen-dashboard {
+  /* ---- 背景 ---- */
   --sd-bg-deep: #04101c;
+  --sd-bg-bottom: #030c17;
+  --sd-bg-veil-1: rgba(10, 70, 140, 0.14);
+  --sd-bg-veil-2: rgba(10, 80, 160, 0.07);
+  --sd-bg-veil-3: rgba(0, 140, 110, 0.05);
+  --sd-bg-veil-4: rgba(41, 100, 200, 0.05);
+  --sd-bg-sheen-1: rgba(10, 50, 100, 0.04);
+  --sd-bg-sheen-2: rgba(10, 50, 100, 0.03);
+
+  /* ---- 面板 ---- */
   --sd-surface: rgba(6, 20, 38, 0.86);
   --sd-border: rgba(36, 112, 196, 0.22);
   --sd-border-glow: rgba(41, 162, 255, 0.35);
+  --sd-panel-inset: rgba(8, 40, 80, 0.15);
+  --sd-panel-shadow: rgba(0, 0, 0, 0.25);
+  --sd-panel-shadow-hover: rgba(0, 0, 0, 0.3);
+  --sd-panel-shadow-strong: rgba(0, 0, 0, 0.35);
+  --sd-glow-inset: rgba(41, 162, 255, 0.1);
+  --sd-glow-soft: rgba(41, 162, 255, 0.06);
+  --sd-glow-mid: rgba(41, 162, 255, 0.08);
+  --sd-glow-strong: rgba(41, 162, 255, 0.12);
+
+  /* ---- 面板头 ---- */
+  --sd-header-line: rgba(36, 112, 196, 0.12);
+  --sd-header-bg-top: rgba(12, 38, 72, 0.5);
+  --sd-header-bg-bottom: rgba(6, 22, 44, 0.3);
+  --sd-icon-glow: rgba(41, 182, 255, 0.25);
+  --sd-title-glow: rgba(41, 182, 255, 0.12);
+  --sd-tab-active-bg: rgba(41, 182, 255, 0.15);
+  --sd-tab-active-border: rgba(41, 182, 255, 0.25);
+
+  /* ---- 文字 ---- */
   --sd-text-primary: #e4f2ff;
   --sd-text-secondary: rgba(175, 208, 245, 0.72);
   --sd-text-muted: rgba(135, 178, 230, 0.5);
+  --sd-text-hover: rgba(175, 208, 245, 0.8);
+
+  /* ---- 强调色 ---- */
   --sd-accent-blue: #4a7dbd;
   --sd-accent-cyan: #00d4aa;
   --sd-accent-orange: #ffb020;
   --sd-accent-red: #ff5c5c;
   --sd-accent-purple: #a78bfa;
 
+  /* ---- KPI ---- */
+  --sd-kpi-shadow: rgba(0, 0, 0, 0.15);
+  --sd-kpi-shadow-hover: rgba(0, 0, 0, 0.2);
+  --sd-kpi-icon-bg-top: rgba(15, 40, 75, 0.8);
+  --sd-kpi-icon-bg-bottom: rgba(10, 30, 60, 0.6);
+  --sd-kpi-icon-border: rgba(41, 120, 200, 0.2);
+  --sd-kpi-icon-glow: rgba(41, 182, 255, 0.1);
+  --sd-kpi-value-glow: rgba(41, 182, 255, 0.1);
+  --sd-kpi-value-glow-lg: rgba(41, 182, 255, 0.18);
+  --sd-delta-up: rgba(0, 212, 170, 0.7);
+  --sd-delta-down: rgba(255, 92, 92, 0.7);
+
+  /* ---- 场景切换 ---- */
+  --sd-scene-bg: rgba(6, 20, 38, 0.8);
+  --sd-scene-border: rgba(36, 112, 196, 0.25);
+  --sd-scene-text: rgba(175, 208, 245, 0.5);
+  --sd-scene-border-hover: rgba(41, 162, 255, 0.2);
+  --sd-scene-active-text: #4a7dbd;
+  --sd-scene-active-bg: rgba(41, 182, 255, 0.12);
+  --sd-scene-active-border: rgba(41, 182, 255, 0.35);
+
+  /* ---- 通知 ---- */
+  --sd-notice-line: rgba(36, 112, 196, 0.08);
+  --sd-notice-hover: rgba(41, 162, 255, 0.05);
+  --sd-notice-warning: rgba(255, 192, 100, 0.9);
+  --sd-notice-error: rgba(255, 120, 120, 0.9);
+
+  /* ---- 杂项 ---- */
+  --sd-scroll-thumb: rgba(41, 128, 200, 0.35);
+
   position: relative;
   height: 100%;
   min-height: 0;
   overflow-y: auto;
   background:
-    radial-gradient(ellipse 90% 70% at 50% -10%, rgba(10, 70, 140, 0.14) 0%, transparent 55%),
-    linear-gradient(180deg, var(--sd-bg-deep) 0%, #030c17 100%);
+    radial-gradient(ellipse 90% 70% at 50% -10%, var(--sd-bg-veil-1) 0%, transparent 55%),
+    linear-gradient(180deg, var(--sd-bg-deep) 0%, var(--sd-bg-bottom) 100%);
   font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
 }
 
@@ -835,14 +971,14 @@ function getKpiIcon(key: string): string {
 }
 .screen-bg {
   background:
-    radial-gradient(circle at 20% 30%, rgba(10, 80, 160, 0.07) 0%, transparent 40%),
-    radial-gradient(circle at 80% 60%, rgba(0, 140, 110, 0.05) 0%, transparent 35%),
-    radial-gradient(circle at 50% 90%, rgba(41, 100, 200, 0.05) 0%, transparent 40%);
+    radial-gradient(circle at 20% 30%, var(--sd-bg-veil-2) 0%, transparent 40%),
+    radial-gradient(circle at 80% 60%, var(--sd-bg-veil-3) 0%, transparent 35%),
+    radial-gradient(circle at 50% 90%, var(--sd-bg-veil-4) 0%, transparent 40%);
 }
 .screen-bg-glow {
   background:
-    linear-gradient(90deg, transparent 0%, rgba(10, 50, 100, 0.04) 20%, rgba(10, 50, 100, 0.04) 80%, transparent 100%),
-    linear-gradient(180deg, transparent 0%, rgba(10, 50, 100, 0.03) 10%, transparent 90%);
+    linear-gradient(90deg, transparent 0%, var(--sd-bg-sheen-1) 20%, var(--sd-bg-sheen-1) 80%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, var(--sd-bg-sheen-2) 10%, transparent 90%);
 }
 
 /* ---------- Main Grid ---------- */
@@ -888,8 +1024,8 @@ function getKpiIcon(key: string): string {
   border: 1px solid var(--sd-border);
   border-radius: 6px;
   box-shadow:
-    0 0 0 1px rgba(8, 40, 80, 0.15) inset,
-    0 4px 20px rgba(0, 0, 0, 0.25);
+    0 0 0 1px var(--sd-panel-inset) inset,
+    0 4px 20px var(--sd-panel-shadow);
   backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
@@ -901,9 +1037,9 @@ function getKpiIcon(key: string): string {
 .screen-panel:hover {
   border-color: var(--sd-border-glow);
   box-shadow:
-    0 0 0 1px rgba(41, 162, 255, 0.1) inset,
-    0 4px 24px rgba(0, 0, 0, 0.3),
-    0 0 12px rgba(41, 162, 255, 0.06);
+    0 0 0 1px var(--sd-glow-inset) inset,
+    0 4px 24px var(--sd-panel-shadow-hover),
+    0 0 12px var(--sd-glow-soft);
 }
 
 /* Panel corner accents — all 4 corners, always visible */
@@ -986,8 +1122,8 @@ function getKpiIcon(key: string): string {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(36, 112, 196, 0.12);
-  background: linear-gradient(180deg, rgba(12, 38, 72, 0.5) 0%, rgba(6, 22, 44, 0.3) 100%);
+  border-bottom: 1px solid var(--sd-header-line);
+  background: linear-gradient(180deg, var(--sd-header-bg-top) 0%, var(--sd-header-bg-bottom) 100%);
   user-select: none;
   flex-shrink: 0;
   position: relative;
@@ -1015,7 +1151,7 @@ function getKpiIcon(key: string): string {
   font-size: clamp(14px, 0.5vw + 0.6rem, 17px);
   color: var(--sd-accent-blue);
   opacity: 0.85;
-  filter: drop-shadow(0 0 4px rgba(41, 182, 255, 0.25));
+  filter: drop-shadow(0 0 4px var(--sd-icon-glow));
 }
 
 .panel-header__title {
@@ -1023,7 +1159,7 @@ function getKpiIcon(key: string): string {
   font-weight: 700;
   letter-spacing: 0.5px;
   color: var(--sd-text-primary);
-  text-shadow: 0 0 8px rgba(41, 182, 255, 0.12);
+  text-shadow: 0 0 8px var(--sd-title-glow);
 }
 
 .panel-tabs {
@@ -1049,8 +1185,8 @@ function getKpiIcon(key: string): string {
 }
 .tab-active {
   color: var(--sd-text-primary);
-  background: rgba(41, 182, 255, 0.15);
-  border: 1px solid rgba(41, 182, 255, 0.25);
+  background: var(--sd-tab-active-bg);
+  border: 1px solid var(--sd-tab-active-border);
 }
 
 .chart-body {
@@ -1086,7 +1222,7 @@ function getKpiIcon(key: string): string {
   background: var(--sd-surface);
   border: 1px solid var(--sd-border);
   border-radius: 4px;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 8px var(--sd-kpi-shadow);
   transition: all 0.25s ease;
   position: relative;
   overflow: hidden;
@@ -1094,8 +1230,8 @@ function getKpiIcon(key: string): string {
 .kpi-item:hover {
   border-color: var(--sd-border-glow);
   box-shadow:
-    0 2px 16px rgba(0, 0, 0, 0.2),
-    0 0 8px rgba(41, 162, 255, 0.08);
+    0 2px 16px var(--sd-kpi-shadow-hover),
+    0 0 8px var(--sd-glow-mid);
   transform: translateY(-1px);
 }
 
@@ -1124,9 +1260,9 @@ function getKpiIcon(key: string): string {
   font-size: 15px;
   flex-shrink: 0;
   color: var(--sd-accent-blue);
-  background: linear-gradient(135deg, rgba(15, 40, 75, 0.8), rgba(10, 30, 60, 0.6));
-  border: 1px solid rgba(41, 120, 200, 0.2);
-  box-shadow: 0 0 6px rgba(41, 182, 255, 0.1);
+  background: linear-gradient(135deg, var(--sd-kpi-icon-bg-top), var(--sd-kpi-icon-bg-bottom));
+  border: 1px solid var(--sd-kpi-icon-border);
+  box-shadow: 0 0 6px var(--sd-kpi-icon-glow);
 }
 
 .kpi-item__info {
@@ -1151,15 +1287,15 @@ function getKpiIcon(key: string): string {
   color: var(--sd-text-primary);
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  text-shadow: 0 0 6px rgba(41, 182, 255, 0.1);
+  text-shadow: 0 0 6px var(--sd-kpi-value-glow);
 }
 .kpi-item__delta {
   font-size: clamp(9px, 0.4vw + 0.4rem, 11px);
   font-weight: 600;
-  color: rgba(0, 212, 170, 0.7);
+  color: var(--sd-delta-up);
 }
 .kpi-item__delta.down {
-  color: rgba(255, 92, 92, 0.7);
+  color: var(--sd-delta-down);
 }
 .kpi-item__unit {
   font-size: clamp(9px, 0.4vw + 0.4rem, 11px);
@@ -1179,8 +1315,8 @@ function getKpiIcon(key: string): string {
   overflow: hidden;
   border: 1px solid var(--sd-border);
   box-shadow:
-    0 0 0 1px rgba(8, 40, 80, 0.15) inset,
-    0 4px 20px rgba(0, 0, 0, 0.25);
+    0 0 0 1px var(--sd-panel-inset) inset,
+    0 4px 20px var(--sd-panel-shadow);
   animation: globe-border-breathe 4s ease-in-out infinite;
 }
 
@@ -1188,15 +1324,15 @@ function getKpiIcon(key: string): string {
   0%,
   100% {
     box-shadow:
-      0 0 0 1px rgba(8, 40, 80, 0.15) inset,
-      0 4px 20px rgba(0, 0, 0, 0.25),
+      0 0 0 1px var(--sd-panel-inset) inset,
+      0 4px 20px var(--sd-panel-shadow),
       0 0 0 rgba(41, 162, 255, 0);
   }
   50% {
     box-shadow:
-      0 0 0 1px rgba(8, 40, 80, 0.15) inset,
-      0 4px 20px rgba(0, 0, 0, 0.25),
-      0 0 8px rgba(41, 162, 255, 0.12);
+      0 0 0 1px var(--sd-panel-inset) inset,
+      0 4px 20px var(--sd-panel-shadow),
+      0 0 8px var(--sd-glow-strong);
   }
 }
 
@@ -1214,8 +1350,8 @@ function getKpiIcon(key: string): string {
   right: 10px;
   display: flex;
   gap: 4px;
-  background: rgba(6, 20, 38, 0.8);
-  border: 1px solid rgba(36, 112, 196, 0.25);
+  background: var(--sd-scene-bg);
+  border: 1px solid var(--sd-scene-border);
   border-radius: 4px;
   padding: 3px;
   backdrop-filter: blur(8px);
@@ -1225,7 +1361,7 @@ function getKpiIcon(key: string): string {
   padding: 3px 10px;
   font-size: 11px;
   font-weight: 600;
-  color: rgba(175, 208, 245, 0.5);
+  color: var(--sd-scene-text);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 3px;
@@ -1235,14 +1371,14 @@ function getKpiIcon(key: string): string {
 }
 
 .scene-mode-btn:hover {
-  color: rgba(175, 208, 245, 0.8);
-  border-color: rgba(41, 162, 255, 0.2);
+  color: var(--sd-text-hover);
+  border-color: var(--sd-scene-border-hover);
 }
 
 .scene-mode-btn.active {
-  color: #4a7dbd;
-  background: rgba(41, 182, 255, 0.12);
-  border-color: rgba(41, 182, 255, 0.35);
+  color: var(--sd-scene-active-text);
+  background: var(--sd-scene-active-bg);
+  border-color: var(--sd-scene-active-border);
 }
 
 /* Bottom 3 Charts */
@@ -1260,9 +1396,9 @@ function getKpiIcon(key: string): string {
 .bottom-charts .screen-panel:hover {
   transform: translateY(-2px);
   box-shadow:
-    0 0 0 1px rgba(41, 162, 255, 0.12) inset,
-    0 6px 28px rgba(0, 0, 0, 0.35),
-    0 0 16px rgba(41, 162, 255, 0.08);
+    0 0 0 1px var(--sd-glow-strong) inset,
+    0 6px 28px var(--sd-panel-shadow-strong),
+    0 0 16px var(--sd-glow-mid);
 }
 
 /* ============================================================
@@ -1287,7 +1423,7 @@ function getKpiIcon(key: string): string {
   display: flex;
   gap: 10px;
   padding: 8px 6px;
-  border-bottom: 1px solid rgba(36, 112, 196, 0.08);
+  border-bottom: 1px solid var(--sd-notice-line);
   transition:
     background 0.2s ease,
     transform 0.2s ease;
@@ -1297,7 +1433,7 @@ function getKpiIcon(key: string): string {
   border-bottom: none;
 }
 .notice-item:hover {
-  background: rgba(41, 162, 255, 0.05);
+  background: var(--sd-notice-hover);
   transform: translateX(3px);
 }
 
@@ -1348,10 +1484,10 @@ function getKpiIcon(key: string): string {
   color: var(--sd-text-secondary);
 }
 .notice-level--warning {
-  color: rgba(255, 192, 100, 0.9);
+  color: var(--sd-notice-warning);
 }
 .notice-level--error {
-  color: rgba(255, 120, 120, 0.9);
+  color: var(--sd-notice-error);
 }
 
 .notice-detail {
@@ -1406,7 +1542,7 @@ function getKpiIcon(key: string): string {
 .screen-dashboard::-webkit-scrollbar-thumb,
 .notice-list::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(41, 128, 200, 0.35);
+  background: var(--sd-scroll-thumb);
 }
 .screen-dashboard::-webkit-scrollbar-track,
 .notice-list::-webkit-scrollbar-track {
@@ -1424,7 +1560,7 @@ function getKpiIcon(key: string): string {
     grid-template-columns: minmax(260px, 0.65fr) minmax(0, 1.9fr) minmax(260px, 0.65fr);
   }
   .kpi-item__value {
-    text-shadow: 0 0 8px rgba(41, 182, 255, 0.18);
+    text-shadow: 0 0 8px var(--sd-kpi-value-glow-lg);
   }
   .chart-body {
     min-height: 180px;
@@ -1507,5 +1643,86 @@ function getKpiIcon(key: string): string {
   .chart-body {
     min-height: 160px;
   }
+}
+
+/* ============================================================
+   浅色主题适配
+   深色为默认值，浅色在此覆盖同一批语义变量即可整体换肤
+   ============================================================ */
+html:not(.dark) .screen-dashboard {
+  /* ---- 背景 ---- */
+  --sd-bg-deep: #eef2f7;
+  --sd-bg-bottom: #f7f9fc;
+  --sd-bg-veil-1: rgba(37, 99, 235, 0.08);
+  --sd-bg-veil-2: rgba(37, 99, 235, 0.05);
+  --sd-bg-veil-3: rgba(13, 148, 136, 0.05);
+  --sd-bg-veil-4: rgba(37, 99, 235, 0.04);
+  --sd-bg-sheen-1: rgba(15, 23, 42, 0.02);
+  --sd-bg-sheen-2: rgba(15, 23, 42, 0.015);
+
+  /* ---- 面板 ---- */
+  --sd-surface: rgba(255, 255, 255, 0.92);
+  --sd-border: rgba(37, 99, 235, 0.18);
+  --sd-border-glow: rgba(37, 99, 235, 0.42);
+  --sd-panel-inset: rgba(255, 255, 255, 0.9);
+  --sd-panel-shadow: rgba(15, 23, 42, 0.08);
+  --sd-panel-shadow-hover: rgba(15, 23, 42, 0.12);
+  --sd-panel-shadow-strong: rgba(15, 23, 42, 0.14);
+  --sd-glow-inset: rgba(37, 99, 235, 0.06);
+  --sd-glow-soft: rgba(37, 99, 235, 0.06);
+  --sd-glow-mid: rgba(37, 99, 235, 0.08);
+  --sd-glow-strong: rgba(37, 99, 235, 0.1);
+
+  /* ---- 面板头 ---- */
+  --sd-header-line: rgba(37, 99, 235, 0.12);
+  --sd-header-bg-top: rgba(240, 245, 252, 0.92);
+  --sd-header-bg-bottom: rgba(248, 250, 253, 0.72);
+  --sd-icon-glow: rgba(37, 99, 235, 0.16);
+  --sd-title-glow: rgba(37, 99, 235, 0.1);
+  --sd-tab-active-bg: rgba(37, 99, 235, 0.1);
+  --sd-tab-active-border: rgba(37, 99, 235, 0.28);
+
+  /* ---- 文字 ---- */
+  --sd-text-primary: #0f172a;
+  --sd-text-secondary: rgba(30, 41, 59, 0.75);
+  --sd-text-muted: rgba(51, 65, 85, 0.6);
+  --sd-text-hover: rgba(30, 41, 59, 0.9);
+
+  /* ---- 强调色（浅底上加深，保证对比度） ---- */
+  --sd-accent-blue: #2563eb;
+  --sd-accent-cyan: #0d9488;
+  --sd-accent-orange: #b45309;
+  --sd-accent-red: #dc2626;
+  --sd-accent-purple: #7c3aed;
+
+  /* ---- KPI ---- */
+  --sd-kpi-shadow: rgba(15, 23, 42, 0.06);
+  --sd-kpi-shadow-hover: rgba(15, 23, 42, 0.1);
+  --sd-kpi-icon-bg-top: rgba(37, 99, 235, 0.12);
+  --sd-kpi-icon-bg-bottom: rgba(37, 99, 235, 0.06);
+  --sd-kpi-icon-border: rgba(37, 99, 235, 0.2);
+  --sd-kpi-icon-glow: rgba(37, 99, 235, 0.1);
+  --sd-kpi-value-glow: rgba(37, 99, 235, 0.08);
+  --sd-kpi-value-glow-lg: rgba(37, 99, 235, 0.12);
+  --sd-delta-up: rgba(13, 148, 136, 0.95);
+  --sd-delta-down: rgba(220, 38, 38, 0.95);
+
+  /* ---- 场景切换 ---- */
+  --sd-scene-bg: rgba(255, 255, 255, 0.9);
+  --sd-scene-border: rgba(37, 99, 235, 0.2);
+  --sd-scene-text: rgba(51, 65, 85, 0.6);
+  --sd-scene-border-hover: rgba(37, 99, 235, 0.3);
+  --sd-scene-active-text: #1d4ed8;
+  --sd-scene-active-bg: rgba(37, 99, 235, 0.1);
+  --sd-scene-active-border: rgba(37, 99, 235, 0.35);
+
+  /* ---- 通知 ---- */
+  --sd-notice-line: rgba(37, 99, 235, 0.1);
+  --sd-notice-hover: rgba(37, 99, 235, 0.06);
+  --sd-notice-warning: #b45309;
+  --sd-notice-error: #dc2626;
+
+  /* ---- 杂项 ---- */
+  --sd-scroll-thumb: rgba(37, 99, 235, 0.25);
 }
 </style>

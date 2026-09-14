@@ -667,6 +667,10 @@ async function handleSubmit() {
   overflow: auto;
   padding: 20px 28px;
   box-sizing: border-box;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
+  letter-spacing: 0.2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .import-page--dark {
@@ -690,7 +694,7 @@ async function handleSubmit() {
   background: var(--ui-border-45);
   border: 1px solid var(--ui-border-62);
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;
@@ -716,7 +720,7 @@ async function handleSubmit() {
 }
 
 .import-header__sub {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-tertiary);
   margin-left: 4px;
 }
@@ -726,7 +730,7 @@ async function handleSubmit() {
   border-radius: 20px;
   background: var(--ui-border-36);
   border: 1px solid var(--ui-border-37);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-tertiary);
   letter-spacing: 0.5px;
 }
@@ -750,13 +754,13 @@ async function handleSubmit() {
   transition: all 0.25s ease;
 
   &__badge {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--text-secondary);
     background: var(--ui-border-12);
@@ -765,15 +769,16 @@ async function handleSubmit() {
   }
 
   &__title {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
+    letter-spacing: 0.2px;
     color: var(--text-secondary);
   }
 
   &__desc {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--text-tertiary);
-    margin-top: 2px;
+    margin-top: 3px;
   }
 
   &--active {
@@ -857,12 +862,13 @@ async function handleSubmit() {
 }
 
 .mode-tab__title {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
+  letter-spacing: 0.2px;
   margin-bottom: 3px;
 }
 .mode-tab__desc {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-tertiary);
   letter-spacing: 0.3px;
 }
@@ -910,13 +916,14 @@ async function handleSubmit() {
   }
 
   &__title {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
+    letter-spacing: 0.2px;
     color: var(--text-primary);
   }
 
   &__hint {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-tertiary);
   }
 
@@ -975,8 +982,9 @@ async function handleSubmit() {
   }
 
   &__name {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
+    letter-spacing: 0.2px;
     color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -984,7 +992,7 @@ async function handleSubmit() {
   }
 
   &__size {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--text-tertiary);
     margin-top: 2px;
   }
@@ -1023,8 +1031,9 @@ async function handleSubmit() {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
+    letter-spacing: 0.3px;
     color: var(--text-primary);
   }
 
@@ -1040,7 +1049,7 @@ async function handleSubmit() {
 
   &__label {
     width: 104px;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--text-secondary);
     flex-shrink: 0;
   }
@@ -1063,9 +1072,9 @@ async function handleSubmit() {
   appearance: none;
   border: none;
   background: transparent;
-  padding: 6px 16px;
+  padding: 7px 18px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s;
@@ -1093,7 +1102,7 @@ async function handleSubmit() {
 
 .setting-hint {
   margin-top: 6px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-tertiary);
 }
 
@@ -1114,7 +1123,7 @@ async function handleSubmit() {
 .chunk-rule-label {
   width: 64px;
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-secondary);
 }
 
@@ -1122,7 +1131,7 @@ async function handleSubmit() {
   margin: 2px 0 0;
   padding-top: 8px;
   border-top: 1px dashed var(--ui-border-112);
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-tertiary);
 }
 
@@ -1131,7 +1140,7 @@ async function handleSubmit() {
 }
 
 .chunk-rule-unit {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-tertiary);
 }
 
@@ -1143,7 +1152,7 @@ async function handleSubmit() {
 
 .chunk-rule-switch-label {
   margin-right: 8px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-secondary);
 }
 
@@ -1186,12 +1195,13 @@ async function handleSubmit() {
 }
 
 .upload-zone__title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
+  letter-spacing: 0.2px;
   color: var(--text-primary);
 }
 .upload-zone__hint {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-tertiary);
 }
 
@@ -1204,11 +1214,11 @@ async function handleSubmit() {
 }
 
 .format-tag {
-  padding: 2px 10px;
+  padding: 3px 11px;
   border-radius: 4px;
   background: var(--ui-border-36);
   border: 1px solid var(--ui-border-51);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary);
   letter-spacing: 0.3px;
 }
@@ -1230,7 +1240,7 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: rgb(var(--primary-color));
   margin-bottom: 8px;
@@ -1240,7 +1250,7 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 8px 10px;
   border-radius: 6px;
   transition: background 0.15s ease;
 }
@@ -1251,14 +1261,14 @@ async function handleSubmit() {
 
 .file-item__icon {
   flex-shrink: 0;
-  font-size: 16px;
+  font-size: 18px;
   color: var(--text-tertiary);
 }
 
 .file-item__name {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1267,7 +1277,8 @@ async function handleSubmit() {
 
 .file-item__size {
   flex-shrink: 0;
-  font-size: 11px;
+  font-family: 'DIN', 'Consolas', monospace;
+  font-size: 13px;
   color: var(--text-tertiary);
 }
 
@@ -1296,15 +1307,16 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 42px;
+  height: 46px;
   padding: 0 16px;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, var(--ui-surface-18) 0%, var(--ui-surface-19) 100%);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.2px;
 }
 .config-card__head-icon {
-  font-size: 16px;
+  font-size: 18px;
   color: var(--accent);
 }
 
@@ -1324,7 +1336,7 @@ async function handleSubmit() {
 .config-row__label {
   width: 72px;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-secondary);
 }
 
@@ -1349,15 +1361,16 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 42px;
+  height: 46px;
   padding: 0 16px;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, var(--ui-surface-18) 0%, var(--ui-surface-19) 100%);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.2px;
 }
 .form-card__head-icon {
-  font-size: 16px;
+  font-size: 18px;
   color: var(--accent);
 }
 
@@ -1414,13 +1427,13 @@ async function handleSubmit() {
   transition: all 0.25s ease;
 
   &__badge {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--text-secondary);
     background: var(--ui-border-12);
@@ -1429,15 +1442,16 @@ async function handleSubmit() {
   }
 
   &__title {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
+    letter-spacing: 0.2px;
     color: var(--text-secondary);
   }
 
   &__desc {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--text-tertiary);
-    margin-top: 2px;
+    margin-top: 3px;
   }
 
   &--active {
@@ -1475,14 +1489,15 @@ async function handleSubmit() {
   }
 
   &__title {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
+    letter-spacing: 0.3px;
     color: var(--text-primary);
   }
 
   &__desc {
-    margin-top: 4px;
-    font-size: 13px;
+    margin-top: 5px;
+    font-size: 14px;
     color: var(--text-tertiary);
   }
 }
@@ -1527,15 +1542,16 @@ async function handleSubmit() {
   }
 
   &__title {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
+    letter-spacing: 0.2px;
     color: var(--text-primary);
   }
 
   &__desc {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-tertiary);
-    margin-top: 3px;
+    margin-top: 4px;
   }
 
   &__arrow {
@@ -1555,8 +1571,9 @@ async function handleSubmit() {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
+    letter-spacing: 0.3px;
     color: var(--text-primary);
     margin-bottom: 16px;
   }
@@ -1575,13 +1592,13 @@ async function handleSubmit() {
 
   &__label {
     width: 104px;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--text-secondary);
     flex-shrink: 0;
   }
 
   &__value {
-    font-size: 13px;
+    font-size: 15px;
     color: var(--text-primary);
   }
 }
@@ -1608,7 +1625,7 @@ async function handleSubmit() {
 
   &__name {
     flex: 1;
-    font-size: 13px;
+    font-size: 15px;
     color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1616,7 +1633,8 @@ async function handleSubmit() {
   }
 
   &__size {
-    font-size: 12px;
+    font-family: 'DIN', 'Consolas', monospace;
+    font-size: 13px;
     color: var(--text-tertiary);
   }
 }

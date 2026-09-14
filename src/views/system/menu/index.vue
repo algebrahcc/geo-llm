@@ -329,6 +329,10 @@ const statusOptions = [
     linear-gradient(180deg, var(--ui-page-1) 0%, var(--ui-page-2) 38%, var(--ui-page-3) 100%);
   color: var(--sys-text);
   box-sizing: border-box;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
+  letter-spacing: 0.2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 .toolbar {
   display: flex;
@@ -353,6 +357,8 @@ const statusOptions = [
   --n-node-text-color-hover: #fff;
   --n-node-color-active: var(--ui-border-89);
   --n-arrow-color: var(--ui-text-90);
+  --n-font-size: 15px;
+  letter-spacing: 0.2px;
   background: transparent;
 }
 
@@ -365,7 +371,7 @@ const statusOptions = [
   --n-border: 1px solid var(--ui-accent-3);
   --n-border-hover: 1px solid var(--ui-accent-23);
   --n-border-radius: 8px;
-  --n-font-size: 13px;
+  --n-font-size: 14px;
   --n-height: 36px;
   font-weight: 600;
 }

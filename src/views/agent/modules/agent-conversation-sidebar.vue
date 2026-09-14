@@ -179,7 +179,7 @@ async function submitRename() {
 
   &__loading {
     padding: 14px 12px;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--ui-text-96);
   }
 
@@ -200,7 +200,7 @@ async function submitRename() {
   align-items: flex-start;
   gap: 3px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -220,23 +220,25 @@ async function submitRename() {
 
   &__title {
     width: 100%;
-    padding-right: 22px;
-    font-size: 12px;
-    line-height: 1.4;
+    padding-right: 26px;
+    font-size: 14px;
+    line-height: 1.5;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   &__time {
-    font-size: 10px;
+    font-family: 'DIN', 'Consolas', monospace;
+    font-size: 12px;
+    letter-spacing: 0.3px;
     color: var(--ui-text-97);
   }
 
   &__actions {
     position: absolute;
-    top: 6px;
-    right: 6px;
+    top: 8px;
+    right: 8px;
     display: flex;
     gap: 2px;
     opacity: 0;
@@ -244,8 +246,8 @@ async function submitRename() {
   }
 
   &__action {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;

@@ -145,23 +145,25 @@ function handleSubmit() {
 }
 
 .step-panel__icon {
-  font-size: 22px;
+  font-size: 24px;
   color: var(--accent, var(--ui-accent-4));
   filter: drop-shadow(0 0 8px var(--ui-border-40));
   margin-top: 2px;
 }
 
 .step-panel__title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
+  letter-spacing: 0.3px;
   color: var(--ui-text-33);
   line-height: 1.3;
 }
 
 .step-panel__subtitle {
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--ui-text-45);
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .type-grid {
@@ -203,15 +205,16 @@ function handleSubmit() {
   }
 
   &__label {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
+    letter-spacing: 0.2px;
   }
 
   &__desc {
-    font-size: 11px;
-    line-height: 1.45;
+    font-size: 13px;
+    line-height: 1.5;
     color: var(--ui-text-46);
-    min-height: 32px;
+    min-height: 38px;
   }
 
   &__radio {

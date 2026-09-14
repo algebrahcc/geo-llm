@@ -365,7 +365,9 @@ onMounted(loadData);
 
   &__count {
     margin-left: auto;
-    font-size: 12px;
+    font-family: 'DIN', 'Consolas', monospace;
+    font-size: 14px;
+    letter-spacing: 0.3px;
     color: var(--ui-text-80);
   }
 }
@@ -408,35 +410,38 @@ onMounted(loadData);
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
+    letter-spacing: 0.2px;
     color: var(--ui-text-33);
   }
 
   &__meta {
     display: flex;
     gap: 14px;
-    margin-top: 4px;
-    font-size: 12px;
+    margin-top: 5px;
+    font-family: 'DIN', 'Consolas', monospace;
+    font-size: 13px;
+    letter-spacing: 0.2px;
     color: var(--ui-text-80);
     flex-wrap: wrap;
   }
 
   &__error {
-    margin-top: 4px;
-    font-size: 12px;
+    margin-top: 5px;
+    font-size: 13px;
     color: var(--ui-text-82);
   }
 
   &__arrow {
-    font-size: 20px;
+    font-size: 22px;
     color: var(--ui-text-97);
     transition: all 0.2s ease;
   }
 }
 
 .conv-icon {
-  font-size: 16px;
+  font-size: 18px;
   color: var(--ui-accent-141);
 }
 
@@ -447,14 +452,15 @@ onMounted(loadData);
 }
 
 .run-id {
-  font-family: monospace;
-  font-size: 12px;
+  font-family: 'DIN', 'Consolas', monospace;
+  font-size: 13px;
+  letter-spacing: 0.3px;
   color: var(--ui-text-96);
 }
 
 .status-badge {
-  font-size: 11px;
-  padding: 2px 8px;
+  font-size: 12px;
+  padding: 3px 9px;
   border-radius: 999px;
   border: 1px solid;
   flex-shrink: 0;

@@ -187,7 +187,8 @@ async function saveRetrieval() {
   color: var(--ui-text-33);
 }
 .section-desc {
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 1.7;
   color: var(--ui-text-85);
   margin-bottom: 12px;
 }
@@ -211,7 +212,7 @@ async function saveRetrieval() {
   gap: 8px;
 }
 .retrieval-label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ui-text-85);
 }
 .retrieval-select {
@@ -250,21 +251,23 @@ async function saveRetrieval() {
   min-width: 0;
 }
 .ds-item__icon {
-  font-size: 18px;
+  font-size: 20px;
   color: var(--ui-accent-4);
 }
 .ds-item__text {
   min-width: 0;
 }
 .ds-item__name {
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.2px;
 }
 .ds-item__sub {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: 5px;
+  font-size: 13px;
   color: var(--ui-text-93);
 }
 .ds-item__desc {

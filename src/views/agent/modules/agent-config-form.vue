@@ -111,7 +111,7 @@ function handleSubmit() {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--ui-text-46);
 }
 </style>

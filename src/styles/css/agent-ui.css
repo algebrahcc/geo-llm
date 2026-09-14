@@ -23,6 +23,26 @@
   --agent-glow: 0 0 18px var(--ui-accent-139);
 }
 
+/* ---------- 字体基线（对齐数据目录的文字规范） ---------- */
+:where(
+  .agent-page,
+  .agent-domain-page,
+  .task-detail-page,
+  .agent-config,
+  .agent-tools-page,
+  .agent-test-page,
+  .detail-shell,
+  .sidebar-panel,
+  .panel,
+  .panel-body,
+  .panel-surface
+) {
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
+  letter-spacing: 0.2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 /* ---------- 面板 ---------- */
 .agent-surface,
 .panel-surface {
@@ -102,13 +122,13 @@
 }
 
 .panel-head__icon {
-  font-size: 16px;
+  font-size: 18px;
   color: var(--agent-accent);
   filter: drop-shadow(0 0 5px var(--ui-accent-165));
 }
 
 .panel-head__title {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.5px;
   color: var(--agent-text);
@@ -133,8 +153,8 @@
 
 /* ---------- 区块说明 ---------- */
 .section-desc {
-  font-size: 11px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 20px;
   color: var(--agent-text-mute);
 }
 
@@ -154,17 +174,17 @@
 }
 
 .agent-empty__icon {
-  font-size: 30px;
+  font-size: 32px;
   color: var(--ui-accent-166);
   filter: drop-shadow(0 0 8px var(--ui-accent-167));
 }
 
 .agent-empty__hint {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--agent-text-mute);
   text-align: center;
-  max-width: 320px;
-  line-height: 20px;
+  max-width: 340px;
+  line-height: 22px;
 }
 
 /* ---------- 小卡片（列表项） ---------- */

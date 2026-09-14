@@ -241,7 +241,8 @@ function removeVar(index: number) {
   color: var(--ui-text-33);
 }
 .section-desc {
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 1.7;
   color: var(--ui-text-85);
   margin-bottom: 12px;
 }
@@ -260,8 +261,9 @@ function removeVar(index: number) {
   flex-wrap: wrap;
 }
 .field__label {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.2px;
   color: var(--ui-text-15);
 }
 .field__actions {
@@ -271,7 +273,8 @@ function removeVar(index: number) {
 }
 .field__hint {
   margin-top: 6px;
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.7;
   color: var(--ui-text-80);
 }
 .field__hint code {
@@ -283,8 +286,8 @@ function removeVar(index: number) {
   border: 1px solid var(--ui-accent-143);
   color: var(--ui-text-15);
   border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 12px;
+  padding: 3px 9px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -324,11 +327,11 @@ function removeVar(index: number) {
   min-width: 0;
 }
 .var-form-sub {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--ui-text-80);
 }
 .var-form-readonly {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ui-text-15);
   word-break: break-all;
   padding: 3px 0;

@@ -196,8 +196,8 @@ async function handleSubmit(model: {
 }
 
 .head-btn {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -205,7 +205,7 @@ async function handleSubmit(model: {
   border: 1px solid var(--agent-surface-border);
   background: var(--agent-accent-soft);
   color: var(--agent-text-dim);
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
   transition: all 0.2s ease;
 
@@ -238,12 +238,12 @@ async function handleSubmit(model: {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 7px 16px;
   border: 1px solid var(--ui-border-48);
   border-radius: 999px;
   background: var(--ui-surface-66);
   color: var(--agent-text-dim);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
 
@@ -261,8 +261,9 @@ async function handleSubmit(model: {
   }
 
   &__count {
-    font-size: 12px;
-    opacity: 0.7;
+    font-family: 'DIN', 'Consolas', monospace;
+    font-size: 13px;
+    opacity: 0.75;
   }
 }
 

@@ -165,20 +165,21 @@ async function handleSave() {
 }
 
 .metadata-row__name {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.2px;
   color: var(--text-primary, var(--ui-text-33));
 }
 
 .metadata-row__type {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .metadata-empty {
   display: block;
   text-align: center;
   padding: 18px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .editor-footer {

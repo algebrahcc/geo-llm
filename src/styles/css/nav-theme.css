@@ -46,7 +46,7 @@ html.dark .header-actions .n-button:hover {
    注意：横向菜单的文字/图标颜色必须使用 -horizontal 后缀变量，
    非后缀变量只对纵向菜单生效（曾因此导致选中项沿用深蓝主题色而看不清）。 */
 html.dark .n-menu--horizontal {
-  --n-font-size: 15px !important;
+  /* 字号统一由 themeOverrides.Menu.fontSize 与文件末尾「导航字号」规则管理，勿在此重复设置 */
   /* 未选中项：基础可读性 */
   --n-item-text-color-horizontal: rgba(226, 239, 255, 0.94) !important;
   --n-item-icon-color-horizontal: rgba(206, 228, 255, 0.9) !important;
@@ -78,7 +78,6 @@ html.dark .n-menu--horizontal {
 
 /* ---------- NaiveUI Vertical Menu (侧边导航) - Dark Theme Override ---------- */
 html.dark .n-menu:not(.n-menu--horizontal) {
-  --n-font-size: 15px !important;
   --n-item-text-color: rgba(226, 239, 255, 0.92) !important;
   --n-item-text-color-hover: #fff !important;
   --n-item-text-color-active: #4db8ff !important;
@@ -186,7 +185,6 @@ html.dark .n-dropdown-option-body--active {
 /* Dropdown item text */
 html.dark .n-dropdown-option-body__label {
   color: rgba(232, 243, 255, 0.95) !important;
-  font-size: 15px !important;
 }
 
 html.dark .n-dropdown-option-body:hover .n-dropdown-option-body__label {
@@ -244,7 +242,6 @@ html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content--selected {
 
 html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content .n-menu-item-content__text {
   color: rgba(232, 243, 255, 0.95) !important;
-  font-size: 15px !important;
 }
 
 html.dark .n-menu-item-group .n-menu-item-group .n-menu-item-content:hover .n-menu-item-content__text {
@@ -279,11 +276,29 @@ html.dark .n-menu--horizontal .n-submenu--active .n-menu-item-content .n-menu-it
 
 /* ---------- Breadcrumb（非横向布局时显示在顶栏） ---------- */
 html.dark .n-breadcrumb {
-  font-size: 15px;
   --n-item-text-color: rgba(226, 239, 255, 0.92);
   --n-item-text-color-hover: #4db8ff;
   --n-item-text-color-pressed: #4db8ff;
   --n-item-text-color-active: #f3f9ff;
   --n-item-color-hover: rgba(41, 182, 255, 0.1);
   --n-separator-color: rgba(206, 228, 255, 0.6);
+}
+
+/* ---------- 导航字号（浅色 / 深色唯一来源） ----------
+   主菜单字号由 themeOverrides.Menu.fontSize 提供；下拉与嵌套菜单项不吃该变量，
+   需在此显式声明；面包屑一并统一。请勿再在 html.dark 下重复设置字号，否则会因
+   特异度差异导致深浅主题不一致。 */
+html .n-menu {
+  --n-font-size: 16px !important;
+}
+
+html .n-menu .n-menu-item-content__text,
+html .n-menu-item-group .n-menu-item-group .n-menu-item-content .n-menu-item-content__text,
+html .n-dropdown-option-body__label {
+  font-size: 16px !important;
+  letter-spacing: 0.2px;
+}
+
+html .n-breadcrumb {
+  font-size: 15px;
 }

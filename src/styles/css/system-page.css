@@ -14,6 +14,10 @@
   padding: 20px 24px 24px;
   gap: 16px;
   box-sizing: border-box;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
+  letter-spacing: 0.2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ── 筛选工具栏：压平为分隔线，而非浮起卡片 ── */
@@ -61,20 +65,21 @@
 /* ============ NDataTable 深度覆盖（目录页风格） ============ */
 .sys-content-card .n-data-table {
   flex: 1;
-  --n-padding: 13px 16px;
+  --n-padding: 14px 16px;
   --n-border-color: rgb(var(--primary-color) / 0.14);
   --n-td-color-hover: rgb(var(--primary-color) / 0.08);
-  --n-font-size: 13px;
+  --n-font-size: 14px;
 }
 
 /* 表头：主题色浅渐变底 + 主题色强调下边框（替代默认灰） */
 .sys-content-card .n-data-table-thead .n-data-table-th {
   background: linear-gradient(180deg, rgb(var(--primary-color) / 0.1), rgb(var(--primary-color) / 0.04)) !important;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
+  letter-spacing: 0.2px;
   color: rgb(var(--base-text-color));
   border-bottom: 2px solid rgb(var(--primary-color)) !important;
-  padding: 13px 16px;
+  padding: 14px 16px;
 }
 
 /* 补齐左上/右上圆角（卡片不再 overflow:hidden，需手动圆角表头） */
@@ -88,7 +93,7 @@
 
 /* 单元格：舒适密度 + 极淡主题色分隔线 */
 .sys-content-card .n-data-table-td {
-  padding: 13px 16px;
+  padding: 14px 16px;
   border-bottom: 1px solid rgb(var(--primary-color) / 0.1) !important;
   color: rgb(var(--base-text-color) / 0.92);
 }
@@ -125,7 +130,7 @@
 }
 
 .sys-table-footer__total {
-  font-size: 12px;
+  font-size: 14px;
   color: rgb(var(--base-text-color) / 0.7);
 }
 
@@ -139,7 +144,7 @@
 
 .sys-content-card .sys-cell__icon {
   flex-shrink: 0;
-  font-size: 18px;
+  font-size: 20px;
   color: rgb(var(--primary-color));
   filter: drop-shadow(0 0 4px rgb(var(--primary-color) / 0.25));
 }
@@ -148,13 +153,14 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .sys-content-card .sys-cell__title {
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.4;
   font-weight: 600;
+  letter-spacing: 0.2px;
   color: rgb(var(--base-text-color));
   white-space: nowrap;
   overflow: hidden;
@@ -162,8 +168,8 @@
 }
 
 .sys-content-card .sys-cell__sub {
-  font-size: 11px;
-  color: rgb(var(--base-text-color) / 0.5);
+  font-size: 13px;
+  color: rgb(var(--base-text-color) / 0.55);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -174,11 +180,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 52px;
-  height: 22px;
-  padding: 0 10px;
+  min-width: 56px;
+  height: 24px;
+  padding: 0 11px;
   border-radius: 5px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
   font-weight: 500;
   border: 1px solid transparent;
@@ -213,10 +219,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 22px;
-  padding: 0 10px;
+  height: 24px;
+  padding: 0 11px;
   border-radius: 5px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
   background: rgb(var(--primary-color) / 0.12);
   border: 1px solid rgb(var(--primary-color) / 0.28);
@@ -232,8 +238,8 @@
 
 .sys-content-card .sys-action-btn {
   position: relative;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -257,7 +263,7 @@
 }
 
 .sys-content-card .sys-action-btn__svg {
-  font-size: 15px;
+  font-size: 17px;
   transition: transform 0.25s ease;
 }
 
@@ -296,8 +302,8 @@
   background: rgb(var(--primary-color) / 0.06);
   border-radius: 6px;
   font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-all;
   color: rgb(var(--base-text-color));
@@ -335,7 +341,8 @@ html.dark .sys-detail-card {
   padding-left: 12px;
   color: rgb(var(--base-text-color));
   font-weight: 600;
-  font-size: 15px;
+  font-size: 17px;
+  letter-spacing: 0.2px;
 }
 
 .n-modal.sys-modal .n-card-header__main::before {

@@ -128,7 +128,9 @@ async function handleSave() {
 }
 
 .editor-meta__len {
-  font-size: 12px;
+  font-family: 'DIN', 'Consolas', monospace;
+  font-size: 14px;
+  letter-spacing: 0.3px;
 }
 
 .editor-field {
@@ -144,7 +146,7 @@ async function handleSave() {
 }
 
 .editor-field__label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-tertiary, var(--ui-accent-123));
 }
 

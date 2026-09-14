@@ -90,8 +90,8 @@ const items = computed(() => props.agents ?? []);
 
 .header-create-btn {
   margin-left: auto;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -99,7 +99,7 @@ const items = computed(() => props.agents ?? []);
   border: 1px solid var(--ui-border-71);
   background: var(--ui-border-36);
   color: var(--ui-text-90);
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -130,7 +130,7 @@ const items = computed(() => props.agents ?? []);
 
 .agent-item {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
@@ -152,10 +152,11 @@ const items = computed(() => props.agents ?? []);
 }
 
 .agent-name {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
+  letter-spacing: 0.2px;
   color: var(--ui-text-76);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .agent-item--active .agent-name {
@@ -163,9 +164,9 @@ const items = computed(() => props.agents ?? []);
 }
 
 .agent-slogan {
-  margin-top: 4px;
-  font-size: 11px;
-  line-height: 16px;
+  margin-top: 5px;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--ui-text-45);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -178,14 +179,14 @@ const items = computed(() => props.agents ?? []);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--ui-text-88);
 }
 
 .agent-icon {
   display: flex;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   align-items: center;
   justify-content: center;
   border-radius: 4px;

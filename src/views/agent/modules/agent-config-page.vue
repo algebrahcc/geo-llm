@@ -663,7 +663,8 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
 }
 
 .section-desc {
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--ui-text-85);
 }
 
@@ -683,15 +684,16 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
   background: var(--ui-surface-66);
 
   &__title {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
+    letter-spacing: 0.2px;
     color: var(--ui-text-33);
   }
 
   &__desc {
-    margin-top: 2px;
-    font-size: 12px;
-    line-height: 1.5;
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 1.6;
     color: var(--ui-text-93);
   }
 }
@@ -710,18 +712,19 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
   gap: 6px;
   background: transparent;
   border: none;
-  padding: 8px 14px;
+  padding: 9px 15px;
   margin-bottom: -1px;
   color: var(--ui-text-93);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
+  letter-spacing: 0.2px;
   border-bottom: 2px solid transparent;
   transition:
     color 0.2s,
     border-color 0.2s;
 
   &__icon {
-    font-size: 16px;
+    font-size: 18px;
   }
 }
 
@@ -749,8 +752,8 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
   padding: 12px 14px;
   border: 1px dashed var(--ui-text-94);
   border-radius: 8px;
-  font-size: 13px;
-  line-height: 1.7;
+  font-size: 14px;
+  line-height: 1.8;
   color: var(--ui-text-95);
 }
 
@@ -768,7 +771,7 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
 .cfg-field__label {
   width: 120px;
   color: var(--ui-text-93);
-  font-size: 13px;
+  font-size: 15px;
 }
 .cfg-field--top {
   align-items: flex-start;
@@ -788,7 +791,7 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
   display: flex;
   gap: 16px;
   margin-bottom: 14px;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .kv-label {

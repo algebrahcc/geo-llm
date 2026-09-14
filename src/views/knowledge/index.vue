@@ -223,26 +223,9 @@ const columns = computed<DataTableColumns<KnowledgeDocument>>(() => [
     title: '文档名称',
     key: 'name',
     width: 280,
+    ellipsis: { tooltip: true },
     render(row) {
-      const isImage = row.format === 'IMAGE';
-      const icon = isImage ? 'mdi:image-outline' : 'mdi:file-document-outline';
-      const formatLabel = isImage ? '图片' : row.format;
-      return h('div', { class: 'doc-cell' }, [
-        h(SvgIcon, { icon, class: ['doc-cell__bullet', isImage ? 'doc-cell__bullet--image' : ''] }),
-        h('div', { class: 'doc-cell__content' }, [
-          h('div', { class: 'doc-cell__title' }, row.name),
-          h('div', { class: 'doc-cell__sub' }, row.summary),
-          h('div', { class: 'doc-cell__meta' }, [
-            h('span', formatLabel),
-            h('span', { class: 'meta-dot' }),
-            h('span', row.size),
-            h('span', { class: 'meta-dot' }),
-            h('span', `${row.chunkCount} 个${isImage ? '区域' : '分块'}`),
-            h('span', { class: 'meta-dot' }),
-            h('span', row.indexMode)
-          ])
-        ])
-      ]);
+      return h('span', { class: 'doc-cell__title' }, row.name);
     }
   },
   {
@@ -275,7 +258,7 @@ const columns = computed<DataTableColumns<KnowledgeDocument>>(() => [
     key: 'updatedAt',
     width: 140,
     render(row) {
-      return h('span', { class: 'row-text row-text--muted' }, row.updatedAt);
+      return h('span', { class: 'row-text row-text--muted row-text--mono' }, row.updatedAt);
     }
   },
   {
@@ -339,7 +322,7 @@ const dataTableThemeOverrides = {
   thTextColor: 'var(--ui-text-42)',
   tdTextColor: 'var(--ui-text-42)',
   borderRadius: '4px',
-  fontSize: '12px',
+  fontSize: '14px',
   thFontWeight: '600'
 };
 </script>
@@ -516,6 +499,10 @@ const dataTableThemeOverrides = {
   background: var(--knowledge-page-bg);
   color: var(--knowledge-text-primary);
   overflow: auto;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
+  letter-spacing: 0.2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .knowledge-page--dark {
@@ -665,16 +652,19 @@ const dataTableThemeOverrides = {
 }
 
 .stat-card__value {
-  font-size: 20px;
+  font-family: 'DIN', 'Consolas', monospace;
+  font-size: 22px;
   font-weight: 700;
   line-height: 1.2;
+  letter-spacing: 0.4px;
   color: var(--knowledge-text-primary);
   text-shadow: 0 0 10px var(--ui-border-7);
   white-space: nowrap;
 }
 
 .stat-card__label {
-  font-size: 11px;
+  font-size: 13px;
+  letter-spacing: 0.2px;
   color: var(--knowledge-text-tertiary);
   white-space: nowrap;
 }
@@ -694,7 +684,8 @@ const dataTableThemeOverrides = {
 }
 
 .batch-bar__count {
-  font-size: 12px;
+  font-size: 14px;
+  letter-spacing: 0.2px;
   color: var(--ui-text-78);
 }
 
@@ -742,14 +733,14 @@ const dataTableThemeOverrides = {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.3px;
   text-shadow: 0 0 8px var(--ui-border-12);
 }
 
 .card-head__title-icon {
-  font-size: 17px;
+  font-size: 19px;
   color: var(--knowledge-accent);
 }
 
@@ -758,16 +749,16 @@ const dataTableThemeOverrides = {
   align-items: center;
   gap: 14px;
   color: var(--knowledge-text-tertiary);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .card-head__meta .meta-status {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 1px 8px;
+  padding: 2px 9px;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .card-head__meta .meta-status .is-spin {
@@ -838,17 +829,19 @@ const dataTableThemeOverrides = {
   --n-th-text-color: var(--ui-text-42) !important;
   --n-td-text-color: var(--ui-text-42) !important;
   --n-th-font-weight: 600 !important;
-  --n-font-size: 12px !important;
+  --n-font-size: 14px !important;
 }
 
 .knowledge-table :deep(.n-data-table-th) {
   background: linear-gradient(180deg, var(--ui-surface-20) 0%, var(--ui-surface-21) 100%) !important;
-  font-size: 12px;
-  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 12px 14px;
 }
 
 .knowledge-table :deep(.n-data-table-td) {
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--ui-border-24) !important;
 }
 
@@ -861,75 +854,28 @@ const dataTableThemeOverrides = {
   border-spacing: 0;
 }
 
-/* Document cell */
-.doc-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.doc-cell__bullet {
-  flex-shrink: 0;
-  font-size: 18px;
-  color: var(--ui-accent-46);
-  filter: drop-shadow(0 0 4px var(--ui-accent-118));
-}
-
-.doc-cell__bullet--image {
-  color: var(--ui-accent-119);
-  filter: drop-shadow(0 0 4px var(--ui-accent-120));
-}
-
-.doc-cell__content {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
+/* Document cell：名称列仅展示名称文本 */
 .doc-cell__title {
   color: var(--knowledge-text-primary);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.4;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.doc-cell__sub {
-  color: var(--knowledge-text-tertiary);
-  font-size: 11px;
-  line-height: 1.4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.doc-cell__meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--ui-accent-121);
-  font-size: 10px;
-}
-
-.meta-dot {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--ui-border-113);
-  flex-shrink: 0;
+  letter-spacing: 0.2px;
 }
 
 .row-text {
   color: var(--knowledge-text-secondary);
-  font-size: 12px;
+  font-size: 14px;
+  letter-spacing: 0.2px;
 }
 
 .row-text--muted {
   color: var(--ui-text-84);
+}
+
+.row-text--mono {
+  font-family: 'DIN', 'Consolas', monospace;
+  letter-spacing: 0.4px;
 }
 
 /* Actions — icon-only circle buttons (inside NDataTable, use :deep) */
@@ -942,8 +888,8 @@ const dataTableThemeOverrides = {
 
 .knowledge-table :deep(.action-icon-btn) {
   position: relative;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -977,7 +923,7 @@ const dataTableThemeOverrides = {
   background: var(--ui-surface-22);
   border: 1px solid var(--ui-border-40);
   color: var(--ui-text-86);
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
@@ -993,7 +939,7 @@ const dataTableThemeOverrides = {
 }
 
 .knowledge-table :deep(.action-icon-btn__svg) {
-  font-size: 15px;
+  font-size: 17px;
   transition: transform 0.25s ease;
 }
 
@@ -1036,7 +982,8 @@ const dataTableThemeOverrides = {
   align-items: center;
   gap: 10px;
   color: var(--knowledge-text-secondary);
-  font-size: 12px;
+  font-size: 14px;
+  letter-spacing: 0.2px;
 }
 
 .table-footer__divider {
@@ -1057,12 +1004,12 @@ const dataTableThemeOverrides = {
   --n-item-border-hover: 1px solid var(--ui-accent-45) !important;
   --n-item-color-hover: var(--ui-surface-25) !important;
   --n-item-border-radius: 3px !important;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .table-footer :deep(.n-pagination .n-pagination-item) {
-  min-width: 28px;
-  height: 28px;
+  min-width: 32px;
+  height: 32px;
   border-radius: 3px;
 }
 
@@ -1077,7 +1024,7 @@ const dataTableThemeOverrides = {
   --n-color: var(--ui-surface-24) !important;
   --n-color-active: var(--ui-surface-24) !important;
   --n-text-color: var(--ui-text-42) !important;
-  height: 28px;
+  height: 32px;
   border-radius: 3px;
 }
 

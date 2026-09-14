@@ -504,6 +504,10 @@ onMounted(async () => {
   background: var(--page-bg);
   color: var(--text-primary);
   overflow: auto;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
+  letter-spacing: 0.2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .retrieval-page--dark {
@@ -579,13 +583,13 @@ onMounted(async () => {
 }
 
 .panel-head__icon {
-  font-size: 16px;
+  font-size: 18px;
   color: var(--accent);
   filter: drop-shadow(0 0 4px var(--ui-border-40));
 }
 
 .panel-head__title {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-shadow: 0 0 8px var(--ui-border-7);
@@ -596,14 +600,15 @@ onMounted(async () => {
 }
 
 .section-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
+  letter-spacing: 0.3px;
   color: var(--text-primary);
 }
 
 .section-desc {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-secondary);
 }
 
@@ -615,8 +620,9 @@ onMounted(async () => {
 }
 
 .card-title {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.2px;
   color: var(--text-primary);
 }
 
@@ -640,7 +646,7 @@ onMounted(async () => {
 }
 
 .result-item__icon {
-  font-size: 15px;
+  font-size: 17px;
   color: var(--accent);
   flex-shrink: 0;
 }
@@ -652,28 +658,29 @@ onMounted(async () => {
 }
 
 .match-card {
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: 4px;
   background: var(--ui-surface-76);
   border: 1px solid var(--ui-border-116);
 }
 
 .match-title {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
+  letter-spacing: 0.2px;
   color: var(--ui-accent-132);
 }
 
 .match-snippet {
   margin-top: 6px;
-  font-size: 12px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 22px;
   color: var(--text-secondary);
 }
 
 /* ── 检索模式提示 ── */
 .mode-hint {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--ui-text-88);
   font-style: italic;
 }
@@ -686,7 +693,7 @@ onMounted(async () => {
 }
 
 .param-label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ui-text-89);
   flex-shrink: 0;
 }
@@ -707,7 +714,7 @@ onMounted(async () => {
   padding: 0;
   border: none;
   background: none;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ui-text-90);
   cursor: pointer;
   transition: color 0.2s ease;
@@ -718,8 +725,8 @@ onMounted(async () => {
 }
 
 .filter-toggle__icon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .metadata-filter {
@@ -734,7 +741,7 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   margin-bottom: 8px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ui-text-89);
 }
 
@@ -753,9 +760,9 @@ onMounted(async () => {
 .module-badge {
   display: inline-flex;
   align-items: center;
-  padding: 1px 7px;
+  padding: 2px 8px;
   border-radius: 10px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.3px;
   border: 1px solid;
@@ -777,15 +784,16 @@ onMounted(async () => {
   min-width: 2px;
 }
 .similarity-text {
-  font-size: 11px;
+  font-family: 'DIN', 'Consolas', monospace;
+  font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  min-width: 32px;
+  min-width: 34px;
 }
 
 /* ── 召回方式徽章 ── */
 .method-tag {
-  font-size: 10px;
+  font-size: 12px;
   opacity: 0.85;
 }
 

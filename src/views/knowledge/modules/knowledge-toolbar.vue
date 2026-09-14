@@ -144,20 +144,20 @@ const emit = defineEmits<{
 
 .search-box__icon {
   position: absolute;
-  left: 12px;
-  font-size: 14px;
+  left: 13px;
+  font-size: 16px;
   color: var(--ui-accent-9);
 }
 
 .search-box__input {
   width: 100%;
-  height: 36px;
-  padding: 0 14px 0 38px;
+  height: 40px;
+  padding: 0 14px 0 40px;
   border: none;
   border-radius: 6px;
   background: transparent;
   color: var(--ui-text-33);
-  font-size: 13px;
+  font-size: 15px;
   outline: none;
   letter-spacing: 0.2px;
   font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
@@ -180,10 +180,12 @@ const emit = defineEmits<{
 }
 
 .filter-label {
-  height: 30px;
+  height: 32px;
   padding: 0 10px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
   color: var(--ui-text-42);
   white-space: nowrap;
   display: inline-flex;
@@ -191,12 +193,12 @@ const emit = defineEmits<{
 }
 
 .filter-select {
-  width: 110px;
+  width: 120px;
 }
 
 /* NSelect deep overrides */
 ::deep(.filter-select .n-base-selection) {
-  height: 30px;
+  height: 32px;
   border-radius: 4px;
   background: var(--ui-surface-34);
   border-color: var(--ui-border-69);
@@ -205,6 +207,7 @@ const emit = defineEmits<{
 
 ::deep(.filter-select .n-base-selection-label) {
   color: var(--ui-text-33);
+  font-size: 14px;
 }
 
 ::deep(.filter-select .n-base-selection-placeholder),
@@ -218,10 +221,10 @@ const emit = defineEmits<{
 
 /* NButton deep overrides — catalog-style dark buttons */
 :deep(.n-button) {
-  --n-height: 36px !important;
-  --n-padding: 0 18px !important;
-  --n-border-radius: 6px !important;
-  --n-font-size: 13px !important;
+  --n-height: 40px !important;
+  --n-padding: 0 20px !important;
+  --n-border-radius: 8px !important;
+  --n-font-size: 15px !important;
   --n-border: 1px solid var(--ui-accent-3) !important;
   --n-border-hover: 1px solid var(--ui-accent-44) !important;
   --n-border-pressed: 1px solid var(--ui-accent-3) !important;

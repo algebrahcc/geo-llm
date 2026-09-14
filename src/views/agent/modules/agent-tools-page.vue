@@ -553,7 +553,8 @@ async function handleDelete() {
   color: var(--ui-text-33);
 }
 .section-desc {
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 1.7;
   color: var(--ui-text-85);
   margin-bottom: 12px;
 }
@@ -595,8 +596,10 @@ async function handleDelete() {
 }
 
 .stat {
+  font-family: 'DIN', 'Consolas', monospace;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 16px;
+  letter-spacing: 0.3px;
   color: var(--ui-text-33);
 
   &--all {
@@ -609,7 +612,7 @@ async function handleDelete() {
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ui-text-80);
   margin-right: 6px;
 }
@@ -618,9 +621,9 @@ async function handleDelete() {
   appearance: none;
   border: none;
   background: transparent;
-  padding: 4px 12px;
+  padding: 5px 14px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ui-text-93);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -701,10 +704,10 @@ async function handleDelete() {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
-    font-size: 19px;
+    font-size: 20px;
     color: var(--ui-text-95);
     background: var(--ui-border-7);
     border: 1px solid var(--ui-border-50);
@@ -724,8 +727,9 @@ async function handleDelete() {
   }
 
   &__name {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
+    letter-spacing: 0.2px;
     color: var(--ui-text-33);
     white-space: nowrap;
     overflow: hidden;
@@ -733,15 +737,15 @@ async function handleDelete() {
   }
 
   &__desc {
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: 13px;
+    line-height: 1.6;
     color: var(--ui-text-104);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    min-height: 36px;
+    min-height: 40px;
   }
 
   &__tags {
@@ -786,7 +790,8 @@ async function handleDelete() {
 
 .mcp-modal__hint {
   margin-top: 10px;
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.6;
   color: var(--text-tertiary);
 }
 
@@ -794,7 +799,7 @@ async function handleDelete() {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ui-accent-50);
 
   .dot {

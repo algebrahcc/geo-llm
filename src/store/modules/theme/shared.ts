@@ -260,8 +260,8 @@ export function getNaiveTheme(
     },
     Menu: {
       borderRadius: '4px',
-      /** 导航字号：默认 14px 偏小，统一放大到 15px（横向顶栏 / 侧边菜单 / 子菜单一致） */
-      fontSize: '15px',
+      /** 导航字号：默认 14px 偏小，统一放大到 16px（横向顶栏 / 侧边菜单 / 子菜单一致） */
+      fontSize: '16px',
       /** 菜单项高度：默认 42px，放大到 44px 提升点击区域 */
       itemHeight: '44px',
       itemTextColorHoverHorizontal: 'rgba(175, 208, 245, 0.9)',

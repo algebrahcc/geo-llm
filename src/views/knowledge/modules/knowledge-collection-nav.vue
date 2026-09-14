@@ -62,6 +62,8 @@ const emit = defineEmits<{
   display: flex;
   flex-direction: column;
   height: 100%;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
+  letter-spacing: 0.2px;
 }
 
 .nav-panel__header {
@@ -88,14 +90,14 @@ const emit = defineEmits<{
 }
 
 .nav-panel__header-icon {
-  font-size: 16px;
+  font-size: 18px;
   color: var(--ui-accent-4);
   filter: drop-shadow(0 0 4px var(--ui-border-40));
 }
 
 .nav-panel__header-title {
   margin-left: 8px;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.5px;
   color: var(--ui-text-33);
@@ -123,12 +125,12 @@ const emit = defineEmits<{
 }
 
 .nav-group-title {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--ui-accent-4);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  opacity: 0.8;
+  opacity: 0.85;
   padding: 0 4px;
 }
 
@@ -136,7 +138,7 @@ const emit = defineEmits<{
   width: 100%;
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 8px 10px;
+  padding: 12px 14px;
   text-align: left;
   background: transparent;
   cursor: pointer;
@@ -164,8 +166,8 @@ const emit = defineEmits<{
 .nav-item--active::after {
   content: '';
   position: absolute;
-  right: 8px;
-  top: 11px;
+  right: 12px;
+  top: 16px;
   width: 6px;
   height: 6px;
   border-radius: 999px;
@@ -181,10 +183,11 @@ const emit = defineEmits<{
 }
 
 .nav-item__label {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
+  letter-spacing: 0.2px;
   color: var(--ui-text-76);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .nav-item--active .nav-item__label {
@@ -192,24 +195,25 @@ const emit = defineEmits<{
 }
 
 .nav-item__count {
-  min-width: 24px;
-  height: 18px;
-  padding: 0 6px;
+  min-width: 30px;
+  height: 22px;
+  padding: 0 8px;
   border-radius: 3px;
   background: var(--ui-border-7);
   border: 1px solid var(--ui-border-39);
   color: var(--ui-text-76);
   text-align: center;
-  font-size: 10px;
+  font-family: 'DIN', 'Consolas', monospace;
+  font-size: 13px;
   font-weight: 600;
-  line-height: 18px;
+  line-height: 22px;
   font-variant-numeric: tabular-nums;
 }
 
 .nav-item__desc {
-  margin-top: 3px;
-  font-size: 11px;
+  margin-top: 5px;
+  font-size: 14px;
   color: var(--ui-text-45);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 </style>

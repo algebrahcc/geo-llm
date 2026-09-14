@@ -424,11 +424,11 @@ const statusOptions = [
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 52px;
-  height: 22px;
-  padding: 0 8px;
+  min-width: 56px;
+  height: 24px;
+  padding: 0 11px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
   font-weight: 500;
   &--success {
@@ -466,18 +466,19 @@ const statusOptions = [
   }
   &__title {
     color: var(--sys-text);
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
+    letter-spacing: 0.2px;
   }
   &__sub {
     color: var(--sys-text3);
-    font-size: 11px;
+    font-size: 13px;
   }
 }
 
 .sys-action-btn {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -509,7 +510,7 @@ const statusOptions = [
     box-shadow: 0 4px 12px var(--ui-accent-40);
   }
   &__svg {
-    font-size: 16px;
+    font-size: 18px;
   }
 }
 
@@ -521,11 +522,12 @@ const statusOptions = [
   --n-th-text-color: var(--ui-text-42) !important;
   --n-td-text-color: var(--ui-text-42) !important;
   --n-th-font-weight: 600 !important;
-  --n-font-size: 13px !important;
+  --n-font-size: 14px !important;
 }
 .sys-table :deep(.n-data-table-th) {
   background: linear-gradient(180deg, var(--ui-surface-20) 0%, var(--ui-surface-21) 100%) !important;
-  font-size: 13px;
+  font-size: 14px;
+  letter-spacing: 0.2px;
   padding: 14px 12px;
 }
 .sys-table :deep(.n-data-table-td) {
@@ -569,7 +571,7 @@ const statusOptions = [
   --n-border: 1px solid var(--ui-accent-3);
   --n-border-hover: 1px solid var(--ui-accent-23);
   --n-border-radius: 8px;
-  --n-font-size: 13px;
+  --n-font-size: 14px;
   --n-height: 36px;
   font-weight: 600;
 }
@@ -660,7 +662,7 @@ const statusOptions = [
   --n-border: 1px solid var(--ui-border-20);
   --n-border-hover: 1px solid var(--ui-accent-10);
   --n-border-radius: 8px;
-  --n-font-size: 13px;
+  --n-font-size: 14px;
   --n-height: 36px;
 }
 </style>
