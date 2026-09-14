@@ -184,15 +184,15 @@ async function saveRetrieval() {
 
 <style scoped lang="scss">
 .ds-binding {
-  color: #eaf5ff;
+  color: var(--ui-text-33);
 }
 .section-desc {
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.65);
+  color: var(--ui-text-85);
   margin-bottom: 12px;
 }
 .section-desc.warn {
-  color: #ffce8a;
+  color: var(--ui-text-100);
 }
 .retrieval-bar {
   display: flex;
@@ -201,9 +201,9 @@ async function saveRetrieval() {
   flex-wrap: wrap;
   padding: 10px 12px;
   margin-bottom: 12px;
-  border: 1px solid rgba(25, 95, 176, 0.35);
+  border: 1px solid var(--ui-border-4);
   border-radius: 6px;
-  background: rgba(7, 28, 52, 0.4);
+  background: var(--ui-surface-71);
 }
 .retrieval-field {
   display: flex;
@@ -212,7 +212,7 @@ async function saveRetrieval() {
 }
 .retrieval-label {
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.65);
+  color: var(--ui-text-85);
 }
 .retrieval-select {
   width: 180px;
@@ -239,9 +239,9 @@ async function saveRetrieval() {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid rgba(25, 95, 176, 0.35);
+  border: 1px solid var(--ui-border-4);
   border-radius: 4px;
-  background: rgba(7, 28, 52, 0.5);
+  background: var(--ui-surface-80);
 }
 .ds-item__main {
   display: flex;
@@ -251,7 +251,7 @@ async function saveRetrieval() {
 }
 .ds-item__icon {
   font-size: 18px;
-  color: #29a3ff;
+  color: var(--ui-accent-4);
 }
 .ds-item__text {
   min-width: 0;
@@ -265,7 +265,7 @@ async function saveRetrieval() {
   gap: 8px;
   margin-top: 4px;
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.6);
+  color: var(--ui-text-93);
 }
 .ds-item__desc {
   overflow: hidden;

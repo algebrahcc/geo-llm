@@ -145,7 +145,7 @@ async function handleSave() {
 
 .editor-field__label {
   font-size: 12px;
-  color: var(--text-tertiary, #8aa3c0);
+  color: var(--text-tertiary, var(--ui-accent-123));
 }
 
 .editor-footer {

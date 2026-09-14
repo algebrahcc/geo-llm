@@ -42,7 +42,12 @@ function openGlobe() {
 
 <template>
   <DarkModeContainer class="h-full flex-y-center px-12px shadow-header header-bar">
-    <GlobalLogo v-if="showLogo" class="h-full" :style="{ width: themeStore.sider.width + 'px' }" />
+    <!-- 系统名称宽度按内容自适应（至少与侧边栏宽度一致），避免字号放大后被截断 -->
+    <GlobalLogo
+      v-if="showLogo"
+      class="h-full shrink-0"
+      :style="{ width: 'auto', minWidth: themeStore.sider.width + 'px' }"
+    />
     <MenuToggler v-if="showMenuToggler" :collapsed="appStore.siderCollapse" @click="appStore.toggleSiderCollapse" />
     <div v-if="showMenu" :id="GLOBAL_HEADER_MENU_ID" class="h-full flex-y-center flex-1-hidden"></div>
     <div v-else class="h-full flex-y-center flex-1-hidden">

@@ -90,7 +90,7 @@ function handleSubmit() {
           </NFormItem>
           <NFormItem label="状态">
             <NSwitch :value="form.status === 1" @update:value="value => (form.status = value ? 1 : 2)" />
-            <span class="ml-10px text-12px text-[rgba(147,196,255,0.55)]">{{ statusLabel }}</span>
+            <span class="ml-10px text-12px text-[var(--agent-text-mute)]">{{ statusLabel }}</span>
           </NFormItem>
         </div>
         <NFormItem label="应用描述" class="mt-10px">
@@ -112,6 +112,6 @@ function handleSubmit() {
   align-items: center;
   flex-wrap: wrap;
   font-size: 11px;
-  color: rgba(147, 196, 255, 0.55);
+  color: var(--ui-text-46);
 }
 </style>

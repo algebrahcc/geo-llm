@@ -95,12 +95,37 @@ const stats = computed(() => [
     label: '文档总数',
     value: statTotal.value,
     icon: 'mdi:file-document-multiple-outline',
-    accent: '#29a3ff'
+    accent: 'var(--ui-sem-blue)'
   },
-  { key: 'chunks', label: '分块总数', value: statChunks.value, icon: 'mdi:view-grid-outline', accent: '#62e4ff' },
-  { key: 'ready', label: '已完成', value: statReady.value, icon: 'mdi:check-circle-outline', accent: '#34d399' },
-  { key: 'indexing', label: '处理中', value: statIndexing.value, icon: 'mdi:loading', accent: '#fbbf24', spin: true },
-  { key: 'images', label: '图片文档', value: statImages.value, icon: 'mdi:image-outline', accent: '#a78bfa' }
+  {
+    key: 'chunks',
+    label: '分块总数',
+    value: statChunks.value,
+    icon: 'mdi:view-grid-outline',
+    accent: 'var(--ui-sem-cyan)'
+  },
+  {
+    key: 'ready',
+    label: '已完成',
+    value: statReady.value,
+    icon: 'mdi:check-circle-outline',
+    accent: 'var(--ui-sem-green)'
+  },
+  {
+    key: 'indexing',
+    label: '处理中',
+    value: statIndexing.value,
+    icon: 'mdi:loading',
+    accent: 'var(--ui-sem-amber)',
+    spin: true
+  },
+  {
+    key: 'images',
+    label: '图片文档',
+    value: statImages.value,
+    icon: 'mdi:image-outline',
+    accent: 'var(--ui-sem-violet)'
+  }
 ]);
 
 // ====== 批量操作 ======
@@ -305,13 +330,14 @@ const columns = computed<DataTableColumns<KnowledgeDocument>>(() => [
 
 // ====== NDataTable theme overrides ======
 const dataTableThemeOverrides = {
-  thColor: 'rgba(6, 29, 56, 0.94)',
-  thColorHover: 'rgba(10, 38, 72, 0.96)',
+  // 颜色走 ui-palette 变量，浅色模式下表格自动跟随
+  thColor: 'var(--ui-surface-20)',
+  thColorHover: 'var(--ui-surface-4)',
   tdColor: 'transparent',
-  tdColorHover: 'rgba(33, 116, 212, 0.14)',
-  borderColor: 'rgba(25, 95, 176, 0.35)',
-  thTextColor: 'rgba(203, 227, 255, 0.72)',
-  tdTextColor: 'rgba(203, 227, 255, 0.72)',
+  tdColorHover: 'var(--ui-border-23)',
+  borderColor: 'var(--ui-border-4)',
+  thTextColor: 'var(--ui-text-42)',
+  tdTextColor: 'var(--ui-text-42)',
   borderRadius: '4px',
   fontSize: '12px',
   thFontWeight: '600'
@@ -471,20 +497,20 @@ const dataTableThemeOverrides = {
 <style scoped lang="scss">
 .knowledge-page {
   --knowledge-page-bg:
-    radial-gradient(circle at top, rgba(0, 153, 255, 0.14) 0%, rgba(0, 0, 0, 0) 36%),
-    linear-gradient(180deg, #041528 0%, #041120 38%, #03101b 100%);
-  --knowledge-surface-bg: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
-  --knowledge-surface-border: rgba(43, 131, 255, 0.28);
-  --knowledge-strong-border: rgba(38, 142, 255, 0.4);
-  --knowledge-line: rgba(25, 95, 176, 0.35);
-  --knowledge-text-primary: #eaf5ff;
-  --knowledge-text-secondary: rgba(203, 227, 255, 0.72);
-  --knowledge-text-tertiary: rgba(147, 196, 255, 0.62);
-  --knowledge-input-bg: rgba(2, 18, 36, 0.92);
-  --knowledge-input-border: rgba(35, 111, 196, 0.4);
-  --knowledge-glow: 0 0 0 1px rgba(32, 111, 202, 0.22), 0 18px 40px rgba(1, 8, 18, 0.45);
-  --knowledge-accent: #29a3ff;
-  --knowledge-danger: #ff6b6b;
+    radial-gradient(circle at top, var(--ui-border-1) 0%, rgba(0, 0, 0, 0) 36%),
+    linear-gradient(180deg, var(--ui-page-1) 0%, var(--ui-page-2) 38%, var(--ui-page-3) 100%);
+  --knowledge-surface-bg: linear-gradient(180deg, var(--ui-surface-1) 0%, var(--ui-surface-2) 100%);
+  --knowledge-surface-border: var(--ui-border-2);
+  --knowledge-strong-border: var(--ui-border-3);
+  --knowledge-line: var(--ui-border-4);
+  --knowledge-text-primary: var(--ui-text-33);
+  --knowledge-text-secondary: var(--ui-text-42);
+  --knowledge-text-tertiary: var(--ui-text-41);
+  --knowledge-input-bg: var(--ui-surface-3);
+  --knowledge-input-border: var(--ui-border-5);
+  --knowledge-glow: 0 0 0 1px var(--ui-border-6), 0 18px 40px var(--ui-shadow-1);
+  --knowledge-accent: var(--ui-accent-4);
+  --knowledge-danger: var(--ui-accent-5);
 
   height: 100%;
   background: var(--knowledge-page-bg);
@@ -624,7 +650,7 @@ const dataTableThemeOverrides = {
 .stat-card__icon {
   flex-shrink: 0;
   font-size: 22px;
-  filter: drop-shadow(0 0 6px rgba(41, 163, 255, 0.25));
+  filter: drop-shadow(0 0 6px var(--ui-border-40));
 }
 
 .stat-card__icon.is-spin {
@@ -643,7 +669,7 @@ const dataTableThemeOverrides = {
   font-weight: 700;
   line-height: 1.2;
   color: var(--knowledge-text-primary);
-  text-shadow: 0 0 10px rgba(41, 163, 255, 0.12);
+  text-shadow: 0 0 10px var(--ui-border-7);
   white-space: nowrap;
 }
 
@@ -660,16 +686,16 @@ const dataTableThemeOverrides = {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 14px;
-  border: 1px solid rgba(41, 163, 255, 0.35);
+  border: 1px solid var(--ui-border-38);
   border-radius: 4px;
-  background: linear-gradient(180deg, rgba(10, 45, 88, 0.6) 0%, rgba(6, 32, 64, 0.7) 100%);
-  box-shadow: 0 0 12px rgba(41, 163, 255, 0.12);
+  background: linear-gradient(180deg, var(--ui-surface-73) 0%, var(--ui-surface-74) 100%);
+  box-shadow: 0 0 12px var(--ui-border-7);
   margin-bottom: 10px;
 }
 
 .batch-bar__count {
   font-size: 12px;
-  color: #8cc8ff;
+  color: var(--ui-text-78);
 }
 
 .batch-bar__actions {
@@ -695,7 +721,7 @@ const dataTableThemeOverrides = {
   gap: 12px;
   padding: 12px 14px;
   border-bottom: 1px solid var(--knowledge-line);
-  background: linear-gradient(180deg, rgba(7, 27, 51, 0.94) 0%, rgba(4, 20, 40, 0.96) 100%);
+  background: linear-gradient(180deg, var(--ui-surface-18) 0%, var(--ui-surface-19) 100%);
   position: relative;
 }
 
@@ -719,7 +745,7 @@ const dataTableThemeOverrides = {
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.3px;
-  text-shadow: 0 0 8px rgba(41, 163, 255, 0.1);
+  text-shadow: 0 0 8px var(--ui-border-12);
 }
 
 .card-head__title-icon {
@@ -755,15 +781,15 @@ const dataTableThemeOverrides = {
 }
 
 .meta-status--error {
-  background: rgba(255, 107, 107, 0.12);
-  border: 1px solid rgba(255, 107, 107, 0.3);
-  color: #ff8d8d;
+  background: var(--ui-accent-37);
+  border: 1px solid var(--ui-accent-70);
+  color: var(--ui-text-83);
 }
 
 .meta-status--loading {
-  background: rgba(41, 163, 255, 0.1);
-  border: 1px solid rgba(41, 163, 255, 0.25);
-  color: #8cc8ff;
+  background: var(--ui-border-12);
+  border: 1px solid var(--ui-border-40);
+  color: var(--ui-text-78);
 }
 
 .meta-refresh {
@@ -773,16 +799,16 @@ const dataTableThemeOverrides = {
   width: 24px;
   height: 24px;
   border-radius: 4px;
-  border: 1px solid rgba(41, 163, 255, 0.25);
-  background: rgba(41, 163, 255, 0.08);
-  color: #8cc8ff;
+  border: 1px solid var(--ui-border-40);
+  background: var(--ui-border-36);
+  color: var(--ui-text-78);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .meta-refresh:hover:not(:disabled) {
-  background: rgba(41, 163, 255, 0.16);
-  color: #29a3ff;
+  background: var(--ui-border-51);
+  color: var(--ui-accent-4);
 }
 
 .meta-refresh:disabled {
@@ -805,29 +831,29 @@ const dataTableThemeOverrides = {
 /* ====== NDataTable deep overrides ====== */
 .knowledge-table {
   flex: 1;
-  --n-th-color: rgba(6, 29, 56, 0.94) !important;
+  --n-th-color: var(--ui-surface-20) !important;
   --n-td-color: transparent !important;
-  --n-td-color-hover: rgba(33, 116, 212, 0.14) !important;
-  --n-border-color: rgba(25, 95, 176, 0.35) !important;
-  --n-th-text-color: rgba(203, 227, 255, 0.72) !important;
-  --n-td-text-color: rgba(203, 227, 255, 0.72) !important;
+  --n-td-color-hover: var(--ui-border-23) !important;
+  --n-border-color: var(--ui-border-4) !important;
+  --n-th-text-color: var(--ui-text-42) !important;
+  --n-td-text-color: var(--ui-text-42) !important;
   --n-th-font-weight: 600 !important;
   --n-font-size: 12px !important;
 }
 
 .knowledge-table :deep(.n-data-table-th) {
-  background: linear-gradient(180deg, rgba(6, 29, 56, 0.94) 0%, rgba(4, 22, 43, 0.94) 100%) !important;
+  background: linear-gradient(180deg, var(--ui-surface-20) 0%, var(--ui-surface-21) 100%) !important;
   font-size: 12px;
   padding: 10px 12px;
 }
 
 .knowledge-table :deep(.n-data-table-td) {
   padding: 10px 12px;
-  border-bottom: 1px solid rgba(18, 73, 135, 0.32) !important;
+  border-bottom: 1px solid var(--ui-border-24) !important;
 }
 
 .knowledge-table :deep(.n-data-table-tr:hover .n-data-table-td) {
-  background: rgba(33, 116, 212, 0.14) !important;
+  background: var(--ui-border-23) !important;
 }
 
 .knowledge-table :deep(.n-data-table-table) {
@@ -846,13 +872,13 @@ const dataTableThemeOverrides = {
 .doc-cell__bullet {
   flex-shrink: 0;
   font-size: 18px;
-  color: #62c4ff;
-  filter: drop-shadow(0 0 4px rgba(98, 196, 255, 0.25));
+  color: var(--ui-accent-46);
+  filter: drop-shadow(0 0 4px var(--ui-accent-118));
 }
 
 .doc-cell__bullet--image {
-  color: #62e4ff;
-  filter: drop-shadow(0 0 4px rgba(98, 228, 255, 0.3));
+  color: var(--ui-accent-119);
+  filter: drop-shadow(0 0 4px var(--ui-accent-120));
 }
 
 .doc-cell__content {
@@ -885,7 +911,7 @@ const dataTableThemeOverrides = {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: rgba(135, 178, 230, 0.5);
+  color: var(--ui-accent-121);
   font-size: 10px;
 }
 
@@ -893,7 +919,7 @@ const dataTableThemeOverrides = {
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: rgba(36, 112, 196, 0.4);
+  background: var(--ui-border-113);
   flex-shrink: 0;
 }
 
@@ -903,7 +929,7 @@ const dataTableThemeOverrides = {
 }
 
 .row-text--muted {
-  color: rgba(160, 198, 241, 0.74);
+  color: var(--ui-text-84);
 }
 
 /* Actions — icon-only circle buttons (inside NDataTable, use :deep) */
@@ -922,9 +948,9 @@ const dataTableThemeOverrides = {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(41, 163, 255, 0.06);
-  border: 1px solid rgba(41, 163, 255, 0.12);
-  color: rgba(203, 227, 255, 0.65);
+  background: var(--ui-border-45);
+  border: 1px solid var(--ui-border-7);
+  color: var(--ui-text-85);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
@@ -932,11 +958,11 @@ const dataTableThemeOverrides = {
 }
 
 .knowledge-table :deep(.action-icon-btn:hover) {
-  color: #fff;
-  background: rgba(41, 163, 255, 0.18);
-  border-color: rgba(41, 163, 255, 0.35);
+  color: var(--ui-text-1);
+  background: var(--ui-border-37);
+  border-color: var(--ui-border-38);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(41, 163, 255, 0.2);
+  box-shadow: 0 4px 12px var(--ui-border-39);
 }
 
 /* tooltip on hover */
@@ -948,9 +974,9 @@ const dataTableThemeOverrides = {
   transform: translateX(-50%) translateY(4px);
   padding: 3px 8px;
   border-radius: 4px;
-  background: rgba(6, 29, 56, 0.95);
-  border: 1px solid rgba(41, 163, 255, 0.25);
-  color: rgba(203, 227, 255, 0.9);
+  background: var(--ui-surface-22);
+  border: 1px solid var(--ui-border-40);
+  color: var(--ui-text-86);
   font-size: 11px;
   white-space: nowrap;
   pointer-events: none;
@@ -977,20 +1003,20 @@ const dataTableThemeOverrides = {
 
 /* Danger variant */
 .knowledge-table :deep(.action-icon-btn--danger) {
-  background: rgba(255, 107, 107, 0.05);
-  border-color: rgba(255, 107, 107, 0.12);
-  color: rgba(255, 141, 141, 0.7);
+  background: var(--ui-accent-36);
+  border-color: var(--ui-accent-37);
+  color: var(--ui-text-31);
 }
 
 .knowledge-table :deep(.action-icon-btn--danger:hover) {
-  color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.15);
-  border-color: rgba(255, 107, 107, 0.35);
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.18);
+  color: var(--ui-accent-5);
+  background: var(--ui-accent-38);
+  border-color: var(--ui-accent-39);
+  box-shadow: 0 4px 12px var(--ui-accent-40);
 }
 
 .knowledge-table :deep(.action-icon-btn--danger:hover::after) {
-  border-color: rgba(255, 107, 107, 0.25);
+  border-color: var(--ui-accent-41);
 }
 
 /* ====== Table Footer ====== */
@@ -1002,7 +1028,7 @@ const dataTableThemeOverrides = {
   justify-content: space-between;
   gap: 12px;
   border-top: 1px solid var(--knowledge-line);
-  background: linear-gradient(180deg, rgba(4, 21, 41, 0.98) 0%, rgba(4, 18, 34, 0.98) 100%);
+  background: linear-gradient(180deg, var(--ui-surface-7) 0%, var(--ui-surface-23) 100%);
 }
 
 .table-footer__summary {
@@ -1016,20 +1042,20 @@ const dataTableThemeOverrides = {
 .table-footer__divider {
   width: 1px;
   height: 10px;
-  background: linear-gradient(180deg, transparent, rgba(70, 122, 190, 0.45), transparent);
+  background: linear-gradient(180deg, transparent, var(--ui-border-41), transparent);
 }
 
 /* NPagination deep overrides */
 .table-footer :deep(.n-pagination) {
-  --n-item-text-color: rgba(203, 227, 255, 0.72) !important;
-  --n-item-text-color-hover: #fff !important;
-  --n-item-text-color-active: #fff !important;
-  --n-item-color-active: linear-gradient(180deg, rgba(17, 100, 206, 0.64) 0%, rgba(8, 66, 138, 0.64) 100%) !important;
-  --n-item-border-active: 1px solid rgba(70, 176, 255, 0.5) !important;
-  --n-item-color: rgba(6, 25, 50, 0.82) !important;
-  --n-item-border: 1px solid rgba(45, 111, 183, 0.34) !important;
-  --n-item-border-hover: 1px solid rgba(70, 176, 255, 0.4) !important;
-  --n-item-color-hover: rgba(10, 40, 80, 0.9) !important;
+  --n-item-text-color: var(--ui-text-42) !important;
+  --n-item-text-color-hover: var(--ui-text-1) !important;
+  --n-item-text-color-active: var(--ui-text-1) !important;
+  --n-item-color-active: linear-gradient(180deg, var(--ui-accent-42) 0%, var(--ui-accent-43) 100%) !important;
+  --n-item-border-active: 1px solid var(--ui-accent-44) !important;
+  --n-item-color: var(--ui-surface-24) !important;
+  --n-item-border: 1px solid var(--ui-border-42) !important;
+  --n-item-border-hover: 1px solid var(--ui-accent-45) !important;
+  --n-item-color-hover: var(--ui-surface-25) !important;
   --n-item-border-radius: 3px !important;
   font-size: 12px;
 }
@@ -1041,16 +1067,16 @@ const dataTableThemeOverrides = {
 }
 
 .table-footer :deep(.n-pagination .n-pagination-item--active) {
-  box-shadow: 0 0 6px rgba(41, 163, 255, 0.2);
+  box-shadow: 0 0 6px var(--ui-border-39);
 }
 
 .table-footer :deep(.n-pagination-size-picker .n-base-selection) {
-  --n-border: 1px solid rgba(45, 111, 183, 0.34) !important;
-  --n-border-hover: 1px solid rgba(70, 176, 255, 0.4) !important;
-  --n-border-active: 1px solid rgba(70, 176, 255, 0.5) !important;
-  --n-color: rgba(6, 25, 50, 0.82) !important;
-  --n-color-active: rgba(6, 25, 50, 0.82) !important;
-  --n-text-color: rgba(203, 227, 255, 0.72) !important;
+  --n-border: 1px solid var(--ui-border-42) !important;
+  --n-border-hover: 1px solid var(--ui-accent-45) !important;
+  --n-border-active: 1px solid var(--ui-accent-44) !important;
+  --n-color: var(--ui-surface-24) !important;
+  --n-color-active: var(--ui-surface-24) !important;
+  --n-text-color: var(--ui-text-42) !important;
   height: 28px;
   border-radius: 3px;
 }
@@ -1063,11 +1089,11 @@ const dataTableThemeOverrides = {
 
 .knowledge-table :deep(.n-data-table-base-table-body::-webkit-scrollbar-thumb) {
   border-radius: 999px;
-  background: rgba(48, 127, 212, 0.58);
+  background: var(--ui-accent-68);
 }
 
 .knowledge-table :deep(.n-data-table-base-table-body::-webkit-scrollbar-track) {
-  background: rgba(4, 20, 40, 0.45);
+  background: var(--ui-surface-35);
 }
 
 .knowledge-page::-webkit-scrollbar {
@@ -1076,7 +1102,7 @@ const dataTableThemeOverrides = {
 
 .knowledge-page::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(48, 127, 212, 0.45);
+  background: var(--ui-border-47);
 }
 
 .knowledge-page::-webkit-scrollbar-track {

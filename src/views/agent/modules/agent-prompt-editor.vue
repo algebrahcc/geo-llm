@@ -238,15 +238,15 @@ function removeVar(index: number) {
 
 <style scoped lang="scss">
 .prompt-editor {
-  color: #eaf5ff;
+  color: var(--ui-text-33);
 }
 .section-desc {
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.65);
+  color: var(--ui-text-85);
   margin-bottom: 12px;
 }
 .section-desc.warn {
-  color: #ffce8a;
+  color: var(--ui-text-100);
 }
 .field {
   margin-bottom: 16px;
@@ -262,7 +262,7 @@ function removeVar(index: number) {
 .field__label {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(203, 227, 255, 0.85);
+  color: var(--ui-text-15);
 }
 .field__actions {
   display: flex;
@@ -272,16 +272,16 @@ function removeVar(index: number) {
 .field__hint {
   margin-top: 6px;
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.5);
+  color: var(--ui-text-80);
 }
 .field__hint code {
-  color: var(--agent-accent, #34a8ff);
+  color: var(--agent-accent, var(--ui-accent-142));
 }
 .var-insert-btn {
   appearance: none;
-  background: rgba(25, 95, 176, 0.18);
-  border: 1px solid rgba(61, 166, 255, 0.3);
-  color: rgba(203, 227, 255, 0.85);
+  background: var(--ui-border-49);
+  border: 1px solid var(--ui-accent-143);
+  color: var(--ui-text-15);
   border-radius: 6px;
   padding: 2px 8px;
   font-size: 12px;
@@ -289,9 +289,9 @@ function removeVar(index: number) {
   transition: all 0.2s ease;
 }
 .var-insert-btn:hover {
-  border-color: var(--agent-accent, #34a8ff);
-  color: #eaf5ff;
-  background: rgba(25, 95, 176, 0.3);
+  border-color: var(--agent-accent, var(--ui-accent-142));
+  color: var(--ui-text-33);
+  background: var(--ui-border-85);
 }
 .var-form-list {
   display: flex;
@@ -303,9 +303,9 @@ function removeVar(index: number) {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid rgba(25, 95, 176, 0.35);
+  border: 1px solid var(--ui-border-4);
   border-radius: var(--agent-radius-sm, 8px);
-  background: rgba(7, 28, 52, 0.5);
+  background: var(--ui-surface-80);
 }
 .var-type {
   flex-shrink: 0;
@@ -325,11 +325,11 @@ function removeVar(index: number) {
 }
 .var-form-sub {
   font-size: 11px;
-  color: rgba(203, 227, 255, 0.5);
+  color: var(--ui-text-80);
 }
 .var-form-readonly {
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.85);
+  color: var(--ui-text-15);
   word-break: break-all;
   padding: 3px 0;
 }

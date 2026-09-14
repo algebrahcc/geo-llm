@@ -174,13 +174,13 @@ async function submitRename() {
   }
 
   &__new {
-    color: rgba(41, 163, 255, 0.9);
+    color: var(--ui-accent-122);
   }
 
   &__loading {
     padding: 14px 12px;
     font-size: 12px;
-    color: rgba(203, 227, 255, 0.45);
+    color: var(--ui-text-96);
   }
 
   &__list {
@@ -204,18 +204,18 @@ async function submitRename() {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: rgba(203, 227, 255, 0.72);
+  color: var(--ui-text-42);
   text-align: left;
   cursor: pointer;
   font-family: inherit;
 
   &:hover {
-    background: rgba(41, 163, 255, 0.1);
+    background: var(--ui-border-12);
   }
 
   &--active {
-    background: rgba(41, 163, 255, 0.16);
-    color: #29a3ff;
+    background: var(--ui-border-51);
+    color: var(--ui-accent-4);
   }
 
   &__title {
@@ -230,7 +230,7 @@ async function submitRename() {
 
   &__time {
     font-size: 10px;
-    color: rgba(203, 227, 255, 0.35);
+    color: var(--ui-text-97);
   }
 
   &__actions {
@@ -250,19 +250,19 @@ async function submitRename() {
     align-items: center;
     justify-content: center;
     border-radius: 4px;
-    color: rgba(203, 227, 255, 0.45);
+    color: var(--ui-text-96);
     transition:
       background 0.2s ease,
       color 0.2s ease;
 
     &:hover {
-      background: rgba(41, 163, 255, 0.18);
-      color: #29a3ff;
+      background: var(--ui-border-37);
+      color: var(--ui-accent-4);
     }
 
     &--danger:hover {
-      background: rgba(255, 90, 120, 0.16);
-      color: #ff7a95;
+      background: var(--ui-accent-138);
+      color: var(--ui-text-98);
     }
   }
 

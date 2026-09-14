@@ -66,11 +66,12 @@
 
 <style scoped>
 .app-logo {
-  --logo-color-start: #4a7dbd;
-  --logo-color-end: #00d4aa;
+  --logo-color-start: var(--ui-sem-blue);
+  --logo-color-end: var(--ui-sem-teal);
 }
+/* 深色顶栏下仅轻微提亮底色，不加外发光（发光会让整体偏“AI 感”） */
 html.dark .app-logo {
-  --logo-color-start: #1a8fd4;
-  --logo-color-end: #00b892;
+  --logo-color-start: #3d6fe0;
+  --logo-color-end: #00d4aa;
 }
 </style>

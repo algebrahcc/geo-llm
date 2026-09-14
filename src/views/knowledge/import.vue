@@ -182,12 +182,12 @@ function fileIcon(f: UploadFileInfo): string {
 /** 按扩展名返回文件类型的主题色 */
 function fileColor(f: UploadFileInfo): string {
   const name = fileName(f).toLowerCase();
-  if (name.endsWith('.pdf')) return '#ff6b6b';
-  if (name.endsWith('.docx') || name.endsWith('.doc')) return '#4d9fff';
+  if (name.endsWith('.pdf')) return 'var(--ui-sem-red)';
+  if (name.endsWith('.docx') || name.endsWith('.doc')) return 'var(--ui-sem-sky)';
   if (name.endsWith('.md') || name.endsWith('.markdown') || name.endsWith('.html') || name.endsWith('.htm'))
-    return '#9d8cff';
-  if (name.endsWith('.csv') || name.endsWith('.xlsx') || name.endsWith('.xls')) return '#46cc8e';
-  return '#29a3ff';
+    return 'var(--ui-sem-violet)';
+  if (name.endsWith('.csv') || name.endsWith('.xlsx') || name.endsWith('.xls')) return 'var(--ui-sem-green)';
+  return 'var(--ui-sem-blue)';
 }
 
 /** 对齐 Dify：一次可上传多个文件，逐个提交到知识库，文档名取自文件名 */
@@ -650,16 +650,16 @@ async function handleSubmit() {
 <style scoped lang="scss">
 .import-page {
   --page-bg:
-    radial-gradient(circle at top, rgba(0, 153, 255, 0.14) 0%, rgba(0, 0, 0, 0) 36%),
-    linear-gradient(180deg, #041528 0%, #041120 38%, #03101b 100%);
-  --surface-bg: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
-  --surface-border: rgba(43, 131, 255, 0.28);
-  --line: rgba(25, 95, 176, 0.35);
-  --accent: #29a3ff;
-  --accent-green: #46cc8e;
-  --text-primary: #eaf5ff;
-  --text-secondary: rgba(203, 227, 255, 0.72);
-  --text-tertiary: rgba(147, 196, 255, 0.62);
+    radial-gradient(circle at top, var(--ui-border-1) 0%, rgba(0, 0, 0, 0) 36%),
+    linear-gradient(180deg, var(--ui-page-1) 0%, var(--ui-page-2) 38%, var(--ui-page-3) 100%);
+  --surface-bg: linear-gradient(180deg, var(--ui-surface-1) 0%, var(--ui-surface-2) 100%);
+  --surface-border: var(--ui-border-2);
+  --line: var(--ui-border-4);
+  --accent: var(--ui-accent-4);
+  --accent-green: var(--ui-accent-112);
+  --text-primary: var(--ui-text-33);
+  --text-secondary: var(--ui-text-42);
+  --text-tertiary: var(--ui-text-41);
 
   height: 100%;
   background: var(--page-bg);
@@ -687,8 +687,8 @@ async function handleSubmit() {
   gap: 6px;
   padding: 8px 16px;
   border-radius: 6px;
-  background: rgba(41, 163, 255, 0.06);
-  border: 1px solid rgba(41, 163, 255, 0.15);
+  background: var(--ui-border-45);
+  border: 1px solid var(--ui-border-62);
   color: var(--text-secondary);
   font-size: 13px;
   cursor: pointer;
@@ -696,9 +696,9 @@ async function handleSubmit() {
   font-family: inherit;
 }
 .back-btn:hover {
-  background: rgba(41, 163, 255, 0.12);
-  color: #fff;
-  border-color: rgba(41, 163, 255, 0.3);
+  background: var(--ui-border-7);
+  color: var(--ui-text-1);
+  border-color: var(--ui-border-71);
 }
 
 .import-header__title {
@@ -708,7 +708,7 @@ async function handleSubmit() {
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  text-shadow: 0 0 12px rgba(41, 163, 255, 0.15);
+  text-shadow: 0 0 12px var(--ui-border-62);
 }
 .import-header__icon {
   font-size: 26px;
@@ -724,8 +724,8 @@ async function handleSubmit() {
 .import-header__badge {
   padding: 4px 14px;
   border-radius: 20px;
-  background: rgba(41, 163, 255, 0.08);
-  border: 1px solid rgba(41, 163, 255, 0.18);
+  background: var(--ui-border-36);
+  border: 1px solid var(--ui-border-37);
   font-size: 12px;
   color: var(--text-tertiary);
   letter-spacing: 0.5px;
@@ -745,8 +745,8 @@ async function handleSubmit() {
   padding: 10px 16px;
   flex: 1;
   border-radius: 8px;
-  background: rgba(3, 19, 41, 0.5);
-  border: 1px solid rgba(43, 131, 255, 0.12);
+  background: var(--ui-surface-67);
+  border: 1px solid var(--ui-border-108);
   transition: all 0.25s ease;
 
   &__badge {
@@ -759,8 +759,8 @@ async function handleSubmit() {
     font-size: 13px;
     font-weight: 700;
     color: var(--text-secondary);
-    background: rgba(41, 163, 255, 0.1);
-    border: 1px solid rgba(41, 163, 255, 0.25);
+    background: var(--ui-border-12);
+    border: 1px solid var(--ui-border-40);
     flex-shrink: 0;
   }
 
@@ -778,26 +778,26 @@ async function handleSubmit() {
 
   &--active {
     border-color: var(--accent);
-    background: linear-gradient(180deg, rgba(10, 46, 92, 0.94) 0%, rgba(5, 28, 58, 0.94) 100%);
-    box-shadow: 0 0 0 1px rgba(41, 163, 255, 0.18);
+    background: linear-gradient(180deg, var(--ui-accent-113) 0%, var(--ui-surface-68) 100%);
+    box-shadow: 0 0 0 1px var(--ui-border-37);
 
     .step__badge {
       color: #fff;
       background: var(--accent);
       border-color: var(--accent);
-      box-shadow: 0 0 10px rgba(41, 163, 255, 0.4);
+      box-shadow: 0 0 10px var(--ui-border-75);
     }
 
     .step__title {
-      color: #fff;
+      color: var(--ui-text-1);
     }
   }
 
   &--done {
     .step__badge {
       color: var(--accent-green);
-      background: rgba(70, 204, 142, 0.12);
-      border-color: rgba(70, 204, 142, 0.3);
+      background: var(--ui-border-109);
+      border-color: var(--ui-border-110);
     }
   }
 }
@@ -827,7 +827,7 @@ async function handleSubmit() {
   padding: 16px 20px;
   border-radius: 8px;
   background: var(--surface-bg);
-  border: 1px solid rgba(43, 131, 255, 0.16);
+  border: 1px solid var(--ui-border-111);
   cursor: pointer;
   transition: all 0.25s ease;
   font-family: inherit;
@@ -835,16 +835,16 @@ async function handleSubmit() {
   color: var(--text-secondary);
 }
 .mode-tab:hover {
-  border-color: rgba(43, 131, 255, 0.3);
-  background: linear-gradient(180deg, rgba(8, 28, 55, 0.96) 0%, rgba(4, 18, 38, 0.96) 100%);
+  border-color: var(--ui-border-91);
+  background: linear-gradient(180deg, var(--ui-surface-69) 0%, var(--ui-surface-70) 100%);
 }
 .mode-tab--active {
   border-color: var(--accent);
-  background: linear-gradient(180deg, rgba(10, 46, 92, 0.94) 0%, rgba(5, 28, 58, 0.94) 100%);
+  background: linear-gradient(180deg, var(--ui-accent-113) 0%, var(--ui-surface-68) 100%);
   box-shadow:
-    0 0 0 1px rgba(41, 163, 255, 0.2),
-    0 8px 24px rgba(4, 79, 162, 0.2);
-  color: #fff;
+    0 0 0 1px var(--ui-border-39),
+    0 8px 24px var(--ui-border-19);
+  color: var(--ui-text-1);
 }
 
 .mode-tab__icon {
@@ -853,7 +853,7 @@ async function handleSubmit() {
   flex-shrink: 0;
 }
 .mode-tab--active .mode-tab__icon {
-  filter: drop-shadow(0 0 8px rgba(41, 163, 255, 0.4));
+  filter: drop-shadow(0 0 8px var(--ui-border-75));
 }
 
 .mode-tab__title {
@@ -905,7 +905,7 @@ async function handleSubmit() {
 
   &__icon {
     font-size: 46px;
-    color: rgba(41, 163, 255, 0.5);
+    color: var(--ui-border-88);
     transition: transform 0.25s ease;
   }
 
@@ -921,7 +921,7 @@ async function handleSubmit() {
   }
 
   &:hover {
-    background: rgba(41, 163, 255, 0.05);
+    background: var(--ui-border-13);
 
     .upload-drop__icon {
       transform: translateY(-4px);
@@ -930,7 +930,7 @@ async function handleSubmit() {
   }
 
   &--active {
-    background: rgba(41, 163, 255, 0.1);
+    background: var(--ui-border-12);
     border: 2px dashed var(--accent);
     border-radius: 8px;
 
@@ -960,9 +960,9 @@ async function handleSubmit() {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border: 1px solid rgba(25, 95, 176, 0.25);
+  border: 1px solid var(--ui-border-112);
   border-radius: 8px;
-  background: rgba(7, 28, 52, 0.4);
+  background: var(--ui-surface-71);
 
   &__icon {
     font-size: 20px;
@@ -1003,8 +1003,8 @@ async function handleSubmit() {
     font-size: 16px;
 
     &:hover {
-      background: rgba(255, 122, 122, 0.12);
-      color: #ff7a7a;
+      background: var(--ui-text-81);
+      color: var(--ui-text-82);
     }
   }
 }
@@ -1055,8 +1055,8 @@ async function handleSubmit() {
   gap: 4px;
   padding: 3px;
   border-radius: 8px;
-  background: rgba(6, 20, 38, 0.6);
-  border: 1px solid rgba(25, 95, 176, 0.2);
+  background: var(--ui-surface-72);
+  border: 1px solid var(--ui-border-82);
 }
 
 .segment-tab {
@@ -1085,9 +1085,9 @@ async function handleSubmit() {
   }
 
   &--active {
-    background: rgba(41, 163, 255, 0.18);
+    background: var(--ui-border-37);
     color: var(--accent);
-    box-shadow: inset 0 0 0 1px rgba(41, 163, 255, 0.35);
+    box-shadow: inset 0 0 0 1px var(--ui-border-38);
   }
 }
 
@@ -1121,7 +1121,7 @@ async function handleSubmit() {
 .chunk-rule-divider {
   margin: 2px 0 0;
   padding-top: 8px;
-  border-top: 1px dashed rgba(25, 95, 176, 0.25);
+  border-top: 1px dashed var(--ui-border-112);
   font-size: 11px;
   color: var(--text-tertiary);
 }
@@ -1164,8 +1164,8 @@ async function handleSubmit() {
   transition: all 0.25s;
 }
 .upload-zone:hover {
-  border-color: rgba(58, 160, 255, 0.5);
-  box-shadow: 0 0 20px rgba(41, 163, 255, 0.08);
+  border-color: var(--ui-accent-10);
+  box-shadow: 0 0 20px var(--ui-border-36);
 }
 
 .upload-zone__inner {
@@ -1179,10 +1179,10 @@ async function handleSubmit() {
 
 .upload-zone__icon {
   font-size: 48px;
-  color: rgba(98, 196, 255, 0.55);
+  color: var(--ui-accent-114);
 }
 .upload-zone__icon--image {
-  color: rgba(98, 228, 255, 0.55);
+  color: var(--ui-accent-115);
 }
 
 .upload-zone__title {
@@ -1206,24 +1206,24 @@ async function handleSubmit() {
 .format-tag {
   padding: 2px 10px;
   border-radius: 4px;
-  background: rgba(41, 163, 255, 0.08);
-  border: 1px solid rgba(41, 163, 255, 0.16);
+  background: var(--ui-border-36);
+  border: 1px solid var(--ui-border-51);
   font-size: 11px;
   color: var(--text-secondary);
   letter-spacing: 0.3px;
 }
 .format-tag--image {
-  background: rgba(98, 228, 255, 0.08);
-  border-color: rgba(98, 228, 255, 0.16);
+  background: var(--ui-accent-116);
+  border-color: var(--ui-accent-117);
 }
 
 /* ====== Selected file list ====== */
 .file-list {
   margin-top: 12px;
   padding: 10px 12px;
-  border: 1px solid rgba(41, 163, 255, 0.16);
+  border: 1px solid var(--ui-border-51);
   border-radius: 8px;
-  background: rgba(41, 163, 255, 0.04);
+  background: var(--ui-border-73);
 }
 
 .file-list__head {
@@ -1246,7 +1246,7 @@ async function handleSubmit() {
 }
 
 .file-item:hover {
-  background: rgba(41, 163, 255, 0.08);
+  background: var(--ui-border-36);
 }
 
 .file-item__icon {
@@ -1299,7 +1299,7 @@ async function handleSubmit() {
   height: 42px;
   padding: 0 16px;
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(7, 27, 51, 0.94) 0%, rgba(4, 20, 40, 0.96) 100%);
+  background: linear-gradient(180deg, var(--ui-surface-18) 0%, var(--ui-surface-19) 100%);
   font-size: 13px;
   font-weight: 600;
 }
@@ -1352,7 +1352,7 @@ async function handleSubmit() {
   height: 42px;
   padding: 0 16px;
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(7, 27, 51, 0.94) 0%, rgba(4, 20, 40, 0.96) 100%);
+  background: linear-gradient(180deg, var(--ui-surface-18) 0%, var(--ui-surface-19) 100%);
   font-size: 13px;
   font-weight: 600;
 }
@@ -1380,7 +1380,7 @@ async function handleSubmit() {
 }
 .import-page::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(48, 127, 212, 0.45);
+  background: var(--ui-border-47);
 }
 .import-page::-webkit-scrollbar-track {
   background: transparent;
@@ -1409,8 +1409,8 @@ async function handleSubmit() {
   padding: 12px 16px;
   flex: 1;
   border-radius: 10px;
-  background: rgba(3, 19, 41, 0.5);
-  border: 1px solid rgba(43, 131, 255, 0.12);
+  background: var(--ui-surface-67);
+  border: 1px solid var(--ui-border-108);
   transition: all 0.25s ease;
 
   &__badge {
@@ -1423,8 +1423,8 @@ async function handleSubmit() {
     font-size: 13px;
     font-weight: 700;
     color: var(--text-secondary);
-    background: rgba(41, 163, 255, 0.1);
-    border: 1px solid rgba(41, 163, 255, 0.25);
+    background: var(--ui-border-12);
+    border: 1px solid var(--ui-border-40);
     flex-shrink: 0;
   }
 
@@ -1442,26 +1442,26 @@ async function handleSubmit() {
 
   &--active {
     border-color: var(--accent);
-    background: linear-gradient(180deg, rgba(10, 46, 92, 0.94) 0%, rgba(5, 28, 58, 0.94) 100%);
-    box-shadow: 0 0 0 1px rgba(41, 163, 255, 0.18);
+    background: linear-gradient(180deg, var(--ui-accent-113) 0%, var(--ui-surface-68) 100%);
+    box-shadow: 0 0 0 1px var(--ui-border-37);
 
     .step__badge {
       color: #fff;
       background: var(--accent);
       border-color: var(--accent);
-      box-shadow: 0 0 10px rgba(41, 163, 255, 0.4);
+      box-shadow: 0 0 10px var(--ui-border-75);
     }
 
     .step__title {
-      color: #fff;
+      color: var(--ui-text-1);
     }
   }
 
   &--done {
     .step__badge {
-      color: var(--accent-green, #46cc8e);
-      background: rgba(70, 204, 142, 0.12);
-      border-color: rgba(70, 204, 142, 0.3);
+      color: var(--accent-green, var(--ui-accent-112));
+      background: var(--ui-border-109);
+      border-color: var(--ui-border-110);
     }
   }
 }
@@ -1499,16 +1499,16 @@ async function handleSubmit() {
   align-items: center;
   gap: 14px;
   padding: 22px 18px;
-  border: 1px solid rgba(41, 163, 255, 0.3);
+  border: 1px solid var(--ui-border-71);
   border-radius: 12px;
-  background: linear-gradient(180deg, rgba(10, 46, 92, 0.94), rgba(5, 28, 58, 0.94));
+  background: linear-gradient(180deg, var(--ui-accent-113), var(--ui-surface-68));
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(2, 10, 22, 0.5);
+    box-shadow: 0 8px 24px var(--ui-shadow-20);
     border-color: var(--accent);
 
     .source-card__arrow {
@@ -1571,7 +1571,7 @@ async function handleSubmit() {
   align-items: center;
   gap: 14px;
   padding: 10px 0;
-  border-bottom: 1px dashed rgba(25, 95, 176, 0.15);
+  border-bottom: 1px dashed var(--ui-border-76);
 
   &__label {
     width: 104px;
@@ -1599,7 +1599,7 @@ async function handleSubmit() {
   gap: 8px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(7, 28, 52, 0.4);
+  background: var(--ui-surface-71);
 
   &__icon {
     color: var(--accent);
@@ -1644,7 +1644,7 @@ async function handleSubmit() {
       right: -12px;
       width: 12px;
       height: 1px;
-      background: rgba(41, 163, 255, 0.25);
+      background: var(--ui-border-40);
     }
   }
 }

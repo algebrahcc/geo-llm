@@ -55,9 +55,9 @@ const typeLabel = computed(() =>
   isWorkflow.value ? '工作流' : selectedAgent.value?.appType === 2 ? 'Agent' : '聊天助手'
 );
 const typeColor = computed(() => {
-  if (isWorkflow.value) return '#34d399';
-  if (selectedAgent.value?.appType === 2) return '#8b5cf6';
-  return '#38bdf8';
+  if (isWorkflow.value) return 'var(--ui-sem-green)';
+  if (selectedAgent.value?.appType === 2) return 'var(--ui-sem-indigo)';
+  return 'var(--ui-sem-sky)';
 });
 
 function fmtTime(ts?: number) {
@@ -320,7 +320,7 @@ onMounted(loadData);
 .agent-domain-page {
   height: 100%;
   background: var(--agent-page-bg);
-  color: #eaf5ff;
+  color: var(--ui-text-33);
   overflow: auto;
 }
 
@@ -366,7 +366,7 @@ onMounted(loadData);
   &__count {
     margin-left: auto;
     font-size: 12px;
-    color: rgba(203, 227, 255, 0.5);
+    color: var(--ui-text-80);
   }
 }
 
@@ -381,20 +381,20 @@ onMounted(loadData);
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid rgba(25, 95, 176, 0.3);
+  border: 1px solid var(--ui-border-85);
   border-radius: var(--agent-radius-sm);
-  background: rgba(7, 28, 52, 0.5);
+  background: var(--ui-surface-80);
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: rgba(61, 166, 255, 0.4);
-    background: rgba(10, 32, 58, 0.6);
-    box-shadow: 0 6px 20px rgba(2, 10, 22, 0.4);
+    border-color: var(--ui-accent-140);
+    background: var(--ui-surface-77);
+    box-shadow: 0 6px 20px var(--ui-shadow-22);
     transform: translateY(-1px);
 
     .monitor-row__arrow {
-      color: #29a3ff;
+      color: var(--ui-accent-4);
       transform: translateX(2px);
     }
   }
@@ -410,7 +410,7 @@ onMounted(loadData);
     gap: 8px;
     font-size: 14px;
     font-weight: 600;
-    color: #eaf5ff;
+    color: var(--ui-text-33);
   }
 
   &__meta {
@@ -418,26 +418,26 @@ onMounted(loadData);
     gap: 14px;
     margin-top: 4px;
     font-size: 12px;
-    color: rgba(203, 227, 255, 0.5);
+    color: var(--ui-text-80);
     flex-wrap: wrap;
   }
 
   &__error {
     margin-top: 4px;
     font-size: 12px;
-    color: #ff7a7a;
+    color: var(--ui-text-82);
   }
 
   &__arrow {
     font-size: 20px;
-    color: rgba(203, 227, 255, 0.35);
+    color: var(--ui-text-97);
     transition: all 0.2s ease;
   }
 }
 
 .conv-icon {
   font-size: 16px;
-  color: rgba(56, 189, 248, 0.8);
+  color: var(--ui-accent-141);
 }
 
 .conv-name {
@@ -449,7 +449,7 @@ onMounted(loadData);
 .run-id {
   font-family: monospace;
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.45);
+  color: var(--ui-text-96);
 }
 
 .status-badge {
@@ -462,27 +462,27 @@ onMounted(loadData);
   &.succeeded,
   &.success,
   &.normal {
-    color: #34d399;
-    background: rgba(52, 211, 153, 0.1);
-    border-color: rgba(52, 211, 153, 0.25);
+    color: var(--ui-accent-50);
+    background: var(--ui-border-121);
+    border-color: var(--ui-border-122);
   }
 
   &.failed {
-    color: #ff7a7a;
-    background: rgba(255, 122, 122, 0.1);
-    border-color: rgba(255, 122, 122, 0.25);
+    color: var(--ui-text-82);
+    background: var(--ui-text-101);
+    border-color: var(--ui-text-102);
   }
 
   &.running {
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.1);
-    border-color: rgba(251, 191, 36, 0.25);
+    color: var(--ui-accent-52);
+    background: var(--ui-border-55);
+    border-color: var(--ui-border-56);
   }
 
   &.stopped {
-    color: rgba(203, 227, 255, 0.7);
-    background: rgba(147, 196, 255, 0.08);
-    border-color: rgba(147, 196, 255, 0.2);
+    color: var(--ui-text-89);
+    background: var(--ui-text-91);
+    border-color: var(--ui-text-103);
   }
 }
 
@@ -494,15 +494,10 @@ onMounted(loadData);
   &__row {
     height: 64px;
     border-radius: var(--agent-radius-sm);
-    background: linear-gradient(
-      100deg,
-      rgba(7, 28, 52, 0.4) 40%,
-      rgba(41, 163, 255, 0.08) 50%,
-      rgba(7, 28, 52, 0.4) 60%
-    );
+    background: linear-gradient(100deg, var(--ui-surface-71) 40%, var(--ui-border-36) 50%, var(--ui-surface-71) 60%);
     background-size: 200% 100%;
     animation: monitor-skeleton-loading 1.4s infinite;
-    border: 1px solid rgba(25, 95, 176, 0.12);
+    border: 1px solid var(--ui-border-116);
   }
 }
 

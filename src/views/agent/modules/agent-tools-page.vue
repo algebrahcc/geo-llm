@@ -52,7 +52,16 @@ const filteredTools = computed(() => {
 });
 
 /** 按工具名生成确定性色相，让不同工具在图标底色上有区分度 */
-const palette = ['#38bdf8', '#8b5cf6', '#34d399', '#f59e0b', '#f472b6', '#60a5fa', '#2dd4bf', '#a78bfa'];
+const palette = [
+  'var(--ui-sem-sky)',
+  'var(--ui-sem-indigo)',
+  'var(--ui-sem-green)',
+  'var(--ui-sem-orange)',
+  'var(--ui-sem-pink)',
+  'var(--ui-sem-blue)',
+  'var(--ui-sem-teal)',
+  'var(--ui-sem-violet)'
+];
 function toolColor(t: Record<string, unknown>) {
   let h = 0;
   const s = toolName(t);
@@ -70,9 +79,9 @@ const typeLabel = computed(() => {
 });
 const typeColor = computed(() => {
   const t = selectedAgent.value?.appType;
-  if (t === 3) return '#34d399';
-  if (t === 2) return '#8b5cf6';
-  return '#38bdf8';
+  if (t === 3) return 'var(--ui-sem-green)';
+  if (t === 2) return 'var(--ui-sem-indigo)';
+  return 'var(--ui-sem-sky)';
 });
 
 /** 已绑定工具 id 集合（用于快速判定） */
@@ -541,15 +550,15 @@ async function handleDelete() {
   min-height: 0;
   overflow: auto;
   padding: 16px;
-  color: #eaf5ff;
+  color: var(--ui-text-33);
 }
 .section-desc {
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.65);
+  color: var(--ui-text-85);
   margin-bottom: 12px;
 }
 .section-desc.warn {
-  color: #ffce8a;
+  color: var(--ui-text-100);
 }
 
 .type-tag {
@@ -575,8 +584,8 @@ async function handleDelete() {
     gap: 4px;
     padding: 3px;
     border-radius: 8px;
-    background: rgba(6, 20, 38, 0.6);
-    border: 1px solid rgba(25, 95, 176, 0.2);
+    background: var(--ui-surface-72);
+    border: 1px solid var(--ui-border-82);
   }
 
   &__search {
@@ -588,20 +597,20 @@ async function handleDelete() {
 .stat {
   font-weight: 800;
   font-size: 14px;
-  color: #eaf5ff;
+  color: var(--ui-text-33);
 
   &--all {
-    color: #38bdf8;
+    color: var(--ui-accent-151);
   }
 
   &--bound {
-    color: #34d399;
+    color: var(--ui-accent-50);
   }
 }
 
 .stat-label {
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.5);
+  color: var(--ui-text-80);
   margin-right: 6px;
 }
 
@@ -612,18 +621,18 @@ async function handleDelete() {
   padding: 4px 12px;
   border-radius: 6px;
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.6);
+  color: var(--ui-text-93);
   cursor: pointer;
   transition: all 0.15s ease;
 
   &:hover {
-    color: #eaf5ff;
+    color: var(--ui-text-33);
   }
 
   &.is-on {
-    background: rgba(41, 163, 255, 0.18);
-    color: #29a3ff;
-    box-shadow: inset 0 0 0 1px rgba(41, 163, 255, 0.35);
+    background: var(--ui-border-37);
+    color: var(--ui-accent-4);
+    box-shadow: inset 0 0 0 1px var(--ui-border-38);
   }
 }
 
@@ -636,15 +645,10 @@ async function handleDelete() {
   &__card {
     height: 150px;
     border-radius: var(--agent-radius-sm);
-    background: linear-gradient(
-      100deg,
-      rgba(7, 28, 52, 0.4) 40%,
-      rgba(41, 163, 255, 0.08) 50%,
-      rgba(7, 28, 52, 0.4) 60%
-    );
+    background: linear-gradient(100deg, var(--ui-surface-71) 40%, var(--ui-border-36) 50%, var(--ui-surface-71) 60%);
     background-size: 200% 100%;
     animation: skeleton-loading 1.4s infinite;
-    border: 1px solid rgba(25, 95, 176, 0.12);
+    border: 1px solid var(--ui-border-116);
   }
 }
 
@@ -666,9 +670,9 @@ async function handleDelete() {
   flex-direction: column;
   gap: 8px;
   padding: 14px;
-  border: 1px solid rgba(25, 95, 176, 0.3);
+  border: 1px solid var(--ui-border-85);
   border-radius: var(--agent-radius-sm);
-  background: rgba(7, 28, 52, 0.5);
+  background: var(--ui-surface-80);
   transition:
     border-color 0.2s ease,
     background 0.2s ease,
@@ -676,15 +680,15 @@ async function handleDelete() {
     box-shadow 0.2s ease;
 
   &:hover {
-    border-color: rgba(61, 166, 255, 0.32);
-    background: rgba(10, 32, 58, 0.6);
-    box-shadow: 0 6px 20px rgba(2, 10, 22, 0.4);
+    border-color: var(--ui-accent-152);
+    background: var(--ui-surface-77);
+    box-shadow: 0 6px 20px var(--ui-shadow-22);
     transform: translateY(-1px);
   }
 
   &--bound {
-    border-color: rgba(52, 168, 255, 0.45);
-    background: rgba(10, 32, 58, 0.7);
+    border-color: var(--ui-accent-153);
+    background: var(--ui-surface-79);
   }
 
   &__head {
@@ -701,28 +705,28 @@ async function handleDelete() {
     height: 38px;
     border-radius: 10px;
     font-size: 19px;
-    color: rgba(203, 227, 255, 0.75);
-    background: rgba(41, 163, 255, 0.12);
-    border: 1px solid rgba(41, 163, 255, 0.22);
+    color: var(--ui-text-95);
+    background: var(--ui-border-7);
+    border: 1px solid var(--ui-border-50);
 
     &.is-bound {
       color: #fff;
-      background: linear-gradient(135deg, #3b82f6, #60a5fa);
+      background: linear-gradient(135deg, var(--ui-accent-145), var(--ui-accent-51));
       border-color: transparent;
-      box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
+      box-shadow: 0 0 12px var(--ui-border-125);
     }
 
     &.mcp {
-      color: #34d399;
-      background: rgba(52, 211, 153, 0.12);
-      border-color: rgba(52, 211, 153, 0.25);
+      color: var(--ui-accent-50);
+      background: var(--ui-border-126);
+      border-color: var(--ui-border-122);
     }
   }
 
   &__name {
     font-size: 14px;
     font-weight: 700;
-    color: #eaf5ff;
+    color: var(--ui-text-33);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -731,7 +735,7 @@ async function handleDelete() {
   &__desc {
     font-size: 12px;
     line-height: 1.5;
-    color: rgba(203, 227, 255, 0.55);
+    color: var(--ui-text-104);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -750,16 +754,16 @@ async function handleDelete() {
 .tag-type,
 .tag-provider,
 .tag-category {
-  color: rgba(203, 227, 255, 0.8);
-  background: rgba(41, 163, 255, 0.12);
+  color: var(--ui-text-37);
+  background: var(--ui-border-7);
 }
 
 .tag-provider {
-  background: rgba(139, 92, 246, 0.16);
+  background: var(--ui-accent-154);
 }
 
 .tag-category {
-  background: rgba(52, 211, 153, 0.14);
+  background: var(--ui-border-127);
 }
 
 .mcp-card__foot {
@@ -791,14 +795,14 @@ async function handleDelete() {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: #34d399;
+  color: var(--ui-accent-50);
 
   .dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #34d399;
-    box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+    background: var(--ui-accent-50);
+    box-shadow: 0 0 8px var(--ui-accent-155);
   }
 }
 </style>

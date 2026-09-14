@@ -19,13 +19,13 @@ const emit = defineEmits<{
 const typeMeta = computed(() => {
   switch (props.app.appType) {
     case 1:
-      return { label: '聊天助手', color: '#3b82f6', icon: 'mdi:chat-outline' };
+      return { label: '聊天助手', color: 'var(--ui-sem-blue)', icon: 'mdi:chat-outline' };
     case 2:
-      return { label: '智能体', color: '#8b5cf6', icon: 'mdi:robot-outline' };
+      return { label: '智能体', color: 'var(--ui-sem-indigo)', icon: 'mdi:robot-outline' };
     case 3:
-      return { label: '工作流', color: '#10b981', icon: 'mdi:workflow' };
+      return { label: '工作流', color: 'var(--ui-sem-green)', icon: 'mdi:workflow' };
     default:
-      return { label: '未知', color: '#9ca3af', icon: 'mdi:help-circle-outline' };
+      return { label: '未知', color: '#64748b', icon: 'mdi:help-circle-outline' };
   }
 });
 
@@ -43,13 +43,13 @@ const statusMeta = computed(() => {
 const avatarBg = computed(() => {
   switch (props.app.appType) {
     case 1:
-      return 'linear-gradient(135deg, #3b82f6, #60a5fa)';
+      return 'linear-gradient(135deg, var(--ui-sem-blue), var(--ui-sem-sky))';
     case 2:
-      return 'linear-gradient(135deg, #8b5cf6, #a78bfa)';
+      return 'linear-gradient(135deg, var(--ui-sem-indigo), var(--ui-sem-violet))';
     case 3:
-      return 'linear-gradient(135deg, #10b981, #34d399)';
+      return 'linear-gradient(135deg, var(--ui-sem-green), var(--ui-sem-teal))';
     default:
-      return 'linear-gradient(135deg, #9ca3af, #cbd5e1)';
+      return 'linear-gradient(135deg, #64748b, #94a3b8)';
   }
 });
 </script>
@@ -121,7 +121,7 @@ const avatarBg = computed(() => {
     height: 42px;
     border-radius: var(--agent-radius-sm);
     color: #fff;
-    box-shadow: 0 0 14px rgba(52, 168, 255, 0.18);
+    box-shadow: 0 0 14px var(--ui-accent-136);
   }
 
   &__avatar-icon {
@@ -134,15 +134,15 @@ const avatarBg = computed(() => {
     border-radius: 999px;
 
     &.is-on {
-      color: #5ce6c8;
-      background: rgba(0, 212, 170, 0.12);
-      border: 1px solid rgba(0, 212, 170, 0.22);
+      color: var(--ui-accent-137);
+      background: var(--ui-border-118);
+      border: 1px solid var(--ui-border-119);
     }
 
     &.is-off {
       color: var(--agent-text-mute);
-      background: rgba(147, 196, 255, 0.08);
-      border: 1px solid rgba(147, 196, 255, 0.18);
+      background: var(--ui-text-91);
+      border: 1px solid var(--ui-text-92);
     }
   }
 
@@ -203,8 +203,8 @@ const avatarBg = computed(() => {
   }
 
   &--danger:hover {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ff7a7a;
+    background: var(--ui-accent-61);
+    color: var(--ui-text-82);
   }
 }
 </style>

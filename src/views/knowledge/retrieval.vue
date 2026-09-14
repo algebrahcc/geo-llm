@@ -205,10 +205,11 @@ function getCollectionLabel(key: string) {
   return dataset ? getDatasetName(dataset) : key;
 }
 
+/** 相似度配色走页面级变量：深色用高亮绿/黄/红，浅色自动切换为可读的深色调 */
 function getSimilarityColor(sim: number): string {
-  if (sim > 0.5) return '#5ee8a0';
-  if (sim > 0.25) return '#f1c40f';
-  return '#ff6b6b';
+  if (sim > 0.5) return 'var(--similarity-high)';
+  if (sim > 0.25) return 'var(--similarity-mid)';
+  return 'var(--similarity-low)';
 }
 
 function getMethodMeta(method: KnowledgeRetrievalMatch['method']): {
@@ -226,10 +227,10 @@ function getMethodMeta(method: KnowledgeRetrievalMatch['method']): {
 }
 
 const moduleMeta: Record<ModuleRef, { label: string; color: string; bg: string }> = {
-  river: { label: '渡河', color: '#29a3ff', bg: 'rgba(41,163,255,0.12)' },
-  planning: { label: '规划', color: '#62e4ff', bg: 'rgba(98,228,255,0.1)' },
-  knowledge: { label: '知识', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
-  agent: { label: '智能体', color: '#f1c40f', bg: 'rgba(241,196,15,0.12)' }
+  river: { label: '渡河', color: 'var(--ui-sem-blue)', bg: 'var(--ui-sem-tint)' },
+  planning: { label: '规划', color: 'var(--ui-sem-cyan)', bg: 'var(--ui-sem-tint)' },
+  knowledge: { label: '知识', color: 'var(--ui-sem-violet)', bg: 'var(--ui-sem-tint)' },
+  agent: { label: '智能体', color: 'var(--ui-sem-amber)', bg: 'var(--ui-sem-tint)' }
 };
 
 function renderHighlightedSnippet(snippet: string, ranges: [number, number][]): string {
@@ -403,7 +404,7 @@ onMounted(async () => {
           </div>
 
           <template v-else>
-            <div v-if="results.length" class="text-12px text-[rgba(147,196,255,0.5)] mb-10px">
+            <div v-if="results.length" class="text-12px text-[var(--text-tertiary)] mb-10px">
               已命中 {{ results.length }} 篇文档，{{ resultCount }} 条分块结果，{{ graphCount }} 个图谱节点。
             </div>
 
@@ -420,13 +421,13 @@ onMounted(async () => {
                       :style="{
                         color: moduleMeta[ref].color,
                         background: moduleMeta[ref].bg,
-                        borderColor: moduleMeta[ref].color + '44'
+                        borderColor: 'currentColor'
                       }"
                     >
                       {{ moduleMeta[ref].label }}
                     </span>
                   </div>
-                  <div class="text-11px text-[rgba(147,196,255,0.5)]">{{ item.document.updatedAt }}</div>
+                  <div class="text-11px text-[var(--text-tertiary)]">{{ item.document.updatedAt }}</div>
                 </div>
                 <div class="mt-4px flex flex-wrap gap-4px">
                   <NTag size="small" round :bordered="false">{{ getCollectionLabel(item.document.collection) }}</NTag>
@@ -472,7 +473,7 @@ onMounted(async () => {
 
             <NEmpty v-else-if="searched" description="未命中可用结果" class="py-20px">
               <template #extra>
-                <span class="text-12px text-[rgba(147,196,255,0.45)]">尝试切换为语义检索以扩大召回范围</span>
+                <span class="text-12px text-[var(--text-tertiary)]">尝试切换为语义检索以扩大召回范围</span>
               </template>
             </NEmpty>
             <NEmpty v-else description="输入关键词开始检索" class="py-20px" />
@@ -486,15 +487,18 @@ onMounted(async () => {
 <style scoped lang="scss">
 .retrieval-page {
   --page-bg:
-    radial-gradient(circle at top, rgba(0, 153, 255, 0.14) 0%, rgba(0, 0, 0, 0) 36%),
-    linear-gradient(180deg, #041528 0%, #041120 38%, #03101b 100%);
-  --surface-bg: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
-  --surface-border: rgba(43, 131, 255, 0.28);
-  --line: rgba(25, 95, 176, 0.35);
-  --accent: #29a3ff;
-  --text-primary: #eaf5ff;
-  --text-secondary: rgba(203, 227, 255, 0.72);
-  --text-tertiary: rgba(147, 196, 255, 0.62);
+    radial-gradient(circle at top, var(--ui-border-1) 0%, rgba(0, 0, 0, 0) 36%),
+    linear-gradient(180deg, var(--ui-page-1) 0%, var(--ui-page-2) 38%, var(--ui-page-3) 100%);
+  --surface-bg: linear-gradient(180deg, var(--ui-surface-1) 0%, var(--ui-surface-2) 100%);
+  --surface-border: var(--ui-border-2);
+  --line: var(--ui-border-4);
+  --accent: var(--ui-accent-4);
+  --text-primary: var(--ui-text-33);
+  --text-secondary: var(--ui-text-42);
+  --text-tertiary: var(--ui-text-41);
+  --similarity-high: var(--ui-sem-green);
+  --similarity-mid: var(--ui-sem-amber);
+  --similarity-low: var(--ui-sem-red);
 
   height: 100%;
   background: var(--page-bg);
@@ -518,8 +522,8 @@ onMounted(async () => {
   background: var(--surface-bg);
   border: 1px solid var(--surface-border);
   box-shadow:
-    0 0 0 1px rgba(32, 111, 202, 0.22),
-    0 18px 40px rgba(1, 8, 18, 0.45);
+    0 0 0 1px var(--ui-border-6),
+    0 18px 40px var(--ui-shadow-1);
   border-radius: 4px;
   position: relative;
 }
@@ -558,7 +562,7 @@ onMounted(async () => {
   height: 46px;
   padding: 0 14px;
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(10, 38, 72, 0.96) 0%, rgba(5, 25, 47, 0.96) 100%);
+  background: linear-gradient(180deg, var(--ui-surface-4) 0%, var(--ui-surface-5) 100%);
   position: relative;
 }
 
@@ -577,14 +581,14 @@ onMounted(async () => {
 .panel-head__icon {
   font-size: 16px;
   color: var(--accent);
-  filter: drop-shadow(0 0 4px rgba(41, 163, 255, 0.25));
+  filter: drop-shadow(0 0 4px var(--ui-border-40));
 }
 
 .panel-head__title {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  text-shadow: 0 0 8px rgba(41, 163, 255, 0.12);
+  text-shadow: 0 0 8px var(--ui-border-7);
 }
 
 .panel-body {
@@ -605,9 +609,9 @@ onMounted(async () => {
 
 .query-tag {
   cursor: pointer;
-  background: rgba(41, 163, 255, 0.1);
-  border: 1px solid rgba(41, 163, 255, 0.22);
-  color: rgba(203, 227, 255, 0.82);
+  background: var(--ui-border-12);
+  border: 1px solid var(--ui-border-50);
+  color: var(--ui-text-76);
 }
 
 .card-title {
@@ -619,8 +623,8 @@ onMounted(async () => {
 .result-item {
   padding: 12px 14px;
   border-radius: 4px;
-  border: 1px solid rgba(25, 95, 176, 0.18);
-  background: rgba(6, 20, 38, 0.5);
+  border: 1px solid var(--ui-border-49);
+  background: var(--ui-surface-66);
   transition:
     border-color 0.18s ease,
     box-shadow 0.18s ease,
@@ -628,10 +632,10 @@ onMounted(async () => {
 }
 
 .result-item:not(.result-item--skeleton):hover {
-  border-color: rgba(41, 163, 255, 0.45);
+  border-color: var(--ui-border-115);
   box-shadow:
-    0 0 0 1px rgba(41, 163, 255, 0.3),
-    0 12px 28px rgba(1, 8, 18, 0.4);
+    0 0 0 1px var(--ui-border-71),
+    0 12px 28px var(--ui-shadow-21);
   transform: translateY(-2px);
 }
 
@@ -650,14 +654,14 @@ onMounted(async () => {
 .match-card {
   padding: 10px 12px;
   border-radius: 4px;
-  background: rgba(12, 38, 72, 0.4);
-  border: 1px solid rgba(25, 95, 176, 0.12);
+  background: var(--ui-surface-76);
+  border: 1px solid var(--ui-border-116);
 }
 
 .match-title {
   font-size: 12px;
   font-weight: 600;
-  color: rgba(41, 163, 255, 0.85);
+  color: var(--ui-accent-132);
 }
 
 .match-snippet {
@@ -670,7 +674,7 @@ onMounted(async () => {
 /* ── 检索模式提示 ── */
 .mode-hint {
   font-size: 11px;
-  color: rgba(147, 196, 255, 0.45);
+  color: var(--ui-text-88);
   font-style: italic;
 }
 
@@ -683,7 +687,7 @@ onMounted(async () => {
 
 .param-label {
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.7);
+  color: var(--ui-text-89);
   flex-shrink: 0;
 }
 
@@ -704,7 +708,7 @@ onMounted(async () => {
   border: none;
   background: none;
   font-size: 12px;
-  color: rgba(147, 196, 255, 0.6);
+  color: var(--ui-text-90);
   cursor: pointer;
   transition: color 0.2s ease;
 
@@ -720,9 +724,9 @@ onMounted(async () => {
 
 .metadata-filter {
   padding: 10px;
-  border: 1px solid rgba(41, 163, 255, 0.18);
+  border: 1px solid var(--ui-border-37);
   border-radius: 8px;
-  background: rgba(41, 163, 255, 0.04);
+  background: var(--ui-border-73);
 }
 
 .filter-logic {
@@ -731,7 +735,7 @@ onMounted(async () => {
   gap: 12px;
   margin-bottom: 8px;
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.7);
+  color: var(--ui-text-89);
 }
 
 .filter-row {
@@ -762,7 +766,7 @@ onMounted(async () => {
   width: 48px;
   height: 5px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--ui-surface-91);
   overflow: hidden;
 }
 .similarity-bar__fill {
@@ -787,8 +791,8 @@ onMounted(async () => {
 
 /* ── Snippet 高亮 ── */
 :deep(.snippet-mark) {
-  background: rgba(41, 163, 255, 0.22);
-  color: #eaf5ff;
+  background: var(--ui-border-50);
+  color: var(--ui-text-33);
   border-radius: 2px;
   padding: 0 1px;
 }
@@ -800,7 +804,7 @@ onMounted(async () => {
 
 .retrieval-page::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(48, 127, 212, 0.45);
+  background: var(--ui-border-47);
 }
 
 .retrieval-page::-webkit-scrollbar-track {

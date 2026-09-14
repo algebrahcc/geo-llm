@@ -14,21 +14,21 @@ const typeCards = [
     icon: 'mdi:robot-outline',
     label: 'Agent',
     desc: '面向复杂任务的智能体，可调用工具、多轮推理',
-    accent: '#8b5cf6'
+    accent: 'var(--ui-sem-indigo)'
   },
   {
     value: 1,
     icon: 'mdi:chat-outline',
     label: '聊天助手',
     desc: '基于大模型的对话式应用，支持知识库问答',
-    accent: '#38bdf8'
+    accent: 'var(--ui-sem-sky)'
   },
   {
     value: 3,
     icon: 'mdi:workflow-outline',
     label: '工作流',
     desc: '拖拽编排的流程式应用，精确控制执行逻辑',
-    accent: '#34d399'
+    accent: 'var(--ui-sem-green)'
   }
 ] satisfies Array<{
   value: Api.DifyApp.AppType;
@@ -141,26 +141,26 @@ function handleSubmit() {
   align-items: flex-start;
   gap: 12px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(25, 95, 176, 0.2);
+  border-bottom: 1px solid var(--ui-border-82);
 }
 
 .step-panel__icon {
   font-size: 22px;
-  color: var(--accent, #29a3ff);
-  filter: drop-shadow(0 0 8px rgba(41, 163, 255, 0.25));
+  color: var(--accent, var(--ui-accent-4));
+  filter: drop-shadow(0 0 8px var(--ui-border-40));
   margin-top: 2px;
 }
 
 .step-panel__title {
   font-size: 16px;
   font-weight: 700;
-  color: #eaf5ff;
+  color: var(--ui-text-33);
   line-height: 1.3;
 }
 
 .step-panel__subtitle {
   font-size: 12px;
-  color: rgba(147, 196, 255, 0.5);
+  color: var(--ui-text-45);
   margin-top: 3px;
 }
 
@@ -177,24 +177,24 @@ function handleSubmit() {
   align-items: flex-start;
   gap: 6px;
   padding: 14px;
-  border: 1px solid rgba(25, 95, 176, 0.25);
+  border: 1px solid var(--ui-border-112);
   border-radius: 12px;
-  background: rgba(6, 20, 38, 0.5);
-  color: #eaf5ff;
+  background: var(--ui-surface-66);
+  color: var(--ui-text-33);
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
     border-color: var(--card-accent);
-    background: rgba(10, 32, 58, 0.6);
+    background: var(--ui-surface-77);
     transform: translateY(-1px);
   }
 
   &--active {
     border-color: var(--card-accent);
-    background: rgba(10, 32, 58, 0.7);
-    box-shadow: inset 0 0 16px rgba(52, 168, 255, 0.12);
+    background: var(--ui-surface-79);
+    box-shadow: inset 0 0 16px var(--ui-accent-139);
   }
 
   &__icon {
@@ -210,7 +210,7 @@ function handleSubmit() {
   &__desc {
     font-size: 11px;
     line-height: 1.45;
-    color: rgba(147, 196, 255, 0.55);
+    color: var(--ui-text-46);
     min-height: 32px;
   }
 
@@ -223,7 +223,7 @@ function handleSubmit() {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(147, 196, 255, 0.4);
+  border: 2px solid var(--ui-text-99);
   border-radius: 50%;
   transition: all 0.2s ease;
 
@@ -246,7 +246,7 @@ function handleSubmit() {
   gap: 8px;
   padding-top: 16px;
   margin-top: auto;
-  border-top: 1px solid rgba(25, 95, 176, 0.18);
+  border-top: 1px solid var(--ui-border-49);
 }
 
 @media (max-width: 900px) {

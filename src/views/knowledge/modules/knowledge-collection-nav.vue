@@ -69,8 +69,8 @@ const emit = defineEmits<{
   align-items: center;
   height: 46px;
   padding: 0 14px;
-  border-bottom: 1px solid rgba(25, 95, 176, 0.35);
-  background: linear-gradient(180deg, rgba(10, 38, 72, 0.96) 0%, rgba(5, 25, 47, 0.96) 100%);
+  border-bottom: 1px solid var(--ui-border-4);
+  background: linear-gradient(180deg, var(--ui-surface-4) 0%, var(--ui-surface-5) 100%);
   position: relative;
 }
 
@@ -83,14 +83,14 @@ const emit = defineEmits<{
   bottom: 20%;
   width: 2px;
   border-radius: 1px;
-  background: linear-gradient(180deg, transparent, #29a3ff, transparent);
+  background: linear-gradient(180deg, transparent, var(--ui-accent-4), transparent);
   opacity: 0.5;
 }
 
 .nav-panel__header-icon {
   font-size: 16px;
-  color: #29a3ff;
-  filter: drop-shadow(0 0 4px rgba(41, 163, 255, 0.25));
+  color: var(--ui-accent-4);
+  filter: drop-shadow(0 0 4px var(--ui-border-40));
 }
 
 .nav-panel__header-title {
@@ -98,8 +98,8 @@ const emit = defineEmits<{
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  color: #eaf5ff;
-  text-shadow: 0 0 8px rgba(41, 163, 255, 0.12);
+  color: var(--ui-text-33);
+  text-shadow: 0 0 8px var(--ui-border-7);
 }
 
 .nav-panel__body {
@@ -115,17 +115,17 @@ const emit = defineEmits<{
 
 .nav-panel__body::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(48, 127, 212, 0.58);
+  background: var(--ui-accent-68);
 }
 
 .nav-panel__body::-webkit-scrollbar-track {
-  background: rgba(4, 20, 40, 0.45);
+  background: var(--ui-surface-35);
 }
 
 .nav-group-title {
   font-size: 11px;
   font-weight: 600;
-  color: #29a3ff;
+  color: var(--ui-accent-4);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   opacity: 0.8;
@@ -146,14 +146,14 @@ const emit = defineEmits<{
 }
 
 .nav-item:hover {
-  background: linear-gradient(90deg, rgba(17, 79, 153, 0.16) 0%, rgba(8, 37, 74, 0.16) 100%);
-  border-color: rgba(47, 133, 225, 0.22);
+  background: linear-gradient(90deg, var(--ui-border-66) 0%, var(--ui-surface-32) 100%);
+  border-color: var(--ui-border-67);
 }
 
 .nav-item--active {
-  background: linear-gradient(90deg, rgba(19, 95, 182, 0.38) 0%, rgba(9, 46, 92, 0.16) 100%);
-  border-color: rgba(61, 166, 255, 0.28);
-  box-shadow: inset 2px 0 0 #29a3ff;
+  background: linear-gradient(90deg, var(--ui-border-68) 0%, var(--ui-surface-33) 100%);
+  border-color: var(--ui-accent-67);
+  box-shadow: inset 2px 0 0 var(--ui-accent-4);
   position: relative;
   transition:
     border-color 0.2s ease,
@@ -169,8 +169,8 @@ const emit = defineEmits<{
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: #29a3ff;
-  box-shadow: 0 0 6px rgba(41, 163, 255, 0.9);
+  background: var(--ui-accent-4);
+  box-shadow: 0 0 6px var(--ui-accent-122);
 }
 
 .nav-item__content {
@@ -183,12 +183,12 @@ const emit = defineEmits<{
 .nav-item__label {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(203, 227, 255, 0.82);
+  color: var(--ui-text-76);
   line-height: 1.4;
 }
 
 .nav-item--active .nav-item__label {
-  color: #fff;
+  color: var(--ui-text-1);
 }
 
 .nav-item__count {
@@ -196,9 +196,9 @@ const emit = defineEmits<{
   height: 18px;
   padding: 0 6px;
   border-radius: 3px;
-  background: rgba(41, 163, 255, 0.12);
-  border: 1px solid rgba(41, 163, 255, 0.2);
-  color: rgba(203, 227, 255, 0.82);
+  background: var(--ui-border-7);
+  border: 1px solid var(--ui-border-39);
+  color: var(--ui-text-76);
   text-align: center;
   font-size: 10px;
   font-weight: 600;
@@ -209,7 +209,7 @@ const emit = defineEmits<{
 .nav-item__desc {
   margin-top: 3px;
   font-size: 11px;
-  color: rgba(147, 196, 255, 0.5);
+  color: var(--ui-text-45);
   line-height: 1.4;
 }
 </style>

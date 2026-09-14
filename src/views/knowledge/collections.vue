@@ -292,15 +292,15 @@ onMounted(loadDatasets);
 <style scoped lang="scss">
 .collections-page {
   --page-bg:
-    radial-gradient(circle at top, rgba(0, 153, 255, 0.14) 0%, rgba(0, 0, 0, 0) 36%),
-    linear-gradient(180deg, #041528 0%, #041120 38%, #03101b 100%);
-  --surface-bg: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
-  --surface-border: rgba(43, 131, 255, 0.28);
-  --line: rgba(25, 95, 176, 0.35);
-  --accent: #29a3ff;
-  --text-primary: #eaf5ff;
-  --text-secondary: rgba(203, 227, 255, 0.72);
-  --text-tertiary: rgba(147, 196, 255, 0.62);
+    radial-gradient(circle at top, var(--ui-border-1) 0%, rgba(0, 0, 0, 0) 36%),
+    linear-gradient(180deg, var(--ui-page-1) 0%, var(--ui-page-2) 38%, var(--ui-page-3) 100%);
+  --surface-bg: linear-gradient(180deg, var(--ui-surface-1) 0%, var(--ui-surface-2) 100%);
+  --surface-border: var(--ui-border-2);
+  --line: var(--ui-border-4);
+  --accent: var(--ui-accent-4);
+  --text-primary: var(--ui-text-33);
+  --text-secondary: var(--ui-text-42);
+  --text-tertiary: var(--ui-text-41);
 
   height: 100%;
   background: var(--page-bg);
@@ -324,8 +324,8 @@ onMounted(loadDatasets);
   background: var(--surface-bg);
   border: 1px solid var(--surface-border);
   box-shadow:
-    0 0 0 1px rgba(32, 111, 202, 0.22),
-    0 18px 40px rgba(1, 8, 18, 0.45);
+    0 0 0 1px var(--ui-border-6),
+    0 18px 40px var(--ui-shadow-1);
   border-radius: 4px;
   position: relative;
 }
@@ -364,7 +364,7 @@ onMounted(loadDatasets);
   height: 46px;
   padding: 0 14px;
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(10, 38, 72, 0.96) 0%, rgba(5, 25, 47, 0.96) 100%);
+  background: linear-gradient(180deg, var(--ui-surface-4) 0%, var(--ui-surface-5) 100%);
   position: relative;
 }
 
@@ -383,14 +383,14 @@ onMounted(loadDatasets);
 .panel-head__icon {
   font-size: 16px;
   color: var(--accent);
-  filter: drop-shadow(0 0 4px rgba(41, 163, 255, 0.25));
+  filter: drop-shadow(0 0 4px var(--ui-border-40));
 }
 
 .panel-head__title {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  text-shadow: 0 0 8px rgba(41, 163, 255, 0.12);
+  text-shadow: 0 0 8px var(--ui-border-7);
 }
 
 .panel-body {
@@ -428,8 +428,8 @@ onMounted(loadDatasets);
   transform: translateY(-3px);
   border-color: var(--accent);
   box-shadow:
-    0 0 0 1px rgba(41, 163, 255, 0.4),
-    0 22px 48px rgba(1, 8, 18, 0.55);
+    0 0 0 1px var(--ui-border-75),
+    0 22px 48px var(--ui-shadow-19);
 }
 
 .card-accent {
@@ -462,7 +462,7 @@ onMounted(loadDatasets);
   margin-top: 4px;
   padding-left: 23px;
   font-size: 11px;
-  color: rgba(41, 163, 255, 0.7);
+  color: var(--ui-accent-74);
 }
 
 .card-count {
@@ -507,7 +507,7 @@ onMounted(loadDatasets);
 
 .collection-card--empty .empty-icon {
   font-size: 40px;
-  color: rgba(41, 163, 255, 0.55);
+  color: var(--ui-accent-105);
   margin-bottom: 10px;
 }
 
@@ -518,7 +518,7 @@ onMounted(loadDatasets);
 
 .collections-page::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(48, 127, 212, 0.45);
+  background: var(--ui-border-47);
 }
 
 .collections-page::-webkit-scrollbar-track {

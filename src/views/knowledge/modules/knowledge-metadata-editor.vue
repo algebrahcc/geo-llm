@@ -167,7 +167,7 @@ async function handleSave() {
 .metadata-row__name {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary, #eaf5ff);
+  color: var(--text-primary, var(--ui-text-33));
 }
 
 .metadata-row__type {

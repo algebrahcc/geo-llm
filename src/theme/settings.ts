@@ -4,10 +4,10 @@ export const themeSettings: App.Theme.ThemeSetting = {
   grayscale: false,
   colourWeakness: false,
   recommendColor: false,
-  themeColor: '#4A7DBD',
+  themeColor: '#3D6FE0',
   themeRadius: 4,
   otherColor: {
-    info: '#4A7DBD',
+    info: '#3D6FE0',
     success: '#6AAE8A',
     warning: '#C9A45C',
     error: '#C25B5B'
@@ -34,10 +34,10 @@ export const themeSettings: App.Theme.ThemeSetting = {
       visible: true
     },
     themeSchemaSwitch: {
-      visible: false
+      visible: true
     },
     themeConfigButton: {
-      visible: false
+      visible: true
     }
   },
   tab: {
@@ -50,7 +50,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
   fixedHeaderAndTab: true,
   sider: {
     inverted: false,
-    width: 280,
+    width: 248,
     collapsedWidth: 64,
     mixWidth: 90,
     mixCollapsedWidth: 64,

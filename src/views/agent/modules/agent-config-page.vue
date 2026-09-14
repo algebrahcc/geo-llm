@@ -126,9 +126,9 @@ const typeLabel = computed(() => {
   return '聊天助手';
 });
 const typeColor = computed(() => {
-  if (isWorkflow.value) return '#34d399';
-  if (isAgent.value) return '#8b5cf6';
-  return '#38bdf8';
+  if (isWorkflow.value) return 'var(--ui-sem-green)';
+  if (isAgent.value) return 'var(--ui-sem-indigo)';
+  return 'var(--ui-sem-sky)';
 });
 /** 当前智能体的本地 dify_app 主键 id（后端 Long 雪花序列化为字符串，必须保留字符串避免精度丢失） */
 const currentAppId = computed(() => selectedAgent.value?.key || null);
@@ -633,7 +633,7 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
 .agent-domain-page {
   height: 100%;
   background: var(--agent-page-bg);
-  color: #eaf5ff;
+  color: var(--ui-text-33);
   overflow: auto;
 }
 
@@ -664,7 +664,7 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
 
 .section-desc {
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.65);
+  color: var(--ui-text-85);
 }
 
 .type-tag {
@@ -678,21 +678,21 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
   gap: 16px;
   padding: 12px 16px;
   margin-bottom: 16px;
-  border: 1px solid rgba(52, 211, 153, 0.3);
+  border: 1px solid var(--ui-border-120);
   border-radius: 8px;
-  background: rgba(6, 20, 38, 0.5);
+  background: var(--ui-surface-66);
 
   &__title {
     font-size: 14px;
     font-weight: 700;
-    color: #eaf5ff;
+    color: var(--ui-text-33);
   }
 
   &__desc {
     margin-top: 2px;
     font-size: 12px;
     line-height: 1.5;
-    color: rgba(203, 227, 255, 0.6);
+    color: var(--ui-text-93);
   }
 }
 
@@ -712,7 +712,7 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
   border: none;
   padding: 8px 14px;
   margin-bottom: -1px;
-  color: rgba(203, 227, 255, 0.6);
+  color: var(--ui-text-93);
   cursor: pointer;
   font-size: 14px;
   border-bottom: 2px solid transparent;
@@ -726,7 +726,7 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
 }
 
 .cfg-tab:hover {
-  color: #eaf5ff;
+  color: var(--ui-text-33);
 }
 
 .cfg-tab--active {
@@ -747,11 +747,11 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
   flex-direction: column;
   gap: 8px;
   padding: 12px 14px;
-  border: 1px dashed rgba(203, 227, 255, 0.25);
+  border: 1px dashed var(--ui-text-94);
   border-radius: 8px;
   font-size: 13px;
   line-height: 1.7;
-  color: rgba(203, 227, 255, 0.75);
+  color: var(--ui-text-95);
 }
 
 .cfg-workflow-hint p {
@@ -767,7 +767,7 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
 
 .cfg-field__label {
   width: 120px;
-  color: rgba(203, 227, 255, 0.6);
+  color: var(--ui-text-93);
   font-size: 13px;
 }
 .cfg-field--top {
@@ -793,11 +793,11 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
 
 .kv-label {
   width: 120px;
-  color: rgba(203, 227, 255, 0.6);
+  color: var(--ui-text-93);
 }
 
 .kv-value {
-  color: #eaf5ff;
+  color: var(--ui-text-33);
   font-weight: 500;
 }
 

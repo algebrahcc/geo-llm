@@ -298,15 +298,15 @@ const statusOptions = [
 <style scoped lang="scss">
 .sys-page {
   --sys-bg:
-    radial-gradient(circle at top, rgba(0, 153, 255, 0.14) 0%, transparent 36%),
-    linear-gradient(180deg, #041528 0%, #041120 38%, #03101b 100%);
-  --sys-surface: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
-  --sys-border: rgba(43, 131, 255, 0.28);
-  --sys-line: rgba(25, 95, 176, 0.35);
-  --sys-text: #eaf5ff;
-  --sys-text2: rgba(203, 227, 255, 0.72);
-  --sys-text3: rgba(147, 196, 255, 0.62);
-  --sys-accent: #29a3ff;
+    radial-gradient(circle at top, var(--ui-border-1) 0%, transparent 36%),
+    linear-gradient(180deg, var(--ui-page-1) 0%, var(--ui-page-2) 38%, var(--ui-page-3) 100%);
+  --sys-surface: linear-gradient(180deg, var(--ui-surface-1) 0%, var(--ui-surface-2) 100%);
+  --sys-border: var(--ui-border-2);
+  --sys-line: var(--ui-border-4);
+  --sys-text: var(--ui-text-33);
+  --sys-text2: var(--ui-text-42);
+  --sys-text3: var(--ui-text-41);
+  --sys-accent: var(--ui-accent-4);
   height: 100%;
   background: var(--sys-bg);
   color: var(--sys-text);
@@ -321,8 +321,8 @@ const statusOptions = [
   background: var(--sys-surface);
   border: 1px solid var(--sys-border);
   box-shadow:
-    0 0 0 1px rgba(32, 111, 202, 0.22),
-    0 18px 40px rgba(1, 8, 18, 0.45);
+    0 0 0 1px var(--ui-border-6),
+    0 18px 40px var(--ui-shadow-1);
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -352,8 +352,8 @@ const statusOptions = [
   background: var(--sys-surface);
   border: 1px solid var(--sys-border);
   box-shadow:
-    0 0 0 1px rgba(32, 111, 202, 0.22),
-    0 18px 40px rgba(1, 8, 18, 0.45);
+    0 0 0 1px var(--ui-border-6),
+    0 18px 40px var(--ui-shadow-1);
   border-radius: 4px;
   position: relative;
   overflow: hidden;
@@ -395,19 +395,19 @@ const statusOptions = [
   line-height: 1;
   font-weight: 500;
   &--success {
-    background: rgba(34, 197, 94, 0.15);
-    border: 1px solid rgba(34, 197, 94, 0.3);
-    color: rgba(74, 222, 128, 0.9);
+    background: var(--ui-border-25);
+    border: 1px solid var(--ui-border-26);
+    color: var(--ui-accent-27);
   }
   &--error {
-    background: rgba(255, 107, 107, 0.15);
-    border: 1px solid rgba(255, 107, 107, 0.3);
-    color: rgba(255, 141, 141, 0.9);
+    background: var(--ui-accent-38);
+    border: 1px solid var(--ui-accent-70);
+    color: var(--ui-text-69);
   }
   &--default {
-    background: rgba(148, 163, 184, 0.12);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    color: rgba(203, 213, 225, 0.7);
+    background: var(--ui-accent-156);
+    border: 1px solid var(--ui-accent-157);
+    color: var(--ui-text-110);
   }
 }
 
@@ -421,7 +421,7 @@ const statusOptions = [
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid var(--sys-line);
-  background: linear-gradient(180deg, rgba(4, 21, 41, 0.98) 0%, rgba(4, 18, 34, 0.98) 100%);
+  background: linear-gradient(180deg, var(--ui-surface-7) 0%, var(--ui-surface-23) 100%);
   min-height: 48px;
   padding: 8px 14px;
   gap: 12px;
@@ -435,8 +435,8 @@ const statusOptions = [
   margin: 0;
   padding: 8px 10px;
   border-radius: 4px;
-  background: rgba(2, 14, 30, 0.6);
-  border: 1px solid rgba(25, 95, 176, 0.18);
+  background: var(--ui-surface-31);
+  border: 1px solid var(--ui-border-49);
   color: var(--sys-text2);
   font-size: 12px;
   font-family: Consolas, DIN, monospace;
@@ -449,37 +449,37 @@ const statusOptions = [
 
 // Table
 .sys-table {
-  --n-th-color: rgba(6, 29, 56, 0.94) !important;
+  --n-th-color: var(--ui-surface-20) !important;
   --n-td-color: transparent !important;
-  --n-td-color-hover: rgba(33, 116, 212, 0.14) !important;
-  --n-border-color: rgba(25, 95, 176, 0.35) !important;
-  --n-th-text-color: rgba(203, 227, 255, 0.72) !important;
-  --n-td-text-color: rgba(203, 227, 255, 0.72) !important;
+  --n-td-color-hover: var(--ui-border-23) !important;
+  --n-border-color: var(--ui-border-4) !important;
+  --n-th-text-color: var(--ui-text-42) !important;
+  --n-td-text-color: var(--ui-text-42) !important;
   --n-th-font-weight: 600 !important;
   --n-font-size: 13px !important;
 }
 .sys-table :deep(.n-data-table-th) {
-  background: linear-gradient(180deg, rgba(6, 29, 56, 0.94) 0%, rgba(4, 22, 43, 0.94) 100%) !important;
+  background: linear-gradient(180deg, var(--ui-surface-20) 0%, var(--ui-surface-21) 100%) !important;
   font-size: 13px;
   padding: 14px 12px;
 }
 .sys-table :deep(.n-data-table-td) {
   padding: 14px 12px;
-  border-bottom: 1px solid rgba(18, 73, 135, 0.32) !important;
+  border-bottom: 1px solid var(--ui-border-24) !important;
 }
 .sys-table :deep(.n-data-table-table) {
   border-collapse: separate;
   border-spacing: 0;
 }
 .sys-table :deep(.n-data-table-tr:hover .n-data-table-td) {
-  background: rgba(33, 116, 212, 0.14) !important;
+  background: var(--ui-border-23) !important;
 }
 .sys-table :deep(.n-data-table-base-table-body::-webkit-scrollbar) {
   width: 8px;
 }
 .sys-table :deep(.n-data-table-base-table-body::-webkit-scrollbar-thumb) {
   border-radius: 999px;
-  background: rgba(76, 169, 255, 0.35);
+  background: var(--ui-accent-158);
 }
 .sys-table :deep(.n-data-table-base-table-body::-webkit-scrollbar-track) {
   background: transparent;
@@ -492,9 +492,9 @@ const statusOptions = [
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(41, 163, 255, 0.06);
-  border: 1px solid rgba(41, 163, 255, 0.12);
-  color: rgba(203, 227, 255, 0.65);
+  background: var(--ui-border-45);
+  border: 1px solid var(--ui-border-7);
+  color: var(--ui-text-85);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
@@ -503,10 +503,10 @@ const statusOptions = [
 }
 .sys-table :deep(.action-icon-btn:hover) {
   color: #fff;
-  background: rgba(41, 163, 255, 0.18);
-  border-color: rgba(41, 163, 255, 0.35);
+  background: var(--ui-border-37);
+  border-color: var(--ui-border-38);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(41, 163, 255, 0.2);
+  box-shadow: 0 4px 12px var(--ui-border-39);
 }
 .sys-table :deep(.action-icon-btn::after) {
   content: attr(data-tooltip);
@@ -516,9 +516,9 @@ const statusOptions = [
   transform: translateX(-50%) translateY(4px);
   padding: 3px 8px;
   border-radius: 4px;
-  background: rgba(6, 29, 56, 0.95);
-  border: 1px solid rgba(41, 163, 255, 0.25);
-  color: rgba(203, 227, 255, 0.9);
+  background: var(--ui-surface-22);
+  border: 1px solid var(--ui-border-40);
+  color: var(--ui-text-86);
   font-size: 11px;
   white-space: nowrap;
   pointer-events: none;
@@ -534,15 +534,15 @@ const statusOptions = [
 }
 
 .sys-table-footer :deep(.n-pagination) {
-  --n-item-text-color: rgba(203, 227, 255, 0.78) !important;
+  --n-item-text-color: var(--ui-text-111) !important;
   --n-item-text-color-hover: #fff !important;
   --n-item-text-color-active: #fff !important;
-  --n-item-color-active: linear-gradient(180deg, rgba(23, 115, 230, 0.72) 0%, rgba(10, 72, 148, 0.72) 100%) !important;
-  --n-item-border-active: 1px solid rgba(92, 184, 255, 0.55) !important;
-  --n-item-color: rgba(8, 28, 56, 0.85) !important;
-  --n-item-border: 1px solid rgba(48, 115, 190, 0.36) !important;
-  --n-item-border-hover: 1px solid rgba(76, 169, 255, 0.5) !important;
-  --n-item-color-hover: rgba(14, 42, 88, 0.92) !important;
+  --n-item-color-active: linear-gradient(180deg, var(--ui-accent-93) 0%, var(--ui-accent-94) 100%) !important;
+  --n-item-border-active: 1px solid var(--ui-accent-95) !important;
+  --n-item-color: var(--ui-surface-56) !important;
+  --n-item-border: 1px solid var(--ui-border-99) !important;
+  --n-item-border-hover: 1px solid var(--ui-accent-96) !important;
+  --n-item-color-hover: var(--ui-accent-97) !important;
   --n-item-border-radius: 5px !important;
   font-size: 13px;
 }
@@ -554,12 +554,12 @@ const statusOptions = [
   transition: all 0.2s;
 }
 .sys-table-footer :deep(.n-pagination-item:hover) {
-  border-color: rgba(76, 169, 255, 0.5);
+  border-color: var(--ui-accent-96);
   color: #fff;
   transform: translateY(-1px);
 }
 .sys-table-footer :deep(.n-pagination-item--active) {
-  box-shadow: 0 2px 10px rgba(41, 163, 255, 0.25);
+  box-shadow: 0 2px 10px var(--ui-border-40);
   font-weight: 600;
 }
 .sys-table-footer :deep(.n-pagination-item--disabled) {
@@ -567,12 +567,12 @@ const statusOptions = [
 }
 
 .sys-search-card :deep(.n-input) {
-  --n-border: 1px solid rgba(43, 118, 197, 0.38);
-  --n-border-hover: 1px solid rgba(58, 160, 255, 0.5);
-  --n-border-focus: 1px solid rgba(58, 160, 255, 0.65);
-  --n-color: rgba(2, 16, 31, 0.98);
-  --n-text-color: #eaf5ff;
-  --n-placeholder-color: rgba(132, 177, 233, 0.45);
+  --n-border: 1px solid var(--ui-border-11);
+  --n-border-hover: 1px solid var(--ui-accent-10);
+  --n-border-focus: 1px solid var(--ui-accent-11);
+  --n-color: var(--ui-surface-10);
+  --n-text-color: var(--ui-text-33);
+  --n-placeholder-color: var(--ui-accent-159);
   --n-height: 36px;
   --n-border-radius: 8px;
   width: 150px;
@@ -582,8 +582,8 @@ const statusOptions = [
   display: none;
 }
 .sys-search-card :deep(.n-base-selection) {
-  --n-border: 1px solid rgba(43, 118, 197, 0.38);
-  --n-color: rgba(2, 16, 31, 0.98);
+  --n-border: 1px solid var(--ui-border-11);
+  --n-color: var(--ui-surface-10);
   height: 36px;
   border-radius: 8px;
 }
@@ -591,24 +591,24 @@ const statusOptions = [
   color: var(--sys-text);
 }
 .sys-search-card :deep(.n-button--primary-type) {
-  --n-color: linear-gradient(180deg, rgba(23, 131, 240, 0.96) 0%, rgba(8, 83, 171, 0.96) 100%);
-  --n-color-hover: linear-gradient(180deg, rgba(43, 151, 255, 0.98) 0%, rgba(13, 93, 186, 0.98) 100%);
-  --n-text-color: #e9f5ff;
+  --n-color: linear-gradient(180deg, var(--ui-accent-18) 0%, var(--ui-accent-19) 100%);
+  --n-color-hover: linear-gradient(180deg, var(--ui-accent-20) 0%, var(--ui-accent-21) 100%);
+  --n-text-color: var(--ui-text-12);
   --n-text-color-hover: #fff;
-  --n-border: 1px solid rgba(96, 191, 255, 0.32);
-  --n-border-hover: 1px solid rgba(96, 191, 255, 0.5);
+  --n-border: 1px solid var(--ui-accent-3);
+  --n-border-hover: 1px solid var(--ui-accent-23);
   --n-border-radius: 8px;
   --n-font-size: 13px;
   --n-height: 36px;
   font-weight: 600;
 }
 .sys-search-card :deep(.n-button--default-type) {
-  --n-color: linear-gradient(180deg, rgba(9, 43, 82, 0.94) 0%, rgba(5, 23, 46, 0.96) 100%);
-  --n-color-hover: linear-gradient(180deg, rgba(14, 53, 102, 0.96) 0%, rgba(8, 33, 66, 0.96) 100%);
-  --n-text-color: rgba(203, 227, 255, 0.85);
-  --n-text-color-hover: #e9f5ff;
-  --n-border: 1px solid rgba(43, 118, 197, 0.35);
-  --n-border-hover: 1px solid rgba(58, 160, 255, 0.5);
+  --n-color: linear-gradient(180deg, var(--ui-surface-12) 0%, var(--ui-surface-13) 100%);
+  --n-color-hover: linear-gradient(180deg, var(--ui-accent-25) 0%, var(--ui-surface-14) 100%);
+  --n-text-color: var(--ui-text-15);
+  --n-text-color-hover: var(--ui-text-12);
+  --n-border: 1px solid var(--ui-border-20);
+  --n-border-hover: 1px solid var(--ui-accent-10);
   --n-border-radius: 8px;
   --n-font-size: 13px;
   --n-height: 36px;
@@ -616,16 +616,16 @@ const statusOptions = [
 
 // Modal
 :deep(.n-modal-mask) {
-  background: rgba(2, 8, 18, 0.62);
+  background: var(--ui-shadow-16);
   backdrop-filter: blur(2px);
 }
 :deep(.n-card) {
-  --n-color: linear-gradient(180deg, rgba(4, 22, 46, 0.98) 0%, rgba(3, 16, 35, 0.99) 100%) !important;
-  --n-border-color: rgba(43, 131, 255, 0.32) !important;
-  --n-text-color: #eaf5ff !important;
-  --n-title-text-color: #eaf5ff !important;
-  --n-close-color: rgba(203, 227, 255, 0.72) !important;
-  --n-close-color-hover: #29a3ff !important;
+  --n-color: linear-gradient(180deg, var(--ui-surface-26) 0%, var(--ui-surface-27) 100%) !important;
+  --n-border-color: var(--ui-border-43) !important;
+  --n-text-color: var(--ui-text-33) !important;
+  --n-title-text-color: var(--ui-text-33) !important;
+  --n-close-color: var(--ui-text-42) !important;
+  --n-close-color-hover: var(--ui-accent-4) !important;
   --n-border-radius: 8px !important;
   --n-padding-top: 0 !important;
   --n-padding-bottom: 0 !important;
@@ -633,14 +633,14 @@ const statusOptions = [
   --n-padding-right: 0 !important;
   overflow: hidden;
   box-shadow:
-    0 0 0 1px rgba(32, 111, 202, 0.18),
-    0 24px 64px rgba(1, 6, 16, 0.7),
-    0 0 80px rgba(41, 163, 255, 0.06) !important;
+    0 0 0 1px var(--ui-border-44),
+    0 24px 64px var(--ui-shadow-7),
+    0 0 80px var(--ui-border-45) !important;
 }
 :deep(.n-card-header) {
   padding: 20px 24px 16px !important;
-  border-bottom: 1px solid rgba(25, 95, 176, 0.35);
-  background: linear-gradient(180deg, rgba(8, 36, 68, 0.96) 0%, rgba(4, 22, 46, 0.96) 100%);
+  border-bottom: 1px solid var(--ui-border-4);
+  background: linear-gradient(180deg, var(--ui-surface-28) 0%, var(--ui-surface-29) 100%);
   position: relative;
 }
 :deep(.n-card-header::after) {
@@ -651,27 +651,27 @@ const statusOptions = [
   bottom: 16%;
   width: 3px;
   border-radius: 2px;
-  background: linear-gradient(180deg, transparent, #29a3ff, transparent);
+  background: linear-gradient(180deg, transparent, var(--ui-accent-4), transparent);
   opacity: 0.6;
 }
 :deep(.n-card-header__main) {
   font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.3px;
-  text-shadow: 0 0 10px rgba(41, 163, 255, 0.12);
+  text-shadow: 0 0 10px var(--ui-border-7);
 }
 :deep(.n-card-header__close) {
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  border: 1px solid rgba(45, 111, 183, 0.28);
-  background: rgba(6, 25, 50, 0.6);
+  border: 1px solid var(--ui-border-46);
+  background: var(--ui-surface-30);
   display: grid;
   place-items: center;
 }
 :deep(.n-card-header__close:hover) {
-  border-color: rgba(70, 176, 255, 0.4);
-  background: rgba(41, 163, 255, 0.08);
+  border-color: var(--ui-accent-45);
+  background: var(--ui-border-36);
 }
 :deep(.n-card__content) {
   padding: 20px 24px 24px;
@@ -681,7 +681,7 @@ const statusOptions = [
 }
 :deep(.n-card__content::-webkit-scrollbar-thumb) {
   border-radius: 999px;
-  background: rgba(48, 127, 212, 0.45);
+  background: var(--ui-border-47);
 }
 :deep(.n-card__content::-webkit-scrollbar-track) {
   background: transparent;
@@ -699,12 +699,12 @@ const statusOptions = [
   flex-direction: column;
   border-radius: 8px;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(4, 22, 46, 0.98) 0%, rgba(3, 16, 35, 0.99) 100%);
-  border: 1px solid rgba(43, 131, 255, 0.32);
+  background: linear-gradient(180deg, var(--ui-surface-26) 0%, var(--ui-surface-27) 100%);
+  border: 1px solid var(--ui-border-43);
   box-shadow:
-    0 0 0 1px rgba(32, 111, 202, 0.18),
-    0 24px 64px rgba(1, 6, 16, 0.7),
-    0 0 80px rgba(41, 163, 255, 0.06);
+    0 0 0 1px var(--ui-border-44),
+    0 24px 64px var(--ui-shadow-7),
+    0 0 80px var(--ui-border-45);
 }
 .sys-detail-header {
   display: flex;
@@ -713,7 +713,7 @@ const statusOptions = [
   gap: 16px;
   padding: 20px 24px 16px;
   border-bottom: 1px solid var(--sys-line);
-  background: linear-gradient(180deg, rgba(8, 36, 68, 0.96) 0%, rgba(4, 22, 46, 0.96) 100%);
+  background: linear-gradient(180deg, var(--ui-surface-28) 0%, var(--ui-surface-29) 100%);
   position: relative;
 }
 .sys-detail-header::after {
@@ -724,7 +724,7 @@ const statusOptions = [
   bottom: 16%;
   width: 3px;
   border-radius: 2px;
-  background: linear-gradient(180deg, transparent, #29a3ff, transparent);
+  background: linear-gradient(180deg, transparent, var(--ui-accent-4), transparent);
   opacity: 0.6;
 }
 .sys-detail-header__left {
@@ -736,8 +736,8 @@ const statusOptions = [
 .sys-detail-header__icon {
   flex-shrink: 0;
   font-size: 28px;
-  color: #62c4ff;
-  filter: drop-shadow(0 0 8px rgba(98, 196, 255, 0.3));
+  color: var(--ui-accent-46);
+  filter: drop-shadow(0 0 8px var(--ui-accent-47));
   margin-top: 2px;
 }
 .sys-detail-header__text {
@@ -750,7 +750,7 @@ const statusOptions = [
   letter-spacing: 0.3px;
   color: var(--sys-text);
   line-height: 1.4;
-  text-shadow: 0 0 10px rgba(41, 163, 255, 0.12);
+  text-shadow: 0 0 10px var(--ui-border-7);
 }
 .sys-detail-header__badges {
   display: flex;
@@ -765,9 +765,9 @@ const statusOptions = [
   height: 32px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(45, 111, 183, 0.28);
+  border: 1px solid var(--ui-border-46);
   border-radius: 6px;
-  background: rgba(6, 25, 50, 0.6);
+  background: var(--ui-surface-30);
   color: var(--sys-text2);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -775,9 +775,9 @@ const statusOptions = [
   font-family: inherit;
 }
 .sys-detail-close-btn:hover {
-  color: #29a3ff;
-  border-color: rgba(70, 176, 255, 0.4);
-  background: rgba(41, 163, 255, 0.08);
+  color: var(--ui-accent-4);
+  border-color: var(--ui-accent-45);
+  background: var(--ui-border-36);
 }
 
 .sys-detail-body {
@@ -791,7 +791,7 @@ const statusOptions = [
 }
 .sys-detail-body::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(48, 127, 212, 0.45);
+  background: var(--ui-border-47);
 }
 .sys-detail-body::-webkit-scrollbar-track {
   background: transparent;
@@ -813,7 +813,7 @@ const statusOptions = [
   letter-spacing: 0.3px;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(25, 95, 176, 0.22);
+  border-bottom: 1px solid var(--ui-border-48);
 }
 .sys-detail-section__icon {
   font-size: 16px;
@@ -850,7 +850,7 @@ const statusOptions = [
 .sys-detail-field__value--mono {
   font-family: DIN, Consolas, monospace;
   font-size: 12px;
-  color: rgba(234, 245, 255, 0.88);
+  color: var(--ui-text-112);
   letter-spacing: 0.4px;
 }
 </style>

@@ -211,9 +211,9 @@ async function handleSubmit(model: {
 
   &:hover {
     border-color: var(--agent-accent);
-    background: rgba(52, 168, 255, 0.2);
+    background: var(--ui-accent-133);
     color: var(--agent-accent);
-    box-shadow: 0 0 10px rgba(52, 168, 255, 0.2);
+    box-shadow: 0 0 10px var(--ui-accent-133);
   }
 }
 
@@ -239,25 +239,25 @@ async function handleSubmit(model: {
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
-  border: 1px solid rgba(25, 95, 176, 0.22);
+  border: 1px solid var(--ui-border-48);
   border-radius: 999px;
-  background: rgba(6, 20, 38, 0.5);
+  background: var(--ui-surface-66);
   color: var(--agent-text-dim);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: rgba(61, 166, 255, 0.45);
-    background: rgba(10, 32, 58, 0.6);
+    border-color: var(--ui-accent-134);
+    background: var(--ui-surface-77);
     color: var(--agent-text);
   }
 
   &--active {
-    background: linear-gradient(90deg, rgba(19, 95, 182, 0.5) 0%, rgba(9, 46, 92, 0.4) 100%);
-    border-color: rgba(61, 166, 255, 0.5);
-    color: #fff;
-    box-shadow: inset 0 0 12px rgba(52, 168, 255, 0.18);
+    background: linear-gradient(90deg, var(--ui-border-117) 0%, var(--ui-surface-78) 100%);
+    border-color: var(--ui-accent-135);
+    color: var(--ui-text-1);
+    box-shadow: inset 0 0 12px var(--ui-accent-136);
   }
 
   &__count {

@@ -7,18 +7,18 @@
 
 /* ── 触发框 ── */
 .n-base-selection {
-  --n-color: rgba(2, 16, 31, 0.98) !important;
-  --n-color-active: rgba(2, 16, 31, 0.98) !important;
-  --n-color-focus: rgba(2, 16, 31, 0.98) !important;
-  --n-border: 1px solid rgba(43, 118, 197, 0.38) !important;
-  --n-border-hover: 1px solid rgba(58, 160, 255, 0.5) !important;
-  --n-border-active: 1px solid rgba(58, 160, 255, 0.65) !important;
-  --n-border-focus: 1px solid rgba(58, 160, 255, 0.65) !important;
-  --n-box-shadow-active: 0 0 0 2px rgba(41, 163, 255, 0.12) !important;
-  --n-box-shadow-focus: 0 0 0 2px rgba(41, 163, 255, 0.12) !important;
-  --n-text-color: #eaf5ff !important;
-  --n-placeholder-color: rgba(132, 177, 233, 0.45) !important;
-  --n-arrow-color: #7cc4f0 !important;
+  --n-color: var(--ui-surface-10) !important;
+  --n-color-active: var(--ui-surface-10) !important;
+  --n-color-focus: var(--ui-surface-10) !important;
+  --n-border: 1px solid var(--ui-border-11) !important;
+  --n-border-hover: 1px solid var(--ui-accent-10) !important;
+  --n-border-active: 1px solid var(--ui-accent-11) !important;
+  --n-border-focus: 1px solid var(--ui-accent-11) !important;
+  --n-box-shadow-active: 0 0 0 2px var(--ui-border-7) !important;
+  --n-box-shadow-focus: 0 0 0 2px var(--ui-border-7) !important;
+  --n-text-color: var(--ui-text-33) !important;
+  --n-placeholder-color: var(--ui-accent-159) !important;
+  --n-arrow-color: var(--ui-accent-9) !important;
   --n-border-radius: 8px !important;
   --n-font-size: 13px !important;
   --n-padding-single: 0 26px 0 12px !important;
@@ -26,32 +26,32 @@
 }
 .n-base-selection-label,
 .n-base-selection-tags {
-  background: linear-gradient(180deg, rgba(2, 16, 31, 0.98) 0%, rgba(1, 12, 24, 0.98) 100%);
+  background: linear-gradient(180deg, var(--ui-surface-10) 0%, var(--ui-shadow-3) 100%);
 }
 .n-base-selection-placeholder,
 .n-base-selection-input__content {
-  color: rgba(132, 177, 233, 0.45);
+  color: var(--ui-accent-159);
 }
 .n-base-selection-arrow {
-  color: #7cc4f0;
+  color: var(--ui-accent-9);
   opacity: 0.7;
 }
 
 /* ── 下拉菜单（选项列表）── */
 .n-base-select-menu {
-  --n-color: rgba(3, 18, 38, 0.98) !important;
+  --n-color: var(--ui-surface-61) !important;
   --n-border-radius: 8px !important;
-  --n-menu-box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
+  --n-menu-box-shadow: 0 8px 28px var(--ui-shadow-15) !important;
   --n-option-font-size-medium: 13px !important;
-  --n-option-text-color: rgba(203, 227, 255, 0.82) !important;
-  --n-option-text-color-active: #7cc4f0 !important;
-  --n-option-text-color-pressed: #7cc4f0 !important;
-  --n-option-color-pending: rgba(14, 42, 88, 0.92) !important;
-  --n-option-color-active: rgba(23, 115, 230, 0.22) !important;
-  --n-option-color-active-pending: rgba(23, 115, 230, 0.3) !important;
-  --n-option-check-color: #62c4ff !important;
-  --n-group-header-text-color: rgba(132, 177, 233, 0.55) !important;
-  --n-action-divider-color: rgba(43, 118, 197, 0.25) !important;
-  border: 1px solid rgba(43, 118, 197, 0.32);
+  --n-option-text-color: var(--ui-text-76) !important;
+  --n-option-text-color-active: var(--ui-accent-9) !important;
+  --n-option-text-color-pressed: var(--ui-accent-9) !important;
+  --n-option-color-pending: var(--ui-accent-97) !important;
+  --n-option-color-active: var(--ui-border-102) !important;
+  --n-option-color-active-pending: var(--ui-border-103) !important;
+  --n-option-check-color: var(--ui-accent-46) !important;
+  --n-group-header-text-color: var(--ui-accent-169) !important;
+  --n-action-divider-color: var(--ui-border-104) !important;
+  border: 1px solid var(--ui-border-105);
   overflow: hidden;
 }

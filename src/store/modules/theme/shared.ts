@@ -260,17 +260,21 @@ export function getNaiveTheme(
     },
     Menu: {
       borderRadius: '4px',
+      /** 导航字号：默认 14px 偏小，统一放大到 15px（横向顶栏 / 侧边菜单 / 子菜单一致） */
+      fontSize: '15px',
+      /** 菜单项高度：默认 42px，放大到 44px 提升点击区域 */
+      itemHeight: '44px',
       itemTextColorHoverHorizontal: 'rgba(175, 208, 245, 0.9)',
-      itemTextColorActiveHorizontal: '#4a7dbd',
-      itemTextColorActiveHoverHorizontal: '#4a7dbd',
+      itemTextColorActiveHorizontal: 'var(--ui-sem-blue)',
+      itemTextColorActiveHoverHorizontal: 'var(--ui-sem-blue)',
       itemIconColorHoverHorizontal: 'rgba(175, 208, 245, 0.85)',
-      itemIconColorActiveHorizontal: '#4a7dbd',
-      itemIconColorActiveHoverHorizontal: '#4a7dbd',
+      itemIconColorActiveHorizontal: 'var(--ui-sem-blue)',
+      itemIconColorActiveHoverHorizontal: 'var(--ui-sem-blue)',
       itemColorHover: 'rgba(41, 182, 255, 0.08)',
       itemColorActive: 'rgba(41, 182, 255, 0.1)',
       itemColorActiveHover: 'rgba(41, 182, 255, 0.14)',
       arrowColorHover: 'rgba(175, 208, 245, 0.7)',
-      arrowColorActive: '#4a7dbd'
+      arrowColorActive: 'var(--ui-sem-blue)'
     }
   };
 

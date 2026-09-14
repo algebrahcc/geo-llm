@@ -370,7 +370,7 @@ function handleSelect(key: typeof agentKey.value) {
 .agent-domain-page {
   height: 100%;
   background: var(--agent-page-bg);
-  color: #eaf5ff;
+  color: var(--ui-text-33);
   overflow: auto;
 }
 
@@ -448,7 +448,7 @@ function handleSelect(key: typeof agentKey.value) {
 
   &__desc {
     font-size: 12px;
-    color: rgba(203, 227, 255, 0.55);
+    color: var(--ui-text-104);
     margin-bottom: 6px;
   }
 
@@ -466,16 +466,16 @@ function handleSelect(key: typeof agentKey.value) {
   &__head {
     font-size: 13px;
     font-weight: 700;
-    color: #eaf5ff;
+    color: var(--ui-text-33);
     margin-bottom: 8px;
   }
 
   &__empty {
     font-size: 12px;
-    color: rgba(203, 227, 255, 0.4);
+    color: var(--ui-text-105);
     padding: 16px 0;
     text-align: center;
-    border: 1px dashed rgba(25, 95, 176, 0.25);
+    border: 1px dashed var(--ui-border-112);
     border-radius: 6px;
   }
 
@@ -486,7 +486,7 @@ function handleSelect(key: typeof agentKey.value) {
   &__logtitle {
     font-size: 12px;
     font-weight: 600;
-    color: rgba(203, 227, 255, 0.7);
+    color: var(--ui-text-89);
     margin-bottom: 6px;
   }
 }
@@ -494,9 +494,9 @@ function handleSelect(key: typeof agentKey.value) {
 .wf-output {
   padding: 12px 14px;
   border-radius: 6px;
-  background: rgba(6, 20, 38, 0.5);
-  border: 1px solid rgba(25, 95, 176, 0.18);
-  color: rgba(41, 163, 255, 0.9);
+  background: var(--ui-surface-66);
+  border: 1px solid var(--ui-border-49);
+  color: var(--ui-accent-122);
   font-size: 13px;
   line-height: 22px;
   white-space: pre-wrap;
@@ -504,9 +504,9 @@ function handleSelect(key: typeof agentKey.value) {
 }
 
 .mode-tag {
-  background: rgba(41, 163, 255, 0.12);
-  border: 1px solid rgba(41, 163, 255, 0.25);
-  color: rgba(41, 163, 255, 0.95);
+  background: var(--ui-border-7);
+  border: 1px solid var(--ui-border-40);
+  color: var(--ui-accent-144);
   margin-left: 8px;
 }
 
@@ -527,17 +527,17 @@ function handleSelect(key: typeof agentKey.value) {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  color: rgba(203, 227, 255, 0.6);
+  color: var(--ui-text-93);
 
   &__icon {
     font-size: 46px;
-    color: rgba(41, 163, 255, 0.35);
+    color: var(--ui-border-38);
   }
 
   &__title {
     font-size: 16px;
     font-weight: 700;
-    color: #eaf5ff;
+    color: var(--ui-text-33);
   }
 
   &__desc {
@@ -590,12 +590,12 @@ function handleSelect(key: typeof agentKey.value) {
   color: #fff;
 
   &.user {
-    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    background: linear-gradient(135deg, var(--ui-accent-145), var(--ui-accent-51));
   }
 
   &.assistant {
-    background: linear-gradient(135deg, #8b5cf6, #a78bfa);
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+    background: linear-gradient(135deg, var(--ui-accent-146), var(--ui-text-106));
+    box-shadow: 0 0 10px var(--ui-accent-147);
   }
 }
 
@@ -609,16 +609,16 @@ function handleSelect(key: typeof agentKey.value) {
   word-break: break-word;
 
   &.user {
-    background: linear-gradient(135deg, rgba(19, 95, 182, 0.55), rgba(9, 46, 92, 0.55));
-    border: 1px solid rgba(61, 166, 255, 0.35);
-    color: #fff;
+    background: linear-gradient(135deg, var(--ui-accent-148), var(--ui-surface-81));
+    border: 1px solid var(--ui-accent-149);
+    color: var(--ui-text-1);
     border-bottom-right-radius: 4px;
   }
 
   &.assistant {
-    background: rgba(6, 20, 38, 0.5);
-    border: 1px solid rgba(25, 95, 176, 0.22);
-    color: #d6eaff;
+    background: var(--ui-surface-66);
+    border: 1px solid var(--ui-border-48);
+    color: var(--ui-text-107);
     border-bottom-left-radius: 4px;
   }
 
@@ -631,7 +631,7 @@ function handleSelect(key: typeof agentKey.value) {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: rgba(41, 163, 255, 0.6);
+      background: var(--ui-accent-24);
       animation: chat-blink 1.2s infinite;
 
       &:nth-child(2) {
@@ -659,7 +659,7 @@ function handleSelect(key: typeof agentKey.value) {
 
   &__time {
     font-size: 11px;
-    color: rgba(203, 227, 255, 0.4);
+    color: var(--ui-text-105);
   }
 
   &__suggested {
@@ -673,9 +673,9 @@ function handleSelect(key: typeof agentKey.value) {
 /* 思考过程折叠面板（对齐 Dify 折叠设计） */
 .think-panel {
   margin-bottom: 8px;
-  border: 1px solid rgba(25, 95, 176, 0.22);
+  border: 1px solid var(--ui-border-48);
   border-radius: 6px;
-  background: rgba(12, 38, 72, 0.35);
+  background: var(--ui-surface-82);
   font-size: 12px;
 
   &__summary {
@@ -686,7 +686,7 @@ function handleSelect(key: typeof agentKey.value) {
     cursor: pointer;
     list-style: none;
     user-select: none;
-    color: rgba(147, 196, 255, 0.75);
+    color: var(--ui-text-108);
 
     &::-webkit-details-marker {
       display: none;
@@ -697,7 +697,7 @@ function handleSelect(key: typeof agentKey.value) {
     display: inline-block;
     font-size: 10px;
     transition: transform 0.25s ease;
-    color: rgba(41, 163, 255, 0.85);
+    color: var(--ui-accent-132);
   }
 
   &[open] &__chevron {
@@ -706,20 +706,20 @@ function handleSelect(key: typeof agentKey.value) {
 
   &__label {
     font-weight: 600;
-    color: rgba(203, 227, 255, 0.75);
+    color: var(--ui-text-95);
 
     &--active {
-      color: rgba(41, 163, 255, 0.95);
+      color: var(--ui-accent-144);
     }
   }
 
   &__body {
     margin: 0 8px 8px 8px;
     padding: 8px 10px;
-    border-left: 2px solid rgba(41, 163, 255, 0.4);
-    background: rgba(6, 20, 38, 0.45);
+    border-left: 2px solid var(--ui-border-75);
+    background: var(--ui-surface-83);
     border-radius: 0 4px 4px 0;
-    color: rgba(203, 227, 255, 0.62);
+    color: var(--ui-text-109);
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
@@ -730,7 +730,7 @@ function handleSelect(key: typeof agentKey.value) {
 .type-cursor {
   display: inline-block;
   margin-left: 1px;
-  color: rgba(41, 163, 255, 0.9);
+  color: var(--ui-accent-122);
   animation: type-cursor-blink 0.9s steps(1) infinite;
 }
 
@@ -751,14 +751,14 @@ function handleSelect(key: typeof agentKey.value) {
   border: none;
   background: transparent;
   padding: 0;
-  color: rgba(203, 227, 255, 0.45);
+  color: var(--ui-text-96);
   cursor: pointer;
   font-size: 13px;
   display: inline-flex;
   align-items: center;
 
   &:hover {
-    color: #29a3ff;
+    color: var(--ui-accent-4);
   }
 }
 
@@ -786,8 +786,8 @@ function handleSelect(key: typeof agentKey.value) {
 
   /* 浮动输入条：与消息区留出间距，聚焦时高亮描边 */
   &__box {
-    background: rgba(12, 38, 72, 0.45);
-    border: 1px solid rgba(25, 95, 176, 0.22);
+    background: var(--ui-surface-84);
+    border: 1px solid var(--ui-border-48);
     border-radius: 12px;
     padding: 8px 12px 6px;
     transition:
@@ -796,8 +796,8 @@ function handleSelect(key: typeof agentKey.value) {
   }
 
   &--focused &__box {
-    border-color: rgba(41, 163, 255, 0.55);
-    box-shadow: 0 0 0 3px rgba(41, 163, 255, 0.08);
+    border-color: var(--ui-accent-105);
+    box-shadow: 0 0 0 3px var(--ui-border-36);
   }
 
   &__toolbar {
@@ -812,12 +812,12 @@ function handleSelect(key: typeof agentKey.value) {
     align-items: center;
     gap: 6px;
     font-size: 12px;
-    color: rgba(41, 163, 255, 0.85);
+    color: var(--ui-accent-132);
   }
 
   &__hint {
     font-size: 11px;
-    color: rgba(203, 227, 255, 0.4);
+    color: var(--ui-text-105);
   }
 }
 
@@ -825,18 +825,18 @@ function handleSelect(key: typeof agentKey.value) {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #29a3ff;
+  background: var(--ui-accent-4);
   animation: pulse-dot 1s infinite;
 }
 
 @keyframes pulse-dot {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(41, 163, 255, 0.5);
+    box-shadow: 0 0 0 0 var(--ui-border-88);
   }
 
   50% {
-    box-shadow: 0 0 0 6px rgba(41, 163, 255, 0);
+    box-shadow: 0 0 0 6px var(--ui-border-79);
   }
 }
 
@@ -849,13 +849,13 @@ function handleSelect(key: typeof agentKey.value) {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: rgba(203, 227, 255, 0.7);
+  color: var(--ui-text-89);
   cursor: pointer;
   font-size: 17px;
 
   &:hover {
-    background: rgba(41, 163, 255, 0.12);
-    color: #29a3ff;
+    background: var(--ui-border-7);
+    color: var(--ui-accent-4);
   }
 }
 
@@ -863,36 +863,36 @@ function handleSelect(key: typeof agentKey.value) {
   margin: 4px 0 8px;
   font-size: 12px;
   font-weight: 600;
-  color: rgba(203, 227, 255, 0.82);
+  color: var(--ui-text-76);
 }
 
 .prompt-chip {
   font-size: 12px;
   padding: 5px 12px;
-  border: 1px solid rgba(41, 163, 255, 0.25);
+  border: 1px solid var(--ui-border-40);
   border-radius: 999px;
-  background: rgba(41, 163, 255, 0.08);
-  color: rgba(203, 227, 255, 0.85);
+  background: var(--ui-border-36);
+  color: var(--ui-text-15);
   cursor: pointer;
   transition: all 0.15s ease;
 
   &:hover {
-    border-color: #29a3ff;
-    background: rgba(41, 163, 255, 0.16);
-    color: #29a3ff;
+    border-color: var(--ui-accent-4);
+    background: var(--ui-border-51);
+    color: var(--ui-accent-4);
   }
 }
 
 .step-card {
   padding: 10px 12px;
   border-radius: 4px;
-  background: rgba(12, 38, 72, 0.4);
-  border: 1px solid rgba(25, 95, 176, 0.12);
+  background: var(--ui-surface-76);
+  border: 1px solid var(--ui-border-116);
 
   &--tool {
-    background: rgba(52, 211, 153, 0.06);
-    border-color: rgba(52, 211, 153, 0.28);
-    border-left: 3px solid rgba(52, 211, 153, 0.7);
+    background: var(--ui-border-123);
+    border-color: var(--ui-border-124);
+    border-left: 3px solid var(--ui-accent-150);
   }
 }
 
@@ -902,12 +902,12 @@ function handleSelect(key: typeof agentKey.value) {
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #eaf5ff;
+  color: var(--ui-text-33);
 
   &__icon {
     width: 13px;
     height: 13px;
-    color: #34d399;
+    color: var(--ui-accent-50);
   }
 }
 
@@ -915,7 +915,7 @@ function handleSelect(key: typeof agentKey.value) {
   margin-top: 4px;
   font-size: 11px;
   line-height: 18px;
-  color: rgba(203, 227, 255, 0.55);
+  color: var(--ui-text-104);
   white-space: pre-wrap;
 }
 
@@ -953,15 +953,15 @@ function handleSelect(key: typeof agentKey.value) {
   margin: 2px 0;
 }
 .chat-md :deep(code) {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--ui-surface-91);
   padding: 1px 5px;
   border-radius: 4px;
   font-size: 11px;
   font-family: 'Consolas', monospace;
 }
 .chat-md :deep(pre) {
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--ui-shadow-23);
+  border: 1px solid var(--ui-surface-91);
   border-radius: 6px;
   padding: 8px 10px;
   overflow-x: auto;
@@ -978,7 +978,7 @@ function handleSelect(key: typeof agentKey.value) {
 }
 .chat-md :deep(th),
 .chat-md :deep(td) {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--ui-border-132);
   padding: 4px 8px;
 }
 .chat-md :deep(h1),

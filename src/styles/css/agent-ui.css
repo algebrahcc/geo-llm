@@ -7,20 +7,20 @@
 
 :root {
   --agent-page-bg:
-    radial-gradient(circle at top, rgba(0, 153, 255, 0.16) 0%, rgba(0, 0, 0, 0) 38%),
-    linear-gradient(180deg, #04182e 0%, #041323 40%, #03101b 100%);
-  --agent-surface-bg: linear-gradient(180deg, rgba(4, 22, 46, 0.92) 0%, rgba(2, 15, 32, 0.95) 100%);
-  --agent-surface-border: rgba(56, 140, 255, 0.26);
-  --agent-line: rgba(33, 104, 186, 0.34);
-  --agent-accent: #34a8ff;
-  --agent-accent-2: #00d4aa;
-  --agent-accent-soft: rgba(52, 168, 255, 0.12);
-  --agent-text: #eaf5ff;
-  --agent-text-dim: rgba(203, 227, 255, 0.68);
-  --agent-text-mute: rgba(147, 196, 255, 0.5);
+    radial-gradient(circle at top, var(--ui-border-128) 0%, rgba(0, 0, 0, 0) 38%),
+    linear-gradient(180deg, var(--ui-page-6) 0%, var(--ui-page-7) 40%, var(--ui-page-3) 100%);
+  --agent-surface-bg: linear-gradient(180deg, var(--ui-surface-87) 0%, var(--ui-surface-88) 100%);
+  --agent-surface-border: var(--ui-accent-162);
+  --agent-line: var(--ui-border-129);
+  --agent-accent: var(--ui-accent-142);
+  --agent-accent-2: var(--ui-sem-teal);
+  --agent-accent-soft: var(--ui-accent-139);
+  --agent-text: var(--ui-text-33);
+  --agent-text-dim: var(--ui-text-114);
+  --agent-text-mute: var(--ui-text-45);
   --agent-radius: 12px;
   --agent-radius-sm: 8px;
-  --agent-glow: 0 0 18px rgba(52, 168, 255, 0.12);
+  --agent-glow: 0 0 18px var(--ui-accent-139);
 }
 
 /* ---------- 面板 ---------- */
@@ -31,9 +31,9 @@
   border: 1px solid var(--agent-surface-border);
   border-radius: var(--agent-radius);
   box-shadow:
-    0 0 0 1px rgba(40, 120, 210, 0.16),
-    0 18px 44px rgba(1, 8, 18, 0.46),
-    inset 0 1px 0 rgba(120, 180, 255, 0.05);
+    0 0 0 1px var(--ui-border-130),
+    0 18px 44px var(--ui-shadow-24),
+    inset 0 1px 0 var(--ui-text-115);
   transition:
     border-color 0.25s ease,
     box-shadow 0.25s ease,
@@ -53,7 +53,7 @@
   border-left: 2px solid var(--agent-accent);
   border-radius: var(--agent-radius) 0 0 0;
   opacity: 0.55;
-  filter: drop-shadow(0 0 4px rgba(52, 168, 255, 0.5));
+  filter: drop-shadow(0 0 4px var(--ui-accent-164));
   pointer-events: none;
   z-index: 2;
 }
@@ -71,7 +71,7 @@
   border-right: 2px solid var(--agent-accent);
   border-radius: 0 0 var(--agent-radius) 0;
   opacity: 0.55;
-  filter: drop-shadow(0 0 4px rgba(52, 168, 255, 0.5));
+  filter: drop-shadow(0 0 4px var(--ui-accent-164));
   pointer-events: none;
   z-index: 2;
 }
@@ -84,7 +84,7 @@
   min-height: 48px;
   padding: 0 16px;
   border-bottom: 1px solid var(--agent-line);
-  background: linear-gradient(180deg, rgba(11, 42, 80, 0.9) 0%, rgba(5, 25, 47, 0.9) 100%);
+  background: linear-gradient(180deg, var(--ui-surface-89) 0%, var(--ui-surface-90) 100%);
   border-radius: var(--agent-radius) var(--agent-radius) 0 0;
   position: relative;
 }
@@ -104,7 +104,7 @@
 .panel-head__icon {
   font-size: 16px;
   color: var(--agent-accent);
-  filter: drop-shadow(0 0 5px rgba(52, 168, 255, 0.35));
+  filter: drop-shadow(0 0 5px var(--ui-accent-165));
 }
 
 .panel-head__title {
@@ -112,7 +112,7 @@
   font-weight: 700;
   letter-spacing: 0.5px;
   color: var(--agent-text);
-  text-shadow: 0 0 8px rgba(52, 168, 255, 0.12);
+  text-shadow: 0 0 8px var(--ui-accent-139);
 }
 
 .panel-head .ml-auto {
@@ -139,7 +139,7 @@
 }
 
 .section-desc.warn {
-  color: #ffce8a;
+  color: var(--ui-text-100);
 }
 
 /* ---------- 空状态 ---------- */
@@ -155,8 +155,8 @@
 
 .agent-empty__icon {
   font-size: 30px;
-  color: rgba(52, 168, 255, 0.4);
-  filter: drop-shadow(0 0 8px rgba(52, 168, 255, 0.25));
+  color: var(--ui-accent-166);
+  filter: drop-shadow(0 0 8px var(--ui-accent-167));
 }
 
 .agent-empty__hint {
@@ -170,9 +170,9 @@
 /* ---------- 小卡片（列表项） ---------- */
 .agent-card {
   padding: 12px 14px;
-  border: 1px solid rgba(25, 95, 176, 0.2);
+  border: 1px solid var(--ui-border-82);
   border-radius: var(--agent-radius-sm);
-  background: rgba(6, 20, 38, 0.5);
+  background: var(--ui-surface-66);
   transition:
     border-color 0.2s ease,
     background 0.2s ease,
@@ -181,9 +181,9 @@
 }
 
 .agent-card:hover {
-  border-color: rgba(61, 166, 255, 0.32);
-  background: rgba(10, 32, 58, 0.6);
-  box-shadow: 0 6px 20px rgba(2, 10, 22, 0.4);
+  border-color: var(--ui-accent-152);
+  background: var(--ui-surface-77);
+  box-shadow: 0 6px 20px var(--ui-shadow-22);
   transform: translateY(-1px);
 }
 
@@ -198,7 +198,7 @@
 /* ---------- 柔和标签 ---------- */
 .agent-tag-soft {
   background: var(--agent-accent-soft);
-  border: 1px solid rgba(52, 168, 255, 0.22);
+  border: 1px solid var(--ui-accent-168);
   color: var(--agent-text-dim);
 }
 
@@ -231,7 +231,7 @@
   .detail-shell
 ) {
   scrollbar-width: thin;
-  scrollbar-color: rgba(48, 127, 212, 0.5) transparent;
+  scrollbar-color: var(--ui-border-131) transparent;
 }
 
 :where(
@@ -261,7 +261,7 @@
   .detail-shell
 )::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(48, 127, 212, 0.5);
+  background: var(--ui-border-131);
 }
 
 :where(

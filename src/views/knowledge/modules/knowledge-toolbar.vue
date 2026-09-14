@@ -104,7 +104,7 @@ const emit = defineEmits<{
   position: absolute;
   inset: auto 16px 0;
   height: 1px;
-  background: linear-gradient(90deg, rgba(57, 171, 255, 0.22) 0%, rgba(57, 171, 255, 0.04) 100%);
+  background: linear-gradient(90deg, var(--ui-accent-7) 0%, var(--ui-accent-8) 100%);
 }
 
 .toolbar__left,
@@ -123,30 +123,30 @@ const emit = defineEmits<{
   align-items: center;
   border-radius: 6px;
   background:
-    linear-gradient(180deg, rgba(2, 16, 31, 0.98) 0%, rgba(4, 23, 44, 0.98) 100%),
-    linear-gradient(90deg, rgba(37, 122, 211, 0.06) 0%, rgba(0, 0, 0, 0) 50%);
-  border: 1px solid rgba(43, 118, 197, 0.38);
+    linear-gradient(180deg, var(--ui-surface-10) 0%, var(--ui-surface-75) 100%),
+    linear-gradient(90deg, var(--ui-border-114) 0%, rgba(0, 0, 0, 0) 50%);
+  border: 1px solid var(--ui-border-11);
   box-shadow:
-    inset 0 1px 0 rgba(136, 214, 255, 0.04),
-    0 1px 3px rgba(0, 0, 0, 0.25);
+    inset 0 1px 0 var(--ui-text-8),
+    0 1px 3px var(--ui-shadow-2);
   transition:
     border-color 0.25s ease,
     box-shadow 0.25s ease;
 }
 
 .search-box:focus-within {
-  border-color: rgba(58, 160, 255, 0.56);
+  border-color: var(--ui-accent-124);
   box-shadow:
-    inset 0 1px 0 rgba(136, 214, 255, 0.06),
-    0 0 0 2px rgba(41, 163, 255, 0.12),
-    0 1px 4px rgba(0, 0, 0, 0.3);
+    inset 0 1px 0 var(--ui-text-87),
+    0 0 0 2px var(--ui-border-7),
+    0 1px 4px var(--ui-shadow-4);
 }
 
 .search-box__icon {
   position: absolute;
   left: 12px;
   font-size: 14px;
-  color: #7cc4f0;
+  color: var(--ui-accent-9);
 }
 
 .search-box__input {
@@ -156,7 +156,7 @@ const emit = defineEmits<{
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #eaf5ff;
+  color: var(--ui-text-33);
   font-size: 13px;
   outline: none;
   letter-spacing: 0.2px;
@@ -164,7 +164,7 @@ const emit = defineEmits<{
 }
 
 .search-box__input::placeholder {
-  color: rgba(132, 177, 233, 0.5);
+  color: var(--ui-accent-125);
 }
 
 /* Filter group (catalog-style) */
@@ -174,8 +174,8 @@ const emit = defineEmits<{
   gap: 8px;
   padding: 2px;
   border-radius: 6px;
-  background: linear-gradient(180deg, rgba(9, 43, 82, 0.96) 0%, rgba(4, 22, 43, 0.96) 100%);
-  border: 1px solid rgba(46, 130, 223, 0.24);
+  background: linear-gradient(180deg, var(--ui-surface-16) 0%, var(--ui-surface-17) 100%);
+  border: 1px solid var(--ui-border-21);
   position: relative;
 }
 
@@ -184,7 +184,7 @@ const emit = defineEmits<{
   padding: 0 10px;
   border-radius: 4px;
   font-size: 12px;
-  color: rgba(203, 227, 255, 0.72);
+  color: var(--ui-text-42);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -198,18 +198,18 @@ const emit = defineEmits<{
 ::deep(.filter-select .n-base-selection) {
   height: 30px;
   border-radius: 4px;
-  background: rgba(2, 18, 36, 0.5);
-  border-color: rgba(54, 132, 212, 0.12);
+  background: var(--ui-surface-34);
+  border-color: var(--ui-border-69);
   box-shadow: none;
 }
 
 ::deep(.filter-select .n-base-selection-label) {
-  color: #eaf5ff;
+  color: var(--ui-text-33);
 }
 
 ::deep(.filter-select .n-base-selection-placeholder),
 ::deep(.filter-select .n-base-selection-input__content) {
-  color: rgba(147, 196, 255, 0.62);
+  color: var(--ui-text-41);
 }
 
 ::deep(.filter-select .n-base-selection__border) {
@@ -222,19 +222,19 @@ const emit = defineEmits<{
   --n-padding: 0 18px !important;
   --n-border-radius: 6px !important;
   --n-font-size: 13px !important;
-  --n-border: 1px solid rgba(96, 191, 255, 0.32) !important;
-  --n-border-hover: 1px solid rgba(70, 176, 255, 0.5) !important;
-  --n-border-pressed: 1px solid rgba(96, 191, 255, 0.32) !important;
-  --n-border-focus: 1px solid rgba(70, 176, 255, 0.5) !important;
-  --n-color: linear-gradient(180deg, rgba(9, 43, 82, 0.94) 0%, rgba(5, 23, 46, 0.96) 100%) !important;
-  --n-color-hover: rgba(12, 50, 92, 0.96) !important;
-  --n-color-pressed: rgba(8, 36, 68, 0.96) !important;
-  --n-color-focus: rgba(12, 50, 92, 0.96) !important;
-  --n-text-color: #e9f5ff !important;
+  --n-border: 1px solid var(--ui-accent-3) !important;
+  --n-border-hover: 1px solid var(--ui-accent-44) !important;
+  --n-border-pressed: 1px solid var(--ui-accent-3) !important;
+  --n-border-focus: 1px solid var(--ui-accent-44) !important;
+  --n-color: linear-gradient(180deg, var(--ui-surface-12) 0%, var(--ui-surface-13) 100%) !important;
+  --n-color-hover: var(--ui-accent-126) !important;
+  --n-color-pressed: var(--ui-surface-28) !important;
+  --n-color-focus: var(--ui-accent-126) !important;
+  --n-text-color: var(--ui-text-12) !important;
   --n-text-color-hover: #fff !important;
-  --n-text-color-pressed: #e9f5ff !important;
+  --n-text-color-pressed: var(--ui-text-12) !important;
   --n-text-color-focus: #fff !important;
-  box-shadow: inset 0 1px 0 rgba(152, 219, 255, 0.06);
+  box-shadow: inset 0 1px 0 var(--ui-text-17);
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
@@ -247,19 +247,19 @@ const emit = defineEmits<{
 }
 
 :deep(.n-button--primary-type) {
-  --n-color: linear-gradient(180deg, rgba(23, 131, 240, 0.96) 0%, rgba(8, 83, 171, 0.96) 100%) !important;
-  --n-color-hover: linear-gradient(180deg, rgba(30, 142, 250, 0.98) 0%, rgba(12, 95, 190, 0.98) 100%) !important;
-  --n-color-pressed: linear-gradient(180deg, rgba(16, 115, 215, 0.94) 0%, rgba(6, 70, 150, 0.94) 100%) !important;
-  --n-border: 1px solid rgba(96, 191, 255, 0.32) !important;
-  --n-border-hover: 1px solid rgba(96, 191, 255, 0.45) !important;
+  --n-color: linear-gradient(180deg, var(--ui-accent-18) 0%, var(--ui-accent-19) 100%) !important;
+  --n-color-hover: linear-gradient(180deg, var(--ui-accent-127) 0%, var(--ui-accent-128) 100%) !important;
+  --n-color-pressed: linear-gradient(180deg, var(--ui-accent-129) 0%, var(--ui-accent-130) 100%) !important;
+  --n-border: 1px solid var(--ui-accent-3) !important;
+  --n-border-hover: 1px solid var(--ui-accent-131) !important;
   box-shadow:
-    inset 0 1px 0 rgba(181, 233, 255, 0.14),
-    0 8px 20px rgba(4, 79, 162, 0.22);
+    inset 0 1px 0 var(--ui-text-13),
+    0 8px 20px var(--ui-border-17);
 }
 
 :deep(.n-button--default-type) {
-  --n-color: linear-gradient(180deg, rgba(9, 43, 82, 0.94) 0%, rgba(5, 23, 46, 0.96) 100%) !important;
-  --n-color-hover: rgba(12, 50, 92, 0.96) !important;
+  --n-color: linear-gradient(180deg, var(--ui-surface-12) 0%, var(--ui-surface-13) 100%) !important;
+  --n-color-hover: var(--ui-accent-126) !important;
 }
 
 @media (max-width: 1100px) {

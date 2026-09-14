@@ -357,7 +357,7 @@ function handleCancel() {
   <NModal
     :show="props.show"
     :mask-closable="!submitting"
-    style="--n-body-text-color: #cbe3ff"
+    style="--n-body-text-color: var(--ui-text-48)"
     @update:show="v => emit('update:show', v)"
   >
     <div class="cat-upload-panel">
@@ -513,11 +513,11 @@ function handleCancel() {
   width: 600px;
   max-width: 92vw;
   border-radius: 10px;
-  background: linear-gradient(180deg, rgba(6, 22, 47, 0.97), rgba(3, 15, 34, 0.98));
-  border: 1px solid rgba(43, 131, 255, 0.3);
+  background: linear-gradient(180deg, var(--ui-surface-50), var(--ui-surface-51));
+  border: 1px solid var(--ui-border-91);
   box-shadow:
-    inset 0 0 0 1px rgba(64, 158, 255, 0.08),
-    0 24px 60px rgba(1, 8, 18, 0.6);
+    inset 0 0 0 1px var(--ui-accent-78),
+    0 24px 60px var(--ui-shadow-13);
   overflow: visible;
   padding: 0 20px 18px;
   max-height: 88vh;
@@ -529,7 +529,7 @@ function handleCancel() {
   align-items: center;
   justify-content: space-between;
   padding: 16px 0 12px;
-  border-bottom: 1px solid rgba(43, 131, 255, 0.18);
+  border-bottom: 1px solid var(--ui-border-92);
   margin-bottom: 14px;
 }
 .cat-upload-panel__titles {
@@ -538,13 +538,13 @@ function handleCancel() {
   gap: 2px;
 }
 .cat-upload-panel__title {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
-  color: #dbe9fa;
+  color: var(--ui-text-49);
 }
 .cat-upload-panel__subtitle {
-  font-size: 12px;
-  color: rgba(168, 205, 240, 0.55);
+  font-size: 13px;
+  color: var(--ui-text-50);
 }
 .cat-upload-panel__close {
   width: 28px;
@@ -553,7 +553,7 @@ function handleCancel() {
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  color: rgba(180, 210, 240, 0.7);
+  color: var(--ui-text-55);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -563,7 +563,7 @@ function handleCancel() {
 }
 .cat-upload-panel__close:hover:not(:disabled) {
   color: #fff;
-  background: rgba(41, 163, 255, 0.12);
+  background: var(--ui-border-7);
 }
 .cat-upload-panel__close:disabled {
   opacity: 0.4;
@@ -579,36 +579,36 @@ function handleCancel() {
   justify-content: center;
   gap: 6px;
   padding: 22px 16px;
-  border: 1.5px dashed rgba(43, 131, 255, 0.4);
+  border: 1.5px dashed var(--ui-border-94);
   border-radius: 8px;
   cursor: pointer;
-  background: rgba(2, 12, 28, 0.5);
+  background: var(--ui-surface-49);
   transition: all 0.2s;
   text-align: center;
   margin-bottom: 10px;
 }
 .cat-upload-drop:hover,
 .cat-upload-drop--active {
-  border-color: rgba(41, 163, 255, 0.7);
-  background: rgba(41, 163, 255, 0.06);
+  border-color: var(--ui-accent-74);
+  background: var(--ui-border-45);
 }
 .cat-upload-drop__name {
   font-size: 14px;
   font-weight: 500;
-  color: #eaf6ff;
+  color: var(--ui-text-56);
   word-break: break-all;
 }
 .cat-upload-drop__size {
   font-size: 12px;
-  color: rgba(168, 205, 240, 0.6);
+  color: var(--ui-text-57);
 }
 .cat-upload-drop__tip {
-  font-size: 14px;
-  color: rgba(203, 227, 255, 0.85);
+  font-size: 16px;
+  color: var(--ui-text-58);
 }
 .cat-upload-drop__sub {
-  font-size: 12px;
-  color: rgba(168, 205, 240, 0.5);
+  font-size: 13px;
+  color: var(--ui-text-59);
 }
 .cat-upload-drop-actions {
   display: flex;
@@ -617,18 +617,18 @@ function handleCancel() {
 }
 .cat-upload-drop-btn {
   flex: 1;
-  padding: 7px 0;
-  font-size: 12px;
-  color: rgba(127, 210, 255, 0.85);
-  background: rgba(41, 163, 255, 0.08);
-  border: 1px solid rgba(41, 163, 255, 0.3);
+  padding: 9px 0;
+  font-size: 14px;
+  color: var(--ui-text-60);
+  background: var(--ui-border-36);
+  border: 1px solid var(--ui-border-71);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
 }
 .cat-upload-drop-btn:hover {
-  color: #eaf6ff;
-  background: rgba(41, 163, 255, 0.16);
+  color: var(--ui-text-56);
+  background: var(--ui-border-51);
 }
 .cat-upload-list {
   display: flex;
@@ -636,18 +636,18 @@ function handleCancel() {
   gap: 4px;
   max-height: 150px;
   overflow-y: auto;
-  border: 1px solid rgba(43, 131, 255, 0.18);
+  border: 1px solid var(--ui-border-92);
   border-radius: 6px;
   padding: 6px 8px;
   margin-bottom: 12px;
-  background: rgba(2, 12, 28, 0.4);
+  background: var(--ui-surface-55);
 }
 .cat-upload-list__item {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
-  color: rgba(203, 227, 255, 0.85);
+  font-size: 13px;
+  color: var(--ui-text-44);
 }
 .cat-upload-list__name {
   flex: 1;
@@ -656,29 +656,29 @@ function handleCancel() {
   white-space: nowrap;
 }
 .cat-upload-list__size {
-  color: rgba(168, 205, 240, 0.6);
+  color: var(--ui-text-50);
   flex-shrink: 0;
 }
 .cat-upload-list__status {
   flex-shrink: 0;
   min-width: 32px;
   text-align: center;
-  color: rgba(168, 205, 240, 0.5);
+  color: var(--ui-text-61);
 }
 .cat-upload-list__status--ok {
-  color: #67c23a;
+  color: var(--ui-accent-84);
 }
 .cat-upload-list__status--err {
-  color: #f56c6c;
+  color: var(--ui-accent-85);
 }
 .cat-upload-list__remove {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  color: rgba(180, 210, 240, 0.7);
+  font-size: 13px;
+  color: var(--ui-text-62);
   background: transparent;
   border: none;
   border-radius: 4px;
@@ -687,8 +687,8 @@ function handleCancel() {
   transition: all 0.2s;
 }
 .cat-upload-list__remove:hover:not(:disabled) {
-  color: #f56c6c;
-  background: rgba(245, 108, 108, 0.1);
+  color: var(--ui-accent-85);
+  background: var(--ui-accent-86);
 }
 .cat-upload-list__remove:disabled {
   opacity: 0.4;
@@ -711,24 +711,24 @@ function handleCancel() {
   gap: 6px;
 }
 .cat-upload-field__label {
-  font-size: 13px;
-  color: rgba(203, 227, 255, 0.85);
+  font-size: 14px;
+  color: var(--ui-text-44);
 }
 .cat-upload-field__required {
-  color: #f56c6c;
+  color: var(--ui-accent-85);
   margin-left: 2px;
 }
 .cat-upload-field__optional {
-  font-size: 11px;
-  color: rgba(168, 205, 240, 0.5);
+  font-size: 12px;
+  color: var(--ui-text-61);
   margin-left: 4px;
 }
 .cat-upload-field__hint {
-  font-size: 12px;
-  color: rgba(127, 210, 255, 0.7);
+  font-size: 13px;
+  color: var(--ui-text-63);
 }
 .cat-upload-field__hint--err {
-  color: #f56c6c;
+  color: var(--ui-accent-85);
 }
 .cat-upload-progress {
   display: flex;
@@ -737,18 +737,18 @@ function handleCancel() {
   margin-top: 14px;
 }
 .cat-upload-progress__text {
-  font-size: 12px;
-  color: rgba(203, 227, 255, 0.85);
+  font-size: 13px;
+  color: var(--ui-text-44);
 }
 .cat-upload-progress__bar {
   height: 6px;
-  background: rgba(43, 131, 255, 0.2);
+  background: var(--ui-border-80);
   border-radius: 3px;
   overflow: hidden;
 }
 .cat-upload-progress__bar-inner {
   height: 100%;
-  background: linear-gradient(90deg, rgba(41, 163, 255, 0.8), rgba(124, 92, 255, 0.8));
+  background: linear-gradient(90deg, var(--ui-accent-87), var(--ui-accent-88));
   border-radius: 3px;
   transition: width 0.3s;
 }
@@ -762,15 +762,22 @@ function handleCancel() {
 .cat-upload-meta :deep(.n-input),
 .cat-upload-panel :deep(.n-base-selection),
 .cat-upload-meta :deep(.n-input-number) {
-  --n-color: rgba(4, 16, 36, 0.7);
-  --n-color-focus: rgba(4, 16, 36, 0.9);
-  --n-border: 1px solid rgba(43, 131, 255, 0.28);
-  --n-border-hover: 1px solid rgba(41, 163, 255, 0.5);
-  --n-text-color: #eaf6ff;
-  --n-placeholder-color: rgba(168, 205, 240, 0.4);
+  --n-color: var(--ui-surface-52);
+  --n-color-focus: var(--ui-surface-53);
+  --n-border: 1px solid var(--ui-border-2);
+  --n-border-hover: 1px solid var(--ui-border-88);
+  --n-text-color: var(--ui-text-1);
+  --n-placeholder-color: var(--ui-text-64);
   --n-border-radius: 6px;
+  --n-font-size: 14px;
+  --n-height: 36px;
 }
 .cat-upload-panel :deep(.n-form-item-label) {
-  color: rgba(203, 227, 255, 0.85);
+  color: var(--ui-text-44);
+}
+.cat-upload-panel__actions :deep(.n-button) {
+  --n-font-size: 14px;
+  --n-height: 34px;
+  --n-padding: 0 18px;
 }
 </style>

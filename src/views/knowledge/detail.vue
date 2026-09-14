@@ -263,15 +263,15 @@ async function handleDocEditSubmit(model: KnowledgeEditFormModel) {
 
 // ── 模块关联 ──
 const moduleRefMeta: Record<ModuleRef, { icon: string; label: string; color: string }> = {
-  river: { icon: 'mdi:ferry', label: '渡河保障', color: '#29a3ff' },
-  planning: { icon: 'mdi:map-marker-path', label: '机动规划', color: '#62e4ff' },
-  knowledge: { icon: 'mdi:book-open-variant', label: '知识库', color: '#a78bfa' },
-  agent: { icon: 'mdi:robot-outline', label: '智能体', color: '#f1c40f' }
+  river: { icon: 'mdi:ferry', label: '渡河保障', color: 'var(--ui-sem-blue)' },
+  planning: { icon: 'mdi:map-marker-path', label: '机动规划', color: 'var(--ui-sem-cyan)' },
+  knowledge: { icon: 'mdi:book-open-variant', label: '知识库', color: 'var(--ui-sem-violet)' },
+  agent: { icon: 'mdi:robot-outline', label: '智能体', color: 'var(--ui-sem-amber)' }
 };
 
 function getRefTypeColor(reference: KnowledgeReference): string {
   if (reference.module && moduleRefMeta[reference.module]) return moduleRefMeta[reference.module].color;
-  return '#29a3ff';
+  return 'var(--ui-sem-blue)';
 }
 
 function navigateToRef(reference: KnowledgeReference) {
@@ -583,7 +583,7 @@ onUnmounted(() => {
                   <div class="flex items-center gap-8px">
                     <NTag v-if="chunk.enabled === false" size="small" round :bordered="false" type="error">已停用</NTag>
                     <NButton size="tiny" tertiary @click="openSegmentEditor(chunk)">编辑</NButton>
-                    <div class="text-11px text-[rgba(147,196,255,0.5)]">{{ chunk.length }} 字</div>
+                    <div class="text-11px text-[var(--text-tertiary)]">{{ chunk.length }} 字</div>
                   </div>
                 </div>
               </div>
@@ -598,7 +598,7 @@ onUnmounted(() => {
           <div class="panel-head">
             <SvgIcon icon="mdi:link-variant" class="panel-head__icon" />
             <span class="panel-head__title">关联信息</span>
-            <span class="text-11px text-[rgba(147,196,255,0.4)] ml-auto">实时元数据</span>
+            <span class="text-11px text-[var(--text-tertiary)] ml-auto">实时元数据</span>
           </div>
           <div class="panel-body">
             <NEmpty v-if="!detail.references.length" description="当前暂无关联信息" />
@@ -717,15 +717,15 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .detail-page {
   --page-bg:
-    radial-gradient(circle at top, rgba(0, 153, 255, 0.14) 0%, rgba(0, 0, 0, 0) 36%),
-    linear-gradient(180deg, #041528 0%, #041120 38%, #03101b 100%);
-  --surface-bg: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
-  --surface-border: rgba(43, 131, 255, 0.28);
-  --line: rgba(25, 95, 176, 0.35);
-  --accent: #29a3ff;
-  --text-primary: #eaf5ff;
-  --text-secondary: rgba(203, 227, 255, 0.72);
-  --text-tertiary: rgba(147, 196, 255, 0.62);
+    radial-gradient(circle at top, var(--ui-border-1) 0%, rgba(0, 0, 0, 0) 36%),
+    linear-gradient(180deg, var(--ui-page-1) 0%, var(--ui-page-2) 38%, var(--ui-page-3) 100%);
+  --surface-bg: linear-gradient(180deg, var(--ui-surface-1) 0%, var(--ui-surface-2) 100%);
+  --surface-border: var(--ui-border-2);
+  --line: var(--ui-border-4);
+  --accent: var(--ui-accent-4);
+  --text-primary: var(--ui-text-33);
+  --text-secondary: var(--ui-text-42);
+  --text-tertiary: var(--ui-text-41);
 
   height: 100%;
   background: var(--page-bg);
@@ -749,8 +749,8 @@ onUnmounted(() => {
   background: var(--surface-bg);
   border: 1px solid var(--surface-border);
   box-shadow:
-    0 0 0 1px rgba(32, 111, 202, 0.22),
-    0 18px 40px rgba(1, 8, 18, 0.45);
+    0 0 0 1px var(--ui-border-6),
+    0 18px 40px var(--ui-shadow-1);
   border-radius: 4px;
   position: relative;
 }
@@ -789,7 +789,7 @@ onUnmounted(() => {
   height: 46px;
   padding: 0 14px;
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(10, 38, 72, 0.96) 0%, rgba(5, 25, 47, 0.96) 100%);
+  background: linear-gradient(180deg, var(--ui-surface-4) 0%, var(--ui-surface-5) 100%);
   position: relative;
 }
 
@@ -808,14 +808,14 @@ onUnmounted(() => {
 .panel-head__icon {
   font-size: 16px;
   color: var(--accent);
-  filter: drop-shadow(0 0 4px rgba(41, 163, 255, 0.25));
+  filter: drop-shadow(0 0 4px var(--ui-border-40));
 }
 
 .panel-head__title {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  text-shadow: 0 0 8px rgba(41, 163, 255, 0.12);
+  text-shadow: 0 0 8px var(--ui-border-7);
 }
 
 .panel-body {
@@ -832,8 +832,8 @@ onUnmounted(() => {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 88% -10%, rgba(41, 163, 255, 0.18) 0%, rgba(0, 0, 0, 0) 42%),
-    radial-gradient(circle at 0% 120%, rgba(98, 228, 255, 0.1) 0%, rgba(0, 0, 0, 0) 40%);
+    radial-gradient(circle at 88% -10%, var(--ui-border-37) 0%, rgba(0, 0, 0, 0) 42%),
+    radial-gradient(circle at 0% 120%, var(--ui-accent-106) 0%, rgba(0, 0, 0, 0) 40%);
 }
 
 .detail-hero .panel-head,
@@ -911,24 +911,24 @@ onUnmounted(() => {
   gap: 10px;
   padding: 8px 10px;
   border-radius: 4px;
-  background: rgba(6, 20, 38, 0.5);
+  background: var(--ui-surface-66);
 }
 
 .metric-row--danger {
-  background: rgba(255, 107, 107, 0.08);
-  border: 1px solid rgba(255, 107, 107, 0.16);
+  background: var(--ui-accent-107);
+  border: 1px solid var(--ui-accent-108);
 }
 
 .detail-tag {
-  background: rgba(41, 163, 255, 0.1);
-  border: 1px solid rgba(41, 163, 255, 0.22);
-  color: rgba(203, 227, 255, 0.82);
+  background: var(--ui-border-12);
+  border: 1px solid var(--ui-border-50);
+  color: var(--ui-text-76);
 }
 
 .detail-tag--image {
-  background: rgba(98, 228, 255, 0.1);
-  border: 1px solid rgba(98, 228, 255, 0.25);
-  color: rgba(180, 236, 255, 0.9);
+  background: var(--ui-accent-106);
+  border: 1px solid var(--ui-accent-109);
+  color: var(--ui-text-77);
 }
 
 .region-tag {
@@ -946,25 +946,25 @@ onUnmounted(() => {
 }
 
 .confidence-tag--high {
-  background: rgba(46, 204, 113, 0.15);
-  color: #5ee8a0;
+  background: var(--ui-border-106);
+  color: var(--ui-accent-110);
 }
 
 .confidence-tag--mid {
-  background: rgba(241, 196, 15, 0.15);
-  color: #f1c40f;
+  background: var(--ui-border-107);
+  color: var(--ui-accent-111);
 }
 
 .confidence-tag--low {
-  background: rgba(255, 107, 107, 0.15);
-  color: #ff6b6b;
+  background: var(--ui-accent-38);
+  color: var(--ui-accent-5);
 }
 
 .log-item {
   padding: 6px 10px;
   border-radius: 4px;
-  background: rgba(6, 20, 38, 0.5);
-  border: 1px solid rgba(25, 95, 176, 0.18);
+  background: var(--ui-surface-66);
+  border: 1px solid var(--ui-border-49);
   font-size: 12px;
   color: var(--text-secondary);
 }
@@ -986,8 +986,8 @@ onUnmounted(() => {
 .reference-card {
   padding: 12px;
   border-radius: 4px;
-  background: rgba(6, 20, 38, 0.5);
-  border: 1px solid rgba(25, 95, 176, 0.18);
+  background: var(--ui-surface-66);
+  border: 1px solid var(--ui-border-49);
 }
 
 .chunk-card {
@@ -998,10 +998,10 @@ onUnmounted(() => {
 }
 
 .chunk-card--checked {
-  border-color: rgba(41, 163, 255, 0.65);
+  border-color: var(--ui-accent-76);
   box-shadow:
-    0 0 0 1px rgba(41, 163, 255, 0.25),
-    0 0 12px rgba(41, 163, 255, 0.12);
+    0 0 0 1px var(--ui-border-40),
+    0 0 12px var(--ui-border-7);
 }
 
 .chunk-check {
@@ -1010,7 +1010,7 @@ onUnmounted(() => {
 
 .chunk-batch__count {
   font-size: 12px;
-  color: #8cc8ff;
+  color: var(--ui-text-78);
 }
 
 /* ── 切片分页 ── */
@@ -1035,18 +1035,18 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(25, 95, 176, 0.18);
+  border-bottom: 1px solid var(--ui-border-49);
 }
 
 .raw-preview__name {
   font-size: 14px;
   font-weight: 600;
-  color: var(--knowledge-text-primary, #dbeafe);
+  color: var(--knowledge-text-primary, var(--ui-text-79));
 }
 
 .raw-preview__count {
   font-size: 12px;
-  color: var(--knowledge-text-tertiary, rgba(203, 227, 255, 0.5));
+  color: var(--knowledge-text-tertiary, var(--ui-text-80));
 }
 
 .raw-preview__content {
@@ -1055,12 +1055,12 @@ onUnmounted(() => {
   padding: 12px;
   overflow: auto;
   border-radius: 4px;
-  background: rgba(6, 20, 38, 0.5);
-  border: 1px solid rgba(25, 95, 176, 0.18);
+  background: var(--ui-surface-66);
+  border: 1px solid var(--ui-border-49);
   font-family: inherit;
   font-size: 13px;
   line-height: 1.7;
-  color: var(--knowledge-text-primary, #dbeafe);
+  color: var(--knowledge-text-primary, var(--ui-text-79));
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -1081,8 +1081,8 @@ onUnmounted(() => {
   justify-content: center;
   flex-shrink: 0;
   background: currentColor;
-  mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0));
-  -webkit-mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0));
+  mask-image: linear-gradient(135deg, var(--ui-shadow-9), rgba(0, 0, 0, 0));
+  -webkit-mask-image: linear-gradient(135deg, var(--ui-shadow-9), rgba(0, 0, 0, 0));
   filter: drop-shadow(0 0 6px currentColor);
 }
 
@@ -1133,8 +1133,8 @@ onUnmounted(() => {
   gap: 12px;
   padding: 8px 10px;
   border-radius: 4px;
-  background: rgba(6, 20, 38, 0.5);
-  border: 1px solid rgba(25, 95, 176, 0.18);
+  background: var(--ui-surface-66);
+  border: 1px solid var(--ui-border-49);
 }
 
 .metadata-item__name {
@@ -1156,7 +1156,7 @@ onUnmounted(() => {
 
 .detail-page::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(48, 127, 212, 0.45);
+  background: var(--ui-border-47);
 }
 
 .detail-page::-webkit-scrollbar-track {
