@@ -709,6 +709,7 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
 
   return {
     containerRef,
+    viewerRef,
     cursorCoordinates: base.cursorCoordinates,
     initViewer,
     setActiveTool,

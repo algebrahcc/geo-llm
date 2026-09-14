@@ -24,6 +24,7 @@ const emit = defineEmits<{
 
 const {
   containerRef,
+  viewerRef,
   cursorCoordinates,
   initViewer,
   setGlobeSurfaceTranslucent,
@@ -78,6 +79,7 @@ onMounted(async () => {
 });
 
 defineExpose({
+  getViewer: () => viewerRef.value ?? null,
   setGlobeSurfaceTranslucent: (enabled: boolean) => setGlobeSurfaceTranslucent(enabled),
   setActiveTool: (tool: PlanningInteractiveTool) => setActiveTool(tool),
   setLayerVisible: (key: PlanningLayerKey, visible: boolean) => setLayerVisible(key, visible),

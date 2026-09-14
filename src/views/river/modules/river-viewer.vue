@@ -15,6 +15,7 @@ const emit = defineEmits<{
 
 const {
   containerRef,
+  viewerRef,
   cursorCoordinates,
   initViewer,
   initMapOverlays,
@@ -67,6 +68,7 @@ onMounted(async () => {
 });
 
 defineExpose({
+  getViewer: () => viewerRef.value ?? null,
   initMapOverlays,
   setGlobeSurfaceTranslucent: (enabled: boolean) => setGlobeSurfaceTranslucent(enabled),
   setActiveTool: (tool: RiverInteractiveTool | 'browse') => setActiveTool(tool),

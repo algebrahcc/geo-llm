@@ -25,6 +25,8 @@ import PlanningViewer from './modules/planning-viewer.vue';
 import { usePlanning } from './modules/use-planning';
 import type { RouteSituationPlot } from './modules/route-situation-engine';
 import MapLayerPanel from '@/components/cesium/map-layer-panel.vue';
+import BeidouGridPanel from '@/components/cesium/beidou-grid-panel.vue';
+import type { Viewer } from 'cesium';
 import type { VectorLayerItem } from '@/typings/cesium';
 import type {
   PlanningAnalysisStep,
@@ -42,6 +44,8 @@ defineOptions({
 });
 
 interface PlanningViewerExposed {
+  /** 原生 Cesium Viewer（北斗网格等独立工具使用） */
+  getViewer: () => Viewer | null;
   setGlobeSurfaceTranslucent: (enabled: boolean) => void;
   setActiveTool: (tool: PlanningInteractiveTool) => void;
   setLayerVisible: (key: PlanningLayerKey, visible: boolean) => void;
@@ -82,6 +86,9 @@ interface PlanningViewerExposed {
 }
 
 const viewerRef = ref<PlanningViewerExposed | null>(null);
+
+/** 原生 Cesium Viewer 实例（北斗网格面板使用） */
+const beidouViewer = computed<Viewer | null>(() => viewerRef.value?.getViewer() ?? null);
 const router = useRouter();
 /** 成功桥/成美桥中断后，路线一保留但改用 planningRouteA1Coords。 */
 const routeADetourActive = ref(false);
@@ -604,6 +611,16 @@ function handleRouteSituationPlot(plot: RouteSituationPlot) {
 const activeRightTool = ref<string | null>(null);
 const is2dMode = ref(false);
 
+// ──── 北斗网格面板 ────
+const gridPanelVisible = ref(false);
+const gridCollapsed = ref(false);
+const gridDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 72 });
+
+function handleGridClose() {
+  gridPanelVisible.value = false;
+  activeRightTool.value = null;
+}
+
 function handleLayerClose() {
   layerPanelVisible.value = false;
   activeRightTool.value = null;
@@ -623,6 +640,10 @@ function handleRightToolSelect(key: string) {
     case 'layers':
       handleToggleLayerPanel();
       activeRightTool.value = layerPanelVisible.value ? key : null;
+      return;
+    case 'beidou-grid':
+      gridPanelVisible.value = !gridPanelVisible.value;
+      activeRightTool.value = gridPanelVisible.value ? key : null;
       return;
     case 'reset':
       viewerRef.value?.resetView();
@@ -769,6 +790,7 @@ function handlePointPicked(payload: PlanningPickedPoint) {
           :is-2d-mode="is2dMode"
           :items="[
             { key: 'layers', label: '图层管理', icon: 'mdi:layers-outline' },
+            { key: 'beidou-grid', label: '北斗网格', icon: 'mdi:grid-large' },
             { key: 'reset', label: '复位', icon: 'mdi:home-outline' },
             { key: 'zoom-in', label: '放大', icon: 'mdi:magnify-plus-outline' },
             { key: 'zoom-out', label: '缩小', icon: 'mdi:magnify-minus-outline' },
@@ -902,6 +924,27 @@ function handlePointPicked(payload: PlanningPickedPoint) {
         </ScenePanel>
       </Transition>
 
+      <!-- ══════ 北斗网格面板 ══════ -->
+      <Transition name="panel-slide-right">
+        <ScenePanel v-if="gridPanelVisible" class="floating-panel grid-panel-wrapper" :style="gridDrag.style.value">
+          <template #header>
+            <div class="panel-drag-handle" @mousedown="gridDrag.onDragStart">
+              <span class="drag-dots">⋮⋮</span>
+              <span class="drag-label">北斗网格</span>
+              <button type="button" class="panel-close-btn" @click.stop="handleGridClose">
+                <SvgIcon icon="mdi:close" />
+              </button>
+            </div>
+          </template>
+          <BeidouGridPanel
+            :viewer="beidouViewer"
+            :collapsed="gridCollapsed"
+            @toggle-collapse="gridCollapsed = !gridCollapsed"
+            @close="handleGridClose"
+          />
+        </ScenePanel>
+      </Transition>
+
       <!-- ══════ 中间结果面板（可拖拽/关闭） ══════ -->
       <Transition name="panel-slide-center">
         <ScenePanel v-if="bottomPanelVisible" class="floating-panel bottom-panel" :style="bottomDrag.style.value">
@@ -1020,6 +1063,11 @@ function handlePointPicked(payload: PlanningPickedPoint) {
 
 .layer-panel-wrapper {
   width: 360px;
+  max-height: calc(100vh - 36px);
+}
+
+.grid-panel-wrapper {
+  width: 330px;
   max-height: calc(100vh - 36px);
 }
 

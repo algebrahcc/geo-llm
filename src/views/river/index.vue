@@ -18,7 +18,9 @@ import RiverViewer from './modules/river-viewer.vue';
 import { useDraggable } from '@/composables/use-draggable';
 import { usePanelResize } from '@/composables/use-panel-resize';
 import MapLayerPanel from '@/components/cesium/map-layer-panel.vue';
+import BeidouGridPanel from '@/components/cesium/beidou-grid-panel.vue';
 import type { VectorLayerItem } from '@/typings/cesium';
+import type { Viewer } from 'cesium';
 import type {
   AiAnalysisStep,
   CrossingPlanCard,
@@ -34,6 +36,8 @@ defineOptions({
 
 // ──── Viewer 引用 ────
 interface ViewerExpose {
+  /** 原生 Cesium Viewer（北斗网格等独立工具使用） */
+  getViewer: () => Viewer | null;
   initMapOverlays: () => void;
   setGlobeSurfaceTranslucent: (enabled: boolean) => void;
   flyToPreset: () => void;
@@ -71,12 +75,17 @@ interface ViewerExpose {
 const viewerRef = ref<ViewerExpose | null>(null);
 const router = useRouter();
 
+/** 原生 Cesium Viewer 实例（北斗网格面板使用） */
+const beidouViewer = computed<Viewer | null>(() => viewerRef.value?.getViewer() ?? null);
+
 // ──── 面板可见性 ────
 const settingVisible = ref(true);
 const aiPanelVisible = ref(false);
 const agentPanelVisible = ref(false);
 const resultVisible = ref(false);
 const layerPanelVisible = ref(false);
+const gridPanelVisible = ref(false);
+const gridCollapsed = ref(false);
 
 // ──── 面板折叠 ────
 const settingCollapsed = ref(false);
@@ -99,6 +108,7 @@ const agentPanelStyle = computed(() => ({
 // 结果面板：中间偏右竖向浮动面板（参考路线规划页）
 const resultDrag = useDraggable({ anchor: 'right', initialX: 460, initialY: 72 });
 const layerDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 18 });
+const gridDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 72 });
 const surfaceTranslucent = ref(false);
 const situationRecommended = ref<RiverPlanKey | null>(null);
 
@@ -212,6 +222,7 @@ const activeRightTool = ref<string | null>(null);
 const is2dMode = ref(false);
 const rightTools: readonly SceneToolbarItem[] = [
   { key: 'layers', label: '图层管理', icon: 'mdi:layers-outline' },
+  { key: 'beidou-grid', label: '北斗网格', icon: 'mdi:grid-large' },
   { key: 'reset', label: '复位', icon: 'mdi:home-outline' },
   { key: 'pitch', label: '俯仰', icon: 'mdi:axis-arrow' },
   { key: 'rotate', label: '旋转', icon: 'mdi:rotate-orbit' },
@@ -426,6 +437,11 @@ function handleLayerClose() {
   activeRightTool.value = null;
 }
 
+function handleGridClose() {
+  gridPanelVisible.value = false;
+  activeRightTool.value = null;
+}
+
 function handleSurfaceTranslucent(enabled: boolean) {
   surfaceTranslucent.value = enabled;
   viewerRef.value?.setGlobeSurfaceTranslucent(enabled);
@@ -446,6 +462,10 @@ function handleRightToolSelect(key: string) {
     case 'layers':
       handleToggleLayerPanel();
       activeRightTool.value = layerPanelVisible.value ? key : null;
+      return;
+    case 'beidou-grid':
+      gridPanelVisible.value = !gridPanelVisible.value;
+      activeRightTool.value = gridPanelVisible.value ? key : null;
       return;
     case 'reset':
       viewer?.resetView();
@@ -704,6 +724,24 @@ function handleToggleResult() {
         </ScenePanel>
       </Transition>
 
+      <!-- ══════ 右侧：北斗网格面板 ══════ -->
+      <Transition name="panel-slide-right">
+        <ScenePanel v-if="gridPanelVisible" class="side-panel grid-panel-wrapper" :style="gridDrag.style.value">
+          <template #header>
+            <div class="panel-drag-handle" @mousedown="gridDrag.onDragStart">
+              <span class="drag-dots">⋮⋮</span>
+              <span>北斗网格</span>
+            </div>
+          </template>
+          <BeidouGridPanel
+            :viewer="beidouViewer"
+            :collapsed="gridCollapsed"
+            @toggle-collapse="gridCollapsed = !gridCollapsed"
+            @close="handleGridClose"
+          />
+        </ScenePanel>
+      </Transition>
+
       <!-- ══════ 右侧：AI 助手面板 ══════ -->
       <Transition name="panel-slide-right">
         <ScenePanel v-if="aiPanelVisible" class="side-panel ai-panel-wrapper" :style="aiDrag.style.value">
@@ -867,6 +905,10 @@ function handleToggleResult() {
   width: 360px;
 }
 
+.grid-panel-wrapper {
+  width: 330px;
+}
+
 .result-panel {
   position: fixed;
   width: 380px;
@@ -1008,6 +1050,9 @@ function handleToggleResult() {
   }
   .layer-panel-wrapper {
     width: 320px;
+  }
+  .grid-panel-wrapper {
+    width: 300px;
   }
 }
 </style>

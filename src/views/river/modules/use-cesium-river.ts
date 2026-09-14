@@ -446,6 +446,7 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
 
   return {
     containerRef,
+    viewerRef,
     cursorCoordinates: base.cursorCoordinates,
     initViewer,
     initMapOverlays,
