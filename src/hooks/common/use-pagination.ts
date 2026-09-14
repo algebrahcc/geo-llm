@@ -43,6 +43,8 @@ export function usePagination<T, Q extends PageQuery>(
   options: UsePaginationOptions<T, Q>
 ): {
   loading: Ref<boolean>;
+  /** 最近一次加载是否失败（供页面展示错误占位与重试入口） */
+  loadError: Ref<boolean>;
   tableData: Ref<T[]>;
   total: Ref<number>;
   loadData: () => Promise<void>;
@@ -52,17 +54,29 @@ export function usePagination<T, Q extends PageQuery>(
   const { query, fetchPage, immediate } = options;
 
   const loading = ref(false);
+  const loadError = ref(false);
   const tableData: Ref<T[]> = ref([]);
   const total = ref(0);
 
   async function loadData() {
     loading.value = true;
+    loadError.value = false;
     try {
       const { data, error } = await fetchPage(query);
-      if (!error && data) {
+      if (error) {
+        loadError.value = true;
+        tableData.value = [];
+        total.value = 0;
+        return;
+      }
+      if (data) {
         tableData.value = data.list || [];
         total.value = data.total || 0;
       }
+    } catch {
+      loadError.value = true;
+      tableData.value = [];
+      total.value = 0;
     } finally {
       loading.value = false;
     }
@@ -87,5 +101,5 @@ export function usePagination<T, Q extends PageQuery>(
     }
   });
 
-  return { loading, tableData, total, loadData, onPageChange, onPageSizeChange };
+  return { loading, loadError, tableData, total, loadData, onPageChange, onPageSizeChange };
 }

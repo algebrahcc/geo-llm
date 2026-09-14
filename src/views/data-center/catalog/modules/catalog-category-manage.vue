@@ -201,7 +201,7 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
     :show="props.show"
     :mask-closable="true"
     :show-mask="true"
-    style="--n-body-text-color: var(--ui-text-48)"
+    style="--n-body-text-color: #cbe3ff"
     @update:show="v => emit('update:show', v)"
   >
     <div class="cat-manage-panel">
@@ -277,9 +277,9 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
 <style scoped lang="scss">
 /* ==================== 深色科技风弹窗 ==================== */
 .cat-manage-panel {
-  --sys-surface: linear-gradient(180deg, var(--ui-surface-47) 0%, var(--ui-surface-48) 100%);
-  --sys-border: var(--ui-border-91);
-  --sys-accent: var(--ui-accent-4);
+  --sys-surface: linear-gradient(180deg, rgba(5, 20, 44, 0.97) 0%, rgba(3, 14, 32, 0.98) 100%);
+  --sys-border: rgba(43, 131, 255, 0.3);
+  --sys-accent: #29a3ff;
   position: relative;
   width: 860px;
   max-width: 92vw;
@@ -287,8 +287,8 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
   background: var(--sys-surface);
   border: 1px solid var(--sys-border);
   box-shadow:
-    inset 0 0 0 1px var(--ui-accent-78),
-    0 24px 60px var(--ui-shadow-13);
+    inset 0 0 0 1px rgba(64, 158, 255, 0.08),
+    0 24px 60px rgba(1, 8, 18, 0.6);
   overflow: visible;
   padding: 0 20px 16px;
 }
@@ -297,7 +297,7 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
   align-items: center;
   justify-content: space-between;
   padding: 16px 0 12px;
-  border-bottom: 1px solid var(--ui-border-92);
+  border-bottom: 1px solid rgba(43, 131, 255, 0.18);
   margin-bottom: 14px;
 }
 .cat-manage-panel__titles {
@@ -308,11 +308,11 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
 .cat-manage-panel__title {
   font-size: 17px;
   font-weight: 600;
-  color: var(--ui-text-49);
+  color: #f0f7ff;
 }
 .cat-manage-panel__subtitle {
   font-size: 13px;
-  color: var(--ui-text-50);
+  color: rgba(186, 216, 248, 0.82);
 }
 .cat-manage-panel__close {
   width: 30px;
@@ -321,7 +321,7 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  color: var(--ui-text-51);
+  color: rgba(206, 230, 255, 0.88);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -331,8 +331,8 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
 }
 .cat-manage-panel__close:hover {
   color: #fff;
-  border-color: var(--ui-border-75);
-  background: var(--ui-border-12);
+  border-color: rgba(41, 163, 255, 0.4);
+  background: rgba(41, 163, 255, 0.1);
 }
 
 /* 工具栏 */
@@ -345,12 +345,12 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
 /* NButton 深色适配（对齐 system/menu） */
 .cat-manage-panel__toolbar :deep(.n-button--primary-type),
 .cat-form-panel__actions :deep(.n-button--primary-type) {
-  --n-color: linear-gradient(180deg, var(--ui-accent-18) 0%, var(--ui-accent-19) 100%);
-  --n-color-hover: linear-gradient(180deg, var(--ui-accent-20) 0%, var(--ui-accent-21) 100%);
-  --n-text-color: var(--ui-text-12);
+  --n-color: linear-gradient(180deg, rgba(23, 131, 240, 0.96) 0%, rgba(8, 83, 171, 0.96) 100%);
+  --n-color-hover: linear-gradient(180deg, rgba(43, 151, 255, 0.98) 0%, rgba(13, 93, 186, 0.98) 100%);
+  --n-text-color: #e9f5ff;
   --n-text-color-hover: #fff;
-  --n-border: 1px solid var(--ui-accent-3);
-  --n-border-hover: 1px solid var(--ui-accent-23);
+  --n-border: 1px solid rgba(96, 191, 255, 0.32);
+  --n-border-hover: 1px solid rgba(96, 191, 255, 0.5);
   --n-border-radius: 8px;
   --n-font-size: 14px;
   --n-height: 34px;
@@ -369,18 +369,18 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
 .cat-manage-panel__tree {
   height: 540px;
   overflow: auto;
-  border: 1px solid var(--ui-border-93);
+  border: 1px solid rgba(43, 131, 255, 0.24);
   border-radius: 8px;
-  background: var(--ui-surface-49);
+  background: rgba(2, 12, 28, 0.5);
   padding: 10px 8px;
 }
 .cat-manage-panel__tree :deep(.n-tree) {
-  --n-node-text-color: var(--ui-text-44);
+  --n-node-text-color: rgba(232, 243, 255, 0.95);
   --n-node-text-color-active: #fff;
   --n-node-text-color-hover: #fff;
-  --n-node-color-active: var(--ui-border-62);
-  --n-node-color-hover: var(--ui-border-36);
-  --n-arrow-color: var(--ui-text-52);
+  --n-node-color-active: rgba(41, 163, 255, 0.15);
+  --n-node-color-hover: rgba(41, 163, 255, 0.08);
+  --n-arrow-color: rgba(168, 208, 255, 0.8);
   --n-node-border-radius: 6px;
   --n-font-size: 15px;
   background: transparent;
@@ -413,7 +413,7 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
 .cat-manage-panel__footer {
   margin-top: 12px;
   font-size: 13px;
-  color: var(--ui-text-53);
+  color: rgba(176, 210, 246, 0.75);
   text-align: right;
 }
 
@@ -423,11 +423,11 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
   width: 440px;
   max-width: 90vw;
   border-radius: 10px;
-  background: linear-gradient(180deg, var(--ui-surface-50), var(--ui-surface-51));
-  border: 1px solid var(--ui-border-91);
+  background: linear-gradient(180deg, rgba(6, 22, 47, 0.97), rgba(3, 15, 34, 0.98));
+  border: 1px solid rgba(43, 131, 255, 0.3);
   box-shadow:
-    inset 0 0 0 1px var(--ui-accent-78),
-    0 24px 60px var(--ui-shadow-13);
+    inset 0 0 0 1px rgba(64, 158, 255, 0.08),
+    0 24px 60px rgba(1, 8, 18, 0.6);
   overflow: hidden;
   padding: 0 20px 20px;
 }
@@ -436,13 +436,13 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
   align-items: center;
   justify-content: space-between;
   padding: 16px 0 12px;
-  border-bottom: 1px solid var(--ui-border-92);
+  border-bottom: 1px solid rgba(43, 131, 255, 0.18);
   margin-bottom: 16px;
 }
 .cat-form-panel__title {
   font-size: 17px;
   font-weight: 600;
-  color: var(--ui-text-49);
+  color: #f0f7ff;
 }
 .cat-form-panel__close {
   width: 28px;
@@ -451,7 +451,7 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  color: var(--ui-text-51);
+  color: rgba(206, 230, 255, 0.88);
   background: transparent;
   border: none;
   border-radius: 6px;
@@ -459,39 +459,39 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
 }
 .cat-form-panel__close:hover {
   color: #fff;
-  background: var(--ui-border-7);
+  background: rgba(41, 163, 255, 0.12);
 }
 
 /* 表单深色适配 */
 .cat-form :deep(.n-form-item-label) {
-  color: var(--ui-text-44);
+  color: rgba(232, 243, 255, 0.95);
   font-size: 14px;
 }
 .cat-form :deep(.n-form-item-label__text) {
-  color: var(--ui-text-44);
+  color: rgba(232, 243, 255, 0.95);
 }
 .cat-form :deep(.n-input) {
-  --n-color: var(--ui-surface-52);
-  --n-color-focus: var(--ui-surface-53);
-  --n-border: 1px solid var(--ui-border-2);
-  --n-border-hover: 1px solid var(--ui-border-88);
-  --n-text-color: var(--ui-text-1);
-  --n-placeholder-color: var(--ui-text-54);
+  --n-color: rgba(4, 16, 36, 0.7);
+  --n-color-focus: rgba(4, 16, 36, 0.9);
+  --n-border: 1px solid rgba(43, 131, 255, 0.28);
+  --n-border-hover: 1px solid rgba(41, 163, 255, 0.5);
+  --n-text-color: #f3f9ff;
+  --n-placeholder-color: rgba(170, 205, 242, 0.6);
   --n-border-radius: 6px;
   --n-font-size: 14px;
   --n-height: 36px;
 }
 .cat-form :deep(.n-base-selection) {
-  --n-border: 1px solid var(--ui-border-2);
-  --n-color: var(--ui-surface-52);
-  --n-text-color: var(--ui-text-1);
-  --n-placeholder-color: var(--ui-text-54);
+  --n-border: 1px solid rgba(43, 131, 255, 0.28);
+  --n-color: rgba(4, 16, 36, 0.7);
+  --n-text-color: #f3f9ff;
+  --n-placeholder-color: rgba(170, 205, 242, 0.6);
   --n-font-size: 14px;
   --n-height: 36px;
 }
 .cat-form :deep(.n-input-number) {
-  --n-color: var(--ui-surface-52);
-  --n-border: 1px solid var(--ui-border-2);
+  --n-color: rgba(4, 16, 36, 0.7);
+  --n-border: 1px solid rgba(43, 131, 255, 0.28);
   --n-font-size: 14px;
   --n-height: 36px;
 }
@@ -508,7 +508,7 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
 .cat-manage-panel__tree,
 .cat-form-panel {
   scrollbar-width: thin;
-  scrollbar-color: var(--ui-accent-79) transparent;
+  scrollbar-color: rgba(96, 170, 255, 0.35) transparent;
 }
 .cat-manage-panel__tree::-webkit-scrollbar,
 .cat-manage-panel ::-webkit-scrollbar,
@@ -519,13 +519,13 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
 .cat-manage-panel__tree::-webkit-scrollbar-thumb,
 .cat-manage-panel ::-webkit-scrollbar-thumb,
 .cat-form-panel ::-webkit-scrollbar-thumb {
-  background: var(--ui-accent-80);
+  background: rgba(96, 170, 255, 0.32);
   border-radius: 4px;
 }
 .cat-manage-panel__tree::-webkit-scrollbar-thumb:hover,
 .cat-manage-panel ::-webkit-scrollbar-thumb:hover,
 .cat-form-panel ::-webkit-scrollbar-thumb:hover {
-  background: var(--ui-accent-81);
+  background: rgba(96, 170, 255, 0.5);
 }
 .cat-manage-panel__tree::-webkit-scrollbar-track,
 .cat-manage-panel ::-webkit-scrollbar-track,
@@ -538,30 +538,30 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
 <style lang="scss">
 /* popconfirm 的外层 popover 容器（naive 中 popconfirm 的 popover 无独立类，用 :has 定位或统一 popover） */
 .n-popover {
-  background-color: var(--ui-surface-54) !important;
-  border: 1px solid var(--ui-border-91) !important;
+  background-color: rgba(10, 28, 55, 0.98) !important;
+  border: 1px solid rgba(43, 131, 255, 0.3) !important;
   border-radius: 8px !important;
-  box-shadow: 0 16px 48px var(--ui-shadow-14) !important;
+  box-shadow: 0 16px 48px rgba(1, 8, 18, 0.7) !important;
   backdrop-filter: blur(8px);
-  --n-color: var(--ui-surface-54) !important;
+  --n-color: rgba(10, 28, 55, 0.98) !important;
   --n-color-opacity: 0.98 !important;
-  --n-text-color: var(--ui-text-44) !important;
-  --n-box-shadow: 0 16px 48px var(--ui-shadow-14) !important;
+  --n-text-color: rgba(232, 243, 255, 0.95) !important;
+  --n-box-shadow: 0 16px 48px rgba(1, 8, 18, 0.7) !important;
   --n-border-radius: 8px !important;
-  --n-border-color: var(--ui-border-91) !important;
-  --n-arrow-background-color: var(--ui-surface-54) !important;
+  --n-border-color: rgba(43, 131, 255, 0.3) !important;
+  --n-arrow-background-color: rgba(10, 28, 55, 0.98) !important;
 }
 /* 确认面板与文案 */
 .n-popconfirm {
-  color: var(--ui-text-44) !important;
-  --n-text-color: var(--ui-text-44) !important;
+  color: rgba(232, 243, 255, 0.95) !important;
+  --n-text-color: rgba(232, 243, 255, 0.95) !important;
 }
 .n-popconfirm__body {
-  color: var(--ui-text-44) !important;
+  color: rgba(232, 243, 255, 0.95) !important;
   font-size: 14px !important;
 }
 .n-popconfirm__body span {
-  color: var(--ui-text-44) !important;
+  color: rgba(232, 243, 255, 0.95) !important;
 }
 /* 操作区 */
 .n-popconfirm__action {
@@ -569,16 +569,16 @@ function buildTree(nodes: Api.Catalog.CategoryNode[]): TreeOption[] {
   gap: 6px;
 }
 .n-popconfirm__action .n-button--primary-type {
-  --n-color: linear-gradient(180deg, var(--ui-accent-18), var(--ui-accent-19)) !important;
-  --n-color-hover: linear-gradient(180deg, var(--ui-accent-20), var(--ui-accent-21)) !important;
-  --n-text-color: var(--ui-text-12) !important;
-  --n-border: 1px solid var(--ui-accent-3) !important;
+  --n-color: linear-gradient(180deg, rgba(23, 131, 240, 0.96), rgba(8, 83, 171, 0.96)) !important;
+  --n-color-hover: linear-gradient(180deg, rgba(43, 151, 255, 0.98), rgba(13, 93, 186, 0.98)) !important;
+  --n-text-color: #e9f5ff !important;
+  --n-border: 1px solid rgba(96, 191, 255, 0.32) !important;
   --n-border-radius: 6px !important;
 }
 .n-popconfirm__action .n-button:not(.n-button--primary-type) {
-  --n-text-color: var(--ui-text-15) !important;
-  --n-border: 1px solid var(--ui-border-91) !important;
-  --n-color: var(--ui-accent-82) !important;
-  --n-color-hover: var(--ui-accent-83) !important;
+  --n-text-color: rgba(203, 227, 255, 0.85) !important;
+  --n-border: 1px solid rgba(43, 131, 255, 0.3) !important;
+  --n-color: rgba(20, 52, 96, 0.7) !important;
+  --n-color-hover: rgba(30, 64, 112, 0.8) !important;
 }
 </style>

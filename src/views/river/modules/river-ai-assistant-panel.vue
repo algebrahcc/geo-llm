@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import MarkdownIt from 'markdown-it';
+import { attachmentIcon, formatAttachmentSize, useChatAttachments } from '@/hooks/common/use-chat-attachments';
 import { createRiverSituationEngine } from './situation-engine';
 import type { AiAnalysisStep, ChatMessage, CrossingSettingForm, KnowledgeHitDisplay, RiverPlanKey } from './types';
 
@@ -59,6 +60,17 @@ watch(
   },
   { immediate: true }
 );
+
+// ──── 附件上传（选择 / 待发送预览 / 随消息带走） ────
+const {
+  pendingAttachments,
+  fileInputRef,
+  openFilePicker,
+  handleFileInputChange,
+  removePendingAttachment,
+  takePendingAttachments,
+  downloadAttachment
+} = useChatAttachments();
 
 // ──── 对话 ────
 const chatInput = ref('');
@@ -208,19 +220,32 @@ async function offlineReply(question: string) {
 /** 统一发送入口：输入框回车/发送按钮与空状态快捷提问共用 */
 async function sendText(raw: string) {
   const text = raw.trim();
-  if (!text || streaming.value) return;
+  const hasPending = pendingAttachments.value.length > 0;
+  if ((!text && !hasPending) || streaming.value) return;
 
+  const attachments = takePendingAttachments();
   messages.value.push({
     id: `user-${Date.now()}`,
     role: 'user',
     content: text,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    attachments: attachments.length > 0 ? attachments : undefined
   });
   chatInput.value = '';
-  emit('send-message', text);
 
-  // 离线推演：匹配问答库/态势规则，流式生成回答
-  await offlineReply(text);
+  if (text) {
+    emit('send-message', text);
+    // 离线推演：匹配问答库/态势规则，流式生成回答
+    await offlineReply(text);
+  } else if (attachments.length > 0) {
+    // 仅附件：确认接收并引导补充说明
+    messages.value.push({
+      id: `assistant-att-${Date.now()}`,
+      role: 'assistant',
+      content: `已收到 ${attachments.length} 个附件：**${attachments.map(att => att.name).join('、')}**。已纳入当前任务上下文；如需围绕附件内容深入分析，请补充说明关注要点。`,
+      timestamp: Date.now()
+    });
+  }
 }
 
 // ──── 发送消息（接入后端 Dify SSE 流式对话） ────
@@ -552,7 +577,26 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
                 <div class="chat-md" v-html="renderMarkdown(msg.content)" />
                 <span v-if="msg.streaming" class="stream-caret" />
               </template>
-              <template v-else>{{ msg.content }}</template>
+              <template v-else>
+                <div v-if="msg.attachments?.length" class="msg-attachments">
+                  <button
+                    v-for="att in msg.attachments"
+                    :key="att.id"
+                    type="button"
+                    class="msg-attachment"
+                    :title="`下载 ${att.name}`"
+                    @click="downloadAttachment(att)"
+                  >
+                    <SvgIcon :icon="attachmentIcon(att.name, att.type)" class="msg-attachment__icon" />
+                    <span class="msg-attachment__info">
+                      <span class="msg-attachment__name">{{ att.name }}</span>
+                      <span class="msg-attachment__size">{{ formatAttachmentSize(att.size) }}</span>
+                    </span>
+                    <SvgIcon icon="mdi:download-outline" class="msg-attachment__download" />
+                  </button>
+                </div>
+                <span v-if="msg.content">{{ msg.content }}</span>
+              </template>
             </div>
           </div>
         </div>
@@ -561,7 +605,41 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 
     <!-- ══ 对话输入 ══ -->
     <div v-show="!collapsed" class="chat-input-area">
+      <input
+        ref="fileInputRef"
+        type="file"
+        multiple
+        class="chat-file-input"
+        aria-hidden="true"
+        tabindex="-1"
+        @change="handleFileInputChange"
+      />
+      <div v-if="pendingAttachments.length > 0" class="pending-attachments">
+        <span v-for="att in pendingAttachments" :key="att.id" class="pending-attachment" :title="att.name">
+          <SvgIcon :icon="attachmentIcon(att.name, att.type)" class="pending-attachment__icon" />
+          <span class="pending-attachment__name">{{ att.name }}</span>
+          <span class="pending-attachment__size">{{ formatAttachmentSize(att.size) }}</span>
+          <button
+            type="button"
+            class="pending-attachment__remove"
+            :aria-label="`移除附件 ${att.name}`"
+            @click="removePendingAttachment(att.id)"
+          >
+            <SvgIcon icon="mdi:close" />
+          </button>
+        </span>
+      </div>
       <div class="chat-input-wrapper">
+        <button
+          type="button"
+          class="attach-btn"
+          :disabled="streaming"
+          title="上传附件"
+          aria-label="上传附件"
+          @click="openFilePicker"
+        >
+          <SvgIcon icon="mdi:paperclip" />
+        </button>
         <input
           v-model="chatInput"
           type="text"
@@ -584,7 +662,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
           v-else
           type="button"
           class="send-btn"
-          :disabled="!chatInput.trim()"
+          :disabled="!chatInput.trim() && pendingAttachments.length === 0"
           title="发送"
           aria-label="发送消息"
           @click="handleSend"
@@ -1847,5 +1925,176 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   border: none;
   border-top: 1px solid var(--ai-line);
   margin: 8px 0;
+}
+
+/* ─────────── 附件能力 ─────────── */
+.chat-file-input {
+  display: none;
+}
+
+.attach-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--ai-line-2);
+  border-radius: var(--ai-r);
+  background: var(--ai-surface-2);
+  color: var(--ai-text-3);
+  cursor: pointer;
+  font-size: 17px;
+  flex-shrink: 0;
+  transition:
+    border-color var(--ai-fast) var(--ai-ease),
+    background var(--ai-fast) var(--ai-ease),
+    color var(--ai-fast) var(--ai-ease);
+}
+
+.attach-btn:hover:not(:disabled) {
+  border-color: var(--ai-primary-line);
+  background: var(--ai-primary-soft);
+  color: var(--ai-accent);
+}
+
+.attach-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.attach-btn:focus-visible {
+  outline: 2px solid var(--ai-primary);
+  outline-offset: 1px;
+}
+
+/* 待发送附件条 */
+.pending-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.pending-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  padding: 4px 8px;
+  border: 1px solid var(--ai-line-2);
+  border-radius: var(--ai-r-sm);
+  background: var(--ai-surface-2);
+  font-size: 11px;
+}
+
+.pending-attachment__icon {
+  font-size: 14px;
+  color: var(--ai-accent);
+  flex-shrink: 0;
+}
+
+.pending-attachment__name {
+  color: var(--ai-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending-attachment__size {
+  color: var(--ai-text-4);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.pending-attachment__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--ai-surface-3);
+  color: var(--ai-text-3);
+  cursor: pointer;
+  font-size: 11px;
+  flex-shrink: 0;
+  transition: all var(--ai-fast) var(--ai-ease);
+}
+
+.pending-attachment__remove:hover {
+  background: var(--ai-danger-soft);
+  color: var(--ai-danger);
+}
+
+/* 消息内附件卡片（用户气泡为蓝色渐变底，附件卡用半透明白） */
+.msg-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+
+.msg-attachments:last-child {
+  margin-bottom: 0;
+}
+
+.msg-attachment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 240px;
+  padding: 6px 9px;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: var(--ai-r-sm);
+  background: rgb(255 255 255 / 14%);
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background var(--ai-fast) var(--ai-ease);
+}
+
+.msg-attachment:hover {
+  background: rgb(255 255 255 / 24%);
+}
+
+.msg-attachment:focus-visible {
+  outline: 2px solid rgb(255 255 255 / 70%);
+  outline-offset: 1px;
+}
+
+.msg-attachment__icon {
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.msg-attachment__info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.msg-attachment__name {
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.msg-attachment__size {
+  font-size: 10px;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.msg-attachment__download {
+  font-size: 14px;
+  opacity: 0.8;
+  flex-shrink: 0;
 }
 </style>

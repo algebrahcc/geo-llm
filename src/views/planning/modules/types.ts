@@ -1,3 +1,4 @@
+import type { ChatAttachment } from '@/hooks/common/use-chat-attachments';
 import type { Coordinate } from '@/typings/cesium';
 
 // ──── 页面模式 ────
@@ -116,6 +117,8 @@ export interface PlanningChatMessage {
   content: string;
   /** 流式生成中（用于"正在思考…"占位与停止按钮） */
   streaming?: boolean;
+  /** 随消息上传的附件（离线演示保存在本地，可点击下载） */
+  attachments?: ChatAttachment[];
 }
 
 // ──── 分析步骤 ────

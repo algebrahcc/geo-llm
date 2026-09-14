@@ -742,16 +742,16 @@ onMounted(() => loadList(true));
 <style scoped lang="scss">
 .vec-page {
   --vec-page-bg:
-    radial-gradient(circle at top, var(--ui-border-1) 0%, rgba(0, 0, 0, 0) 36%),
-    linear-gradient(180deg, var(--ui-page-1) 0%, var(--ui-page-2) 38%, var(--ui-page-3) 100%);
-  --vec-surface-bg: linear-gradient(180deg, var(--ui-surface-1) 0%, var(--ui-surface-2) 100%);
-  --vec-surface-border: var(--ui-border-2);
-  --vec-line: var(--ui-border-4);
-  --vec-text-primary: var(--ui-text-1);
-  --vec-text-secondary: var(--ui-text-2);
-  --vec-text-tertiary: var(--ui-text-3);
-  --vec-accent: var(--ui-accent-4);
-  --vec-danger: var(--ui-accent-5);
+    radial-gradient(circle at top, rgba(0, 153, 255, 0.14) 0%, rgba(0, 0, 0, 0) 36%),
+    linear-gradient(180deg, #041528 0%, #041120 38%, #03101b 100%);
+  --vec-surface-bg: linear-gradient(180deg, rgba(3, 19, 41, 0.94) 0%, rgba(2, 15, 32, 0.96) 100%);
+  --vec-surface-border: rgba(43, 131, 255, 0.28);
+  --vec-line: rgba(25, 95, 176, 0.35);
+  --vec-text-primary: #f3f9ff;
+  --vec-text-secondary: rgba(226, 239, 255, 0.94);
+  --vec-text-tertiary: rgba(182, 214, 255, 0.84);
+  --vec-accent: #29a3ff;
+  --vec-danger: #ff6b6b;
   height: 100%;
   background: var(--vec-page-bg);
   color: var(--vec-text-primary);
@@ -768,8 +768,8 @@ onMounted(() => loadList(true));
   background: var(--vec-surface-bg);
   border: 1px solid var(--vec-surface-border);
   box-shadow:
-    0 0 0 1px var(--ui-border-6),
-    0 18px 40px var(--ui-shadow-1);
+    0 0 0 1px rgba(32, 111, 202, 0.22),
+    0 18px 40px rgba(1, 8, 18, 0.45);
   position: relative;
   flex: 1;
   min-height: 0;
@@ -827,14 +827,14 @@ onMounted(() => loadList(true));
 
 /* ===== Primary / Ghost Buttons (NButton) — same as catalog ===== */
 .vec-primary-btn {
-  --n-color: linear-gradient(180deg, var(--ui-accent-18) 0%, var(--ui-accent-19) 100%) !important;
-  --n-color-hover: linear-gradient(180deg, var(--ui-accent-20) 0%, var(--ui-accent-21) 100%) !important;
-  --n-color-pressed: linear-gradient(180deg, var(--ui-accent-19) 0%, var(--ui-accent-22) 100%) !important;
-  --n-text-color: var(--ui-text-12) !important;
+  --n-color: linear-gradient(180deg, rgba(23, 131, 240, 0.96) 0%, rgba(8, 83, 171, 0.96) 100%) !important;
+  --n-color-hover: linear-gradient(180deg, rgba(43, 151, 255, 0.98) 0%, rgba(13, 93, 186, 0.98) 100%) !important;
+  --n-color-pressed: linear-gradient(180deg, rgba(8, 83, 171, 0.96) 0%, rgba(5, 63, 141, 0.96) 100%) !important;
+  --n-text-color: #e9f5ff !important;
   --n-text-color-hover: #fff !important;
   --n-text-color-pressed: rgba(255, 255, 255, 0.9) !important;
-  --n-border: 1px solid var(--ui-accent-3) !important;
-  --n-border-hover: 1px solid var(--ui-accent-23) !important;
+  --n-border: 1px solid rgba(96, 191, 255, 0.32) !important;
+  --n-border-hover: 1px solid rgba(96, 191, 255, 0.5) !important;
   --n-border-radius: 8px !important;
   --n-font-size: 15px !important;
   --n-height: 40px !important;
@@ -842,8 +842,8 @@ onMounted(() => loadList(true));
   font-weight: 600;
   letter-spacing: 0.3px;
   box-shadow:
-    inset 0 1px 0 var(--ui-text-13),
-    0 4px 16px var(--ui-border-17);
+    inset 0 1px 0 rgba(181, 233, 255, 0.14),
+    0 4px 16px rgba(4, 79, 162, 0.22);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -860,8 +860,8 @@ onMounted(() => loadList(true));
 }
 .vec-primary-btn:hover {
   box-shadow:
-    inset 0 1px 0 var(--ui-text-14),
-    0 6px 24px var(--ui-border-18);
+    inset 0 1px 0 rgba(181, 233, 255, 0.22),
+    0 6px 24px rgba(4, 79, 162, 0.35);
   transform: translateY(-2px);
 }
 .vec-primary-btn:hover::before {
@@ -870,37 +870,37 @@ onMounted(() => loadList(true));
 .vec-primary-btn:active {
   transform: translateY(0);
   box-shadow:
-    inset 0 2px 4px var(--ui-shadow-5),
-    0 2px 8px var(--ui-border-19);
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 2px 8px rgba(4, 79, 162, 0.2);
   transition: all 0.1s ease;
 }
 
 .vec-ghost-btn {
-  --n-color: linear-gradient(180deg, var(--ui-surface-12) 0%, var(--ui-surface-13) 100%) !important;
-  --n-color-hover: linear-gradient(180deg, var(--ui-accent-25) 0%, var(--ui-surface-14) 100%) !important;
-  --n-color-pressed: linear-gradient(180deg, var(--ui-surface-13) 0%, var(--ui-surface-15) 100%) !important;
-  --n-text-color: var(--ui-text-30) !important;
-  --n-text-color-hover: var(--ui-text-1) !important;
-  --n-border: 1px solid var(--ui-border-20) !important;
-  --n-border-hover: 1px solid var(--ui-accent-10) !important;
+  --n-color: linear-gradient(180deg, rgba(9, 43, 82, 0.94) 0%, rgba(5, 23, 46, 0.96) 100%) !important;
+  --n-color-hover: linear-gradient(180deg, rgba(14, 53, 102, 0.96) 0%, rgba(8, 33, 66, 0.96) 100%) !important;
+  --n-color-pressed: linear-gradient(180deg, rgba(5, 23, 46, 0.96) 0%, rgba(3, 16, 35, 0.96) 100%) !important;
+  --n-text-color: rgba(226, 239, 255, 0.95) !important;
+  --n-text-color-hover: #f3f9ff !important;
+  --n-border: 1px solid rgba(43, 118, 197, 0.35) !important;
+  --n-border-hover: 1px solid rgba(58, 160, 255, 0.5) !important;
   --n-border-radius: 8px !important;
   --n-font-size: 15px !important;
   --n-height: 40px !important;
   --n-padding: 0 20px !important;
   letter-spacing: 0.3px;
-  box-shadow: inset 0 1px 0 var(--ui-text-16);
+  box-shadow: inset 0 1px 0 rgba(129, 211, 255, 0.04);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .vec-ghost-btn:hover {
   box-shadow:
-    inset 0 1px 0 var(--ui-text-6),
-    0 4px 12px var(--ui-shadow-2);
+    inset 0 1px 0 rgba(129, 211, 255, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.25);
   transform: translateY(-2px);
-  border-color: var(--ui-accent-10) !important;
+  border-color: rgba(58, 160, 255, 0.5) !important;
 }
 .vec-ghost-btn:active {
   transform: translateY(0);
-  box-shadow: inset 0 2px 4px var(--ui-shadow-6);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
   transition: all 0.1s ease;
 }
 
@@ -909,21 +909,21 @@ onMounted(() => loadList(true));
   min-width: 280px;
 }
 .vec-search-input :deep(.n-input) {
-  --n-border: 1px solid var(--ui-border-11) !important;
-  --n-border-hover: 1px solid var(--ui-accent-10) !important;
-  --n-border-focus: 1px solid var(--ui-accent-11) !important;
-  --n-color: var(--ui-surface-10) !important;
-  --n-color-focus: var(--ui-surface-10) !important;
-  --n-text-color: var(--ui-text-1) !important;
-  --n-placeholder-color: var(--ui-text-7) !important;
-  --n-caret-color: var(--ui-accent-12) !important;
+  --n-border: 1px solid rgba(43, 118, 197, 0.38) !important;
+  --n-border-hover: 1px solid rgba(58, 160, 255, 0.5) !important;
+  --n-border-focus: 1px solid rgba(58, 160, 255, 0.65) !important;
+  --n-color: rgba(2, 16, 31, 0.98) !important;
+  --n-color-focus: rgba(2, 16, 31, 0.98) !important;
+  --n-text-color: #f3f9ff !important;
+  --n-placeholder-color: rgba(158, 196, 240, 0.68) !important;
+  --n-caret-color: #5ea4ff !important;
   --n-font-size: 15px !important;
   --n-height: 40px !important;
   --n-border-radius: 8px !important;
-  --n-box-shadow-focus: 0 0 0 2px var(--ui-border-7), 0 2px 8px var(--ui-shadow-2) !important;
+  --n-box-shadow-focus: 0 0 0 2px rgba(41, 163, 255, 0.12), 0 2px 8px rgba(0, 0, 0, 0.25) !important;
   letter-spacing: 0.2px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: linear-gradient(180deg, var(--ui-surface-10) 0%, var(--ui-shadow-3) 100%);
+  background: linear-gradient(180deg, rgba(2, 16, 31, 0.98) 0%, rgba(1, 12, 24, 0.98) 100%);
 }
 .vec-search-input :deep(.n-input__border),
 .vec-search-input :deep(.n-input__state-border) {
@@ -931,7 +931,7 @@ onMounted(() => loadList(true));
 }
 .vec-search-input__icon {
   font-size: 18px;
-  color: var(--ui-accent-9);
+  color: #7cc4f0;
   opacity: 0.7;
 }
 
@@ -941,8 +941,8 @@ onMounted(() => loadList(true));
 .vec-filter-select :deep(.n-base-selection) {
   height: 40px;
   border-radius: 8px;
-  background: var(--ui-surface-10);
-  border-color: var(--ui-border-11);
+  background: rgba(2, 16, 31, 0.98);
+  border-color: rgba(43, 118, 197, 0.38);
   font-size: 14px;
 }
 .vec-filter-select :deep(.n-base-selection-label) {
@@ -961,7 +961,7 @@ onMounted(() => loadList(true));
   gap: 12px;
   padding: 12px 14px;
   border-bottom: 1px solid var(--vec-line);
-  background: linear-gradient(180deg, var(--ui-surface-18) 0%, var(--ui-surface-19) 100%);
+  background: linear-gradient(180deg, rgba(7, 27, 51, 0.94) 0%, rgba(4, 20, 40, 0.96) 100%);
   position: relative;
 }
 .vec-card-head::before {
@@ -979,7 +979,7 @@ onMounted(() => loadList(true));
   font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.3px;
-  text-shadow: 0 0 8px var(--ui-border-12);
+  text-shadow: 0 0 8px rgba(41, 163, 255, 0.1);
 }
 .vec-card-head__meta {
   display: inline-flex;
@@ -999,26 +999,26 @@ onMounted(() => loadList(true));
 /* ===== NDataTable deep overrides — same as catalog ===== */
 .vec-data-table {
   flex: 1;
-  --n-th-color: var(--ui-surface-20) !important;
+  --n-th-color: rgba(6, 29, 56, 0.94) !important;
   --n-td-color: transparent !important;
-  --n-td-color-hover: var(--ui-border-23) !important;
-  --n-border-color: var(--ui-border-4) !important;
-  --n-th-text-color: var(--ui-text-19) !important;
-  --n-td-text-color: var(--ui-text-20) !important;
+  --n-td-color-hover: rgba(33, 116, 212, 0.14) !important;
+  --n-border-color: rgba(25, 95, 176, 0.35) !important;
+  --n-th-text-color: rgba(228, 241, 255, 0.96) !important;
+  --n-td-text-color: rgba(228, 241, 255, 0.92) !important;
   --n-th-font-weight: 600 !important;
   --n-font-size: 14px !important;
 }
 .vec-data-table :deep(.n-data-table-th) {
-  background: linear-gradient(180deg, var(--ui-surface-20) 0%, var(--ui-surface-21) 100%) !important;
+  background: linear-gradient(180deg, rgba(6, 29, 56, 0.94) 0%, rgba(4, 22, 43, 0.94) 100%) !important;
   font-size: 14px;
   padding: 15px 14px;
 }
 .vec-data-table :deep(.n-data-table-td) {
   padding: 16px 14px;
-  border-bottom: 1px solid var(--ui-border-24) !important;
+  border-bottom: 1px solid rgba(18, 73, 135, 0.32) !important;
 }
 .vec-data-table :deep(.n-data-table-tr:hover .n-data-table-td) {
-  background: var(--ui-border-23) !important;
+  background: rgba(33, 116, 212, 0.14) !important;
 }
 .vec-data-table :deep(.n-data-table-table) {
   border-collapse: separate;
@@ -1049,7 +1049,7 @@ onMounted(() => loadList(true));
   font-size: 14px;
 }
 .row-text--muted {
-  color: var(--ui-text-21);
+  color: rgba(206, 228, 255, 0.9);
 }
 .row-text--mono {
   font-family: 'DIN', 'Consolas', monospace;
@@ -1070,14 +1070,14 @@ onMounted(() => loadList(true));
   transition: all 0.2s ease;
 }
 .vec-type-chip--geojson {
-  background: var(--ui-border-25);
-  border-color: var(--ui-border-26);
-  color: var(--ui-accent-27);
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: rgba(74, 222, 128, 0.9);
 }
 .vec-type-chip--default {
-  background: var(--ui-border-35);
-  border-color: var(--ui-accent-35);
-  color: var(--ui-text-28);
+  background: rgba(150, 69, 18, 0.22);
+  border-color: rgba(255, 132, 72, 0.34);
+  color: #ffb087;
 }
 
 /* Status tags — same spec as catalog */
@@ -1094,24 +1094,24 @@ onMounted(() => loadList(true));
   font-weight: 500;
 }
 .vec-status-tag--success {
-  background: var(--ui-border-25);
-  border: 1px solid var(--ui-border-26);
-  color: var(--ui-accent-27);
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: rgba(74, 222, 128, 0.9);
 }
 .vec-status-tag--warning {
-  background: var(--ui-border-27);
-  border: 1px solid var(--ui-border-28);
-  color: var(--ui-accent-28);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: rgba(251, 191, 36, 0.9);
 }
 .vec-status-tag--danger {
-  background: var(--ui-accent-38);
-  border: 1px solid var(--ui-accent-70);
-  color: var(--ui-text-69);
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: rgba(255, 141, 141, 0.9);
 }
 .vec-status-tag--default {
-  background: var(--ui-accent-29);
-  border: 1px solid var(--ui-accent-30);
-  color: var(--ui-text-22);
+  background: rgba(148, 163, 184, 0.14);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: rgba(216, 228, 240, 0.9);
 }
 
 /* ===== Action buttons — same as catalog (round, with tooltip) ===== */
@@ -1129,9 +1129,9 @@ onMounted(() => loadList(true));
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--ui-border-36);
-  border: 1px solid var(--ui-border-37);
-  color: var(--ui-text-29);
+  background: rgba(41, 163, 255, 0.08);
+  border: 1px solid rgba(41, 163, 255, 0.18);
+  color: rgba(216, 234, 255, 0.92);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
@@ -1139,10 +1139,10 @@ onMounted(() => loadList(true));
 }
 .vec-data-table :deep(.action-icon-btn:hover) {
   color: #fff;
-  background: var(--ui-border-37);
-  border-color: var(--ui-border-38);
+  background: rgba(41, 163, 255, 0.18);
+  border-color: rgba(41, 163, 255, 0.35);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--ui-border-39);
+  box-shadow: 0 4px 12px rgba(41, 163, 255, 0.2);
 }
 .vec-data-table :deep(.action-icon-btn::after) {
   content: attr(data-tooltip);
@@ -1152,9 +1152,9 @@ onMounted(() => loadList(true));
   transform: translateX(-50%) translateY(4px);
   padding: 3px 8px;
   border-radius: 4px;
-  background: var(--ui-surface-22);
-  border: 1px solid var(--ui-border-40);
-  color: var(--ui-text-30);
+  background: rgba(6, 29, 56, 0.95);
+  border: 1px solid rgba(41, 163, 255, 0.25);
+  color: rgba(226, 239, 255, 0.95);
   font-size: 12px;
   white-space: nowrap;
   pointer-events: none;
@@ -1169,21 +1169,21 @@ onMounted(() => loadList(true));
   transform: translateX(-50%) translateY(0);
 }
 .vec-data-table :deep(.action-icon-btn--danger) {
-  background: var(--ui-accent-92);
-  border-color: var(--ui-accent-40);
-  color: var(--ui-text-70);
+  background: rgba(255, 107, 107, 0.07);
+  border-color: rgba(255, 107, 107, 0.18);
+  color: rgba(255, 156, 156, 0.88);
 }
 .vec-data-table :deep(.action-icon-btn--danger:hover) {
-  color: var(--ui-accent-5);
-  background: var(--ui-accent-38);
-  border-color: var(--ui-accent-39);
-  box-shadow: 0 4px 12px var(--ui-accent-40);
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.15);
+  border-color: rgba(255, 107, 107, 0.35);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.18);
 }
 
 /* ===== Pagination footer bar ===== */
 .vec-data-table :deep(.n-data-table__pagination) {
   border-top: 1px solid var(--vec-line);
-  background: linear-gradient(180deg, var(--ui-surface-7) 0%, var(--ui-surface-23) 100%);
+  background: linear-gradient(180deg, rgba(4, 21, 41, 0.98) 0%, rgba(4, 18, 34, 0.98) 100%);
   min-height: 52px;
   padding: 8px 14px;
   display: flex;
@@ -1191,18 +1191,18 @@ onMounted(() => loadList(true));
   justify-content: flex-end;
 }
 .vec-data-table :deep(.n-pagination) {
-  --n-item-text-color: var(--ui-text-5) !important;
+  --n-item-text-color: rgba(226, 239, 255, 0.92) !important;
   --n-item-text-color-hover: #fff !important;
   --n-item-text-color-active: #fff !important;
-  --n-item-color-active: linear-gradient(180deg, var(--ui-accent-93) 0%, var(--ui-accent-94) 100%) !important;
-  --n-item-border-active: 1px solid var(--ui-accent-95) !important;
-  --n-item-color: var(--ui-surface-56) !important;
-  --n-item-border: 1px solid var(--ui-border-99) !important;
-  --n-item-border-hover: 1px solid var(--ui-accent-96) !important;
-  --n-item-color-hover: var(--ui-accent-97) !important;
+  --n-item-color-active: linear-gradient(180deg, rgba(23, 115, 230, 0.72) 0%, rgba(10, 72, 148, 0.72) 100%) !important;
+  --n-item-border-active: 1px solid rgba(92, 184, 255, 0.55) !important;
+  --n-item-color: rgba(8, 28, 56, 0.85) !important;
+  --n-item-border: 1px solid rgba(48, 115, 190, 0.36) !important;
+  --n-item-border-hover: 1px solid rgba(76, 169, 255, 0.5) !important;
+  --n-item-color-hover: rgba(14, 42, 88, 0.92) !important;
   --n-item-border-radius: 5px !important;
-  --n-input-border: 1px solid var(--ui-border-99) !important;
-  --n-input-border-hover: 1px solid var(--ui-accent-96) !important;
+  --n-input-border: 1px solid rgba(48, 115, 190, 0.36) !important;
+  --n-input-border-hover: 1px solid rgba(76, 169, 255, 0.5) !important;
   font-size: 14px;
 }
 .vec-data-table :deep(.n-pagination .n-pagination-item) {
@@ -1213,13 +1213,13 @@ onMounted(() => loadList(true));
   transition: all 0.2s ease;
 }
 .vec-data-table :deep(.n-pagination .n-pagination-item:hover) {
-  border-color: var(--ui-accent-96);
+  border-color: rgba(76, 169, 255, 0.5);
   color: #fff;
-  background: var(--ui-accent-97);
+  background: rgba(14, 42, 88, 0.92);
   transform: translateY(-1px);
 }
 .vec-data-table :deep(.n-pagination .n-pagination-item--active) {
-  box-shadow: 0 2px 10px var(--ui-border-40);
+  box-shadow: 0 2px 10px rgba(41, 163, 255, 0.25);
   font-weight: 600;
 }
 .vec-data-table :deep(.n-pagination .n-pagination-item--disabled) {
@@ -1234,7 +1234,7 @@ onMounted(() => loadList(true));
   --n-border-radius: 5px;
 }
 .vec-data-table :deep(.n-pagination-ellipsis) {
-  color: var(--ui-text-74);
+  color: rgba(206, 228, 255, 0.8);
   font-size: 14px;
 }
 
@@ -1244,11 +1244,11 @@ onMounted(() => loadList(true));
 }
 .vec-detail-card {
   /* NModal teleport 到 body，父级 .vec-page 的变量无法继承，这里显式补齐 */
-  --vec-text-primary: var(--ui-text-1);
-  --vec-text-secondary: var(--ui-text-2);
-  --vec-text-tertiary: var(--ui-text-3);
-  --vec-line: var(--ui-border-4);
-  --vec-accent: var(--ui-accent-4);
+  --vec-text-primary: #f3f9ff;
+  --vec-text-secondary: rgba(226, 239, 255, 0.94);
+  --vec-text-tertiary: rgba(182, 214, 255, 0.84);
+  --vec-line: rgba(25, 95, 176, 0.35);
+  --vec-accent: #29a3ff;
   color: var(--vec-text-primary);
   width: 680px;
   max-width: 92vw;
@@ -1257,12 +1257,12 @@ onMounted(() => loadList(true));
   flex-direction: column;
   border-radius: 8px;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--ui-surface-26) 0%, var(--ui-surface-27) 100%);
-  border: 1px solid var(--ui-border-43);
+  background: linear-gradient(180deg, rgba(4, 22, 46, 0.98) 0%, rgba(3, 16, 35, 0.99) 100%);
+  border: 1px solid rgba(43, 131, 255, 0.32);
   box-shadow:
-    0 0 0 1px var(--ui-border-44),
-    0 24px 64px var(--ui-shadow-7),
-    0 0 80px var(--ui-border-45);
+    0 0 0 1px rgba(32, 111, 202, 0.18),
+    0 24px 64px rgba(1, 6, 16, 0.7),
+    0 0 80px rgba(41, 163, 255, 0.06);
 }
 
 .vec-detail-header {
@@ -1272,7 +1272,7 @@ onMounted(() => loadList(true));
   gap: 16px;
   padding: 20px 24px 16px;
   border-bottom: 1px solid var(--vec-line);
-  background: linear-gradient(180deg, var(--ui-surface-28) 0%, var(--ui-surface-29) 100%);
+  background: linear-gradient(180deg, rgba(8, 36, 68, 0.96) 0%, rgba(4, 22, 46, 0.96) 100%);
   position: relative;
 }
 .vec-detail-header::after {
@@ -1295,8 +1295,8 @@ onMounted(() => loadList(true));
 .vec-detail-header__icon {
   flex-shrink: 0;
   font-size: 28px;
-  color: var(--ui-accent-46);
-  filter: drop-shadow(0 0 8px var(--ui-accent-47));
+  color: #62c4ff;
+  filter: drop-shadow(0 0 8px rgba(98, 196, 255, 0.3));
   margin-top: 2px;
 }
 .vec-detail-header__text {
@@ -1309,7 +1309,7 @@ onMounted(() => loadList(true));
   letter-spacing: 0.3px;
   color: var(--vec-text-primary);
   line-height: 1.4;
-  text-shadow: 0 0 10px var(--ui-border-7);
+  text-shadow: 0 0 10px rgba(41, 163, 255, 0.12);
 }
 .vec-detail-header__badges {
   display: flex;
@@ -1328,9 +1328,9 @@ onMounted(() => loadList(true));
   height: 32px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--ui-border-46);
+  border: 1px solid rgba(45, 111, 183, 0.28);
   border-radius: 6px;
-  background: var(--ui-surface-30);
+  background: rgba(6, 25, 50, 0.6);
   color: var(--vec-text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1338,8 +1338,8 @@ onMounted(() => loadList(true));
 }
 .vec-detail-close-btn:hover {
   color: var(--vec-accent);
-  border-color: var(--ui-accent-45);
-  background: var(--ui-border-36);
+  border-color: rgba(70, 176, 255, 0.4);
+  background: rgba(41, 163, 255, 0.08);
 }
 .vec-detail-close-btn:disabled {
   opacity: 0.5;
@@ -1357,7 +1357,7 @@ onMounted(() => loadList(true));
 }
 .vec-detail-body::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: var(--ui-border-47);
+  background: rgba(48, 127, 212, 0.45);
 }
 .vec-detail-body::-webkit-scrollbar-track {
   background: transparent;
@@ -1379,7 +1379,7 @@ onMounted(() => loadList(true));
   letter-spacing: 0.3px;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--ui-border-48);
+  border-bottom: 1px solid rgba(25, 95, 176, 0.22);
 }
 .vec-detail-section__icon {
   font-size: 18px;
@@ -1416,7 +1416,7 @@ onMounted(() => loadList(true));
 .vec-detail-field__value--mono {
   font-family: 'DIN', 'Consolas', monospace;
   font-size: 14px;
-  color: var(--ui-text-32);
+  color: rgba(238, 247, 255, 0.94);
   letter-spacing: 0.4px;
 }
 .vec-detail-desc {
@@ -1426,8 +1426,8 @@ onMounted(() => loadList(true));
   color: var(--vec-text-secondary);
   padding: 12px 14px;
   border-radius: 6px;
-  background: var(--ui-surface-31);
-  border: 1px solid var(--ui-border-49);
+  background: rgba(2, 14, 30, 0.6);
+  border: 1px solid rgba(25, 95, 176, 0.18);
 }
 
 /* ===== Upload ===== */
@@ -1447,20 +1447,20 @@ onMounted(() => loadList(true));
   gap: 8px;
   padding: 30px 20px;
   border-radius: 8px;
-  border: 1.5px dashed var(--ui-accent-45);
-  background: var(--ui-surface-62);
+  border: 1.5px dashed rgba(70, 176, 255, 0.4);
+  background: rgba(4, 22, 46, 0.5);
   cursor: pointer;
   transition: all 0.25s ease;
 }
 .vec-upload__zone:hover {
-  border-color: var(--ui-accent-102);
-  background: var(--ui-surface-63);
-  box-shadow: inset 0 0 30px var(--ui-border-36);
+  border-color: rgba(70, 176, 255, 0.7);
+  background: rgba(10, 40, 80, 0.5);
+  box-shadow: inset 0 0 30px rgba(41, 163, 255, 0.08);
 }
 .vec-upload__ico {
   font-size: 38px;
-  color: var(--ui-accent-46);
-  filter: drop-shadow(0 0 8px var(--ui-accent-47));
+  color: #62c4ff;
+  filter: drop-shadow(0 0 8px rgba(98, 196, 255, 0.3));
 }
 .vec-upload__title {
   font-size: 15px;
@@ -1476,8 +1476,8 @@ onMounted(() => loadList(true));
   gap: 8px;
   padding: 10px 12px;
   border-radius: 6px;
-  background: var(--ui-surface-31);
-  border: 1px solid var(--ui-border-48);
+  background: rgba(2, 14, 30, 0.6);
+  border: 1px solid rgba(25, 95, 176, 0.22);
   margin-top: 14px;
 }
 .vec-upload__file-ico {
@@ -1504,11 +1504,11 @@ onMounted(() => loadList(true));
   gap: 6px;
   margin: 0;
   font-size: 13px;
-  color: var(--ui-text-69);
+  color: rgba(255, 141, 141, 0.9);
   padding: 8px 12px;
   border-radius: 6px;
-  background: var(--ui-accent-38);
-  border: 1px solid var(--ui-accent-70);
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.3);
   margin-top: 14px;
 }
 .vec-import-footer {
@@ -1523,7 +1523,7 @@ onMounted(() => loadList(true));
 
 /* Modal backdrop */
 .vec-page :deep(.n-modal-mask) {
-  background: var(--ui-shadow-16);
+  background: rgba(2, 8, 18, 0.62);
   backdrop-filter: blur(2px);
 }
 
@@ -1539,11 +1539,11 @@ onMounted(() => loadList(true));
   font-weight: 500;
 }
 .vec-edit-field__input :deep(.n-input) {
-  --n-color: var(--ui-surface-57) !important;
-  --n-border: 1px solid var(--ui-accent-98) !important;
-  --n-border-focus: 1px solid var(--ui-accent-103) !important;
-  --n-text-color: var(--ui-text-1) !important;
-  --n-placeholder-color: var(--ui-text-54) !important;
+  --n-color: rgba(6, 18, 38, 0.7) !important;
+  --n-border: 1px solid rgba(76, 169, 255, 0.22) !important;
+  --n-border-focus: 1px solid rgba(76, 169, 255, 0.6) !important;
+  --n-text-color: #f3f9ff !important;
+  --n-placeholder-color: rgba(170, 205, 242, 0.6) !important;
   --n-font-size: 15px !important;
   --n-height: 42px !important;
   --n-border-radius: 8px !important;
@@ -1555,11 +1555,11 @@ onMounted(() => loadList(true));
 }
 .vec-map-card {
   /* NModal teleport 到 body，父级 .vec-page 的变量无法继承，这里显式补齐 */
-  --vec-text-primary: var(--ui-text-1);
-  --vec-text-secondary: var(--ui-text-2);
-  --vec-text-tertiary: var(--ui-text-3);
-  --vec-line: var(--ui-border-4);
-  --vec-accent: var(--ui-accent-4);
+  --vec-text-primary: #f3f9ff;
+  --vec-text-secondary: rgba(226, 239, 255, 0.94);
+  --vec-text-tertiary: rgba(182, 214, 255, 0.84);
+  --vec-line: rgba(25, 95, 176, 0.35);
+  --vec-accent: #29a3ff;
   color: var(--vec-text-primary);
   width: 90vw;
   max-width: 1400px;
@@ -1569,12 +1569,12 @@ onMounted(() => loadList(true));
   flex-direction: column;
   border-radius: 8px;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--ui-surface-26) 0%, var(--ui-surface-27) 100%);
-  border: 1px solid var(--ui-border-43);
+  background: linear-gradient(180deg, rgba(4, 22, 46, 0.98) 0%, rgba(3, 16, 35, 0.99) 100%);
+  border: 1px solid rgba(43, 131, 255, 0.32);
   box-shadow:
-    0 0 0 1px var(--ui-border-44),
-    0 24px 64px var(--ui-shadow-7),
-    0 0 80px var(--ui-border-45);
+    0 0 0 1px rgba(32, 111, 202, 0.18),
+    0 24px 64px rgba(1, 6, 16, 0.7),
+    0 0 80px rgba(41, 163, 255, 0.06);
 }
 .vec-map-header {
   display: flex;
@@ -1583,7 +1583,7 @@ onMounted(() => loadList(true));
   gap: 14px;
   padding: 10px 18px;
   border-bottom: 1px solid var(--vec-line);
-  background: linear-gradient(180deg, var(--ui-surface-28) 0%, var(--ui-surface-29) 100%);
+  background: linear-gradient(180deg, rgba(8, 36, 68, 0.96) 0%, rgba(4, 22, 46, 0.96) 100%);
   flex-shrink: 0;
 }
 .vec-map-header__left {
@@ -1606,7 +1606,7 @@ onMounted(() => loadList(true));
 .vec-map-container {
   flex: 1;
   min-height: 0;
-  background: var(--ui-shadow-17);
+  background: #1a1f2e;
 }
 .vec-map-container :deep(.ol-control) {
   background: transparent;
@@ -1616,12 +1616,12 @@ onMounted(() => loadList(true));
   left: 12px;
   border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 2px 8px var(--ui-shadow-18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 .vec-map-container :deep(.ol-zoom button) {
-  background: var(--ui-surface-64) !important;
-  color: var(--ui-text-15) !important;
-  border: 1px solid var(--ui-accent-104);
+  background: rgba(8, 22, 44, 0.92) !important;
+  color: rgba(203, 227, 255, 0.85) !important;
+  border: 1px solid rgba(70, 176, 255, 0.25);
   width: 32px;
   height: 32px;
   font-size: 18px;
@@ -1629,14 +1629,14 @@ onMounted(() => loadList(true));
 .vec-map-container :deep(.ol-attribution) {
   bottom: 6px;
   right: 6px;
-  background: var(--ui-surface-65);
+  background: rgba(3, 16, 35, 0.85);
   border-radius: 4px;
   padding: 2px 7px;
   font-size: 12px;
-  color: var(--ui-text-75);
+  color: rgba(196, 222, 250, 0.78);
 }
 .vec-map-container :deep(.ol-attribution a) {
-  color: var(--ui-text-75);
+  color: rgba(196, 222, 250, 0.78);
 }
 .vec-map-error {
   flex: 1;

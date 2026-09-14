@@ -1,3 +1,4 @@
+import type { ChatAttachment } from '@/hooks/common/use-chat-attachments';
 import type { Coordinate } from '@/typings/cesium';
 
 export type RiverPlanKey = 'plan-a' | 'plan-b' | 'plan-c';
@@ -101,6 +102,8 @@ export interface ChatMessage {
   timestamp: number;
   /** 是否正在流式输出（后端 SSE 实时补全时置为 true） */
   streaming?: boolean;
+  /** 随消息上传的附件（离线演示保存在本地，可点击下载） */
+  attachments?: ChatAttachment[];
 }
 
 /** 知识库检索结果面板展示项 */

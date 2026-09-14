@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, onMounted, reactive, ref } from 'vue';
+import { computed, h, onMounted, reactive, ref } from 'vue';
 import {
   NButton,
   NDataTable,
@@ -31,6 +31,7 @@ defineOptions({ name: 'RoleManage' });
 
 // ==================== 状态 ====================
 const loading = ref(false);
+const loadError = ref(false);
 const tableData = ref<Api.System.RoleItem[]>([]);
 
 // 弹窗
@@ -69,9 +70,16 @@ function renderActions(row: Api.System.RoleItem) {
       { placement: 'bottom' },
       {
         trigger: () =>
-          h('button', { type: 'button', class: 'sys-action-btn', onClick: () => handleEdit(row) }, [
-            h(SvgIcon, { icon: 'mdi:pencil-outline', class: 'sys-action-btn__svg' })
-          ]),
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'sys-action-btn',
+              'aria-label': '编辑',
+              onClick: () => handleEdit(row)
+            },
+            [h(SvgIcon, { icon: 'mdi:pencil-outline', class: 'sys-action-btn__svg' })]
+          ),
         default: () => '编辑'
       }
     ),
@@ -80,9 +88,16 @@ function renderActions(row: Api.System.RoleItem) {
       { placement: 'bottom' },
       {
         trigger: () =>
-          h('button', { type: 'button', class: 'sys-action-btn', onClick: () => handleAssignPermission(row) }, [
-            h(SvgIcon, { icon: 'mdi:key-chain', class: 'sys-action-btn__svg' })
-          ]),
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'sys-action-btn',
+              'aria-label': '分配权限',
+              onClick: () => handleAssignPermission(row)
+            },
+            [h(SvgIcon, { icon: 'mdi:key-chain', class: 'sys-action-btn__svg' })]
+          ),
         default: () => '分配权限'
       }
     ),
@@ -96,9 +111,15 @@ function renderActions(row: Api.System.RoleItem) {
             { placement: 'bottom' },
             {
               trigger: () =>
-                h('button', { type: 'button', class: 'sys-action-btn sys-action-btn--danger' }, [
-                  h(SvgIcon, { icon: 'mdi:trash-can-outline', class: 'sys-action-btn__svg' })
-                ]),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    class: 'sys-action-btn sys-action-btn--danger',
+                    'aria-label': '删除'
+                  },
+                  [h(SvgIcon, { icon: 'mdi:trash-can-outline', class: 'sys-action-btn__svg' })]
+                ),
               default: () => '删除'
             }
           ),
@@ -112,7 +133,14 @@ function renderActions(row: Api.System.RoleItem) {
 const columns: DataTableColumns<Api.System.RoleItem> = [
   { title: '名称', key: 'name', width: 200, render: renderRoleCell },
   { title: '描述', key: 'description', width: 200, ellipsis: { tooltip: true } },
-  { title: '排序', key: 'sort', width: 70, align: 'center' },
+  {
+    title: '排序',
+    key: 'sort',
+    width: 90,
+    align: 'center',
+    sorter: (a, b) => (a.sort ?? 0) - (b.sort ?? 0),
+    render: row => h('span', { class: 'sys-mono' }, String(row.sort ?? '—'))
+  },
   {
     title: '状态',
     key: 'status',
@@ -120,7 +148,13 @@ const columns: DataTableColumns<Api.System.RoleItem> = [
     align: 'center',
     render: row => renderStatusTag(row.status)
   },
-  { title: '创建时间', key: 'createTime', width: 170 },
+  {
+    title: '创建时间',
+    key: 'createTime',
+    width: 180,
+    sorter: (a, b) => new Date(a.createTime || 0).getTime() - new Date(b.createTime || 0).getTime(),
+    render: row => h('span', { class: 'sys-mono' }, row.createTime || '—')
+  },
   {
     title: '操作',
     key: 'actions',
@@ -135,11 +169,20 @@ const rowKey = (row: Api.System.RoleItem) => row.id;
 // ==================== 数据加载 ====================
 async function loadData() {
   loading.value = true;
+  loadError.value = false;
   try {
-    const { data } = await fetchRoleList();
+    const { data, error } = await fetchRoleList();
+    if (error) {
+      loadError.value = true;
+      tableData.value = [];
+      return;
+    }
     if (data) {
       tableData.value = data;
     }
+  } catch {
+    loadError.value = true;
+    tableData.value = [];
   } finally {
     loading.value = false;
   }
@@ -228,9 +271,22 @@ function getTreeOptions(nodes: Api.System.PermissionTreeNode[]): TreeOption[] {
   }));
 }
 
-// ==================== 搜索 ====================
+// ==================== 搜索（角色列表一次性加载，前端即时过滤） ====================
 const searchQuery = reactive({ name: '', code: '' });
-// 角色列表一次性加载，前端过滤
+
+const filteredTableData = computed(() => {
+  const name = searchQuery.name.trim();
+  const code = searchQuery.code.trim();
+  if (!name && !code) return tableData.value;
+  return tableData.value.filter(
+    row => (!name || row.name.includes(name)) && (!code || (row.code || '').includes(code))
+  );
+});
+
+function handleReset() {
+  searchQuery.name = '';
+  searchQuery.code = '';
+}
 
 const statusOptions = [
   { label: '启用', value: 1 },
@@ -240,17 +296,12 @@ const statusOptions = [
 
 <template>
   <div class="sys-page">
-    <!-- 搜索卡片 -->
+    <!-- 筛选工具栏 -->
     <section class="sys-search-card">
       <div class="sys-search-fields">
         <NInput v-model:value="searchQuery.name" placeholder="角色名称" clearable />
         <NInput v-model:value="searchQuery.code" placeholder="角色编码" clearable />
-        <NButton type="primary" @click="loadData">
-          <template #icon>
-            <SvgIcon icon="mdi:magnify" />
-          </template>
-          搜索
-        </NButton>
+        <NButton @click="handleReset">重置</NButton>
       </div>
       <div class="sys-search-actions">
         <NButton type="primary" @click="handleCreate">
@@ -264,17 +315,26 @@ const statusOptions = [
 
     <!-- 内容卡片（表格） -->
     <section class="sys-content-card">
+      <div v-if="loadError" class="sys-error-bar">
+        <SvgIcon icon="mdi:alert-circle-outline" class="sys-error-bar__icon" />
+        <span class="sys-error-bar__text">数据加载失败，请稍后重试</span>
+        <NButton size="small" @click="loadData">重试</NButton>
+      </div>
       <NDataTable
         class="sys-table"
         :columns="columns"
-        :data="tableData"
+        :data="filteredTableData"
         :loading="loading"
         :row-key="rowKey"
         :bordered="false"
         size="medium"
         style="flex: 1"
         flex-height
-      />
+      >
+        <template #empty>
+          <EmptyState icon="mdi:account-star-outline" title="暂无角色" description="没有找到符合条件的角色" />
+        </template>
+      </NDataTable>
     </section>
 
     <!-- 新增/编辑弹窗 -->
@@ -331,338 +391,3 @@ const statusOptions = [
     </NModal>
   </div>
 </template>
-
-<style scoped lang="scss">
-.sys-page {
-  --sys-bg:
-    radial-gradient(circle at top, var(--ui-border-1) 0%, transparent 36%),
-    linear-gradient(180deg, var(--ui-page-1) 0%, var(--ui-page-2) 38%, var(--ui-page-3) 100%);
-  --sys-surface: linear-gradient(180deg, var(--ui-surface-1) 0%, var(--ui-surface-2) 100%);
-  --sys-border: var(--ui-border-2);
-  --sys-line: var(--ui-border-4);
-  --sys-text: var(--ui-text-33);
-  --sys-text2: var(--ui-text-42);
-  --sys-text3: var(--ui-text-41);
-  --sys-accent: var(--ui-accent-4);
-  height: 100%;
-  background: var(--sys-bg);
-  color: var(--sys-text);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-.sys-search-card {
-  background: var(--sys-surface);
-  border: 1px solid var(--sys-border);
-  box-shadow:
-    0 0 0 1px var(--ui-border-6),
-    0 18px 40px var(--ui-shadow-1);
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-}
-.sys-search-fields {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-.sys-search-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.sys-content-card {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--sys-surface);
-  border: 1px solid var(--sys-border);
-  box-shadow:
-    0 0 0 1px var(--ui-border-6),
-    0 18px 40px var(--ui-shadow-1);
-  border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    pointer-events: none;
-    z-index: 2;
-    opacity: 0.35;
-  }
-  &::before {
-    top: -1px;
-    left: -1px;
-    border-top: 2px solid var(--sys-accent);
-    border-left: 2px solid var(--sys-accent);
-    border-radius: 4px 0 0 0;
-  }
-  &::after {
-    bottom: -1px;
-    right: -1px;
-    border-bottom: 2px solid var(--sys-accent);
-    border-right: 2px solid var(--sys-accent);
-    border-radius: 0 0 4px 0;
-  }
-}
-
-.sys-status-tag {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 56px;
-  height: 24px;
-  padding: 0 11px;
-  border-radius: 4px;
-  font-size: 12px;
-  line-height: 1;
-  font-weight: 500;
-  &--success {
-    background: var(--ui-border-25);
-    border: 1px solid var(--ui-border-26);
-    color: var(--ui-accent-27);
-  }
-  &--warning {
-    background: var(--ui-border-27);
-    border: 1px solid var(--ui-border-28);
-    color: var(--ui-accent-28);
-  }
-  &--default {
-    background: var(--ui-accent-156);
-    border: 1px solid var(--ui-accent-157);
-    color: var(--ui-text-110);
-  }
-}
-
-.sys-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  &__icon {
-    flex-shrink: 0;
-    font-size: 22px;
-    color: var(--ui-accent-46);
-    filter: drop-shadow(0 0 4px var(--ui-accent-118));
-  }
-  &__content {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  &__title {
-    color: var(--sys-text);
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-  }
-  &__sub {
-    color: var(--sys-text3);
-    font-size: 13px;
-  }
-}
-
-.sys-action-btn {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--ui-border-45);
-  border: 1px solid var(--ui-border-7);
-  color: var(--ui-text-85);
-  cursor: pointer;
-  transition: all 0.25s ease;
-  font-family: inherit;
-  outline: none;
-  padding: 0;
-  &:hover {
-    color: #fff;
-    background: var(--ui-border-37);
-    border-color: var(--ui-border-38);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--ui-border-39);
-  }
-  &--danger {
-    background: var(--ui-accent-36);
-    border-color: var(--ui-accent-37);
-    color: var(--ui-text-31);
-  }
-  &--danger:hover {
-    color: var(--ui-accent-5);
-    background: var(--ui-accent-38);
-    border-color: var(--ui-accent-39);
-    box-shadow: 0 4px 12px var(--ui-accent-40);
-  }
-  &__svg {
-    font-size: 18px;
-  }
-}
-
-.sys-table {
-  --n-th-color: var(--ui-surface-20) !important;
-  --n-td-color: transparent !important;
-  --n-td-color-hover: var(--ui-border-23) !important;
-  --n-border-color: var(--ui-border-4) !important;
-  --n-th-text-color: var(--ui-text-42) !important;
-  --n-td-text-color: var(--ui-text-42) !important;
-  --n-th-font-weight: 600 !important;
-  --n-font-size: 14px !important;
-}
-.sys-table :deep(.n-data-table-th) {
-  background: linear-gradient(180deg, var(--ui-surface-20) 0%, var(--ui-surface-21) 100%) !important;
-  font-size: 14px;
-  letter-spacing: 0.2px;
-  padding: 14px 12px;
-}
-.sys-table :deep(.n-data-table-td) {
-  padding: 14px 12px;
-  border-bottom: 1px solid var(--ui-border-24) !important;
-}
-.sys-table :deep(.n-data-table-table) {
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.sys-search-card :deep(.n-input) {
-  --n-border: 1px solid var(--ui-border-11);
-  --n-border-hover: 1px solid var(--ui-accent-10);
-  --n-border-focus: 1px solid var(--ui-accent-11);
-  --n-color: var(--ui-surface-10);
-  --n-text-color: var(--ui-text-33);
-  --n-placeholder-color: var(--ui-accent-159);
-  --n-height: 36px;
-  --n-border-radius: 8px;
-  width: 160px;
-}
-.sys-search-card :deep(.n-input__border),
-.sys-search-card :deep(.n-input__state-border) {
-  display: none;
-}
-.sys-search-card :deep(.n-base-selection) {
-  --n-border: 1px solid var(--ui-border-11);
-  --n-color: var(--ui-surface-10);
-  height: 36px;
-  border-radius: 8px;
-}
-.sys-search-card :deep(.n-base-selection-label) {
-  color: var(--sys-text);
-}
-.sys-search-card :deep(.n-button--primary-type) {
-  --n-color: linear-gradient(180deg, var(--ui-accent-18) 0%, var(--ui-accent-19) 100%);
-  --n-color-hover: linear-gradient(180deg, var(--ui-accent-20) 0%, var(--ui-accent-21) 100%);
-  --n-text-color: var(--ui-text-12);
-  --n-text-color-hover: #fff;
-  --n-border: 1px solid var(--ui-accent-3);
-  --n-border-hover: 1px solid var(--ui-accent-23);
-  --n-border-radius: 8px;
-  --n-font-size: 14px;
-  --n-height: 36px;
-  font-weight: 600;
-}
-:deep(.n-modal-mask) {
-  background: var(--ui-shadow-16);
-  backdrop-filter: blur(2px);
-}
-:deep(.n-card) {
-  --n-color: linear-gradient(180deg, var(--ui-surface-26) 0%, var(--ui-surface-27) 100%) !important;
-  --n-border-color: var(--ui-border-43) !important;
-  --n-text-color: var(--ui-text-33) !important;
-  --n-title-text-color: var(--ui-text-33) !important;
-  --n-close-color: var(--ui-text-42) !important;
-  --n-close-color-hover: var(--ui-accent-4) !important;
-  --n-border-radius: 8px !important;
-  overflow: hidden;
-  box-shadow:
-    0 0 0 1px var(--ui-border-44),
-    0 24px 64px var(--ui-shadow-7),
-    0 0 80px var(--ui-border-45) !important;
-}
-:deep(.n-card-header) {
-  padding: 20px 24px 16px !important;
-  border-bottom: 1px solid var(--ui-border-4);
-  background: linear-gradient(180deg, var(--ui-surface-28) 0%, var(--ui-surface-29) 100%);
-  position: relative;
-}
-:deep(.n-card-header::after) {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 16%;
-  bottom: 16%;
-  width: 3px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, transparent, var(--ui-accent-4), transparent);
-  opacity: 0.6;
-}
-:deep(.n-card-header__main) {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  text-shadow: 0 0 10px var(--ui-border-7);
-}
-:deep(.n-card-header__close) {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: 1px solid var(--ui-border-46);
-  background: var(--ui-surface-30);
-  display: grid;
-  place-items: center;
-}
-:deep(.n-card-header__close:hover) {
-  border-color: var(--ui-accent-45);
-  background: var(--ui-border-36);
-}
-:deep(.n-card__content) {
-  padding: 20px 24px 24px;
-}
-:deep(.n-card__content::-webkit-scrollbar) {
-  width: 6px;
-}
-:deep(.n-card__content::-webkit-scrollbar-thumb) {
-  border-radius: 999px;
-  background: var(--ui-border-47);
-}
-:deep(.n-card__content::-webkit-scrollbar-track) {
-  background: transparent;
-}
-.sys-table :deep(.n-data-table__pagination) {
-  border-top: 1px solid var(--ui-border-4);
-  background: linear-gradient(180deg, var(--ui-surface-7) 0%, var(--ui-surface-23) 100%);
-  min-height: 52px;
-  padding: 8px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-.sys-table :deep(.n-pagination-item--disabled) {
-  opacity: 0.45;
-}
-.sys-search-card :deep(.n-button--default-type) {
-  --n-color: linear-gradient(180deg, var(--ui-surface-12) 0%, var(--ui-surface-13) 100%);
-  --n-color-hover: linear-gradient(180deg, var(--ui-accent-25) 0%, var(--ui-surface-14) 100%);
-  --n-text-color: var(--ui-text-15);
-  --n-text-color-hover: var(--ui-text-12);
-  --n-border: 1px solid var(--ui-border-20);
-  --n-border-hover: 1px solid var(--ui-accent-10);
-  --n-border-radius: 8px;
-  --n-font-size: 14px;
-  --n-height: 36px;
-}
-</style>

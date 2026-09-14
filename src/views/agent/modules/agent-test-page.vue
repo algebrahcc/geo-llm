@@ -607,7 +607,7 @@ function handleSelect(key: typeof agentKey.value) {
   padding: 12px 16px;
   border-radius: 12px;
   font-size: 14px;
-  line-height: 1.7;
+  line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
 
@@ -944,19 +944,35 @@ function handleSelect(key: typeof agentKey.value) {
 }
 
 /* markdown 内容 */
-.chat-md :deep(p) {
-  margin: 0 0 6px;
+.chat-md {
+  /* 关键：气泡的 white-space: pre-wrap 会让 markdown-it 输出 HTML 中的换行与缩进
+     被当作真实空白渲染，造成异常大的行间隙，此处必须重置为 normal */
+  white-space: normal;
+  line-height: 1.55;
+  word-break: break-word;
 }
-.chat-md :deep(p:last-child) {
+
+.chat-md > :deep(:first-child) {
+  margin-top: 0;
+}
+
+.chat-md > :deep(:last-child) {
   margin-bottom: 0;
+}
+
+.chat-md :deep(p) {
+  margin: 0 0 4px;
 }
 .chat-md :deep(ul),
 .chat-md :deep(ol) {
-  margin: 4px 0 6px;
-  padding-left: 18px;
+  margin: 2px 0 4px;
+  padding-left: 20px;
 }
 .chat-md :deep(li) {
-  margin: 2px 0;
+  margin: 1px 0;
+}
+.chat-md :deep(li > p) {
+  margin: 0;
 }
 .chat-md :deep(code) {
   background: var(--ui-surface-91);
@@ -971,7 +987,7 @@ function handleSelect(key: typeof agentKey.value) {
   border-radius: 6px;
   padding: 8px 10px;
   overflow-x: auto;
-  margin: 6px 0;
+  margin: 4px 0;
 }
 .chat-md :deep(pre code) {
   background: transparent;
@@ -979,7 +995,7 @@ function handleSelect(key: typeof agentKey.value) {
 }
 .chat-md :deep(table) {
   border-collapse: collapse;
-  margin: 6px 0;
+  margin: 4px 0;
   font-size: 12px;
 }
 .chat-md :deep(th),
@@ -991,7 +1007,34 @@ function handleSelect(key: typeof agentKey.value) {
 .chat-md :deep(h2),
 .chat-md :deep(h3),
 .chat-md :deep(h4) {
+  margin: 6px 0 2px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.chat-md :deep(h1) {
+  font-size: 16px;
+}
+
+.chat-md :deep(h2) {
   font-size: 15px;
-  margin: 8px 0 4px;
+}
+
+.chat-md :deep(h3),
+.chat-md :deep(h4) {
+  font-size: 14px;
+}
+
+.chat-md :deep(blockquote) {
+  margin: 4px 0;
+  padding: 2px 10px;
+  border-left: 3px solid var(--ui-border-75);
+  color: var(--ui-text-108);
+}
+
+.chat-md :deep(hr) {
+  margin: 8px 0;
+  border: none;
+  border-top: 1px solid var(--ui-border-132);
 }
 </style>

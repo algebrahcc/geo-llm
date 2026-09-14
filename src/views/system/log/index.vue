@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, reactive, ref } from 'vue';
+import { computed, h, reactive, ref } from 'vue';
 import {
   NButton,
   NDataTable,
@@ -8,7 +8,8 @@ import {
   NModal,
   NPagination,
   NSelect,
-  type DataTableColumns,
+  type DataTableBaseColumn,
+  type DataTableSortState,
   type DropdownOption
 } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
@@ -18,7 +19,7 @@ import { usePagination } from '@/hooks/common/use-pagination';
 defineOptions({ name: 'LogManage' });
 
 const query = reactive<Api.Monitor.LogQuery>({ page: 1, size: 10, sort: 'createTime,desc' });
-const { loading, tableData, total, loadData, onPageChange, onPageSizeChange } = usePagination({
+const { loading, loadError, tableData, total, loadData, onPageChange, onPageSizeChange } = usePagination({
   query,
   fetchPage: fetchLogPage
 });
@@ -44,11 +45,35 @@ function renderStatusText(status: Api.Monitor.LogStatus): { text: string; type: 
   return { text: '未知', type: 'default' };
 }
 
-const columns: DataTableColumns<Api.Monitor.LogItem> = [
+/** 数值/时间/地址类字段统一等宽，避免字宽跳动 */
+function renderMono(value?: string | number) {
+  if (value === null || value === undefined || value === '') return h('span', { class: 'sys-muted-text' }, '—');
+  return h('span', { class: 'sys-mono' }, String(value));
+}
+
+/** 点击复制（IP 等排查时高频使用） */
+async function copyText(text?: string) {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    window.$message?.success('已复制');
+  } catch {
+    window.$message?.error('复制失败');
+  }
+}
+
+function renderCopyable(value?: string) {
+  if (!value) return h('span', { class: 'sys-muted-text' }, '—');
+  return h('span', { class: 'sys-copyable', title: '点击复制', onClick: () => copyText(value) }, [
+    h('span', { class: 'sys-mono' }, value)
+  ]);
+}
+
+const columns: DataTableBaseColumn<Api.Monitor.LogItem>[] = [
   { title: '描述', key: 'description', width: 160, ellipsis: { tooltip: true } },
   { title: '模块', key: 'module', width: 120 },
-  { title: '耗时(ms)', key: 'timeTaken', width: 90 },
-  { title: 'IP', key: 'ip', width: 130 },
+  { title: '耗时(ms)', key: 'timeTaken', width: 100, sorter: true, render: row => renderMono(row.timeTaken) },
+  { title: 'IP', key: 'ip', width: 130, render: row => renderCopyable(row.ip) },
   { title: '地址', key: 'address', width: 130, ellipsis: { tooltip: true } },
   { title: '浏览器', key: 'browser', width: 110 },
   { title: '操作系统', key: 'os', width: 120 },
@@ -63,7 +88,7 @@ const columns: DataTableColumns<Api.Monitor.LogItem> = [
     }
   },
   { title: '操作人', key: 'createUserString', width: 120 },
-  { title: '操作时间', key: 'createTime', width: 170 },
+  { title: '操作时间', key: 'createTime', width: 180, sorter: true, render: row => renderMono(row.createTime) },
   {
     title: '操作',
     key: 'actions',
@@ -72,15 +97,53 @@ const columns: DataTableColumns<Api.Monitor.LogItem> = [
     fixed: 'right',
     render(row) {
       return h('div', { class: 'action-group', style: 'justify-content: center' }, [
-        h('div', { class: 'action-icon-btn', 'data-tooltip': '详情', onClick: () => handleDetail(row.id) }, [
-          h(SvgIcon, { icon: 'mdi:information-outline' })
-        ])
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'sys-action-btn',
+            'data-tooltip': '详情',
+            'aria-label': '查看详情',
+            onClick: () => handleDetail(row.id)
+          },
+          [h(SvgIcon, { icon: 'mdi:information-outline', class: 'sys-action-btn__svg' })]
+        )
       ]);
     }
   }
 ];
 
 const rowKey = (row: Api.Monitor.LogItem) => row.id;
+
+// ==================== 列显示控制 ====================
+/** 默认收起的次要列（浏览器/系统信息可在详情弹窗中查看） */
+const HIDDEN_BY_DEFAULT = ['browser', 'os'];
+
+const columnChecks = ref<NaiveUI.TableColumnCheck[]>(
+  columns.map(col => ({
+    key: String(col.key),
+    title: typeof col.title === 'string' ? col.title : '',
+    checked: !HIDDEN_BY_DEFAULT.includes(String(col.key)),
+    fixed: 'unFixed' as const,
+    visible: true
+  }))
+);
+
+const displayColumns = computed(() =>
+  columns.filter(col => columnChecks.value.find(item => item.key === String(col.key))?.checked ?? true)
+);
+
+// ==================== 排序（服务端） ====================
+function handleSorterChange(sorter: DataTableSortState | DataTableSortState[] | null) {
+  const single = Array.isArray(sorter) ? sorter[0] : sorter;
+  if (!single || !single.order) {
+    query.sort = 'createTime,desc';
+  } else {
+    query.sort = `${String(single.columnKey)},${single.order === 'ascend' ? 'asc' : 'desc'}`;
+  }
+  query.page = 1;
+  loadData();
+}
 
 async function handleDetail(id: number) {
   detailVisible.value = true;
@@ -133,6 +196,7 @@ const statusOptions = [
 
 <template>
   <div class="sys-page">
+    <!-- 筛选工具栏 -->
     <section class="sys-search-card">
       <div class="sys-search-fields">
         <NInput v-model:value="query.description" placeholder="描述" clearable @keyup.enter="handleSearch" />
@@ -146,6 +210,7 @@ const statusOptions = [
         <NButton @click="handleReset">重置</NButton>
       </div>
       <div class="sys-search-actions">
+        <TableColumnSetting v-model:columns="columnChecks" />
         <NDropdown trigger="click" :options="exportOptions" @select="handleExportSelect">
           <NButton>
             <template #icon><SvgIcon icon="mdi:download" /></template>
@@ -156,9 +221,14 @@ const statusOptions = [
     </section>
 
     <section class="sys-content-card">
+      <div v-if="loadError" class="sys-error-bar">
+        <SvgIcon icon="mdi:alert-circle-outline" class="sys-error-bar__icon" />
+        <span class="sys-error-bar__text">数据加载失败，请稍后重试</span>
+        <NButton size="small" @click="loadData">重试</NButton>
+      </div>
       <NDataTable
         class="sys-table"
-        :columns="columns"
+        :columns="displayColumns"
         :data="tableData"
         :loading="loading"
         :row-key="rowKey"
@@ -167,7 +237,12 @@ const statusOptions = [
         size="medium"
         style="flex: 1"
         flex-height
-      />
+        @update:sorter="handleSorterChange"
+      >
+        <template #empty>
+          <EmptyState icon="mdi:inbox-outline" title="暂无日志" description="没有符合当前筛选条件的记录" />
+        </template>
+      </NDataTable>
       <div class="sys-table-footer">
         <span class="sys-table-footer__total">共 {{ total }} 条</span>
         <NPagination
@@ -182,9 +257,9 @@ const statusOptions = [
       </div>
     </section>
 
-    <!-- 详情弹窗 — matching vector design -->
+    <!-- 详情弹窗 -->
     <NModal v-model:show="detailVisible" class="sys-detail-modal" :close-on-esc="true">
-      <div v-if="detail" class="sys-detail-card">
+      <div v-if="detail" class="sys-detail-shell">
         <div class="sys-detail-header">
           <div class="sys-detail-header__left">
             <span class="sys-detail-header__icon"><SvgIcon icon="mdi:clipboard-text-outline" /></span>
@@ -198,7 +273,7 @@ const statusOptions = [
               </div>
             </div>
           </div>
-          <button class="sys-detail-close-btn" @click="detailVisible = false">
+          <button type="button" class="sys-detail-close-btn" aria-label="关闭" @click="detailVisible = false">
             <SvgIcon icon="mdi:close" />
           </button>
         </div>
@@ -294,564 +369,3 @@ const statusOptions = [
     </NModal>
   </div>
 </template>
-
-<style scoped lang="scss">
-.sys-page {
-  --sys-bg:
-    radial-gradient(circle at top, var(--ui-border-1) 0%, transparent 36%),
-    linear-gradient(180deg, var(--ui-page-1) 0%, var(--ui-page-2) 38%, var(--ui-page-3) 100%);
-  --sys-surface: linear-gradient(180deg, var(--ui-surface-1) 0%, var(--ui-surface-2) 100%);
-  --sys-border: var(--ui-border-2);
-  --sys-line: var(--ui-border-4);
-  --sys-text: var(--ui-text-33);
-  --sys-text2: var(--ui-text-42);
-  --sys-text3: var(--ui-text-41);
-  --sys-accent: var(--ui-accent-4);
-  height: 100%;
-  background: var(--sys-bg);
-  color: var(--sys-text);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-.sys-search-card {
-  background: var(--sys-surface);
-  border: 1px solid var(--sys-border);
-  box-shadow:
-    0 0 0 1px var(--ui-border-6),
-    0 18px 40px var(--ui-shadow-1);
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-}
-.sys-search-fields {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-.sys-search-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.sys-content-card {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--sys-surface);
-  border: 1px solid var(--sys-border);
-  box-shadow:
-    0 0 0 1px var(--ui-border-6),
-    0 18px 40px var(--ui-shadow-1);
-  border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    pointer-events: none;
-    z-index: 2;
-    opacity: 0.35;
-  }
-  &::before {
-    top: -1px;
-    left: -1px;
-    border-top: 2px solid var(--sys-accent);
-    border-left: 2px solid var(--sys-accent);
-    border-radius: 4px 0 0 0;
-  }
-  &::after {
-    bottom: -1px;
-    right: -1px;
-    border-bottom: 2px solid var(--sys-accent);
-    border-right: 2px solid var(--sys-accent);
-    border-radius: 0 0 4px 0;
-  }
-}
-
-.sys-status-tag {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 56px;
-  height: 24px;
-  padding: 0 11px;
-  border-radius: 4px;
-  font-size: 12px;
-  line-height: 1;
-  font-weight: 500;
-  &--success {
-    background: var(--ui-border-25);
-    border: 1px solid var(--ui-border-26);
-    color: var(--ui-accent-27);
-  }
-  &--error {
-    background: var(--ui-accent-38);
-    border: 1px solid var(--ui-accent-70);
-    color: var(--ui-text-69);
-  }
-  &--default {
-    background: var(--ui-accent-156);
-    border: 1px solid var(--ui-accent-157);
-    color: var(--ui-text-110);
-  }
-}
-
-.sys-muted-text {
-  font-size: 14px;
-  color: var(--sys-text3);
-}
-
-.sys-table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-top: 1px solid var(--sys-line);
-  background: linear-gradient(180deg, var(--ui-surface-7) 0%, var(--ui-surface-23) 100%);
-  min-height: 48px;
-  padding: 8px 14px;
-  gap: 12px;
-  &__total {
-    font-size: 14px;
-    color: var(--sys-text2);
-  }
-}
-
-.sys-code-block {
-  margin: 0;
-  padding: 8px 10px;
-  border-radius: 4px;
-  background: var(--ui-surface-31);
-  border: 1px solid var(--ui-border-49);
-  color: var(--sys-text2);
-  font-size: 13px;
-  font-family: Consolas, DIN, monospace;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 180px;
-  overflow-y: auto;
-}
-
-// Table
-.sys-table {
-  --n-th-color: var(--ui-surface-20) !important;
-  --n-td-color: transparent !important;
-  --n-td-color-hover: var(--ui-border-23) !important;
-  --n-border-color: var(--ui-border-4) !important;
-  --n-th-text-color: var(--ui-text-42) !important;
-  --n-td-text-color: var(--ui-text-42) !important;
-  --n-th-font-weight: 600 !important;
-  --n-font-size: 14px !important;
-}
-.sys-table :deep(.n-data-table-th) {
-  background: linear-gradient(180deg, var(--ui-surface-20) 0%, var(--ui-surface-21) 100%) !important;
-  font-size: 14px;
-  letter-spacing: 0.2px;
-  padding: 14px 12px;
-}
-.sys-table :deep(.n-data-table-td) {
-  padding: 14px 12px;
-  border-bottom: 1px solid var(--ui-border-24) !important;
-}
-.sys-table :deep(.n-data-table-table) {
-  border-collapse: separate;
-  border-spacing: 0;
-}
-.sys-table :deep(.n-data-table-tr:hover .n-data-table-td) {
-  background: var(--ui-border-23) !important;
-}
-.sys-table :deep(.n-data-table-base-table-body::-webkit-scrollbar) {
-  width: 8px;
-}
-.sys-table :deep(.n-data-table-base-table-body::-webkit-scrollbar-thumb) {
-  border-radius: 999px;
-  background: var(--ui-accent-158);
-}
-.sys-table :deep(.n-data-table-base-table-body::-webkit-scrollbar-track) {
-  background: transparent;
-}
-.sys-table :deep(.action-icon-btn) {
-  position: relative;
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--ui-border-45);
-  border: 1px solid var(--ui-border-7);
-  color: var(--ui-text-85);
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: inherit;
-  outline: none;
-  font-size: 18px;
-}
-.sys-table :deep(.action-icon-btn:hover) {
-  color: #fff;
-  background: var(--ui-border-37);
-  border-color: var(--ui-border-38);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--ui-border-39);
-}
-.sys-table :deep(.action-icon-btn::after) {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  padding: 3px 8px;
-  border-radius: 4px;
-  background: var(--ui-surface-22);
-  border: 1px solid var(--ui-border-40);
-  color: var(--ui-text-86);
-  font-size: 12px;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
-  z-index: 10;
-}
-.sys-table :deep(.action-icon-btn:hover::after) {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-.sys-table-footer :deep(.n-pagination) {
-  --n-item-text-color: var(--ui-text-111) !important;
-  --n-item-text-color-hover: #fff !important;
-  --n-item-text-color-active: #fff !important;
-  --n-item-color-active: linear-gradient(180deg, var(--ui-accent-93) 0%, var(--ui-accent-94) 100%) !important;
-  --n-item-border-active: 1px solid var(--ui-accent-95) !important;
-  --n-item-color: var(--ui-surface-56) !important;
-  --n-item-border: 1px solid var(--ui-border-99) !important;
-  --n-item-border-hover: 1px solid var(--ui-accent-96) !important;
-  --n-item-color-hover: var(--ui-accent-97) !important;
-  --n-item-border-radius: 5px !important;
-  font-size: 14px;
-}
-.sys-table-footer :deep(.n-pagination-item) {
-  min-width: 32px;
-  height: 32px;
-  border-radius: 5px;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-.sys-table-footer :deep(.n-pagination-item:hover) {
-  border-color: var(--ui-accent-96);
-  color: #fff;
-  transform: translateY(-1px);
-}
-.sys-table-footer :deep(.n-pagination-item--active) {
-  box-shadow: 0 2px 10px var(--ui-border-40);
-  font-weight: 600;
-}
-.sys-table-footer :deep(.n-pagination-item--disabled) {
-  opacity: 0.45;
-}
-
-.sys-search-card :deep(.n-input) {
-  --n-border: 1px solid var(--ui-border-11);
-  --n-border-hover: 1px solid var(--ui-accent-10);
-  --n-border-focus: 1px solid var(--ui-accent-11);
-  --n-color: var(--ui-surface-10);
-  --n-text-color: var(--ui-text-33);
-  --n-placeholder-color: var(--ui-accent-159);
-  --n-height: 36px;
-  --n-border-radius: 8px;
-  width: 150px;
-}
-.sys-search-card :deep(.n-input__border),
-.sys-search-card :deep(.n-input__state-border) {
-  display: none;
-}
-.sys-search-card :deep(.n-base-selection) {
-  --n-border: 1px solid var(--ui-border-11);
-  --n-color: var(--ui-surface-10);
-  height: 36px;
-  border-radius: 8px;
-}
-.sys-search-card :deep(.n-base-selection-label) {
-  color: var(--sys-text);
-}
-.sys-search-card :deep(.n-button--primary-type) {
-  --n-color: linear-gradient(180deg, var(--ui-accent-18) 0%, var(--ui-accent-19) 100%);
-  --n-color-hover: linear-gradient(180deg, var(--ui-accent-20) 0%, var(--ui-accent-21) 100%);
-  --n-text-color: var(--ui-text-12);
-  --n-text-color-hover: #fff;
-  --n-border: 1px solid var(--ui-accent-3);
-  --n-border-hover: 1px solid var(--ui-accent-23);
-  --n-border-radius: 8px;
-  --n-font-size: 14px;
-  --n-height: 36px;
-  font-weight: 600;
-}
-.sys-search-card :deep(.n-button--default-type) {
-  --n-color: linear-gradient(180deg, var(--ui-surface-12) 0%, var(--ui-surface-13) 100%);
-  --n-color-hover: linear-gradient(180deg, var(--ui-accent-25) 0%, var(--ui-surface-14) 100%);
-  --n-text-color: var(--ui-text-15);
-  --n-text-color-hover: var(--ui-text-12);
-  --n-border: 1px solid var(--ui-border-20);
-  --n-border-hover: 1px solid var(--ui-accent-10);
-  --n-border-radius: 8px;
-  --n-font-size: 14px;
-  --n-height: 36px;
-}
-
-// Modal
-:deep(.n-modal-mask) {
-  background: var(--ui-shadow-16);
-  backdrop-filter: blur(2px);
-}
-:deep(.n-card) {
-  --n-color: linear-gradient(180deg, var(--ui-surface-26) 0%, var(--ui-surface-27) 100%) !important;
-  --n-border-color: var(--ui-border-43) !important;
-  --n-text-color: var(--ui-text-33) !important;
-  --n-title-text-color: var(--ui-text-33) !important;
-  --n-close-color: var(--ui-text-42) !important;
-  --n-close-color-hover: var(--ui-accent-4) !important;
-  --n-border-radius: 8px !important;
-  --n-padding-top: 0 !important;
-  --n-padding-bottom: 0 !important;
-  --n-padding-left: 0 !important;
-  --n-padding-right: 0 !important;
-  overflow: hidden;
-  box-shadow:
-    0 0 0 1px var(--ui-border-44),
-    0 24px 64px var(--ui-shadow-7),
-    0 0 80px var(--ui-border-45) !important;
-}
-:deep(.n-card-header) {
-  padding: 20px 24px 16px !important;
-  border-bottom: 1px solid var(--ui-border-4);
-  background: linear-gradient(180deg, var(--ui-surface-28) 0%, var(--ui-surface-29) 100%);
-  position: relative;
-}
-:deep(.n-card-header::after) {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 16%;
-  bottom: 16%;
-  width: 3px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, transparent, var(--ui-accent-4), transparent);
-  opacity: 0.6;
-}
-:deep(.n-card-header__main) {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  text-shadow: 0 0 10px var(--ui-border-7);
-}
-:deep(.n-card-header__close) {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: 1px solid var(--ui-border-46);
-  background: var(--ui-surface-30);
-  display: grid;
-  place-items: center;
-}
-:deep(.n-card-header__close:hover) {
-  border-color: var(--ui-accent-45);
-  background: var(--ui-border-36);
-}
-:deep(.n-card__content) {
-  padding: 20px 24px 24px;
-}
-:deep(.n-card__content::-webkit-scrollbar) {
-  width: 6px;
-}
-:deep(.n-card__content::-webkit-scrollbar-thumb) {
-  border-radius: 999px;
-  background: var(--ui-border-47);
-}
-:deep(.n-card__content::-webkit-scrollbar-track) {
-  background: transparent;
-}
-
-// Detail card inside modal
-.sys-detail-modal {
-  --n-border-radius: 8px;
-}
-.sys-detail-card {
-  width: 900px;
-  max-width: 95vw;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  border-radius: 8px;
-  overflow: hidden;
-  background: linear-gradient(180deg, var(--ui-surface-26) 0%, var(--ui-surface-27) 100%);
-  border: 1px solid var(--ui-border-43);
-  box-shadow:
-    0 0 0 1px var(--ui-border-44),
-    0 24px 64px var(--ui-shadow-7),
-    0 0 80px var(--ui-border-45);
-}
-.sys-detail-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid var(--sys-line);
-  background: linear-gradient(180deg, var(--ui-surface-28) 0%, var(--ui-surface-29) 100%);
-  position: relative;
-}
-.sys-detail-header::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 16%;
-  bottom: 16%;
-  width: 3px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, transparent, var(--ui-accent-4), transparent);
-  opacity: 0.6;
-}
-.sys-detail-header__left {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  min-width: 0;
-}
-.sys-detail-header__icon {
-  flex-shrink: 0;
-  font-size: 30px;
-  color: var(--ui-accent-46);
-  filter: drop-shadow(0 0 8px var(--ui-accent-47));
-  margin-top: 2px;
-}
-.sys-detail-header__text {
-  min-width: 0;
-}
-.sys-detail-header__title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  color: var(--sys-text);
-  line-height: 1.4;
-  text-shadow: 0 0 10px var(--ui-border-7);
-}
-.sys-detail-header__badges {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.sys-detail-close-btn {
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--ui-border-46);
-  border-radius: 6px;
-  background: var(--ui-surface-30);
-  color: var(--sys-text2);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 20px;
-  font-family: inherit;
-}
-.sys-detail-close-btn:hover {
-  color: var(--ui-accent-4);
-  border-color: var(--ui-accent-45);
-  background: var(--ui-border-36);
-}
-
-.sys-detail-body {
-  flex: 1;
-  min-height: 0;
-  padding: 20px 24px 24px;
-  overflow-y: auto;
-}
-.sys-detail-body::-webkit-scrollbar {
-  width: 6px;
-}
-.sys-detail-body::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: var(--ui-border-47);
-}
-.sys-detail-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.sys-detail-section {
-  margin-bottom: 20px;
-}
-.sys-detail-section:last-child {
-  margin-bottom: 0;
-}
-.sys-detail-section__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--sys-accent);
-  letter-spacing: 0.3px;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--ui-border-48);
-}
-.sys-detail-section__icon {
-  font-size: 18px;
-  opacity: 0.85;
-}
-
-.sys-detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px 24px;
-}
-.sys-detail-field {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.sys-detail-field--full {
-  grid-column: 1 / -1;
-}
-.sys-detail-field__label {
-  font-size: 13px;
-  color: var(--sys-text3);
-  letter-spacing: 0.2px;
-}
-.sys-detail-field__value {
-  font-size: 15px;
-  color: var(--sys-text);
-  line-height: 1.5;
-  word-break: break-all;
-}
-.sys-detail-field__value--small {
-  font-size: 14px;
-}
-.sys-detail-field__value--mono {
-  font-family: DIN, Consolas, monospace;
-  font-size: 14px;
-  color: var(--ui-text-112);
-  letter-spacing: 0.4px;
-}
-</style>

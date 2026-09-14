@@ -357,7 +357,7 @@ function handleCancel() {
   <NModal
     :show="props.show"
     :mask-closable="!submitting"
-    style="--n-body-text-color: var(--ui-text-48)"
+    style="--n-body-text-color: #cbe3ff"
     @update:show="v => emit('update:show', v)"
   >
     <div class="cat-upload-panel">
@@ -513,11 +513,11 @@ function handleCancel() {
   width: 600px;
   max-width: 92vw;
   border-radius: 10px;
-  background: linear-gradient(180deg, var(--ui-surface-50), var(--ui-surface-51));
-  border: 1px solid var(--ui-border-91);
+  background: linear-gradient(180deg, rgba(6, 22, 47, 0.97), rgba(3, 15, 34, 0.98));
+  border: 1px solid rgba(43, 131, 255, 0.3);
   box-shadow:
-    inset 0 0 0 1px var(--ui-accent-78),
-    0 24px 60px var(--ui-shadow-13);
+    inset 0 0 0 1px rgba(64, 158, 255, 0.08),
+    0 24px 60px rgba(1, 8, 18, 0.6);
   overflow: visible;
   padding: 0 20px 18px;
   max-height: 88vh;
@@ -529,7 +529,7 @@ function handleCancel() {
   align-items: center;
   justify-content: space-between;
   padding: 16px 0 12px;
-  border-bottom: 1px solid var(--ui-border-92);
+  border-bottom: 1px solid rgba(43, 131, 255, 0.18);
   margin-bottom: 14px;
 }
 .cat-upload-panel__titles {
@@ -540,11 +540,11 @@ function handleCancel() {
 .cat-upload-panel__title {
   font-size: 17px;
   font-weight: 600;
-  color: var(--ui-text-49);
+  color: #f0f7ff;
 }
 .cat-upload-panel__subtitle {
   font-size: 13px;
-  color: var(--ui-text-50);
+  color: rgba(186, 216, 248, 0.82);
 }
 .cat-upload-panel__close {
   width: 28px;
@@ -553,7 +553,7 @@ function handleCancel() {
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  color: var(--ui-text-55);
+  color: rgba(180, 210, 240, 0.7);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -563,7 +563,7 @@ function handleCancel() {
 }
 .cat-upload-panel__close:hover:not(:disabled) {
   color: #fff;
-  background: var(--ui-border-7);
+  background: rgba(41, 163, 255, 0.12);
 }
 .cat-upload-panel__close:disabled {
   opacity: 0.4;
@@ -579,36 +579,36 @@ function handleCancel() {
   justify-content: center;
   gap: 6px;
   padding: 22px 16px;
-  border: 1.5px dashed var(--ui-border-94);
+  border: 1.5px dashed rgba(43, 131, 255, 0.4);
   border-radius: 8px;
   cursor: pointer;
-  background: var(--ui-surface-49);
+  background: rgba(2, 12, 28, 0.5);
   transition: all 0.2s;
   text-align: center;
   margin-bottom: 10px;
 }
 .cat-upload-drop:hover,
 .cat-upload-drop--active {
-  border-color: var(--ui-accent-74);
-  background: var(--ui-border-45);
+  border-color: rgba(41, 163, 255, 0.7);
+  background: rgba(41, 163, 255, 0.06);
 }
 .cat-upload-drop__name {
   font-size: 14px;
   font-weight: 500;
-  color: var(--ui-text-56);
+  color: #eaf6ff;
   word-break: break-all;
 }
 .cat-upload-drop__size {
   font-size: 12px;
-  color: var(--ui-text-57);
+  color: rgba(168, 205, 240, 0.6);
 }
 .cat-upload-drop__tip {
   font-size: 16px;
-  color: var(--ui-text-58);
+  color: rgba(232, 243, 255, 0.96);
 }
 .cat-upload-drop__sub {
   font-size: 13px;
-  color: var(--ui-text-59);
+  color: rgba(186, 216, 248, 0.8);
 }
 .cat-upload-drop-actions {
   display: flex;
@@ -619,16 +619,16 @@ function handleCancel() {
   flex: 1;
   padding: 9px 0;
   font-size: 14px;
-  color: var(--ui-text-60);
-  background: var(--ui-border-36);
-  border: 1px solid var(--ui-border-71);
+  color: rgba(150, 219, 255, 0.95);
+  background: rgba(41, 163, 255, 0.08);
+  border: 1px solid rgba(41, 163, 255, 0.3);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
 }
 .cat-upload-drop-btn:hover {
-  color: var(--ui-text-56);
-  background: var(--ui-border-51);
+  color: #eaf6ff;
+  background: rgba(41, 163, 255, 0.16);
 }
 .cat-upload-list {
   display: flex;
@@ -636,18 +636,18 @@ function handleCancel() {
   gap: 4px;
   max-height: 150px;
   overflow-y: auto;
-  border: 1px solid var(--ui-border-92);
+  border: 1px solid rgba(43, 131, 255, 0.18);
   border-radius: 6px;
   padding: 6px 8px;
   margin-bottom: 12px;
-  background: var(--ui-surface-55);
+  background: rgba(2, 12, 28, 0.4);
 }
 .cat-upload-list__item {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--ui-text-44);
+  color: rgba(232, 243, 255, 0.95);
 }
 .cat-upload-list__name {
   flex: 1;
@@ -656,20 +656,20 @@ function handleCancel() {
   white-space: nowrap;
 }
 .cat-upload-list__size {
-  color: var(--ui-text-50);
+  color: rgba(186, 216, 248, 0.82);
   flex-shrink: 0;
 }
 .cat-upload-list__status {
   flex-shrink: 0;
   min-width: 32px;
   text-align: center;
-  color: var(--ui-text-61);
+  color: rgba(186, 216, 248, 0.75);
 }
 .cat-upload-list__status--ok {
-  color: var(--ui-accent-84);
+  color: #67c23a;
 }
 .cat-upload-list__status--err {
-  color: var(--ui-accent-85);
+  color: #f56c6c;
 }
 .cat-upload-list__remove {
   width: 22px;
@@ -678,7 +678,7 @@ function handleCancel() {
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  color: var(--ui-text-62);
+  color: rgba(206, 230, 255, 0.85);
   background: transparent;
   border: none;
   border-radius: 4px;
@@ -687,8 +687,8 @@ function handleCancel() {
   transition: all 0.2s;
 }
 .cat-upload-list__remove:hover:not(:disabled) {
-  color: var(--ui-accent-85);
-  background: var(--ui-accent-86);
+  color: #f56c6c;
+  background: rgba(245, 108, 108, 0.1);
 }
 .cat-upload-list__remove:disabled {
   opacity: 0.4;
@@ -712,23 +712,23 @@ function handleCancel() {
 }
 .cat-upload-field__label {
   font-size: 14px;
-  color: var(--ui-text-44);
+  color: rgba(232, 243, 255, 0.95);
 }
 .cat-upload-field__required {
-  color: var(--ui-accent-85);
+  color: #f56c6c;
   margin-left: 2px;
 }
 .cat-upload-field__optional {
   font-size: 12px;
-  color: var(--ui-text-61);
+  color: rgba(186, 216, 248, 0.75);
   margin-left: 4px;
 }
 .cat-upload-field__hint {
   font-size: 13px;
-  color: var(--ui-text-63);
+  color: rgba(150, 219, 255, 0.88);
 }
 .cat-upload-field__hint--err {
-  color: var(--ui-accent-85);
+  color: #f56c6c;
 }
 .cat-upload-progress {
   display: flex;
@@ -738,17 +738,17 @@ function handleCancel() {
 }
 .cat-upload-progress__text {
   font-size: 13px;
-  color: var(--ui-text-44);
+  color: rgba(232, 243, 255, 0.95);
 }
 .cat-upload-progress__bar {
   height: 6px;
-  background: var(--ui-border-80);
+  background: rgba(43, 131, 255, 0.2);
   border-radius: 3px;
   overflow: hidden;
 }
 .cat-upload-progress__bar-inner {
   height: 100%;
-  background: linear-gradient(90deg, var(--ui-accent-87), var(--ui-accent-88));
+  background: linear-gradient(90deg, rgba(41, 163, 255, 0.8), rgba(124, 92, 255, 0.8));
   border-radius: 3px;
   transition: width 0.3s;
 }
@@ -762,18 +762,18 @@ function handleCancel() {
 .cat-upload-meta :deep(.n-input),
 .cat-upload-panel :deep(.n-base-selection),
 .cat-upload-meta :deep(.n-input-number) {
-  --n-color: var(--ui-surface-52);
-  --n-color-focus: var(--ui-surface-53);
-  --n-border: 1px solid var(--ui-border-2);
-  --n-border-hover: 1px solid var(--ui-border-88);
-  --n-text-color: var(--ui-text-1);
-  --n-placeholder-color: var(--ui-text-64);
+  --n-color: rgba(4, 16, 36, 0.7);
+  --n-color-focus: rgba(4, 16, 36, 0.9);
+  --n-border: 1px solid rgba(43, 131, 255, 0.28);
+  --n-border-hover: 1px solid rgba(41, 163, 255, 0.5);
+  --n-text-color: #f3f9ff;
+  --n-placeholder-color: rgba(170, 205, 242, 0.62);
   --n-border-radius: 6px;
   --n-font-size: 14px;
   --n-height: 36px;
 }
 .cat-upload-panel :deep(.n-form-item-label) {
-  color: var(--ui-text-44);
+  color: rgba(232, 243, 255, 0.95);
 }
 .cat-upload-panel__actions :deep(.n-button) {
   --n-font-size: 14px;
