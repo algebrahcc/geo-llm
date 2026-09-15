@@ -6,6 +6,145 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
     <title>%VITE_APP_TITLE%</title>
+    <!--
+      首屏加载壳（#app-loading）：标记与样式全部内联、零额外请求，
+      保证 JS 到达前就有品牌底（而不是空白页），样式也不会"迟到"。
+      背景色与主题 token 对齐（浅色 rgb(247,250,252) / 深色 rgb(4,16,28)），
+      因此壳体切到 Vue 首屏时没有色差。
+      标识几何与 src/components/common/system-logo.vue 保持一致，改一处请同步改另一处。
+    -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      #app-loading {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgb(247, 250, 252);
+        color: rgb(31, 31, 31);
+        font-family:
+          system-ui,
+          -apple-system,
+          'PingFang SC',
+          'Microsoft YaHei',
+          sans-serif;
+        transition: opacity 240ms ease;
+
+        /* 标识单色描边（与应用内 system-logo.vue 一致），不铺背景色块 */
+        --gl-logo-color: #2547c7;
+        --gl-grid-line: rgba(23, 43, 77, 0.07);
+        --gl-track: rgba(23, 43, 77, 0.08);
+      }
+
+      html.dark #app-loading {
+        background: rgb(4, 16, 28);
+        color: rgb(228, 242, 255);
+        --gl-logo-color: #5b93ff;
+        --gl-grid-line: rgba(255, 255, 255, 0.06);
+        --gl-track: rgba(255, 255, 255, 0.1);
+      }
+
+      /* 由 main.ts 在 Vue 挂载后添加，淡出后再移除节点 */
+      #app-loading.is-leaving {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* 极淡格网底纹：呼应系统的地图/格网调性，不做装饰性动画 */
+      .gl-loading__grid {
+        position: absolute;
+        inset: -56px;
+        pointer-events: none;
+        background-image:
+          linear-gradient(var(--gl-grid-line) 1px, transparent 1px),
+          linear-gradient(90deg, var(--gl-grid-line) 1px, transparent 1px);
+        background-size: 56px 56px;
+        opacity: 0.6;
+        -webkit-mask-image: radial-gradient(ellipse at 50% 44%, #000 0%, rgb(0 0 0 / 45%) 55%, transparent 78%);
+        mask-image: radial-gradient(ellipse at 50% 44%, #000 0%, rgb(0 0 0 / 45%) 55%, transparent 78%);
+      }
+
+      .gl-loading__inner {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .gl-loading__logo {
+        width: 88px;
+        height: 88px;
+      }
+
+      .gl-loading__title {
+        margin: 24px 0 0;
+        font-size: 20px;
+        font-weight: 500;
+        letter-spacing: 1px;
+        line-height: 1.3;
+      }
+
+      .gl-loading__status {
+        margin: 10px 0 0;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        opacity: 0.55;
+      }
+
+      /* 细扫光进度条：与路由进度条同一语言，用主题色 */
+      .gl-loading__bar {
+        position: relative;
+        width: 168px;
+        height: 3px;
+        margin-top: 28px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--gl-track);
+      }
+
+      .gl-loading__bar::after {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 38%;
+        border-radius: 999px;
+        background: rgb(var(--primary-color, 43 107 255));
+        animation: gl-sweep 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+      }
+
+      @keyframes gl-sweep {
+        0% {
+          transform: translateX(-105%);
+        }
+
+        100% {
+          transform: translateX(280%);
+        }
+      }
+
+      /* 尊重系统"减少动态效果"：停在静态状态，由文案承担"加载中"的信息 */
+      @media (prefers-reduced-motion: reduce) {
+        #app-loading {
+          transition: none;
+        }
+
+        .gl-loading__bar::after {
+          animation: none;
+          width: 30%;
+          transform: translateX(115%);
+          opacity: 0.75;
+        }
+      }
+    </style>
   </head>
   <body>
     <script>
@@ -24,7 +163,40 @@
           window.__APP_CONFIG__ = null;
         }
       })();
+
+      // 主题标记：尽早同步，避免加载壳与用户主题不一致。
+      // 存储键带前缀（GEO_xxx），这里做容错匹配；取不到时退回系统偏好。
+      (function () {
+        try {
+          var key = Object.keys(localStorage).find(function (k) {
+            return /(^|_)darkMode$/.test(k);
+          });
+          var cached = key ? localStorage.getItem(key) : null;
+          var dark =
+            cached === null
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+              : String(cached).indexOf('true') === 0;
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {
+          /* 忽略：拿不到就用默认浅色壳 */
+        }
+      })();
     </script>
+    <div id="app-loading" role="status" aria-live="polite" aria-busy="true">
+      <div class="gl-loading__grid"></div>
+      <div class="gl-loading__inner">
+        <div class="gl-loading__logo">
+          <svg width="100%" height="100%" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="24" cy="24" r="15" fill="none" stroke="var(--gl-logo-color)" stroke-width="3.2" />
+            <ellipse cx="24" cy="24" rx="7" ry="15" fill="none" stroke="var(--gl-logo-color)" stroke-width="2.4" />
+            <path d="M 9.8 24 H 38.2" fill="none" stroke="var(--gl-logo-color)" stroke-width="2.4" />
+          </svg>
+        </div>
+        <h1 class="gl-loading__title">地理大模型辅助决策系统</h1>
+        <p class="gl-loading__status">正在初始化系统，请稍候</p>
+        <div class="gl-loading__bar"></div>
+      </div>
+    </div>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

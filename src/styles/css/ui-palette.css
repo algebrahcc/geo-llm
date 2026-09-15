@@ -1133,3 +1133,138 @@ html:not(.dark) {
   --ui-sem-orange: #b45309;
   --ui-sem-tint: rgba(17, 24, 39, 0.06);
 }
+
+/* ===== 手写修正（必须放在生成块之后：同一选择器时后声明胜出）=====
+ * 本段为手写内容，不参与脚本生成，请勿删除。
+ *
+ * F. 浅色模式文字层级（依据：Radix / Atlassian / Primer / Ant Design 调研）
+ *
+ * 问题：生成器把 115 个 --ui-text-* 在浅色下压成 33 个取值，其中 23 个塌缩为同一个
+ *   #111827，其余为大量低透明度灰 —— 语义色（成功/告警/危险/信息）全部丢失，正文发灰难辨。
+ *
+ * 调研结论：
+ *   · Radix Colors —— 12 步色阶中仅 step 11（低对比文字，保证 APCA Lc 60）与 step 12
+ *     （高对比文字，Lc 90）用于文字；step 6-8 是边框、9-10 是实色背景。文字只占 2 档且带保证。
+ *   · Atlassian —— color.text #172B4D / .subtle #44546F / .subtlest #626F86 三档，
+ *     外加 disabled 状态档（不参与层级递进）。
+ *   · Primer(GitHub) —— neutral step 9/10 用于文字与图标，对比度按实际底色(bgColor-muted)计算，
+ *     高对比主题目标 ≥7:1；底层 base token 禁止直接使用。
+ *   · Ant Design —— rgba(0,0,0,.88/.65/.45/.25) 四档 alpha，与本项目现状同源，正是"灰成一片"的来源。
+ *
+ * 做法：浅色下收敛为 4 个角色；既有令牌按「有彩色语义者 -> 语义色，其余按原层级 -> 角色」兼容映射，
+ *   因此无需改动任何模板与组件调用点。深色主题完全不受影响。
+ */
+:root {
+  --text-primary: #f3f9ff;
+  --text-secondary: rgba(226, 239, 255, 0.94);
+  --text-tertiary: rgba(203, 227, 255, 0.6);
+  --text-placeholder: rgba(203, 227, 255, 0.4);
+}
+
+html:not(.dark) {
+  /* 角色令牌：新代码请直接使用这四个，不要再新增 --ui-text-* */
+  --text-primary: #172b4d;
+  --text-secondary: #44546f;
+  --text-tertiary: #626f86;
+  --text-placeholder: #8c97a8;
+
+  /* 兼容映射：既有 --ui-text-* 落到角色与语义色 */
+  --ui-text-1: var(--text-primary);
+  --ui-text-2: var(--text-primary);
+  --ui-text-3: var(--text-secondary);
+  --ui-text-4: var(--text-primary);
+  --ui-text-5: var(--text-primary);
+  --ui-text-7: var(--text-secondary);
+  --ui-text-12: var(--text-primary);
+  --ui-text-15: var(--text-secondary);
+  --ui-text-19: var(--text-primary);
+  --ui-text-20: var(--text-primary);
+  --ui-text-21: var(--text-primary);
+  --ui-text-22: var(--text-primary);
+  --ui-text-29: var(--text-primary);
+  --ui-text-30: var(--text-primary);
+  --ui-text-32: var(--text-primary);
+  --ui-text-33: var(--text-primary);
+  --ui-text-34: var(--text-primary);
+  --ui-text-37: var(--text-secondary);
+  --ui-text-41: var(--text-secondary);
+  --ui-text-42: var(--text-secondary);
+  --ui-text-44: var(--text-primary);
+  --ui-text-45: var(--text-tertiary);
+  --ui-text-46: var(--text-tertiary);
+  --ui-text-48: var(--text-primary);
+  --ui-text-49: var(--text-primary);
+  --ui-text-50: var(--text-secondary);
+  --ui-text-51: var(--text-secondary);
+  --ui-text-53: var(--text-secondary);
+  --ui-text-54: var(--text-secondary);
+  --ui-text-55: var(--text-secondary);
+  --ui-text-56: var(--text-primary);
+  --ui-text-57: var(--text-secondary);
+  --ui-text-58: var(--text-primary);
+  --ui-text-59: var(--text-secondary);
+  --ui-text-61: var(--text-secondary);
+  --ui-text-62: var(--text-secondary);
+  --ui-text-64: var(--text-secondary);
+  --ui-text-65: var(--text-primary);
+  --ui-text-73: var(--text-secondary);
+  --ui-text-74: var(--text-secondary);
+  --ui-text-75: var(--text-secondary);
+  --ui-text-76: var(--text-secondary);
+  --ui-text-79: var(--text-primary);
+  --ui-text-80: var(--text-tertiary);
+  --ui-text-85: var(--text-secondary);
+  --ui-text-86: var(--text-primary);
+  --ui-text-88: var(--text-tertiary);
+  --ui-text-89: var(--text-secondary);
+  --ui-text-90: var(--text-secondary);
+  --ui-text-93: var(--text-secondary);
+  --ui-text-95: var(--text-secondary);
+  --ui-text-96: var(--text-tertiary);
+  --ui-text-97: var(--text-tertiary);
+  --ui-text-99: var(--text-tertiary);
+  --ui-text-104: var(--text-tertiary);
+  --ui-text-105: var(--text-tertiary);
+  --ui-text-107: var(--text-primary);
+  --ui-text-109: var(--text-secondary);
+  --ui-text-110: var(--text-secondary);
+  --ui-text-111: var(--text-secondary);
+  --ui-text-112: var(--text-secondary);
+  --ui-text-114: var(--text-secondary);
+
+  /* 有彩色语义者：浅色下改用语义色，恢复"成功=绿、告警=琥珀"等含义 */
+  --ui-text-9: var(--ui-sem-blue);
+  --ui-text-23: var(--ui-sem-blue);
+  --ui-text-24: var(--ui-sem-blue);
+  --ui-text-25: var(--ui-sem-green);
+  --ui-text-26: var(--ui-sem-teal);
+  --ui-text-27: var(--ui-sem-orange);
+  --ui-text-28: var(--ui-sem-orange);
+  --ui-text-31: var(--ui-sem-red);
+  --ui-text-35: var(--ui-sem-green);
+  --ui-text-36: var(--ui-sem-amber);
+  --ui-text-38: var(--ui-sem-blue);
+  --ui-text-39: var(--ui-sem-violet);
+  --ui-text-43: var(--ui-sem-red);
+  --ui-text-47: var(--ui-sem-blue);
+  --ui-text-52: var(--ui-sem-blue);
+  --ui-text-60: var(--ui-sem-teal);
+  --ui-text-63: var(--ui-sem-teal);
+  --ui-text-66: var(--ui-sem-blue);
+  --ui-text-67: var(--ui-sem-pink);
+  --ui-text-68: var(--ui-sem-teal);
+  --ui-text-69: var(--ui-sem-red);
+  --ui-text-70: var(--ui-sem-red);
+  --ui-text-71: var(--ui-sem-teal);
+  --ui-text-72: var(--ui-sem-red);
+  --ui-text-77: var(--ui-sem-teal);
+  --ui-text-78: var(--ui-sem-blue);
+  --ui-text-82: var(--ui-sem-red);
+  --ui-text-83: var(--ui-sem-red);
+  --ui-text-84: var(--ui-sem-blue);
+  --ui-text-98: var(--ui-sem-pink);
+  --ui-text-100: var(--ui-sem-orange);
+  --ui-text-106: var(--ui-sem-violet);
+  --ui-text-108: var(--ui-sem-blue);
+  --ui-text-113: var(--ui-sem-blue);
+}

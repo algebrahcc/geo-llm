@@ -9,14 +9,10 @@ import { themeVars } from '@/theme/vars';
 
 /** Init theme settings */
 export function initThemeSettings() {
-  const isProd = import.meta.env.PROD;
-
-  // if it is development mode, the theme settings will not be cached, by update `themeSettings` in `src/theme/settings.ts` to update theme settings
-  if (!isProd) return themeSettings;
-
-  // if it is production mode, the theme settings will be cached in localStorage
-  // if want to update theme settings when publish new version, please update `overrideThemeSettings` in `src/theme/settings.ts`
-
+  // 读取 localStorage 缓存：布局与主题偏好刷新后保留。
+  // 注：此处原本仅在生产模式读缓存（开发模式直接返回 themeSettings，便于改代码立即生效），
+  // 结果是改完布局/主题一刷新就回到默认值。现改为两种模式都持久化；
+  // 需要恢复到 src/theme/settings.ts 里的默认值时，清掉 localStorage 的 themeSettings 即可。
   const localSettings = localStg.get('themeSettings');
 
   let settings = defu(localSettings, themeSettings);

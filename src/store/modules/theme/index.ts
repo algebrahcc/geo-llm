@@ -30,13 +30,23 @@ export const useThemeStore = defineStore(SetupStoreId.Theme, () => {
   /** Watermark time instance with controls */
   const { now: watermarkTime, pause: pauseWatermarkTime, resume: resumeWatermarkTime } = useNow({ controls: true });
 
-  /** Dark mode */
-  const darkMode = computed(() => {
+  /**
+   * 场景页固定深色：为 true 时忽略用户主题偏好，始终深色。
+   * 用于渡河/机动规划这类整屏深色界面 —— 否则切到浅色后，
+   * NaiveUI 浮层（下拉框、菜单、弹窗）会跟随全局主题变浅，与深色界面冲突。
+   */
+  const darkModeForced = ref(false);
+
+  /** 用户偏好对应的深色（不含场景页强制），用于缓存给加载页 */
+  const preferredDarkMode = computed(() => {
     if (settings.value.themeScheme === 'auto') {
       return osTheme.value === 'dark';
     }
     return settings.value.themeScheme === 'dark';
   });
+
+  /** Dark mode */
+  const darkMode = computed(() => darkModeForced.value || preferredDarkMode.value);
 
   /** grayscale mode */
   const grayscaleMode = computed(() => settings.value.grayscale);
@@ -101,6 +111,18 @@ export const useThemeStore = defineStore(SetupStoreId.Theme, () => {
    */
   function setThemeScheme(themeScheme: UnionKey.ThemeScheme) {
     settings.value.themeScheme = themeScheme;
+  }
+
+  /**
+   * 设置是否强制深色
+   *
+   * 场景页（渡河 / 机动规划）进入时置 true、离开时置 false。
+   * 用户偏好照常记录，只是在这些页面上不生效。
+   *
+   * @param forced
+   */
+  function setDarkModeForced(forced: boolean) {
+    darkModeForced.value = forced;
   }
 
   /**
@@ -224,10 +246,7 @@ export const useThemeStore = defineStore(SetupStoreId.Theme, () => {
 
   /** Cache theme settings */
   function cacheThemeSettings() {
-    const isProd = import.meta.env.PROD;
-
-    if (!isProd) return;
-
+    // 两种模式都缓存：开发模式下同样需要布局与主题偏好刷新后保留
     localStg.set('themeSettings', settings.value);
   }
 
@@ -243,6 +262,14 @@ export const useThemeStore = defineStore(SetupStoreId.Theme, () => {
       darkMode,
       val => {
         toggleCssDarkMode(val);
+      },
+      { immediate: true }
+    );
+
+    // 缓存用户偏好（不含场景页强制深色），供加载页使用
+    watch(
+      preferredDarkMode,
+      val => {
         localStg.set('darkMode', val);
       },
       { immediate: true }
@@ -292,6 +319,7 @@ export const useThemeStore = defineStore(SetupStoreId.Theme, () => {
     setColourWeakness,
     resetStore,
     setThemeScheme,
+    setDarkModeForced,
     toggleThemeScheme,
     updateThemeColors,
     setThemeLayout,

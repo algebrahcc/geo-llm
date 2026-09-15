@@ -533,7 +533,7 @@ function handleSelect(key: typeof agentKey.value) {
 
   &__icon {
     font-size: 46px;
-    color: var(--ui-border-38);
+    color: var(--ui-text-7);
   }
 
   &__title {
@@ -913,7 +913,7 @@ function handleSelect(key: typeof agentKey.value) {
   &__icon {
     width: 15px;
     height: 15px;
-    color: var(--ui-accent-50);
+    color: var(--ui-sem-green);
   }
 }
 

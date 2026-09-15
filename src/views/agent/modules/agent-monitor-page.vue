@@ -197,7 +197,11 @@ onMounted(loadData);
               round
               :bordered="false"
               class="type-tag"
-              :style="{ color: typeColor, borderColor: typeColor + '66', background: typeColor + '1a' }"
+              :style="{
+                color: typeColor,
+                borderColor: `color-mix(in srgb, ${typeColor} 40%, transparent)`,
+                background: `color-mix(in srgb, ${typeColor} 10%, transparent)`
+              }"
             >
               {{ typeLabel }}
             </NTag>
@@ -442,7 +446,7 @@ onMounted(loadData);
 
 .conv-icon {
   font-size: 18px;
-  color: var(--ui-accent-141);
+  color: var(--ui-sem-sky);
 }
 
 .conv-name {
@@ -468,7 +472,7 @@ onMounted(loadData);
   &.succeeded,
   &.success,
   &.normal {
-    color: var(--ui-accent-50);
+    color: var(--ui-sem-green);
     background: var(--ui-border-121);
     border-color: var(--ui-border-122);
   }
@@ -480,7 +484,7 @@ onMounted(loadData);
   }
 
   &.running {
-    color: var(--ui-accent-52);
+    color: var(--ui-sem-amber);
     background: var(--ui-border-55);
     border-color: var(--ui-border-56);
   }

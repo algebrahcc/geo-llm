@@ -23,13 +23,14 @@ import {
   clamp,
   getFullGridCode,
   parseGridCode,
+  pickGridLevelByTileExtent,
   rangeAlignToLevel,
   resolveGridCell,
   type GeoRect,
   type GridCodeRect
 } from './beidou-grid-code';
 import { BeidouGridGeometry, MAX_LOCAL_CELLS, estimateGridCells } from './beidou-grid-geometry';
-import { BeidouGridTileProvider } from './beidou-grid-tile-provider';
+import { BeidouGridTileProvider, MIN_FILL_PX } from './beidou-grid-tile-provider';
 
 /**
  * 北斗网格位置码（GB/T 39409-2020）统一门面。
@@ -68,6 +69,10 @@ export interface BeidouGridStats {
   localLayers: number;
   /** 当前标签数 */
   labelCount: number;
+  /** 网格面是否实际填充（当前层级格子在屏幕上过小时整体隐藏，避免拼块与糊图） */
+  faceFillVisible: boolean;
+  /** 当前生效层级格子的屏幕像素尺寸（0 表示未取到） */
+  faceCellPixels: number;
   /** 锁级过密而跳过绘制 */
   skippedByDensity: boolean;
 }
@@ -114,6 +119,12 @@ export class BeidouGrid {
   /** 上次生成局部网格的范围与层数：层数变更时据此按原范围重建 */
   private localRect: GeoRect | null = null;
   private localLayers = 1;
+  /** 网格面是否填充：按当前生效层级的屏幕格尺寸全局判定，避免逐瓦片判定产生拼块 */
+  private faceFillVisible = true;
+  /** 当前生效层级的格子在屏幕上的像素尺寸（供面板提示，0 表示取不到） */
+  private faceCellPixels = 0;
+  /** 按屏幕跨度推算的生效层级（供状态显示；stats.gridLevel 仅为最后请求瓦片的级别，不代表当前视野） */
+  private faceLevel = 1;
   private visible = true;
   private labelsEnabled: boolean;
   private localCellCount = 0;
@@ -148,11 +159,13 @@ export class BeidouGrid {
   get stats(): Readonly<BeidouGridStats> {
     return {
       mode: this.mode,
-      activeLevel: this.currentLevel(),
+      activeLevel: this.faceLevel,
       paintedTiles: this.provider.paintedTiles,
       localCellCount: this.localCellCount,
       localLayers: this.localLayers,
       labelCount: this.labelCount,
+      faceFillVisible: this.faceFillVisible,
+      faceCellPixels: Math.round(this.faceCellPixels),
       skippedByDensity: this.provider.stats.skippedByDensity
     };
   }
@@ -164,6 +177,7 @@ export class BeidouGrid {
     this.mode = mode;
     if (mode === 'tile') {
       this.geometry.setVisible(false);
+      this.syncFaceFill();
       this.recreateTileLayer();
     } else {
       if (this.tileLayer) this.tileLayer.show = false;
@@ -180,6 +194,7 @@ export class BeidouGrid {
     this.lockedLevel = next;
     this.provider.lockedLevel = next;
     this.provider.resetLevelCache();
+    this.syncFaceFill();
     if (this.mode === 'tile') this.recreateTileLayer();
     this.scheduleSettle();
     this.requestRender();
@@ -195,6 +210,8 @@ export class BeidouGrid {
     if (patch.faces !== undefined && patch.faces !== this.provider.faces) {
       this.provider.faces = patch.faces;
       this.geometry.faces = patch.faces;
+      // 填充判定与显示开关独立：开启前先按当前视野重算，避免用到过期的判定
+      this.syncFaceFill();
       tilesDirty = true;
     }
     if (patch.labels !== undefined) this.labelsEnabled = patch.labels;
@@ -346,23 +363,38 @@ export class BeidouGrid {
     this.destroyed = true;
     if (this.settleTimer !== null) window.clearTimeout(this.settleTimer);
     this.settleTimer = null;
-    if (this.cameraListener) {
-      this.viewer.camera.moveEnd.removeEventListener(this.cameraListener);
-      this.cameraListener = null;
-    }
+
+    // 不依赖 Viewer 的清理先行，保证任何情况下都会执行
     this.setPickEnabled(false);
     this.pickHandlers.clear();
     this.clearHighlight();
-    this.geometry.destroy();
-    if (this.tileLayer) {
-      this.viewer.imageryLayers.remove(this.tileLayer, true);
-      this.tileLayer = null;
+
+    // 以下都需要访问 Viewer，但宿主 Viewer 可能已经先被销毁：
+    // 场景页（渡河 / 机动规划）在离开时销毁 Viewer，而本面板是其子组件，
+    // 子组件的卸载晚于父组件的销毁逻辑，此时访问 camera 会抛
+    // "Cannot read properties of undefined (reading 'scene')"。
+    // 该异常会中断路由跳转，表现为「点了返回却没反应」。
+    const viewerAlive = !this.viewer.isDestroyed();
+    try {
+      if (viewerAlive) {
+        if (this.cameraListener) {
+          this.viewer.camera.moveEnd.removeEventListener(this.cameraListener);
+        }
+        this.geometry.destroy();
+        if (this.tileLayer) {
+          this.viewer.imageryLayers.remove(this.tileLayer, true);
+        }
+        this.viewer.dataSources.remove(this.highlightSource, true);
+        this.viewer.scene.primitives.remove(this.labelCollection);
+      }
+    } catch {
+      // 兜底：teardown 阶段绝不向外抛错（抛错会中断路由跳转）
     }
-    if (!this.viewer.isDestroyed()) {
-      this.viewer.dataSources.remove(this.highlightSource, true);
-      this.viewer.scene.primitives.remove(this.labelCollection);
-    }
+
+    this.cameraListener = null;
+    this.tileLayer = null;
     this.labelCount = 0;
+    this.highlightEntity = null;
   }
 
   // ─────────────── 内部实现 ───────────────
@@ -408,6 +440,7 @@ export class BeidouGrid {
     if (this.settleTimer !== null) window.clearTimeout(this.settleTimer);
     this.settleTimer = window.setTimeout(() => {
       this.settleTimer = null;
+      this.syncFaceFill();
       this.refreshLabels();
     }, SETTLE_THROTTLE_MS);
   }
@@ -444,6 +477,43 @@ export class BeidouGrid {
       east = 180;
     }
     return { west, south, east, north };
+  }
+
+  /**
+   * 网格面填充判定：按当前生效层级的格子投影到屏幕的尺寸全局判定一次，下发给 Provider。
+   * 逐瓦片判定会因 LOD 混级（不同级别瓦片取到不同网格层级）而出现拼块，故统一为全局开关。
+   */
+  private syncFaceFill(): void {
+    if (this.destroyed) return;
+    let cellPixels = 0;
+    const metersPerPixel = this.metersPerPixel();
+    const view = this.viewRectangle();
+    if (metersPerPixel > 0 && view) {
+      // 层级来源：立体模式用已生成网格的层级；二维用锁定层级，未锁定时按屏幕跨度套用
+      // Provider 同一套选级规则。stats.gridLevel 只是「最后请求的那个瓦片」的级别
+      // （初始粗瓦片会把它压低），据此判定与显示都会失真。
+      let level: number;
+      if (this.mode === 'geometry') {
+        level = this.geometryLevel;
+      } else {
+        const viewSpan = view.east - view.west > 0 ? view.east - view.west : 360;
+        level = this.lockedLevel ?? pickGridLevelByTileExtent(viewSpan);
+      }
+      level = clamp(level, 1, MAX_LEVEL);
+      this.faceLevel = level;
+      const step = GRID_STEPS[level - 1];
+      const centerLat = (view.north + view.south) / 2;
+      const cellMeters = step.lon * METERS_PER_DEG_LON * Math.cos(CesiumMath.toRadians(centerLat));
+      cellPixels = cellMeters / metersPerPixel;
+    }
+    this.faceCellPixels = cellPixels;
+    // 取不到像素尺寸（0）时不隐藏，避免因缺少信息把填充关掉
+    const visible = cellPixels === 0 || cellPixels >= MIN_FILL_PX;
+    if (visible === this.faceFillVisible && this.provider.fillEnabled === visible) return;
+    this.faceFillVisible = visible;
+    this.provider.fillEnabled = visible;
+    // 已绘制瓦片按旧判定上色，重建图层让其按新判定重绘
+    if (this.mode === 'tile') this.recreateTileLayer();
   }
 
   /** 相机高度换算的每像素地面米数（比相机到点直线距离更贴合斜视） */

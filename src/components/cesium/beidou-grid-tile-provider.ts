@@ -37,8 +37,12 @@ export interface BeidouGridTileStats {
   skippedByDensity: boolean;
 }
 
-/** 单元格小于该像素尺寸时不填充，避免低层级大面积铺色糊住底图 */
-const MIN_FILL_PX = 26;
+/**
+ * 网格面填充门槛（屏幕像素）：格子在屏幕上小于该尺寸时整体不填充，避免细碎色块糊住底图。
+ * 由门面按「当前生效层级」全局判定后下发（见 fillEnabled），
+ * 使同一视野内所有瓦片判定一致——逐瓦片判定会在 LOD 过渡期出现拼块。
+ */
+export const MIN_FILL_PX = 26;
 /** 单瓦片线条数硬上限（防御异常输入导致的极端绘制量） */
 const MAX_LINES_HARD = 400;
 const EPS = 1e-9;
@@ -60,6 +64,8 @@ export class BeidouGridTileProvider {
   /** 绘制开关（供门面增量更新） */
   outline: boolean;
   faces: boolean;
+  /** 网格面是否填充：由门面按屏幕格尺寸全局判定后下发，所有瓦片一致 */
+  fillEnabled = true;
   lineColor: string;
   fillColor: string;
   lockedLevel: number | null;
@@ -152,19 +158,26 @@ export class BeidouGridTileProvider {
     const xOf = (lon: number) => ((lon - west) / extentLon) * width;
     const yOf = (lat: number) => this.tileY(lat, north, south) * height;
 
-    if (this.faces) {
-      const cellWidthPx = (step.lon / extentLon) * width;
-      const cellHeightPx = Math.abs(yOf(south + step.lat) - yOf(south));
-      if (cellWidthPx >= MIN_FILL_PX && cellHeightPx >= MIN_FILL_PX) {
-        ctx.fillStyle = this.fillColor;
-        for (let i = firstLonIndex; i < lastLonIndex; i++) {
-          for (let j = firstLatIndex; j < lastLatIndex; j++) {
-            const x0 = xOf(i * step.lon);
-            const x1 = xOf((i + 1) * step.lon);
-            const yTop = yOf((j + 1) * step.lat);
-            const yBottom = yOf(j * step.lat);
-            ctx.fillRect(x0, Math.min(yTop, yBottom), x1 - x0, Math.abs(yBottom - yTop));
-          }
+    // 是否填充由门面按屏幕格尺寸全局判定（fillEnabled）。
+    // 这里取「与瓦片相交的全部单元格」并裁剪到瓦片内：相邻瓦片各自补全跨界的格子，
+    // 使同一格在各瓦片上的着色连续——若只填「瓦片内的完整格」，
+    // 跨界的格子会被两侧同时跳过，出现补丁与缝隙
+    if (this.faces && this.fillEnabled) {
+      ctx.fillStyle = this.fillColor;
+      const startLonIndex = Math.floor((west - EPS) / step.lon);
+      const endLonIndex = Math.floor((east + EPS) / step.lon);
+      const startLatIndex = Math.floor((south - EPS) / step.lat);
+      const endLatIndex = Math.floor((north + EPS) / step.lat);
+      for (let i = startLonIndex; i <= endLonIndex; i++) {
+        const x0 = Math.max(0, xOf(i * step.lon));
+        const x1 = Math.min(width, xOf((i + 1) * step.lon));
+        if (!(x1 > x0)) continue;
+        for (let j = startLatIndex; j <= endLatIndex; j++) {
+          const yA = Math.max(0, Math.min(height, yOf((j + 1) * step.lat)));
+          const yB = Math.max(0, Math.min(height, yOf(j * step.lat)));
+          const h = Math.abs(yB - yA);
+          if (!(h > 0)) continue;
+          ctx.fillRect(x0, Math.min(yA, yB), x1 - x0, h);
         }
       }
     }

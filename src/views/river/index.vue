@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useThemeStore } from '@/store/modules/theme';
 import { calculateConfidence, calculateCrossingPlans } from '@/utils/crossing-engineer';
 import { runAnalysis, type StepDefinition, type StepState } from '@/utils/analysis-runner';
 import { runKnowledgeRetrieval, type KnowledgeRetrievalResult } from '@/mock/knowledge';
@@ -33,6 +34,15 @@ import type {
 defineOptions({
   name: 'RiverPage'
 });
+
+// ──── 场景固定深色 ────
+// 本页是整屏深色界面，不随主题偏好变浅：否则 NaiveUI 的下拉框、菜单、弹窗等浮层
+// 会跟随全局主题渲染成浅色，与深色界面冲突。用户偏好仍照常记录，只是在本页不生效。
+const themeStore = useThemeStore();
+themeStore.setDarkModeForced(true);
+onActivated(() => themeStore.setDarkModeForced(true));
+onDeactivated(() => themeStore.setDarkModeForced(false));
+onBeforeUnmount(() => themeStore.setDarkModeForced(false));
 
 // ──── Viewer 引用 ────
 interface ViewerExpose {

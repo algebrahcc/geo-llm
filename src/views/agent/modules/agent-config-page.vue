@@ -402,7 +402,11 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
               round
               :bordered="false"
               class="type-tag"
-              :style="{ color: typeColor, borderColor: typeColor + '66', background: typeColor + '1a' }"
+              :style="{
+                color: typeColor,
+                borderColor: `color-mix(in srgb, ${typeColor} 40%, transparent)`,
+                background: `color-mix(in srgb, ${typeColor} 10%, transparent)`
+              }"
             >
               {{ typeLabel }}
             </NTag>

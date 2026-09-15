@@ -285,7 +285,11 @@ async function handleDelete() {
           round
           :bordered="false"
           class="type-tag"
-          :style="{ color: typeColor, borderColor: typeColor + '66', background: typeColor + '1a' }"
+          :style="{
+            color: typeColor,
+            borderColor: `color-mix(in srgb, ${typeColor} 40%, transparent)`,
+            background: `color-mix(in srgb, ${typeColor} 10%, transparent)`
+          }"
         >
           {{ typeLabel }}
         </NTag>
@@ -607,7 +611,7 @@ async function handleDelete() {
   }
 
   &--bound {
-    color: var(--ui-accent-50);
+    color: var(--ui-sem-green);
   }
 }
 
@@ -720,7 +724,7 @@ async function handleDelete() {
     }
 
     &.mcp {
-      color: var(--ui-accent-50);
+      color: var(--ui-sem-green);
       background: var(--ui-border-126);
       border-color: var(--ui-border-122);
     }
@@ -800,7 +804,7 @@ async function handleDelete() {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--ui-accent-50);
+  color: var(--ui-sem-green);
 
   .dot {
     width: 6px;

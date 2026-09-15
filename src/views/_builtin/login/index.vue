@@ -16,10 +16,6 @@ const props = defineProps<Props>();
 const themeStore = useThemeStore();
 const reducedMotion = usePreferredReducedMotion();
 
-if (themeStore.themeScheme !== 'dark') {
-  themeStore.setThemeScheme('dark');
-}
-
 interface LoginModule {
   label: string;
   component: Component;
@@ -41,8 +37,9 @@ const transitionName = computed(() => (reducedMotion.value === 'reduce' ? '' : t
     <div class="login-grid absolute-lt size-full"></div>
     <div class="relative z-1 min-h-screen w-full flex-center px-16px py-48px lt-sm:py-28px">
       <div class="w-full max-w-420px">
-        <div class="mb-18px text-center">
-          <h1 class="text-22px text-white font-700">Geo-LLM 辅助决策系统</h1>
+        <div class="mb-18px flex-col flex-y-center">
+          <SystemLogo class="size-56px" />
+          <h1 class="mt-14px text-22px login-title font-700">地理大模型辅助决策系统</h1>
         </div>
 
         <NCard :bordered="false" class="login-card rd-14px">
@@ -59,14 +56,27 @@ const transitionName = computed(() => (reducedMotion.value === 'reduce' ? '' : t
 
 <style scoped>
 .login-root {
-  background: #0b1220;
-}
-
-.login-bg {
-  background:
+  /* 深色为默认（与站点默认主题一致）；浅色分支见文件末尾。
+     这里的取值即原来的硬编码值，默认外观保持不变。 */
+  --login-surface: #0b1220;
+  --login-bg-image:
     radial-gradient(900px 520px at 22% 24%, rgba(43, 107, 255, 0.22) 0%, rgba(43, 107, 255, 0) 58%),
     radial-gradient(700px 460px at 82% 32%, rgba(56, 189, 248, 0.1) 0%, rgba(56, 189, 248, 0) 62%),
     linear-gradient(180deg, #07101f 0%, #0b1220 45%, #07101f 100%);
+  --login-grid-line: rgba(255, 255, 255, 0.06);
+  --login-speck: rgba(255, 255, 255, 0.08);
+  --login-speck-dim: rgba(255, 255, 255, 0.06);
+  --login-card-bg: rgba(15, 27, 45, 0.78);
+  --login-card-border: rgba(255, 255, 255, 0.1);
+  --login-card-shadow: 0 26px 80px rgba(0, 0, 0, 0.45);
+  --login-card-border-focus: rgba(43, 107, 255, 0.35);
+  --login-card-shadow-focus: 0 28px 92px rgba(0, 0, 0, 0.52);
+  --login-title: #fff;
+  background: var(--login-surface);
+}
+
+.login-bg {
+  background: var(--login-bg-image);
   filter: saturate(1.02);
 }
 
@@ -83,8 +93,8 @@ const transitionName = computed(() => (reducedMotion.value === 'reduce' ? '' : t
   background:
     conic-gradient(from 220deg at 40% 38%, rgba(56, 189, 248, 0), rgba(56, 189, 248, 0.14), rgba(56, 189, 248, 0) 36%),
     conic-gradient(from 40deg at 62% 42%, rgba(43, 107, 255, 0), rgba(43, 107, 255, 0.16), rgba(43, 107, 255, 0) 28%),
-    radial-gradient(closest-side at 50% 42%, rgba(255, 255, 255, 0.08) 0 1px, rgba(255, 255, 255, 0) 2px),
-    radial-gradient(closest-side at 50% 42%, rgba(255, 255, 255, 0.06) 0 1px, rgba(255, 255, 255, 0) 2px);
+    radial-gradient(closest-side at 50% 42%, var(--login-speck) 0 1px, rgba(255, 255, 255, 0) 2px),
+    radial-gradient(closest-side at 50% 42%, var(--login-speck-dim) 0 1px, rgba(255, 255, 255, 0) 2px);
   background-size:
     100% 100%,
     100% 100%,
@@ -107,9 +117,9 @@ const transitionName = computed(() => (reducedMotion.value === 'reduce' ? '' : t
 
 .login-card {
   padding: 8px 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(15, 27, 45, 0.78);
-  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--login-card-border);
+  background: var(--login-card-bg);
+  box-shadow: var(--login-card-shadow);
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
@@ -121,8 +131,8 @@ const transitionName = computed(() => (reducedMotion.value === 'reduce' ? '' : t
 
 .login-card:focus-within {
   transform: translate3d(0, -2px, 0);
-  border-color: rgba(43, 107, 255, 0.35);
-  box-shadow: 0 28px 92px rgba(0, 0, 0, 0.52);
+  border-color: var(--login-card-border-focus);
+  box-shadow: var(--login-card-shadow-focus);
 }
 
 .login-card::before {
@@ -160,8 +170,8 @@ const transitionName = computed(() => (reducedMotion.value === 'reduce' ? '' : t
   inset: -56px;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    linear-gradient(var(--login-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--login-grid-line) 1px, transparent 1px);
   background-size: 56px 56px;
   opacity: 0.14;
   transform: translate3d(0, 0, 0);
@@ -208,5 +218,28 @@ const transitionName = computed(() => (reducedMotion.value === 'reduce' ? '' : t
   .login-card {
     transition: none;
   }
+}
+
+/* 标题颜色随主题：深色下为白，浅色下回到正文深色 */
+.login-title {
+  color: var(--login-title);
+}
+
+/* ── 浅色分支：偏好为浅色时登录页跟随（深色仍是站点默认，外观与原来一致） ── */
+html:not(.dark) .login-root {
+  --login-surface: #eef3fa;
+  --login-bg-image:
+    radial-gradient(900px 520px at 22% 24%, rgba(43, 107, 255, 0.12) 0%, rgba(43, 107, 255, 0) 58%),
+    radial-gradient(700px 460px at 82% 32%, rgba(56, 189, 248, 0.14) 0%, rgba(56, 189, 248, 0) 62%),
+    linear-gradient(180deg, #f7fafd 0%, #eef3fa 45%, #f7fafd 100%);
+  --login-grid-line: rgba(23, 43, 77, 0.07);
+  --login-speck: rgba(23, 43, 77, 0.1);
+  --login-speck-dim: rgba(23, 43, 77, 0.07);
+  --login-card-bg: rgba(255, 255, 255, 0.86);
+  --login-card-border: rgba(23, 43, 77, 0.08);
+  --login-card-shadow: 0 20px 60px rgba(23, 43, 77, 0.12);
+  --login-card-border-focus: rgba(37, 71, 199, 0.35);
+  --login-card-shadow-focus: 0 24px 72px rgba(23, 43, 77, 0.16);
+  --login-title: #172b4d;
 }
 </style>

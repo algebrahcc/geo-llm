@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue';
-import { Math as CesiumMath, type Viewer } from 'cesium';
+import { Cartesian2, Cartographic, Math as CesiumMath, type Viewer } from 'cesium';
 import {
   BeidouGrid,
   MAX_HEIGHT_LAYERS,
@@ -109,8 +109,27 @@ const levelHint = computed(() => {
   const option = LEVEL_OPTIONS.find(item => item.value === levelSetting.value);
   return option ? `格边长 ${option.desc}` : '';
 });
-/** 低层级填充会遮盖底图 */
-const facesHint = computed(() => showFaces.value && activeLevel.value <= 3);
+/** 网格面覆盖范围偏大：格子投影到屏幕上很大时提示（以屏幕尺寸为准，层级高低不等于覆盖程度） */
+const facesHint = computed(() => showFaces.value && (stats.value?.faceCellPixels ?? 0) >= 160);
+/** 二维下网格面被整体隐藏：格子屏幕尺寸小于填充门槛，立体走几何绘制不受此限 */
+const facesHiddenHint = computed(
+  () => showFaces.value && !isSolid.value && !facesHint.value && stats.value?.faceFillVisible === false
+);
+
+/**
+ * 常驻摘要：把「当前生效」提到滚动区外。
+ * 立体模式下生成立即生效、二维模式下层级随缩放变化，都是需要随时可见的状态。
+ */
+const summaryText = computed(() => {
+  let base: string;
+  if (isSolid.value) {
+    base =
+      localCellCount.value > 0 ? `${localCellCount.value.toLocaleString()} 格 · ${heightLayers.value} 层` : '未生成';
+  } else {
+    base = `当前 ${activeLevel.value} 级`;
+  }
+  return labelsEnabled.value ? `${base} · 标签 ${(stats.value?.labelCount ?? 0).toLocaleString()}` : base;
+});
 
 function ensureGrid(): BeidouGrid | null {
   if (!gridReady.value) {
@@ -225,6 +244,12 @@ function useGlobalRange() {
   Object.assign(localRange, GLOBAL_RANGE);
 }
 
+/** 一键切回自适应：按当前范围自动落到可用层级（超限时的出口） */
+function useAutoLevel() {
+  levelSetting.value = 'auto';
+  handleLevelChange();
+}
+
 async function handleGenerate() {
   const instance = ensureGrid();
   if (!instance || generating.value) return;
@@ -320,6 +345,28 @@ function handleCoordinateQuery() {
   pickResult.value = instance.queryCell(lon, lat, queryLevel.value);
 }
 
+/** 取视野中心（屏幕中心与地表交点）直接查询：省去手输坐标或先开拾取再点图 */
+function queryViewCenter() {
+  const viewer = props.viewer;
+  const instance = ensureGrid();
+  if (!viewer || !instance) return;
+  const scene = viewer.scene;
+  const cartesian = viewer.camera.pickEllipsoid(
+    new Cartesian2(scene.canvas.clientWidth / 2, scene.canvas.clientHeight / 2),
+    scene.globe.ellipsoid
+  );
+  const carto = cartesian ? Cartographic.fromCartesian(cartesian) : null;
+  if (!carto) {
+    window.$message?.warning('视野中心未落在地表');
+    return;
+  }
+  const lon = Number(CesiumMath.toDegrees(carto.longitude).toFixed(6));
+  const lat = Number(CesiumMath.toDegrees(carto.latitude).toFixed(6));
+  queryLon.value = lon;
+  queryLat.value = lat;
+  pickResult.value = instance.queryCell(lon, lat, queryLevel.value);
+}
+
 function handleClearHighlight() {
   grid?.clearHighlight();
   pickResult.value = null;
@@ -383,6 +430,12 @@ onBeforeUnmount(() => {
       </div>
     </header>
 
+    <!-- ══ 常驻摘要（不随内容滚动，收起时仍可见） ══ -->
+    <div class="bdg-summary">
+      <span class="bdg-summary__kind">{{ isSolid ? '立体网格' : '二维网格' }}</span>
+      <span class="bdg-summary__value">{{ summaryText }}</span>
+    </div>
+
     <div v-show="!collapsed" class="bdg-body">
       <!-- ══ 网格类型 ══ -->
       <section class="bdg-block">
@@ -427,6 +480,10 @@ onBeforeUnmount(() => {
             </select>
           </div>
           <p class="bdg-note bdg-note--tight">{{ levelHint }}</p>
+          <p v-if="stats?.skippedByDensity" class="bdg-alert">
+            <SvgIcon icon="mdi:alert-outline" />
+            当前缩放下线条过密，已跳过绘制；请调低层级或改为自适应
+          </p>
 
           <div v-if="isSolid" class="bdg-row bdg-row--stack">
             <label class="bdg-row__label" for="bdg-layers">高度层数</label>
@@ -451,7 +508,10 @@ onBeforeUnmount(() => {
           </div>
           <p v-if="facesHint" class="bdg-alert">
             <SvgIcon icon="mdi:alert-outline" />
-            当前层级较低，网格面将遮盖底图，建议提高层级
+            网格面覆盖范围较大，会影响底图判读；可提高层级或关闭网格面
+          </p>
+          <p v-else-if="facesHiddenHint" class="bdg-note bdg-note--tight">
+            当前层级格子在屏幕上过小，网格面已整体隐藏；放大或提高层级后恢复
           </p>
         </div>
       </section>
@@ -520,7 +580,13 @@ onBeforeUnmount(() => {
             <div class="bdg-meter__track">
               <i :style="{ width: `${estimatePercent}%` }" />
             </div>
-            <div class="bdg-meter__foot">上限 {{ MAX_LOCAL_CELLS.toLocaleString() }} 格</div>
+            <div class="bdg-meter__foot">
+              <template v-if="estimateTone === 'danger'">
+                超出上限 {{ MAX_LOCAL_CELLS.toLocaleString() }} 格 ·
+                <button type="button" class="bdg-link" @click="useAutoLevel">改为自适应（{{ autoLevel }} 级）</button>
+              </template>
+              <template v-else>上限 {{ MAX_LOCAL_CELLS.toLocaleString() }} 格</template>
+            </div>
           </div>
 
           <div class="bdg-actions">
@@ -547,6 +613,7 @@ onBeforeUnmount(() => {
             <input v-model="pickEnabled" type="checkbox" @change="handlePickToggle" />
             <span>地图拾取</span>
           </label>
+          <p v-if="pickEnabled" class="bdg-note bdg-note--tight">在地图上单击拾取网格</p>
 
           <div class="bdg-combo">
             <input
@@ -571,6 +638,7 @@ onBeforeUnmount(() => {
               class="bdg-input"
               placeholder="经度"
               aria-label="查询经度"
+              @keyup.enter="handleCoordinateQuery"
             />
             <input
               v-model.number="queryLat"
@@ -579,12 +647,16 @@ onBeforeUnmount(() => {
               class="bdg-input"
               placeholder="纬度"
               aria-label="查询纬度"
+              @keyup.enter="handleCoordinateQuery"
             />
             <select v-model.number="queryLevel" class="bdg-select bdg-select--tiny" aria-label="查询层级">
               <option v-for="opt in LEVEL_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.value }} 级</option>
             </select>
           </div>
-          <button type="button" class="bdg-btn bdg-btn--wide" @click="handleCoordinateQuery">查询网格码</button>
+          <div class="bdg-actions bdg-actions--flush">
+            <button type="button" class="bdg-btn" @click="handleCoordinateQuery">查询网格码</button>
+            <button type="button" class="bdg-btn" @click="queryViewCenter">视野中心</button>
+          </div>
         </div>
       </section>
 
@@ -604,30 +676,6 @@ onBeforeUnmount(() => {
           <span class="bdg-sep" />
           <button type="button" class="bdg-link" @click="handleClearHighlight">清除</button>
         </div>
-      </div>
-
-      <!-- ══ 运行状态 ══ -->
-      <div class="bdg-status">
-        <div class="bdg-status__row">
-          <span>层级</span>
-          <b>{{ activeLevel }} 级</b>
-        </div>
-        <div v-if="isSolid" class="bdg-status__row">
-          <span>网格数</span>
-          <b>{{ localCellCount.toLocaleString() }}</b>
-        </div>
-        <div v-if="isSolid" class="bdg-status__row">
-          <span>立体层数</span>
-          <b>{{ heightLayers }} 层</b>
-        </div>
-        <div v-if="labelsEnabled" class="bdg-status__row">
-          <span>编码标签</span>
-          <b>{{ (stats?.labelCount ?? 0).toLocaleString() }}</b>
-        </div>
-        <p v-if="stats?.skippedByDensity" class="bdg-alert bdg-alert--own">
-          <SvgIcon icon="mdi:alert-outline" />
-          当前缩放下线条过密，已跳过绘制；请调低层级或改为自适应
-        </p>
       </div>
     </div>
   </div>
@@ -740,6 +788,29 @@ onBeforeUnmount(() => {
   color: rgba(255, 255, 255, 0.85);
 }
 
+/* ══ 常驻摘要 ══ */
+.bdg-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--bdg-line);
+  background: rgba(255, 255, 255, 0.015);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.bdg-summary__kind {
+  font-weight: 600;
+  color: var(--bdg-text-2);
+}
+
+.bdg-summary__value {
+  color: var(--bdg-accent);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ══ 滚动区 ══ */
 .bdg-body {
   flex: 1;
@@ -815,10 +886,6 @@ onBeforeUnmount(() => {
   font-size: 10px;
   line-height: 1.55;
   color: var(--bdg-warning);
-}
-
-.bdg-alert--own {
-  margin: 2px 0 0;
 }
 
 /* ══ 分段控件 ══ */
@@ -899,6 +966,14 @@ onBeforeUnmount(() => {
 .bdg-select {
   min-width: 104px;
   cursor: pointer;
+  color-scheme: dark;
+}
+
+/* 原生下拉的展开层由浏览器绘制，仅靠容器的 color-scheme 不受约束：
+   不显式配色时 option 会落到默认白底，而文字继承面板浅色，形成白底白字 */
+.bdg-select option {
+  background-color: #101828;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .bdg-select--tiny {
@@ -1057,12 +1132,13 @@ onBeforeUnmount(() => {
 }
 
 .bdg-link {
-  padding: 0;
+  padding: 3px 0;
   border: none;
   background: none;
   color: var(--bdg-accent);
   font-size: 11px;
   font-family: inherit;
+  line-height: 1.4;
   cursor: pointer;
   transition: color 0.15s;
 }
@@ -1135,6 +1211,10 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 8px;
   margin-top: 10px;
+}
+
+.bdg-actions--flush {
+  margin-top: 0;
 }
 
 .bdg-btn {
@@ -1240,29 +1320,5 @@ onBeforeUnmount(() => {
   width: 1px;
   height: 10px;
   background: rgba(255, 255, 255, 0.12);
-}
-
-/* ══ 运行状态 ══ */
-.bdg-status {
-  padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.bdg-status__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 2px 0;
-  font-size: 11px;
-  color: var(--bdg-text-3);
-}
-
-.bdg-status__row b {
-  font-weight: 600;
-  color: var(--bdg-text);
-  font-variant-numeric: tabular-nums;
 }
 </style>

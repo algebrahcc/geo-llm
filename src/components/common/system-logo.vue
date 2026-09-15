@@ -8,70 +8,29 @@
       role="img"
       aria-label="系统标识"
     >
-      <defs>
-        <linearGradient id="logo-bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="var(--logo-color-start)" />
-          <stop offset="100%" stop-color="var(--logo-color-end)" />
-        </linearGradient>
-        <linearGradient id="logo-glow" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="rgba(255,255,255,0.9)" />
-          <stop offset="100%" stop-color="rgba(255,255,255,0.4)" />
-        </linearGradient>
-      </defs>
-
-      <!-- 背景圆角矩形 -->
-      <rect x="2" y="2" width="44" height="44" rx="12" ry="12" fill="url(#logo-bg)" />
-
-      <!-- 地球外圈 -->
-      <circle cx="24" cy="24" r="14" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" />
-
-      <!-- 经线 - 竖向椭圆 -->
-      <ellipse cx="24" cy="24" rx="6" ry="14" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1" />
-      <!-- 经线 - 侧向椭圆 -->
-      <ellipse cx="24" cy="24" rx="11" ry="14" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.8" />
-
-      <!-- 纬线 -->
-      <ellipse cx="24" cy="16" rx="12" ry="3.5" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" />
-      <line x1="10" y1="24" x2="38" y2="24" stroke="rgba(255,255,255,0.5)" stroke-width="0.9" />
-      <ellipse cx="24" cy="32" rx="12" ry="3.5" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" />
-
-      <!-- AI 神经网络节点 -->
-      <circle cx="24" cy="24" r="2.2" fill="rgba(255,255,255,0.95)" />
-      <circle cx="15" cy="16" r="1.6" fill="rgba(255,255,255,0.8)" />
-      <circle cx="33" cy="16" r="1.6" fill="rgba(255,255,255,0.8)" />
-      <circle cx="15" cy="32" r="1.6" fill="rgba(255,255,255,0.8)" />
-      <circle cx="33" cy="32" r="1.6" fill="rgba(255,255,255,0.8)" />
-      <circle cx="24" cy="12" r="1.3" fill="rgba(255,255,255,0.65)" />
-      <circle cx="24" cy="36" r="1.3" fill="rgba(255,255,255,0.65)" />
-
-      <!-- 神经网络连线 -->
-      <line x1="24" y1="24" x2="15" y2="16" stroke="rgba(255,255,255,0.35)" stroke-width="0.9" />
-      <line x1="24" y1="24" x2="33" y2="16" stroke="rgba(255,255,255,0.35)" stroke-width="0.9" />
-      <line x1="24" y1="24" x2="15" y2="32" stroke="rgba(255,255,255,0.35)" stroke-width="0.9" />
-      <line x1="24" y1="24" x2="33" y2="32" stroke="rgba(255,255,255,0.35)" stroke-width="0.9" />
-      <line x1="24" y1="24" x2="24" y2="12" stroke="rgba(255,255,255,0.25)" stroke-width="0.7" />
-      <line x1="24" y1="24" x2="24" y2="36" stroke="rgba(255,255,255,0.25)" stroke-width="0.7" />
-
-      <!-- 外部连接 - 数据流 -->
-      <line x1="15" y1="16" x2="24" y2="12" stroke="rgba(255,255,255,0.2)" stroke-width="0.7" />
-      <line x1="33" y1="16" x2="24" y2="12" stroke="rgba(255,255,255,0.2)" stroke-width="0.7" />
-      <line x1="15" y1="32" x2="24" y2="36" stroke="rgba(255,255,255,0.2)" stroke-width="0.7" />
-      <line x1="33" y1="32" x2="24" y2="36" stroke="rgba(255,255,255,0.2)" stroke-width="0.7" />
-
-      <!-- 光晕点缀 -->
-      <circle cx="24" cy="24" r="4" fill="rgba(255,255,255,0.08)" />
+      <!--
+        标识：数字地球。
+        圆球 + 一条经线 + 一条赤道 —— 只用三笔经纬网概括 GIS/数字地球，不做填充，
+        也不使用节点连线那类通用科技符号。外圈略粗、内部经纬略细，保证缩到 16px
+        时轮廓仍然清楚。
+        配色遵循 Calcite（Esri）：品牌色只作强调色、不铺背景；深色不取反，把同一个蓝调亮。
+      -->
+      <circle cx="24" cy="24" r="15" fill="none" stroke="var(--logo-color)" stroke-width="3.2" />
+      <ellipse cx="24" cy="24" rx="7" ry="15" fill="none" stroke="var(--logo-color)" stroke-width="2.4" />
+      <path d="M 9.8 24 H 38.2" fill="none" stroke="var(--logo-color)" stroke-width="2.4" />
     </svg>
   </div>
 </template>
 
 <style scoped>
+/*
+ * 标识只用单色描边，不铺背景色块（品牌色当背景是 Calcite 明确反对的做法）。
+ * 深色不作简单取反，而是把同一个蓝调亮一档，保证深底上的可读性。
+ */
 .app-logo {
-  --logo-color-start: var(--ui-sem-blue);
-  --logo-color-end: var(--ui-sem-teal);
+  --logo-color: #2547c7;
 }
-/* 深色顶栏下仅轻微提亮底色，不加外发光（发光会让整体偏“AI 感”） */
 html.dark .app-logo {
-  --logo-color-start: #3d6fe0;
-  --logo-color-end: #00d4aa;
+  --logo-color: #5b93ff;
 }
 </style>

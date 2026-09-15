@@ -19,13 +19,13 @@ const emit = defineEmits<{
 const typeMeta = computed(() => {
   switch (props.app.appType) {
     case 1:
-      return { label: '聊天助手', color: 'var(--ui-sem-blue)', icon: 'mdi:chat-outline' };
+      return { label: '聊天助手', icon: 'mdi:chat-outline' };
     case 2:
-      return { label: '智能体', color: 'var(--ui-sem-indigo)', icon: 'mdi:robot-outline' };
+      return { label: '智能体', icon: 'mdi:robot-outline' };
     case 3:
-      return { label: '工作流', color: 'var(--ui-sem-green)', icon: 'mdi:workflow' };
+      return { label: '工作流', icon: 'mdi:workflow' };
     default:
-      return { label: '未知', color: '#64748b', icon: 'mdi:help-circle-outline' };
+      return { label: '未知', icon: 'mdi:help-circle-outline' };
   }
 });
 
@@ -49,7 +49,7 @@ const avatarBg = computed(() => {
     case 3:
       return 'linear-gradient(135deg, var(--ui-sem-green), var(--ui-sem-teal))';
     default:
-      return 'linear-gradient(135deg, #64748b, #94a3b8)';
+      return 'linear-gradient(135deg, #475569, #64748b)';
   }
 });
 </script>
@@ -134,7 +134,7 @@ const avatarBg = computed(() => {
     border-radius: 999px;
 
     &.is-on {
-      color: var(--ui-accent-137);
+      color: var(--ui-sem-teal);
       background: var(--ui-border-118);
       border: 1px solid var(--ui-border-119);
     }
