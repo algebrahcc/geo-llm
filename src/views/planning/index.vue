@@ -148,8 +148,9 @@ const routeResultCards = computed<PlanningRouteResultCard[]>(() => {
 const routeSettingsForm = ref<PlanningRouteSettingsForm>({ ...planningDefaultRouteSettingsForm });
 
 // ──── 面板可见与折叠 ────
+// 进入机动规划场景默认展开：左侧路线规划助手 + 右侧方案设置（可从两侧工具栏收起）
 const leftPanelVisible = ref(true);
-const rightPanelVisible = ref(false);
+const rightPanelVisible = ref(true);
 const agentPanelVisible = ref(false);
 const bottomPanelVisible = ref(false);
 const leftPanelCollapsed = ref(false);
@@ -215,8 +216,13 @@ const ROUTE_LABELS: Record<string, string> = {
 };
 
 // ──── 拖拽状态 ────
-const leftDrag = useDraggable({ anchor: 'left', initialX: 62, initialY: 10 });
-const rightDrag = useDraggable({ anchor: 'right', initialX: 16, initialY: 72 });
+// 左右位置由这里的 anchor 决定；模板上的类名 left-panel / right-panel 只负责
+// 宽度与内嵌组件样式覆盖（.left-panel :deep(.route-settings) 等），
+// 所以「设置面板在右、助手面板在左」时类名保持不变 —— 与渡河场景同一做法。
+//   leftDrag  = 机动规划方案设置面板（右，让开右侧工具栏 72px）
+//   rightDrag = 机动路线规划助手面板（左，让开左侧工具栏 62px）
+const leftDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 18 });
+const rightDrag = useDraggable({ anchor: 'left', initialX: 62, initialY: 18 });
 const agentDrag = useDraggable({ anchor: 'right', initialX: 16, initialY: 120 });
 // 智能体面板宽高（默认 520×660，右下角可拖拽缩放）
 const agentResize = usePanelResize({ width: 520, height: 660 });
@@ -814,8 +820,8 @@ function handlePointPicked(payload: PlanningPickedPoint) {
         />
       </div>
 
-      <!-- ══════ 左侧设置面板（可拖拽/关闭） ══════ -->
-      <Transition name="panel-slide-left">
+      <!-- ══════ 右侧：机动规划方案设置面板（可拖拽/关闭） ══════ -->
+      <Transition name="panel-slide-right">
         <ScenePanel v-if="leftPanelVisible" class="floating-panel left-panel" :style="leftDrag.style.value">
           <template #header>
             <div class="panel-drag-handle" @mousedown="leftDrag.onDragStart">
@@ -844,8 +850,8 @@ function handlePointPicked(payload: PlanningPickedPoint) {
         </ScenePanel>
       </Transition>
 
-      <!-- ══════ 右侧AI助手面板（可拖拽/关闭） ══════ -->
-      <Transition name="panel-slide-right">
+      <!-- ══════ 左侧：机动路线规划助手面板（可拖拽/关闭） ══════ -->
+      <Transition name="panel-slide-left">
         <ScenePanel v-if="rightPanelVisible" class="floating-panel right-panel" :style="rightDrag.style.value">
           <template #header>
             <div class="panel-drag-handle" @mousedown="rightDrag.onDragStart">

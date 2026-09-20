@@ -80,7 +80,7 @@ export const generatedRoutes: GeneratedRoute[] = [
         path: '/data-center/vector',
         component: 'view.data-center_vector',
         meta: {
-          title: '矢量数据管理',
+          title: '矢量数据处理',
           icon: 'mdi:map-clock',
           order: 2
         }

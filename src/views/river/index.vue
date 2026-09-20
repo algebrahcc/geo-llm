@@ -89,8 +89,9 @@ const router = useRouter();
 const beidouViewer = computed<Viewer | null>(() => viewerRef.value?.getViewer() ?? null);
 
 // ──── 面板可见性 ────
+// 进入渡河场景默认展开：左侧方案助手 + 右侧方案设置（可从两侧工具栏收起）
 const settingVisible = ref(true);
-const aiPanelVisible = ref(false);
+const aiPanelVisible = ref(true);
 const agentPanelVisible = ref(false);
 const resultVisible = ref(false);
 const layerPanelVisible = ref(false);
@@ -105,8 +106,9 @@ const resultCollapsed = ref(false);
 const layerCollapsed = ref(false);
 
 // ──── 面板拖拽 ────
-const settingDrag = useDraggable({ anchor: 'left', initialX: 62, initialY: 10 });
-const aiDrag = useDraggable({ anchor: 'right', initialX: 18, initialY: 18 });
+// 方案助手面板靠左（让开左侧工具栏 62px），方案设置面板靠右（让开右侧工具栏 72px）
+const settingDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 18 });
+const aiDrag = useDraggable({ anchor: 'left', initialX: 62, initialY: 18 });
 const agentDrag = useDraggable({ anchor: 'right', initialX: 18, initialY: 72 });
 // 智能体面板宽高（默认 520×660，右下角可拖拽缩放）
 const agentResize = usePanelResize({ width: 520, height: 660 });
@@ -685,9 +687,9 @@ function handleToggleResult() {
         </NTooltip>
       </div>
 
-      <!-- ══════ 左侧：设置面板 ══════ -->
-      <Transition name="panel-slide-left">
-        <ScenePanel v-if="settingVisible" class="side-panel left-panel" :style="settingDrag.style.value">
+      <!-- ══════ 右侧：渡河工程方案设置面板 ══════ -->
+      <Transition name="panel-slide-right">
+        <ScenePanel v-if="settingVisible" class="side-panel right-panel" :style="settingDrag.style.value">
           <template #header>
             <div class="panel-drag-handle" @mousedown="settingDrag.onDragStart">
               <span class="drag-dots">⋮⋮</span>
@@ -752,8 +754,8 @@ function handleToggleResult() {
         </ScenePanel>
       </Transition>
 
-      <!-- ══════ 右侧：AI 助手面板 ══════ -->
-      <Transition name="panel-slide-right">
+      <!-- ══════ 左侧：渡河工程方案助手面板 ══════ -->
+      <Transition name="panel-slide-left">
         <ScenePanel v-if="aiPanelVisible" class="side-panel ai-panel-wrapper" :style="aiDrag.style.value">
           <template #header>
             <div class="panel-drag-handle" @mousedown="aiDrag.onDragStart">
@@ -963,7 +965,7 @@ function handleToggleResult() {
   letter-spacing: 2px;
 }
 
-.left-panel :deep(.setting-panel),
+.right-panel :deep(.setting-panel),
 .layer-panel-wrapper :deep(.layer-panel),
 .ai-panel-wrapper :deep(.ai-panel),
 .result-panel :deep(.result-bar) {

@@ -96,7 +96,7 @@ const totalCount = () => props.vectorLayers.length + (props.serviceHandles?.leng
       <div v-show="!vectorGroupCollapsed">
         <div v-if="vectorLayers.length === 0 && !vectorLoading" class="layer-empty">
           暂无矢量图层，请先在
-          <a href="/#/data-center/vector" target="_blank">矢量数据管理</a>
+          <a href="/#/data-center/vector" target="_blank">矢量数据处理</a>
           上传数据
         </div>
 
