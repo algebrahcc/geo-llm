@@ -229,7 +229,10 @@ function onDragEnd(): void {
             type="button"
             class="eye-btn"
             :class="{ 'eye-btn--off': !entry.handle.visible }"
-            :title="entry.handle.visible ? '隐藏图层' : '显示图层'"
+            :title="
+              entry.handle.state === 'error' ? '加载失败，请先重试' : entry.handle.visible ? '隐藏图层' : '显示图层'
+            "
+            :disabled="entry.handle.state === 'error'"
             @click="emit('toggle', entry.handle.id, !entry.handle.visible)"
           >
             <SvgIcon :icon="entry.handle.visible ? 'mdi:eye' : 'mdi:eye-off'" />
@@ -238,7 +241,17 @@ function onDragEnd(): void {
           <!-- 主体信息 -->
           <div class="layer-meta">
             <div class="layer-name-row">
-              <!-- 加载状态不在列表里展示；失败原因降级为 hover 提示，保持列表整洁 -->
+              <!--
+                三态可见化：ready 不渲染任何标记（沿用"保持列表整洁"的取舍），
+                只有「加载中 / 加载失败」才出现标记 —— 此前失败行与正常行完全一样，
+                错误只藏在 hover 的 title 里，既看不出也没有恢复入口。
+              -->
+              <span
+                v-if="entry.handle.state !== 'ready'"
+                class="layer-status"
+                :class="`layer-status--${entry.handle.state}`"
+                :title="entry.handle.state === 'loading' ? '加载中…' : entry.handle.error"
+              />
               <span
                 class="layer-name"
                 :class="{ 'layer-name--dim': !entry.handle.visible }"
@@ -251,6 +264,20 @@ function onDragEnd(): void {
               </span>
             </div>
             <span class="layer-sub">{{ categoryLabel(entry.handle.category) }} · {{ entry.handle.type }}</span>
+
+            <!-- 失败行：行内给出原因与恢复入口（错误全是网络/地址类，重试是最有效的动作） -->
+            <div v-if="entry.handle.state === 'error'" class="layer-error">
+              <span class="layer-error-text">{{ entry.handle.error ?? '加载失败' }}</span>
+              <button
+                v-if="entry.handle.retry"
+                type="button"
+                class="retry-btn"
+                title="重新加载该服务"
+                @click.stop="entry.handle.retry?.()"
+              >
+                重试
+              </button>
+            </div>
 
             <!-- 图例明细 -->
             <div v-if="entry.handle.state === 'ready' && entry.handle.legend?.length" class="layer-legend-row">
@@ -588,5 +615,61 @@ function onDragEnd(): void {
 .act-btn--danger:hover {
   background: rgba(194, 91, 91, 0.18);
   color: #c25b5b;
+}
+
+/* ──── 加载三态标记 ────
+   ready 不渲染（列表保持整洁）；loading 用呼吸点表示进行中；error 用红点 + 行内文案。 */
+.layer-status {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.layer-status--loading {
+  background: #6ea8ff;
+  animation: layer-status-pulse 1.2s ease-in-out infinite;
+}
+.layer-status--error {
+  background: #e06a5b;
+}
+@keyframes layer-status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.layer-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  min-width: 0;
+}
+.layer-error-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
+  color: #e0857a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.retry-btn {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 7px;
+  border: 1px solid rgba(224, 106, 91, 0.45);
+  background: rgba(224, 106, 91, 0.12);
+  color: #e0857a;
+  font-size: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.retry-btn:hover {
+  background: rgba(224, 106, 91, 0.22);
 }
 </style>

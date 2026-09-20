@@ -72,8 +72,23 @@ export interface ServiceLayerHandle {
   hide(): void;
   remove(): void;
   setOpacity(opacity: number): void;
+  /**
+   * 当前透明度（仅对支持透明度的类型有意义，其余类型不维护此字段）。
+   *
+   * 存在的理由与 `visible` 相同：`applyServices` 会 removeAll 后按 provider 重建图层，
+   * 重建出的新图层 `alpha` 回到 1 —— 必须把用户意图回放回去，
+   * 否则「用户调过的透明度」会在重建后丢失。
+   */
+  opacity?: number;
   /** 双击图层面板条目时定位到数据范围（extent → 图层自身包围范围），不支持定位的类型可省略 */
   flyTo?(): void;
+  /**
+   * 重新加载该服务（仅失败/可就绪时有效）。
+   *
+   * 与 `flyTo?` 一样属于「可选能力」：由 `use-cesium-services` 在登记句柄时注入，
+   * 图层面板直接调句柄自身，不必为每个动作再往页面层透传一路回调。
+   */
+  retry?(): void;
 }
 
 /** 服务 → Cesium 对象工厂 */
@@ -205,6 +220,7 @@ function buildLayerHandle(s: Api.DataService.DataServiceItem, viewer: Viewer, la
     name: s.name,
     state: 'ready',
     visible: true,
+    opacity: 1,
     layer,
     legend,
     show() {
@@ -221,6 +237,8 @@ function buildLayerHandle(s: Api.DataService.DataServiceItem, viewer: Viewer, la
       }
     },
     setOpacity(opacity: number) {
+      // 记录状态 + 投影到图层：前者用于图层被重建后回放，后者是实际效果
+      this.opacity = opacity;
       layer.alpha = opacity;
     },
     flyTo() {
@@ -878,10 +896,14 @@ export async function loadService(
     name: s.name,
     state: 'loading',
     visible: false,
+    opacity: 1,
     show() {},
     hide() {},
     remove() {},
-    setOpacity() {}
+    setOpacity(opacity: number) {
+      // 加载期间用户调过的透明度也要记住，工厂返回后统一回放
+      this.opacity = opacity;
+    }
   };
   if (!factory) {
     proxy.state = 'error';
@@ -891,8 +913,9 @@ export async function loadService(
   }
   try {
     const real = await factory(s, viewer);
-    // 加载期间用户可能已切换过显隐，以用户意图为准，不被后续加载结果覆盖
+    // 加载期间用户可能已切换过显隐/透明度，以用户意图为准，不被后续加载结果覆盖
     const keepVisible = proxy.visible;
+    const keepOpacity = proxy.opacity;
     proxy.show = real.show;
     proxy.hide = real.hide;
     proxy.remove = real.remove;
@@ -903,6 +926,8 @@ export async function loadService(
     proxy.state = 'ready';
     if (keepVisible) proxy.show();
     else proxy.hide();
+    // 透明度同理回放（不支持透明度的类型是空实现，调用无副作用）
+    if (keepOpacity !== undefined && keepOpacity !== 1) proxy.setOpacity(keepOpacity);
   } catch (e) {
     proxy.state = 'error';
     proxy.error = e instanceof Error ? e.message : '加载失败';

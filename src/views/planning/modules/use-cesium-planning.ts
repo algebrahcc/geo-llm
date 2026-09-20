@@ -333,10 +333,9 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
   }
 
   function syncLayerVisibility() {
-    const { imageryLayers } = base;
-    imageryLayers.forEach(layer => {
-      layer.show = layerVisibility.imagery;
-    });
+    // 底图显隐走基座的显隐真相：此前遍历 base.imageryLayers 逐层写 show，
+    // 会把同一数组里的数据服务影像一起关掉（RFC-0001 第 3 步）。
+    base.setBaseImageryVisible(layerVisibility.imagery);
 
     updateRouteStyles();
 

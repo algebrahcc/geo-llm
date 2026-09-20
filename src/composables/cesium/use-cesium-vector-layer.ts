@@ -9,6 +9,7 @@ import type { StyleSpecification } from 'mvt-imagery-provider';
 import { Cartesian3, type ImageryLayer, type ImageryProvider } from 'cesium';
 import { fetchVectorExtent, getVectorTileUrl } from '@/service/api/vector';
 import { unwrapResponseData } from '@/service/request/envelope';
+import { createLayerRegistry } from './scene/layer-registry';
 import type { CesiumBaseReturn } from './use-cesium-base';
 
 interface VectorLayerEntry {
@@ -18,6 +19,16 @@ interface VectorLayerEntry {
 
 export function useCesiumVectorLayer(base: CesiumBaseReturn) {
   const vectorLayerMap = new Map<string, VectorLayerEntry>();
+
+  /**
+   * 矢量图层显隐真相。
+   *
+   * 此前 `layer.show` 是直接被写的（三处），既没有可查询的状态来源，
+   * 重新加载时又会无条件 `show = true`。现在每个矢量图层一个 key，
+   * 面板/模块都从这里读，球上状态与 UI 状态不会再分叉。
+   */
+  const vectorVisibility = createLayerRegistry();
+  const keyOf = (vectorId: string) => `vector:${vectorId}`;
 
   /**
    * 构造矢量图层的 Mapbox StyleSpec：sources 指向后端 MVT 瓦片 URL，
@@ -91,7 +102,9 @@ export function useCesiumVectorLayer(base: CesiumBaseReturn) {
     if (!viewer) return;
     const existing = vectorLayerMap.get(vectorId);
     if (existing) {
-      existing.layer.show = true;
+      // 语义：loadVectorLayer = 加载并显示（面板眼睛打开时调用）。
+      // 只想「定位」而不动显隐，请用 flyToVector —— 它不碰显隐状态。
+      vectorVisibility.setVisible(keyOf(vectorId), true);
       base.requestRender();
       return;
     }
@@ -105,8 +118,16 @@ export function useCesiumVectorLayer(base: CesiumBaseReturn) {
       // 这里补一个默认实现（返回空数组，无瓦片级 credit），并断言为 ImageryProvider。
       (provider as unknown as { getTileCredits: () => unknown[] }).getTileCredits = () => [];
       const layer = viewer.imageryLayers.addImageryProvider(provider as unknown as ImageryProvider);
-      layer.show = true;
       vectorLayerMap.set(vectorId, { provider, layer });
+      // 绑定到显隐真相：attach 立刻回放当前状态，新图层不会沿用 Cesium 默认的 show
+      vectorVisibility.attach(keyOf(vectorId), {
+        setVisible: visible => {
+          layer.show = visible;
+        },
+        // 矢量影像层不支持整体透明度
+        setOpacity: () => {}
+      });
+      vectorVisibility.setVisible(keyOf(vectorId), true);
 
       await flyToVector(vectorId, vectorName);
 
@@ -118,11 +139,19 @@ export function useCesiumVectorLayer(base: CesiumBaseReturn) {
   }
 
   function setVectorLayerVisible(vectorId: string, show: boolean) {
-    const entry = vectorLayerMap.get(vectorId);
-    if (entry) {
-      entry.layer.show = show;
-      base.requestRender();
-    }
+    if (!vectorLayerMap.has(vectorId)) return;
+    vectorVisibility.setVisible(keyOf(vectorId), show);
+    base.requestRender();
+  }
+
+  /**
+   * 读取矢量图层当前显隐。
+   *
+   * 面板侧应以此为准，避免"UI 显示已开启、球上其实没有"这类分叉 ——
+   * 这正是本步要消除的问题。
+   */
+  function isVectorLayerVisible(vectorId: string): boolean {
+    return vectorVisibility.get(keyOf(vectorId)).visible;
   }
 
   function removeVectorLayer(vectorId: string) {
@@ -131,6 +160,7 @@ export function useCesiumVectorLayer(base: CesiumBaseReturn) {
     if (viewer && entry) {
       viewer.imageryLayers.remove(entry.layer, true);
       vectorLayerMap.delete(vectorId);
+      vectorVisibility.remove(keyOf(vectorId));
       base.requestRender();
     }
   }
@@ -139,6 +169,7 @@ export function useCesiumVectorLayer(base: CesiumBaseReturn) {
     loadVectorLayer,
     flyToVector,
     setVectorLayerVisible,
+    isVectorLayerVisible,
     removeVectorLayer
   };
 }

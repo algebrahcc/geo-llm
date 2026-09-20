@@ -1,4 +1,5 @@
 import { getAuthorization } from '../request/shared';
+import { getRealServiceBaseURL } from '@/utils/service';
 
 /**
  * Dify SSE 流式接口。
@@ -40,7 +41,7 @@ export async function fetchDifyChatStream(
   handlers: DifyChatStreamHandlers,
   signal?: AbortSignal
 ) {
-  const baseURL = import.meta.env.VITE_SERVICE_REAL_BASE_URL || 'http://localhost:8000';
+  const baseURL = getRealServiceBaseURL();
   const url = new URL(`${baseURL}/api/dify/chat/stream`);
 
   const resp = await fetch(url.toString(), {
@@ -154,7 +155,7 @@ export async function fetchDifyWorkflowStream(
   handlers: DifyWorkflowStreamHandlers,
   signal?: AbortSignal
 ) {
-  const baseURL = import.meta.env.VITE_SERVICE_REAL_BASE_URL || 'http://localhost:8000';
+  const baseURL = getRealServiceBaseURL();
   const url = new URL(`${baseURL}/api/dify/workflow/stream`);
 
   const resp = await fetch(url.toString(), {

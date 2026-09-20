@@ -9,6 +9,7 @@ import { loadService, type ServiceLayerHandle } from './service-loader';
 import type { CesiumBaseReturn } from './use-cesium-base';
 import { fetchEnabledDataServices } from '@/service/api/dataservice';
 import { unwrapResponseData } from '@/service/request/envelope';
+import { SERVICE_LOAD_TIMEOUT_MS } from './ports/adapters';
 
 /**
  * 单个服务加载超时（ms）。
@@ -16,8 +17,11 @@ import { unwrapResponseData } from '@/service/request/envelope';
  * 服务地址不可达时，Cesium 的 provider 请求（terrain layer.json / 3DTiles tileset.json）
  * 可能长期挂起而不 reject。若等 await 完成再登记句柄，该条目在图层面板里就会「消失」。
  * 这里用超时兜底把句柄标记为 error，保证列表始终可见且不阻塞后续图层应用。
+ *
+ * 取值来源统一到 `composables/cesium/ports/adapters.ts`（RFC-0001 第 2 步）：
+ * 原先本文件与 use-cesium-base 各写一份 8000，靠注释口头约定一致。
  */
-const LOAD_TIMEOUT_MS = 8000;
+const LOAD_TIMEOUT_MS = SERVICE_LOAD_TIMEOUT_MS;
 
 /**
  * loading 占位句柄：先登记进 handles，加载完成后由 loadService 原地填充。
@@ -38,6 +42,8 @@ function createPlaceholder(s: Api.DataService.DataServiceItem): ServiceLayerHand
     // 初始显隐跟随「启用」状态：enabled=1 默认显示（眼睛亮），
     // enabled=0 默认隐藏（眼睛关，但条目仍保留在面板中，用户可手动点开启用）。
     visible: Number(s.enabled) === 1,
+    // 透明度也在这里记录：loadService 工厂返回时会回放用户意图（见 service-loader 的 proxy 交换）
+    opacity: 1,
     show() {
       this.visible = true;
     },
@@ -45,7 +51,9 @@ function createPlaceholder(s: Api.DataService.DataServiceItem): ServiceLayerHand
       this.visible = false;
     },
     remove() {},
-    setOpacity() {}
+    setOpacity(opacity: number) {
+      this.opacity = opacity;
+    }
   };
   return reactive(placeholder) as ServiceLayerHandle;
 }
@@ -64,6 +72,8 @@ export interface UseCesiumServicesReturn {
   removeService: (id: number) => void;
   /** 显隐切换 */
   toggleService: (id: number, visible: boolean) => void;
+  /** 重新加载失败的服务（图层面板「重试」按钮） */
+  retryService: (id: number) => void;
   /** 透明度（0~1） */
   setOpacity: (id: number, opacity: number) => void;
   /** 影像类互斥切换：显示目标影像，隐藏其余影像 */
@@ -79,6 +89,13 @@ export function useCesiumServices(base: CesiumBaseReturn): UseCesiumServicesRetu
   const loadedIds = new Set<number>();
   /** 已登记占位、但尚未真正加载的服务（懒加载：点眼睛时才 loadService） */
   const pendingLoads = new Map<number, Api.DataService.DataServiceItem>();
+  /**
+   * 服务条目缓存。
+   *
+   * `loadOne` 之后 `pendingLoads` 里那条会被清掉（懒加载已完成），但"重试"仍然
+   * 需要原始条目才能重新发起加载，所以单独留一份。
+   */
+  const serviceItems = new Map<number, Api.DataService.DataServiceItem>();
 
   async function loadOne(
     s: Api.DataService.DataServiceItem,
@@ -95,6 +112,9 @@ export function useCesiumServices(base: CesiumBaseReturn): UseCesiumServicesRetu
     // 等到完成再登记会让该条目在图层面板中迟迟不出现。
     // existing：懒加载场景复用的既有占位句柄（registerIdle 已登记进面板）。
     const placeholder = existing ?? createPlaceholder(s);
+    serviceItems.set(s.id, s);
+    // 面板上的「重试」直接调句柄自身（可选能力，与 flyTo 同一种约定）
+    placeholder.retry = () => retryService(s.id);
     if (!existing) {
       // 不可变更新：push 只触发数组内部 dep，不触发 ref 的 setter，
       // 父组件 computed 无法感知新增，这里整体重赋值以驱动响应式。
@@ -141,7 +161,25 @@ export function useCesiumServices(base: CesiumBaseReturn): UseCesiumServicesRetu
     placeholder.state = 'ready';
     handles.value = [...handles.value, placeholder];
     pendingLoads.set(s.id, s);
+    serviceItems.set(s.id, s);
     return placeholder;
+  }
+
+  /**
+   * 重新加载失败的服务。
+   *
+   * `loadOne` 开头会因 `loadedIds` 直接短路，所以必须先把它清掉，否则"重试"点了没反应。
+   * loading 期间重复点击直接忽略（避免并发重复发起）。
+   */
+  function retryService(id: number): void {
+    const handle = handles.value.find(h => h.id === id);
+    const item = serviceItems.get(id);
+    if (!handle || !item || handle.state === 'loading') return;
+
+    loadedIds.delete(id);
+    handle.error = undefined;
+    handle.state = 'loading';
+    void loadOne(item, handle);
   }
 
   function removeService(id: number): void {
@@ -211,6 +249,7 @@ export function useCesiumServices(base: CesiumBaseReturn): UseCesiumServicesRetu
     handles.value = [];
     loadedIds.clear();
     pendingLoads.clear();
+    serviceItems.clear();
   }
 
   onBeforeUnmount(clear);
@@ -221,6 +260,7 @@ export function useCesiumServices(base: CesiumBaseReturn): UseCesiumServicesRetu
     loadOne,
     removeService,
     toggleService,
+    retryService,
     setOpacity,
     switchImagery,
     reorder,

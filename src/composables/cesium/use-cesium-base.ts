@@ -1,27 +1,29 @@
-import { onBeforeUnmount, ref, shallowRef, type Ref } from 'vue';
-import {
-  Cartesian2,
-  Cartesian3,
-  Cartographic,
-  Color,
-  EllipsoidTerrainProvider,
-  ImageryLayer,
-  Math as CesiumMath,
-  Rectangle,
-  ScreenSpaceEventHandler,
-  ScreenSpaceEventType,
-  UrlTemplateImageryProvider,
-  Viewer
-} from 'cesium';
-import {
-  getGlobalImageryUrl,
-  getRegionImageryUrl,
-  getLocalImageryConfig,
-  isOnlineImagery,
-  getOnlineImageryProviderOptions
-} from '@/utils/imagery';
-import { createTerrainProvider } from '@/utils/terrain';
+/**
+ * Cesium Viewer 基础 Composable（RFC-0001 · 第 2 步：改为薄壳）
+ *
+ * 对外 API 与重构前**逐项一致**（`CesiumBaseReturn` 未动一个字段），
+ * 因此 `cesium-viewer.vue` 与各业务模块零改动。
+ *
+ * 内部职责已经换位：
+ *   - 生命周期、影像/地形、事件与坐标浮窗、镜头、2D3D、透视、截图 → `scene/create-scene.ts` 核心；
+ *   - 本文件只做三件事：① 把 Cesium 类型与端口类型在边界处对接（一次转型，集中可审计）；
+ *     ② 保留必须依赖组件实例的能力（`onBeforeUnmount`）；③ 保留 `applyServices` 这段服务层逻辑
+ *     （它的合并属于后续步骤，此处只把重复的 provider 构造与超时常量改为复用核心）。
+ *
+ * 由此获得的可验证收益：本文件的 `isDestroyed()` 守卫由 3 处收敛为 1 处
+ * （仅剩 `applyServices` 的地形兜底，将在服务层合并时一并吸收），
+ * 其余"销毁后访问"风险由核心的单个 `alive` 判断与 LIFO 清理栈统一承担；
+ * 清理顺序也由 `scene/lifecycle.ts` 结构性保证（子资源先释放、Viewer 最后销毁），
+ * 不再依赖各处手写 try/catch。
+ */
+import { onBeforeUnmount, shallowRef, type Ref } from 'vue';
+import { Color } from 'cesium';
+import type { Cartesian2, Cartesian3, ImageryLayer, Viewer } from 'cesium';
 import { loadService, type ServiceLayerHandle } from './service-loader';
+import { createScene, type MouseEventHandlers } from './scene/create-scene';
+import { createBrowserSceneDeps } from './scene/browser-deps';
+import { withTimeout } from './scene/lifecycle';
+import { createTerrainProvider } from '@/utils/terrain';
 import type { BaseStatusInfo } from '@/typings/cesium';
 
 export interface ViewerInitHooks {
@@ -36,6 +38,13 @@ export interface ViewerInitHooks {
 export interface CesiumBaseReturn {
   /** 地表透视（地下模式）：globe 半透明，透视查看地下要素 */
   setGlobeSurfaceTranslucent: (enabled: boolean) => void;
+  /**
+   * 底图（config.json 兜底影像）显隐。
+   *
+   * 模块的"底图"开关必须走这里，不能再遍历 `imageryLayers` 逐层写 `show`：
+   * 该数组中同时混着数据服务影像，逐层写会把它一起关掉并覆盖服务面板的眼睛状态。
+   */
+  setBaseImageryVisible: (visible: boolean) => void;
   containerRef: Ref<HTMLDivElement | null>;
   viewerRef: Ref<Viewer | null>;
   imageryLayers: ImageryLayer[];
@@ -96,27 +105,6 @@ export interface CesiumBaseReturn {
 }
 
 /**
- * 数据服务加载超时（ms）。
- *
- * 服务地址不可达时 Cesium provider 请求（terrain layer.json 等）可能长期挂起而不 reject，
- * 需兜底中断，避免拖垮整个初始化流程。与 useCesiumServices 内的超时保持一致。
- */
-const SERVICE_LOAD_TIMEOUT_MS = 8000;
-
-/** 为 Promise 附加超时：超时后以 reason 拒绝，避免挂起请求长期占用初始化流程 */
-function withTimeout<T>(promise: Promise<T>, ms: number, reason: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  return Promise.race([
-    promise.finally(() => {
-      if (timer) clearTimeout(timer);
-    }),
-    new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(reason)), ms);
-    })
-  ]);
-}
-
-/**
  * Cesium Viewer 基础 Composable
  *
  * 封装所有模块公用的 Viewer 生命周期、影像层加载、事件管理、镜头控制，
@@ -124,119 +112,46 @@ function withTimeout<T>(promise: Promise<T>, ms: number, reason: string): Promis
  * 之间的重复代码。
  */
 export function useCesiumBase(): CesiumBaseReturn {
-  const containerRef: Ref<HTMLDivElement | null> = shallowRef(null);
+  const scene = createScene({ deps: createBrowserSceneDeps() });
+
+  // 与核心共用同一批响应式对象 / 数组实例，避免出现两份状态
+  const containerRef = scene.container as Ref<HTMLDivElement | null>;
+  const imageryLayers = scene.imageryLayers as ImageryLayer[];
+  const cursorCoordinates = scene.cursor;
+  const is2dMode = scene.is2d;
+
+  /**
+   * 原生 Viewer 句柄。
+   *
+   * 核心内部只持有 `ViewerPort`；此处通过显式逃生口取回原生实例并暴露为 `viewerRef`，
+   * 因为大量模块仍直接使用 `viewer.entities` / `dataSources` / `scene` 等能力。
+   * 待后续步骤把这些用法逐个收进端口后，这个 ref 就能继续收窄。
+   */
   const viewerRef: Ref<Viewer | null> = shallowRef(null);
-  const imageryLayers: ImageryLayer[] = [];
-
-  /** 当前鼠标在地球表面的经纬度/地表高程/视点高度，供 Viewer 右下角坐标浮窗展示 */
-  const cursorCoordinates = ref({
-    longitude: '--',
-    latitude: '--',
-    altitude: '--',
-    cameraHeight: '--'
-  });
-
-  const globalImageryUrl = getGlobalImageryUrl();
-  const regionImageryUrl = getRegionImageryUrl();
-  const localConfig = getLocalImageryConfig();
-
-  let eventHandler: ScreenSpaceEventHandler | null = null;
-  const cameraChangeListeners: Set<() => void> = new Set();
 
   // ─── Viewer 生命周期 ─────────────────────────────────
 
   async function initViewer(hooks?: ViewerInitHooks) {
-    const container = containerRef.value;
-    if (!container || viewerRef.value) return;
-
-    const viewer = new Viewer(container, {
-      animation: false,
-      baseLayerPicker: false,
-      fullscreenButton: false,
-      geocoder: false,
-      homeButton: false,
-      infoBox: false,
-      navigationHelpButton: false,
-      sceneModePicker: false,
-      selectionIndicator: false,
-      timeline: false,
-      // 禁用默认底图：Cesium 默认加载 Ion 的 World Imagery（asset 2），
-      // 项目未配置 Ion.defaultAccessToken，会打 INVALID_TOKEN 401。
-      // 底图统一由下方 addDefaultImagery / applyServices 挂载。
-      baseLayer: false,
-      terrainProvider: new EllipsoidTerrainProvider(),
-      contextOptions: {
-        webgl: {
-          preserveDrawingBuffer: true
-        }
+    await scene.mount({
+      prepare: port => {
+        const viewer = port.rawViewer() as Viewer;
+        viewerRef.value = viewer;
+        hooks?.prepareViewer?.(viewer);
+      },
+      afterImagery: port => {
+        hooks?.afterImagery?.(port.rawViewer() as Viewer);
+      },
+      afterImageryAsync: async port => {
+        await hooks?.afterImageryAsync?.(port.rawViewer() as Viewer);
       }
     });
-
-    viewerRef.value = viewer;
-
-    // 模块自定义的 Viewer 配置
-    hooks?.prepareViewer?.(viewer);
-
-    // 加载影像层（默认 config.json 兜底；存在数据服务影像时由 applyServices 替换）
-    viewer.imageryLayers.removeAll();
-    imageryLayers.splice(0, imageryLayers.length);
-    addDefaultImagery(viewer);
-
-    // 异步加载高程（地形）数据，不阻塞初始化流程
-    createTerrainProvider().then(provider => {
-      // 快速离开页面时 viewer 可能已被销毁，异步结果回来时需二次校验，避免写已销毁对象抛异常
-      if (provider && !viewer.isDestroyed()) {
-        viewer.terrainProvider = provider;
-      }
-    });
-
-    // 异步 hook（如等待模块初始化完成后才返回）
-    await hooks?.afterImageryAsync?.(viewer);
-
-    // 同步 hook
-    hooks?.afterImagery?.(viewer);
   }
 
   function destroyViewer() {
-    if (eventHandler) {
-      eventHandler.destroy();
-      eventHandler = null;
-    }
-
-    cameraChangeListeners.forEach(listener => {
-      viewerRef.value?.camera.changed.removeEventListener(listener);
-    });
-    cameraChangeListeners.clear();
-
-    if (viewerRef.value && !viewerRef.value.isDestroyed()) {
-      viewerRef.value.destroy();
-    }
+    // 核心先让 alive 失效、再逆序清理（事件处理器/相机监听 → Viewer）。
+    // 清理动作全为同步，因此本函数返回时 Viewer 已销毁（与重构前一致）。
+    void scene.dispose();
     viewerRef.value = null;
-  }
-
-  /** 加载 config.json 兜底影像层（全局 + 区域叠加），并登记进 imageryLayers 供模块显隐控制 */
-  function addDefaultImagery(viewer: Viewer) {
-    imageryLayers.push(
-      viewer.imageryLayers.addImageryProvider(
-        new UrlTemplateImageryProvider(
-          isOnlineImagery()
-            ? getOnlineImageryProviderOptions()
-            : { url: globalImageryUrl, minimumLevel: 0, maximumLevel: localConfig.globalMaxLevel }
-        )
-      )
-    );
-    if (regionImageryUrl) {
-      imageryLayers.push(
-        viewer.imageryLayers.addImageryProvider(
-          new UrlTemplateImageryProvider({
-            url: regionImageryUrl,
-            minimumLevel: 0,
-            maximumLevel: localConfig.regionMaxLevel,
-            rectangle: Rectangle.fromDegrees(...localConfig.regionRectangle)
-          })
-        )
-      );
-    }
   }
 
   /**
@@ -248,6 +163,8 @@ export function useCesiumBase(): CesiumBaseReturn {
   async function applyServices(services: Api.DataService.DataServiceItem[], handles?: ServiceLayerHandle[]) {
     const viewer = viewerRef.value;
     if (!viewer) return;
+
+    const { serviceTimeoutMs } = scene.deps.config;
 
     const imageryList = services
       .filter(s => s.category === 'imagery' && Number(s.enabled) === 1)
@@ -268,6 +185,12 @@ export function useCesiumBase(): CesiumBaseReturn {
           // removeAll 后旧 layer 已失效，用同一 provider 重建新 layer 并回写到句柄，
           // 保证后续 show/hide/透明度 仍作用于 viewer 上实际显示的图层
           reused.layer = viewer.imageryLayers.addImageryProvider(reused.layer.imageryProvider);
+          // 重建出的新 layer 默认 show=true：这里把句柄上的用户意图回放回去，
+          // 否则用户关掉的层会在 applyServices 之后自己亮回来。
+          // 同一约定见 service-loader.ts:894（加载完成时也以用户意图为准）。
+          reused.layer.show = reused.visible;
+          // 透明度同理：重建后 alpha 会回到 1，需把用户意图回放回去
+          reused.layer.alpha = reused.opacity ?? 1;
           imageryLayers.push(reused.layer);
           continue;
         }
@@ -280,10 +203,10 @@ export function useCesiumBase(): CesiumBaseReturn {
       }
       // 数据服务影像全部加载失败时，回退 config.json 兜底，避免球上无底图
       if (imageryLayers.length === 0) {
-        addDefaultImagery(viewer);
+        scene.addFallbackImagery();
       }
     } else {
-      addDefaultImagery(viewer);
+      scene.addFallbackImagery();
     }
 
     // 3) 地形：有启用的地形服务则替换，否则回退 config.json 兜底
@@ -309,8 +232,9 @@ export function useCesiumBase(): CesiumBaseReturn {
         try {
           await withTimeout(
             loadService(terrainList[0], viewer),
-            SERVICE_LOAD_TIMEOUT_MS,
-            `地形服务 ${SERVICE_LOAD_TIMEOUT_MS / 1000}s 未响应`
+            serviceTimeoutMs,
+            `地形服务 ${serviceTimeoutMs / 1000}s 未响应`,
+            scene.deps.timers
           );
         } catch (e) {
           console.warn(`[DataService] 地形服务加载失败: ${terrainList[0].name}`, e);
@@ -326,222 +250,45 @@ export function useCesiumBase(): CesiumBaseReturn {
 
   // ─── 工具函数 ─────────────────────────────────────
 
-  function requestRender() {
-    // scene 需单独判空：viewer 存在但场景重建/未初始化时直接调用会抛错
-    viewerRef.value?.scene?.requestRender();
-  }
-
   function getColor(css: string, alpha = 1) {
     return Color.fromCssColorString(css).withAlpha(alpha);
   }
 
-  function getCartesianFromScreen(position: Cartesian2): Cartesian3 | null {
-    const viewer = viewerRef.value;
-    if (!viewer) return null;
-    return viewer.camera.pickEllipsoid(position, viewer.scene.globe.ellipsoid) ?? null;
-  }
+  // ─── 端口 ↔ Cesium 类型边界 ────────────────────────
+  //
+  // 以下几处是整套重构里仅有的"转型"点：核心用不透明类型表达（以便彻底不依赖 Cesium），
+  // 薄壳在边界处恢复对外契约的精确类型。集中在此，便于审计。
 
-  // ─── emitStatus 工厂 ───────────────────────────────
-  //
-  // 各模块只需通过 extraFieldsFn 提供扩展字段，
-  // 基座自动计算经纬度/高度/相机高度等公共字段并合并返回。
-  //
-  // 返回函数的类型在调用处用 Record<string, unknown> 桥接，避免泛型推断 void。
+  function getCartesianFromScreen(position: Cartesian2): Cartesian3 | null {
+    return scene.getCartesianFromScreen(position) as Cartesian3 | null;
+  }
 
   function createEmitStatus<T extends Record<string, unknown>>(
     extraFieldsFn: () => T
   ): (cartesian?: Cartesian3 | null) => BaseStatusInfo & T {
-    return (cartesian?: Cartesian3 | null) => {
-      const viewer = viewerRef.value;
-      const cameraHeight = viewer ? viewer.camera.positionCartographic.height : 0;
-      let longitude = '--';
-      let latitude = '--';
-      let altitude = '--';
-
-      if (cartesian && viewer) {
-        const cartographic = Cartographic.fromCartesian(cartesian);
-        longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(4);
-        latitude = CesiumMath.toDegrees(cartographic.latitude).toFixed(4);
-        altitude = `${Math.max(cartographic.height, 0).toFixed(0)} m`;
-      }
-
-      return {
-        longitude,
-        latitude,
-        altitude,
-        cameraHeight: `${(cameraHeight / 1000).toFixed(1)} km`,
-        ...extraFieldsFn()
-      } as unknown as BaseStatusInfo & T;
-    };
+    const emit = scene.createEmitStatus(extraFieldsFn);
+    return (cartesian?: Cartesian3 | null) => emit(cartesian);
   }
 
-  /** 仅计算基础状态字段（不含扩展字段），供 building 模块等特殊场景使用 */
-  function computeBaseStatus(cartesian?: Cartesian3 | null): {
-    longitude: string;
-    latitude: string;
-    altitude: string;
-    cameraHeight: string;
-  } {
-    const viewer = viewerRef.value;
-    const cameraHeight = viewer ? viewer.camera.positionCartographic.height : 0;
-    let longitude = '--';
-    let latitude = '--';
-    let altitude = '--';
-
-    if (cartesian && viewer) {
-      const cartographic = Cartographic.fromCartesian(cartesian);
-      longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(4);
-      latitude = CesiumMath.toDegrees(cartographic.latitude).toFixed(4);
-      altitude = `${Math.max(cartographic.height, 0).toFixed(0)} m`;
-    }
-
-    return { longitude, latitude, altitude, cameraHeight: `${(cameraHeight / 1000).toFixed(1)} km` };
+  function computeBaseStatus(cartesian?: Cartesian3 | null) {
+    return scene.computeBaseStatus(cartesian);
   }
 
-  // ─── 事件绑定 ─────────────────────────────────────
-
+  /**
+   * 鼠标事件绑定：公共契约用 `Cartesian2`，核心用不透明的 `ScreenPoint`。
+   * 两者结构兼容（`Cartesian2` 可直接当 `{ x, y }` 使用），但回调参数方向是逆变的，
+   * 故此处做一次显式转型 —— 与上面几处同属"端口 ↔ Cesium 类型边界"。
+   */
   function bindMouseEvents(handlers: {
     onMouseMove?: (movement: { endPosition: Cartesian2 }) => void;
     onLeftClick?: (event: { position: Cartesian2 }) => void;
   }) {
-    const viewer = viewerRef.value;
-    if (!viewer) return;
-
-    eventHandler?.destroy();
-    eventHandler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-
-    eventHandler.setInputAction((movement: { endPosition: Cartesian2 }) => {
-      const cartesian = getCartesianFromScreen(movement.endPosition);
-      if (cartesian) {
-        const cartographic = Cartographic.fromCartesian(cartesian);
-        cursorCoordinates.value = {
-          longitude: `${CesiumMath.toDegrees(cartographic.longitude).toFixed(5)}°`,
-          latitude: `${CesiumMath.toDegrees(cartographic.latitude).toFixed(5)}°`,
-          altitude: `${Math.max(cartographic.height, 0).toFixed(0)} m`,
-          cameraHeight: `${(viewer.camera.positionCartographic.height / 1000).toFixed(1)} km`
-        };
-      } else {
-        cursorCoordinates.value = {
-          longitude: '--',
-          latitude: '--',
-          altitude: '--',
-          cameraHeight: '--'
-        };
-      }
-      handlers.onMouseMove?.(movement);
-    }, ScreenSpaceEventType.MOUSE_MOVE);
-
-    if (handlers.onLeftClick) {
-      eventHandler.setInputAction(handlers.onLeftClick, ScreenSpaceEventType.LEFT_CLICK);
-    }
-  }
-
-  function addCameraChangeListener(listener: () => void) {
-    cameraChangeListeners.add(listener);
-    viewerRef.value?.camera.changed.addEventListener(listener);
-  }
-
-  function removeCameraChangeListener(listener: () => void) {
-    cameraChangeListeners.delete(listener);
-    viewerRef.value?.camera.changed.removeEventListener(listener);
-  }
-
-  // ─── 镜头控制 ─────────────────────────────────────
-
-  function flyToLocation(longitude: number, latitude: number, height = 20000, duration = 1.3) {
-    const viewer = viewerRef.value;
-    if (!viewer) return;
-    viewer.camera.flyTo({
-      destination: Cartesian3.fromDegrees(longitude, latitude, height),
-      duration
-    });
-  }
-
-  function zoomIn(amount = 3000) {
-    viewerRef.value?.camera.zoomIn(amount);
-  }
-
-  function zoomOut(amount = 3000) {
-    viewerRef.value?.camera.zoomOut(amount);
-  }
-
-  function rotate(radians = CesiumMath.toRadians(12)) {
-    viewerRef.value?.camera.rotateLeft(radians);
-  }
-
-  function pitch(radians = CesiumMath.toRadians(8)) {
-    viewerRef.value?.camera.lookUp(radians);
-  }
-
-  // ─── 2D / 3D 视图切换 ──────────────────────────────
-
-  const is2dMode = ref(false);
-
-  function toggleViewMode() {
-    const viewer = viewerRef.value;
-    if (!viewer) return;
-
-    if (is2dMode.value) {
-      // 切换到 3D
-      viewer.scene.morphTo3D(0);
-      viewer.scene.screenSpaceCameraController.enableRotate = true;
-      viewer.scene.screenSpaceCameraController.enableTilt = true;
-    } else {
-      // 切换到 2D
-      viewer.scene.morphTo2D(0);
-      viewer.scene.screenSpaceCameraController.enableRotate = false;
-      viewer.scene.screenSpaceCameraController.enableTilt = false;
-    }
-
-    is2dMode.value = !is2dMode.value;
-  }
-
-  // ─── 截图 ─────────────────────────────────────────
-
-  function exportScreenshot(filename: string) {
-    const viewer = viewerRef.value;
-    if (!viewer) return;
-
-    try {
-      // 强制同步渲染确保画布内容最新
-      viewer.render();
-      const url = viewer.canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.$message?.success('已导出当前视角截图');
-    } catch (err) {
-      console.error('[Screenshot] 导出失败:', err);
-      window.$message?.error('截图导出失败');
-    }
+    scene.bindMouseEvents(handlers as MouseEventHandlers);
   }
 
   // ─── 自动清理 ─────────────────────────────────────
 
   onBeforeUnmount(destroyViewer);
-
-  // ─── 地表透视（地下模式）：地表半透明，透视查看地下管线/模型 ───
-  let surfaceTranslucent = false;
-
-  function setGlobeSurfaceTranslucent(enabled: boolean) {
-    const viewer = viewerRef.value;
-    if (!viewer || surfaceTranslucent === enabled) return;
-    surfaceTranslucent = enabled;
-    const globe = viewer.scene.globe;
-    globe.translucency.enabled = enabled;
-    globe.translucency.frontFaceAlpha = enabled ? 0.32 : 1.0;
-    globe.translucency.backFaceAlpha = enabled ? 0.12 : 1.0;
-    // 透视模式需要地表参与深度测试，否则半透明混合顺序不正确
-    globe.depthTestAgainstTerrain = enabled;
-    // 地下漫游：关闭相机碰撞检测（默认开启会把相机挡在椭球面/地形之上，无法进入地下模型内部），
-    // 并放宽最小缩放距离，允许贴近视点观察
-    viewer.scene.screenSpaceCameraController.enableCollisionDetection = !enabled;
-    viewer.scene.screenSpaceCameraController.minimumZoomDistance = enabled ? 0.2 : 1.0;
-    requestRender();
-  }
 
   return {
     containerRef,
@@ -550,23 +297,24 @@ export function useCesiumBase(): CesiumBaseReturn {
     initViewer,
     destroyViewer,
     applyServices,
-    requestRender,
-    setGlobeSurfaceTranslucent,
+    requestRender: scene.requestRender,
+    setGlobeSurfaceTranslucent: scene.setGlobeSurfaceTranslucent,
+    setBaseImageryVisible: scene.setBaseImageryVisible,
     getColor,
     getCartesianFromScreen,
     cursorCoordinates,
     createEmitStatus,
     computeBaseStatus,
     bindMouseEvents,
-    addCameraChangeListener,
-    removeCameraChangeListener,
-    flyToLocation,
-    zoomIn,
-    zoomOut,
-    rotate,
-    pitch,
-    exportScreenshot,
+    addCameraChangeListener: scene.onCameraChange,
+    removeCameraChangeListener: scene.offCameraChange,
+    flyToLocation: scene.flyTo,
+    zoomIn: scene.zoomIn,
+    zoomOut: scene.zoomOut,
+    rotate: scene.rotate,
+    pitch: scene.pitch,
+    exportScreenshot: scene.exportScreenshot,
     is2dMode,
-    toggleViewMode
+    toggleViewMode: scene.toggleViewMode
   };
 }

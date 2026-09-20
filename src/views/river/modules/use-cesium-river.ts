@@ -229,10 +229,10 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
   // ─── 底图 layerVisibility 同步 ─────────────────────
 
   function syncLayerVisibility() {
-    const { imageryLayers } = base;
-    imageryLayers.forEach(layer => {
-      layer.show = layerVisibility.imagery;
-    });
+    // 底图显隐走基座的显隐真相：此前是遍历 base.imageryLayers 逐层写 show，
+    // 而该数组里混着数据服务影像 —— 关底图会把服务影像一起关掉，
+    // 并覆盖服务面板的眼睛状态（RFC-0001 第 3 步）。
+    base.setBaseImageryVisible(layerVisibility.imagery);
     planEntities.route.forEach(e => {
       e.show = layerVisibility.imagery;
     });

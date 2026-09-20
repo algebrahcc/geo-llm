@@ -86,3 +86,18 @@ function createProxyPattern(key?: App.Service.OtherBaseURLKey) {
 
   return `/proxy-${key}`;
 }
+
+/**
+ * 真实后端 Base URL（登录、系统管理、AI 流式、瓦片、导出等都用它）
+ *
+ * 读取顺序：运行时配置（dist/config.json → window.__APP_CONFIG__）> 构建时 .env > 内置默认值。
+ * 换机器部署时只改 config.json 即可，无需重新打包。
+ *
+ * 注意：所有需要后端地址的地方都应从这里取。若某个模块只读 import.meta.env，
+ * 它会被固定到打包机器上的地址（例如 http://localhost:8000），在新机器上必然失败。
+ */
+export function getRealServiceBaseURL() {
+  // eslint-disable-next-line no-underscore-dangle
+  const runtime = typeof window !== 'undefined' ? window.__APP_CONFIG__ : undefined;
+  return runtime?.VITE_SERVICE_REAL_BASE_URL || import.meta.env.VITE_SERVICE_REAL_BASE_URL || 'http://localhost:8000';
+}
