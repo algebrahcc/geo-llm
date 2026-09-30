@@ -15,7 +15,7 @@
  */
 import { ref } from 'vue';
 import { planningRouteA1Traffic, planningRouteTraffic } from '@/mock/planning';
-import type { PlanningRouteKey } from './types';
+import type { PlanningRouteKey, PlotMarkerKind } from './types';
 
 /** 推演上下文：由调用方按需提供最新任务要素 */
 export interface RouteSituationContext {
@@ -33,9 +33,15 @@ export interface RouteSituationPlot {
   lon: number;
   lat: number;
   label: string;
-  color: string;
-  /** 阻断事件使用红色叉号，普通标绘仍使用点标记。 */
-  marker?: 'point' | 'cross';
+  /**
+   * 事件标绘的图标类型。
+   *
+   * 设了它就画图标（颜色由图标自带，见 marker-icons.ts）；不设则是普通点名标绘，
+   * 用 `color` 画点标记 —— 两处颜色真相不会打架。
+   */
+  kind?: PlotMarkerKind;
+  /** 仅普通点名标绘使用（图标标绘的颜色由图标决定） */
+  color?: string;
 }
 
 /** 单轮问答的产出 */
@@ -128,6 +134,38 @@ const EVENT_KEYWORDS = [
   '堵了',
   '毁了'
 ];
+
+/** 图标类型的中文名（只用于回复文案；图形本身由 marker-icons.ts 画） */
+const MARKER_KIND_LABEL: Record<PlotMarkerKind, string> = {
+  'bridge-broken': '断桥',
+  'road-closed': '道路中断',
+  obstacle: '障碍',
+  rubble: '损毁',
+  sinkhole: '塌陷',
+  congestion: '拥堵'
+};
+
+/**
+ * 事件词 + 地物 → 标绘图标类型。
+ *
+ * 纯函数，刻意放在本模块：事件词表在这里，图标怎么画在 marker-icons.ts，
+ * 这里只做"词 → 类型"的判断，因此可以在 node 里直接测（不碰 canvas）。
+ * 判断顺序即优先级：先按地物（桥）定性，再按事件词分类。
+ */
+function markerKindFor(eventWord: string, placeLabel: string): PlotMarkerKind {
+  // 桥类地物出了结构性状况一律用断桥图标 —— 图上"桥断"与"路断"必须一眼分开
+  const isBridge = /桥/.test(placeLabel);
+  if (isBridge && /断裂|断开|断了|中断|坍塌|塌方|塌陷|塌了|损毁|被炸|炸了|毁了/.test(eventWord)) {
+    return 'bridge-broken';
+  }
+  if (/被炸|损毁|炸了|毁了|瓦砾/.test(eventWord)) return 'rubble';
+  if (/坍塌|塌方|塌陷|塌了/.test(eventWord)) return 'sinkhole';
+  if (/断裂|断开|断了|中断/.test(eventWord)) return 'road-closed';
+  if (/拥堵|堵车|塞车|缓行|堵了/.test(eventWord)) return 'congestion';
+  if (/积水|障碍|路障/.test(eventWord)) return 'obstacle';
+  // 其余（封闭/禁行/封锁/管制等）统一按通行受阻处理
+  return 'road-closed';
+}
 
 /** 重新规划指令 */
 const GENERATE_INTENT = /(重新|再次|拟制|重排|制定|给出|输出|生成).{0,6}(路线|方案|规划|计划)/;
@@ -329,12 +367,13 @@ export function createRouteSituationEngine(getCtx: () => RouteSituationContext) 
         activeEvents.value.push({ place: place.label, routes: newly });
       }
       const remaining = remainingRoutes();
+      const kind = markerKindFor(eventWord, place.label);
       let eventAnswer: string;
       if (newlyDetoured.length) {
         activeEvents.value.push({ place: place.label, routes: newlyDetoured });
-        eventAnswer = `收到。${place.label}发生${eventWord}，已在图上用红色叉号标记为不通行。\n\n路线一不再经过该桥，已自动切换为 A1 应急绕行线。新路线约 29.9 公里、预计 40 分钟，平均通行速度约 43 km/h，介于原路线一与路线二之间；路线一仍保留为推荐候选。`;
+        eventAnswer = `收到。${place.label}发生${eventWord}，已在图上用${MARKER_KIND_LABEL[kind]}图标标记为不通行。\n\n路线一不再经过该桥，已自动切换为 A1 应急绕行线。新路线约 29.9 公里、预计 40 分钟，平均通行速度约 43 km/h，介于原路线一与路线二之间；路线一仍保留为推荐候选。`;
       } else if (place.detourRoute && detouredRoutes.value.includes(place.detourRoute)) {
-        eventAnswer = `${place.label}中断情况此前已记录，图上红色叉号保持显示；路线一当前已使用 A1 应急绕行线，无需屏蔽。`;
+        eventAnswer = `${place.label}中断情况此前已记录，图上${MARKER_KIND_LABEL[kind]}图标保持显示；路线一当前已使用 A1 应急绕行线，无需屏蔽。`;
       } else if (newly.length) {
         eventAnswer = `收到。${place.label}发生${eventWord}，位置已标到图上。\n\n该处位于${newly.map(r => ROUTE_LABEL[r]).join('、')}的实际经过段，这部分路线暂时走不了。剩余可选：${remaining.length ? remaining.map(r => ROUTE_LABEL[r]).join('、') : '无'}。需要重新排方案时，输入"重新规划路线"。`;
       } else if (place.routes.length === 0) {
@@ -350,8 +389,7 @@ export function createRouteSituationEngine(getCtx: () => RouteSituationContext) 
           lon: place.lon,
           lat: place.lat,
           label: `${place.label}·${eventWord}`,
-          color: '#f87171',
-          marker: 'cross'
+          kind
         },
         detoured: newlyDetoured,
         answer: eventAnswer

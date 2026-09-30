@@ -44,80 +44,81 @@ const r = computed(() => {
   const w = windowWidth.value;
   if (w >= 1920) {
     return {
-      axis: 12,
-      legend: 12,
-      label: 11,
-      markLabel: 10,
+      // 面向 30–50 岁、远距离观看：所有档位都以 12px 为硬下限
+      axis: 14,
+      legend: 14,
+      label: 13,
+      markLabel: 12,
       barW: 30,
       barMax: 40,
-      wcMin: 13,
-      wcMax: 32,
-      donutNum: 28,
+      wcMin: 15,
+      wcMax: 34,
+      donutNum: 30,
       radarR: '70%',
-      aiLabel: 13,
+      aiLabel: 14,
       aiLabelOffset: [6, 0]
     };
   }
   if (w >= 1440) {
     return {
-      axis: 10,
-      legend: 11,
-      label: 10,
-      markLabel: 9,
+      axis: 13,
+      legend: 13,
+      label: 12,
+      markLabel: 11,
       barW: 22,
       barMax: 32,
-      wcMin: 11,
-      wcMax: 26,
-      donutNum: 22,
+      wcMin: 13,
+      wcMax: 28,
+      donutNum: 24,
       radarR: '66%',
-      aiLabel: 12,
+      aiLabel: 13,
       aiLabelOffset: [4, 0]
     };
   }
   if (w >= 1280) {
     return {
-      axis: 10,
-      legend: 10,
-      label: 9,
-      markLabel: 9,
+      axis: 12,
+      legend: 12,
+      label: 12,
+      markLabel: 11,
       barW: 20,
       barMax: 28,
-      wcMin: 10,
-      wcMax: 22,
-      donutNum: 20,
+      wcMin: 12,
+      wcMax: 24,
+      donutNum: 22,
       radarR: '64%',
-      aiLabel: 11,
+      aiLabel: 12,
       aiLabelOffset: [3, 0]
     };
   }
   if (w >= 1100) {
     return {
-      axis: 9,
-      legend: 9,
-      label: 9,
-      markLabel: 8,
+      axis: 12,
+      legend: 12,
+      label: 12,
+      markLabel: 11,
       barW: 18,
       barMax: 24,
-      wcMin: 9,
-      wcMax: 20,
-      donutNum: 18,
+      wcMin: 12,
+      wcMax: 22,
+      donutNum: 20,
       radarR: '60%',
-      aiLabel: 10,
+      aiLabel: 12,
       aiLabelOffset: [2, 0]
     };
   }
   return {
-    axis: 9,
-    legend: 9,
-    label: 8,
-    markLabel: 8,
+    axis: 12,
+    legend: 12,
+    label: 12,
+    markLabel: 11,
     barW: 14,
     barMax: 20,
-    wcMin: 8,
-    wcMax: 18,
-    donutNum: 16,
+    wcMin: 12,
+    wcMax: 20,
+    donutNum: 18,
     radarR: '56%',
-    aiLabel: 10,
+    aiLabel: 12,
     aiLabelOffset: [2, 0]
   };
 });
@@ -152,12 +153,12 @@ const chartTheme = computed(() => {
       tooltipBg: 'rgba(255, 255, 255, 0.96)',
       tooltipBorder: 'rgba(37, 99, 235, 0.25)',
       tooltipText: '#0f172a',
-      legendText: 'rgba(30, 41, 59, 0.78)',
-      legendTextDim: 'rgba(30, 41, 59, 0.68)',
-      legendTextFaint: 'rgba(51, 65, 85, 0.6)',
-      axisLine: 'rgba(37, 99, 235, 0.22)',
-      axisLabel: 'rgba(51, 65, 85, 0.72)',
-      axisLabelDim: 'rgba(51, 65, 85, 0.6)',
+      legendText: 'rgba(30, 41, 59, 0.86)',
+      legendTextDim: 'rgba(30, 41, 59, 0.78)',
+      legendTextFaint: 'rgba(51, 65, 85, 0.72)',
+      axisLine: 'rgba(37, 99, 235, 0.28)',
+      axisLabel: 'rgba(51, 65, 85, 0.82)',
+      axisLabelDim: 'rgba(51, 65, 85, 0.74)',
       splitLine: 'rgba(37, 99, 235, 0.12)',
       textPrimary: '#0f172a',
       pieBorder: 'rgba(255, 255, 255, 0.9)',
@@ -174,7 +175,7 @@ const chartTheme = computed(() => {
         'rgba(37, 99, 235, 0.06)',
         'rgba(37, 99, 235, 0.03)'
       ],
-      textFaint: 'rgba(51, 65, 85, 0.68)',
+      textFaint: 'rgba(51, 65, 85, 0.8)',
       textSoft: 'rgba(30, 41, 59, 0.88)'
     };
   }
@@ -182,12 +183,12 @@ const chartTheme = computed(() => {
     tooltipBg: 'rgba(6, 20, 40, 0.92)',
     tooltipBorder: 'rgba(41, 182, 255, 0.25)',
     tooltipText: '#e0f0ff',
-    legendText: 'rgba(180, 210, 240, 0.72)',
-    legendTextDim: 'rgba(180, 210, 240, 0.65)',
-    legendTextFaint: 'rgba(180, 210, 240, 0.55)',
-    axisLine: 'rgba(60, 130, 200, 0.2)',
-    axisLabel: 'rgba(160, 195, 235, 0.55)',
-    axisLabelDim: 'rgba(160, 195, 235, 0.45)',
+    legendText: 'rgba(196, 222, 250, 0.88)',
+    legendTextDim: 'rgba(196, 222, 250, 0.8)',
+    legendTextFaint: 'rgba(196, 222, 250, 0.72)',
+    axisLine: 'rgba(60, 130, 200, 0.28)',
+    axisLabel: 'rgba(178, 208, 244, 0.78)',
+    axisLabelDim: 'rgba(178, 208, 244, 0.7)',
     splitLine: 'rgba(60, 130, 200, 0.1)',
     textPrimary: '#e4f2ff',
     pieBorder: 'rgba(4, 16, 32, 0.85)',
@@ -204,7 +205,7 @@ const chartTheme = computed(() => {
       'rgba(30, 70, 130, 0.06)',
       'rgba(30, 70, 130, 0.03)'
     ],
-    textFaint: 'rgba(170, 200, 240, 0.68)',
+    textFaint: 'rgba(178, 208, 244, 0.8)',
     textSoft: 'rgba(228, 242, 255, 0.85)'
   };
 });
@@ -222,9 +223,14 @@ const { domRef: taskDistributionDomRef, updateOptions: updateTaskDist } = useEch
   legend: {
     bottom: 4,
     left: 'center',
-    itemWidth: 10,
-    itemHeight: 10,
-    itemGap: 14,
+    itemWidth: 12,
+    itemHeight: 12,
+    itemGap: 16,
+    // 大屏常是"挂着看"的：数值不能只能靠 hover 提示，写进图例一起显示
+    formatter: name => {
+      const item = screenTaskDistribution.find(d => d.name === name);
+      return item ? `${name} ${item.value}` : name;
+    },
     textStyle: { color: chartTheme.value.legendText, fontSize: r.value.legend }
   },
   series: [
@@ -409,7 +415,8 @@ const { domRef: hotKeywordsDomRef, updateOptions: updateHotKeywords } = useEchar
           type: 'wordCloud',
           sizeRange: [r.value.wcMin, r.value.wcMax],
           rotationRange: [0, 0],
-          gridSize: 5,
+          // 字号整体上调后，词间距同步放宽，避免小词被挤成一片
+          gridSize: 6,
           drawOutOfBound: false,
           layoutAnimation: true,
           textStyle: {
@@ -465,7 +472,8 @@ const { domRef: aiRankDomRef, updateOptions: updateAiRank } = useEcharts(() => (
     axisLabel: {
       color: chartTheme.value.legendText,
       fontSize: r.value.legend,
-      width: 90,
+      // 字号上调后名称需要更宽的列，否则排行项名字会被截断
+      width: 112,
       overflow: 'truncate',
       ellipsis: '...'
     }
@@ -522,11 +530,15 @@ const { domRef: bottomDistDomRef, updateOptions: updateBottomDist } = useEcharts
     orient: 'vertical',
     left: 'left',
     top: 'center',
-    itemWidth: 9,
-    itemHeight: 9,
-    itemGap: 10,
-    textStyle: { color: chartTheme.value.legendTextDim, fontSize: r.value.legend },
-    formatter: name => `${name}  `
+    itemWidth: 12,
+    itemHeight: 12,
+    itemGap: 12,
+    // 同上：数值直接写进图例（该饼图数值单位是 TB）
+    formatter: name => {
+      const item = screenDataTypeDistribution.find(d => d.name === name);
+      return item ? `${name} ${item.value}TB` : name;
+    },
+    textStyle: { color: chartTheme.value.legendTextDim, fontSize: r.value.legend }
   },
   series: [
     {
@@ -705,20 +717,6 @@ watch(() => widthBucket(windowWidth.value), refreshAllCharts);
 watch(() => themeStore.darkMode, refreshAllCharts);
 </script>
 
-<script lang="ts">
-function getKpiIcon(key: string): string {
-  const map: Record<string, string> = {
-    taskTotal: 'mdi:clipboard-list-outline',
-    taskOnline: 'mdi:refresh-circle',
-    taskDone: 'mdi:check-circle-outline',
-    aiCalls: 'mdi:brain',
-    users: 'mdi:account-group-outline',
-    dataVolume: 'mdi:database-outline'
-  };
-  return map[key] || 'mdi:information-outline';
-}
-</script>
-
 <template>
   <div class="screen-dashboard">
     <!-- Background layers -->
@@ -768,18 +766,14 @@ function getKpiIcon(key: string): string {
         <!-- Top KPI Bar -->
         <div class="kpi-bar">
           <div v-for="kpi in screenKpis" :key="kpi.key" class="kpi-item">
-            <div class="kpi-item__icon-wrap" :class="'kpi-icon--' + kpi.key">
-              <SvgIcon :icon="getKpiIcon(kpi.key)" />
-            </div>
+            <!-- 不放图标：数字才是主角；图标既挤占宽度（导致标签被截断），也不是翻牌器该有的元素 -->
             <div class="kpi-item__info">
               <div class="kpi-item__label">{{ kpi.label }}</div>
+              <!-- 单位与数值同行（基线对齐）：此前单位是独立块，必然另起一行 -->
               <div class="kpi-item__val-row">
                 <span class="kpi-item__value">{{ kpi.value }}</span>
-                <span v-if="kpi.delta !== undefined" class="kpi-item__delta" :class="{ down: kpi.delta < 0 }">
-                  {{ kpi.delta > 0 ? '+' : '' }}{{ kpi.delta }}
-                </span>
+                <span v-if="kpi.unit" class="kpi-item__unit">{{ kpi.unit }}</span>
               </div>
-              <div v-if="kpi.unit" class="kpi-item__unit">{{ kpi.unit }}</div>
             </div>
           </div>
         </div>
@@ -908,11 +902,13 @@ function getKpiIcon(key: string): string {
   --sd-tab-active-bg: rgba(41, 182, 255, 0.15);
   --sd-tab-active-border: rgba(41, 182, 255, 0.25);
 
-  /* ---- 文字 ---- */
+  /* ---- 文字 ----
+     大屏是远距离观看的：原先弱化档只有 50% 不透明度，在深色底上远看几乎糊成一片。
+     这里只提不透明度（色相不动），KPI 标签/单位、通知时间、场景切换等一并受益。 */
   --sd-text-primary: #e4f2ff;
-  --sd-text-secondary: rgba(175, 208, 245, 0.72);
-  --sd-text-muted: rgba(135, 178, 230, 0.5);
-  --sd-text-hover: rgba(175, 208, 245, 0.8);
+  --sd-text-secondary: rgba(175, 208, 245, 0.78);
+  --sd-text-muted: rgba(148, 190, 238, 0.68);
+  --sd-text-hover: rgba(175, 208, 245, 0.86);
 
   /* ---- 强调色 ---- */
   --sd-accent-blue: #4a7dbd;
@@ -924,19 +920,14 @@ function getKpiIcon(key: string): string {
   /* ---- KPI ---- */
   --sd-kpi-shadow: rgba(0, 0, 0, 0.15);
   --sd-kpi-shadow-hover: rgba(0, 0, 0, 0.2);
-  --sd-kpi-icon-bg-top: rgba(15, 40, 75, 0.8);
-  --sd-kpi-icon-bg-bottom: rgba(10, 30, 60, 0.6);
-  --sd-kpi-icon-border: rgba(41, 120, 200, 0.2);
-  --sd-kpi-icon-glow: rgba(41, 182, 255, 0.1);
-  --sd-kpi-value-glow: rgba(41, 182, 255, 0.1);
-  --sd-kpi-value-glow-lg: rgba(41, 182, 255, 0.18);
-  --sd-delta-up: rgba(0, 212, 170, 0.7);
-  --sd-delta-down: rgba(255, 92, 92, 0.7);
+
+  --sd-kpi-value-glow: rgba(41, 182, 255, 0.16);
+  --sd-kpi-value-glow-lg: rgba(41, 182, 255, 0.22);
 
   /* ---- 场景切换 ---- */
   --sd-scene-bg: rgba(6, 20, 38, 0.8);
   --sd-scene-border: rgba(36, 112, 196, 0.25);
-  --sd-scene-text: rgba(175, 208, 245, 0.5);
+  --sd-scene-text: rgba(175, 208, 245, 0.68);
   --sd-scene-border-hover: rgba(41, 162, 255, 0.2);
   --sd-scene-active-text: #4a7dbd;
   --sd-scene-active-bg: rgba(41, 182, 255, 0.12);
@@ -1170,7 +1161,7 @@ function getKpiIcon(key: string): string {
 .tab-btn,
 .tab-active {
   padding: 2px 10px;
-  font-size: 11px;
+  font-size: 12px;
   border-radius: 4px;
   cursor: pointer;
   border: none;
@@ -1209,16 +1200,23 @@ function getKpiIcon(key: string): string {
 
 .kpi-bar {
   display: flex;
-  gap: 8px;
+  /* 同行卡片等高（stretch 是默认值，写出来是为了表明这是有意为之） */
+  align-items: stretch;
+  gap: 10px;
   flex-shrink: 0;
 }
 
 .kpi-item {
   flex: 1;
   display: flex;
+  /* 无图标后内容只剩文字块：水平、垂直都居中，整块像翻牌板的"牌面" */
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  padding: 12px 14px;
+  /* 等高下限：即使某张卡内容更少也不会显得空、也不会与相邻卡错位 */
+  min-height: 76px;
   background: var(--sd-surface);
   border: 1px solid var(--sd-border);
   border-radius: 4px;
@@ -1251,56 +1249,56 @@ function getKpiIcon(key: string): string {
   opacity: 0.6;
 }
 
-.kpi-item__icon-wrap {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  display: grid;
-  place-items: center;
-  font-size: 15px;
-  flex-shrink: 0;
-  color: var(--sd-accent-blue);
-  background: linear-gradient(135deg, var(--sd-kpi-icon-bg-top), var(--sd-kpi-icon-bg-bottom));
-  border: 1px solid var(--sd-kpi-icon-border);
-  box-shadow: 0 0 6px var(--sd-kpi-icon-glow);
-}
-
+/**
+ * 文字块：标签 + 数值（翻牌器的"牌面"）。
+ *
+ * 居中由结构保证：卡片负责水平/垂直居中，这里负责内部对齐与行距；
+ * 行与行之间统一用 gap，不再零散写 margin。
+ */
 .kpi-item__info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
   min-width: 0;
 }
 .kpi-item__label {
-  font-size: clamp(10px, 0.5vw + 0.45rem, 12px);
+  /* 翻牌器标签：原先上限 12px + 弱色，大屏上远看吃力；加大并提亮（颜色随 token 一起变） */
+  font-size: clamp(11px, 0.5vw + 0.5rem, 14px);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  /* 收紧行高：让行盒贴着字形，否则默认 1.4 的额外行距会让文字块整体偏上 */
+  line-height: 1.2;
   color: var(--sd-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* 标签必须完整可读：不再用省略号截断，一行放不下就换行（卡片高度由 min-height 与 stretch 兜住） */
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .kpi-item__val-row {
   display: flex;
   align-items: baseline;
-  gap: 4px;
-  margin-top: 2px;
+  gap: 5px;
 }
 .kpi-item__value {
-  font-size: clamp(14px, 1vw + 0.55rem, 22px);
+  /* 28 → 32px：去掉图标后数字是唯一主角，按翻牌器的做法再放大一档 */
+  font-size: clamp(17px, 1.2vw + 0.65rem, 32px);
   font-weight: 700;
   color: var(--sd-text-primary);
   font-variant-numeric: tabular-nums;
-  line-height: 1;
-  text-shadow: 0 0 6px var(--sd-kpi-value-glow);
-}
-.kpi-item__delta {
-  font-size: clamp(9px, 0.4vw + 0.4rem, 11px);
-  font-weight: 600;
-  color: var(--sd-delta-up);
-}
-.kpi-item__delta.down {
-  color: var(--sd-delta-down);
+  /* 1.15 而非 1：line-height:1 的行盒紧贴字形，数字在自己的盒子里就是偏上的，
+     这正是"看着没有垂直居中"的主因；留一点行距后字形才落在盒子中间。 */
+  line-height: 1.15;
+  text-shadow: 0 0 8px var(--sd-kpi-value-glow);
 }
 .kpi-item__unit {
-  font-size: clamp(9px, 0.4vw + 0.4rem, 11px);
+  /* 与数值同行：只作单位标注，靠字号与弱色区分主次，不再单独占一行 */
+  font-size: clamp(11px, 0.5vw + 0.45rem, 15px);
+  font-weight: 600;
+  line-height: 1;
   color: var(--sd-text-muted);
-  margin-top: 1px;
+  margin-top: 0;
 }
 
 /* ============================================================
@@ -1359,7 +1357,7 @@ function getKpiIcon(key: string): string {
 
 .scene-mode-btn {
   padding: 3px 10px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--sd-scene-text);
   background: transparent;
@@ -1439,7 +1437,7 @@ function getKpiIcon(key: string): string {
 
 .notice-time {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--sd-text-muted);
   font-variant-numeric: tabular-nums;
   width: 38px;
@@ -1453,9 +1451,9 @@ function getKpiIcon(key: string): string {
 
 .notice-title {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 1.45;
   word-break: break-word;
 }
 .notice-title::before {
@@ -1492,9 +1490,9 @@ function getKpiIcon(key: string): string {
 
 .notice-detail {
   margin: 4px 0 0 14px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--sd-text-muted);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 /* ============================================================
@@ -1573,11 +1571,6 @@ function getKpiIcon(key: string): string {
 @media (max-width: 1440px) {
   .screen-grid {
     grid-template-columns: minmax(200px, 0.55fr) minmax(0, 1.7fr) minmax(200px, 0.55fr);
-  }
-  .kpi-item__icon-wrap {
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
   }
 }
 
@@ -1698,14 +1691,9 @@ html:not(.dark) .screen-dashboard {
   /* ---- KPI ---- */
   --sd-kpi-shadow: rgba(15, 23, 42, 0.06);
   --sd-kpi-shadow-hover: rgba(15, 23, 42, 0.1);
-  --sd-kpi-icon-bg-top: rgba(37, 99, 235, 0.12);
-  --sd-kpi-icon-bg-bottom: rgba(37, 99, 235, 0.06);
-  --sd-kpi-icon-border: rgba(37, 99, 235, 0.2);
-  --sd-kpi-icon-glow: rgba(37, 99, 235, 0.1);
+
   --sd-kpi-value-glow: rgba(37, 99, 235, 0.08);
   --sd-kpi-value-glow-lg: rgba(37, 99, 235, 0.12);
-  --sd-delta-up: rgba(13, 148, 136, 0.95);
-  --sd-delta-down: rgba(220, 38, 38, 0.95);
 
   /* ---- 场景切换 ---- */
   --sd-scene-bg: rgba(255, 255, 255, 0.9);

@@ -1,6 +1,6 @@
-# Geo-LLM 辅助决策原型系统
+# 地理环境分析系统升级原型
 
-> 基于 Vue 3 + Vite + TypeScript + NaiveUI + UnoCSS 的地理大模型辅助决策原型系统（前端仓库）。
+> 基于 Vue 3 + Vite + TypeScript + NaiveUI + UnoCSS 的地理环境分析系统升级原型（前端仓库）。
 > 面向地理空间任务，覆盖态势感知、空间分析、方案生成与知识沉淀的完整闭环，并已对接真实后端（geo-llm-admin）与 Dify 1.16 智能体平台。
 
 ![Vue](https://img.shields.io/badge/Vue-3.5-42b883)

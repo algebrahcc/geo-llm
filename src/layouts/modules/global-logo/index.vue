@@ -26,7 +26,7 @@ withDefaults(defineProps<Props>(), {
     ]"
   >
     <SystemLogo class="shrink-0" :class="compact ? 'size-24px' : 'size-32px'" />
-    <h2 v-show="showTitle" class="brand-title min-w-0 flex-1">地理大模型辅助决策系统</h2>
+    <h2 v-show="showTitle" class="brand-title min-w-0 flex-1">地理环境分析系统升级原型</h2>
   </RouterLink>
 </template>
 

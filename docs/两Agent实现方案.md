@@ -306,7 +306,7 @@ Dify 中"工具"= 供 LLM/工作流调用的外部能力单元，来源有三类
 - 前端 `river/` 模块：把 mock 的"AI 分析步骤"替换为调用 Dify Workflow 应用 API（`POST /v1/workflows/run`，流式 `POST /v1/workflows/run` 或按 run_id 查询进度），实时推送 agent 输出流。
 - 前端 `planning/` 模块：路线结果以 GeoJSON 返回，接入现有 Cesium/OpenLayers 渲染。
 - 人工校验界面：Workflow 运行到 Human Input 节点会暂停，前端用 Dify **Human Input API**（`GET/POST /v1/workflows/run/{workflow_run_id}?action=...` 获取表单/提交）驱动校验面板；复用 `river-assess-result.vue` / `planning` 的校验占位 UI + 修正回流 API。
-- 前端对话/任务流已与 mock 对齐，接入真实 Dify 时接口形态稳定（见差距分析报告 §7）。
+- 前端对话/任务流已与 mock 对齐，接入真实 Dify 时接口形态稳定（切换口径见 `docs/后端能力真实化开发计划.md`）。
 
 ## 5. 实施路线图
 

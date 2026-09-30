@@ -22,6 +22,16 @@ export type PlanningLayerKey =
 
 export type PlanningInteractiveTool = 'browse' | 'pick-start' | 'pick-end';
 
+// ──── 事件标绘图标 ────
+/**
+ * 事件标绘的图标类型（一套 6 个，图形见 marker-icons.ts）。
+ *
+ * 由"事件词 + 地物名"决定（`route-situation-engine.ts` 的 markerKindFor），
+ * 与 `OBSTACLE_TILES` 的三种障碍（断桥/瓦砾/塌陷）一一对应 ——
+ * 这样"用户说出来的事件"和"系统识别出的障碍"用的是同一套图形语言。
+ */
+export type PlotMarkerKind = 'bridge-broken' | 'road-closed' | 'obstacle' | 'rubble' | 'sinkhole' | 'congestion';
+
 // ──── 图层项 ────
 export interface PlanningLayerItem {
   key: PlanningLayerKey;

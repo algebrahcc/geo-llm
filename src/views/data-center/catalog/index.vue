@@ -4,7 +4,7 @@ import type { SelectOption } from 'naive-ui';
 import { NButton, NDataTable, NInput, NModal, NPagination, NSelect, NTree, type DataTableColumns } from 'naive-ui';
 import { useThemeStore } from '@/store/modules/theme';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import { agentLabelMap, type CatalogItem } from '@/mock/catalog';
+import type { CatalogItem } from '@/mock/catalog';
 import {
   fetchCatalogPage,
   fetchCategoryTree,
@@ -64,25 +64,12 @@ const typeOptions = computed<SelectOption[]>(() => [
   ...categoryTree.value.map(cat => ({ label: cat.name, value: String(cat.id) }))
 ]);
 
-const selectedAgent = ref('');
-const selectedScenario = ref('');
-
-const agentOptions = computed<SelectOption[]>(() => [
-  { label: '全部智能体', value: '' },
-  ...Object.entries(agentLabelMap).map(([k, v]) => ({ label: v, value: k }))
-]);
-
-const scenarioOptions = computed<SelectOption[]>(() => [
-  { label: '全部场景', value: '' },
-  { label: '渡河保障', value: '渡河保障' },
-  { label: '机动路线规划', value: '机动路线规划' },
-  { label: '城市攻防', value: '城市攻防' },
-  { label: '交通研判', value: '交通研判' },
-  { label: '地形分析', value: '地形分析' },
-  { label: '目标识别', value: '目标识别' },
-  { label: '态势感知', value: '态势感知' },
-  { label: '预案生成', value: '预案生成' }
-]);
+/**
+ * 智能体筛选 / 场景筛选已移除。
+ *
+ * 它们此前只活在 UI 与 handleReset 里，fetchCatalogPage 的查询参数从未带上过，
+ * 所以删掉不影响检索结果（关键词检索仍覆盖 Agent 与场景标签）。
+ */
 
 /**
  * 总览统计：基于一次全量加载（statDataList，仅用于顶部指标统计）。
@@ -258,7 +245,8 @@ const dataTableThemeOverrides = {
   tdColor: 'transparent',
   tdColorHover: 'var(--ui-border-23)',
   borderColor: 'var(--ui-border-4)',
-  thTextColor: 'var(--ui-text-19)',
+  // 表头文字弱于正文；勿改回 ui-text-19：它与正文 ui-text-20 在浅色下被映射成同一个颜色
+  thTextColor: 'var(--text-tertiary)',
   tdTextColor: 'var(--ui-text-20)',
   borderRadius: '4px',
   fontSize: '14px',
@@ -377,8 +365,6 @@ function handleReset() {
   selectedCategory.value = null;
   searchKeyword.value = '';
   selectedType.value = '';
-  selectedAgent.value = '';
-  selectedScenario.value = '';
   currentPage.value = 1;
 }
 
@@ -636,14 +622,6 @@ watch([currentPage, pageSize], () => {
               <div class="catalog-filter">
                 <span class="catalog-filter__label">数据类型</span>
                 <NSelect v-model:value="selectedType" class="catalog-filter__select" :options="typeOptions" />
-              </div>
-              <div class="catalog-filter">
-                <span class="catalog-filter__label">智能体</span>
-                <NSelect v-model:value="selectedAgent" class="catalog-filter__select" :options="agentOptions" />
-              </div>
-              <div class="catalog-filter">
-                <span class="catalog-filter__label">场景</span>
-                <NSelect v-model:value="selectedScenario" class="catalog-filter__select" :options="scenarioOptions" />
               </div>
             </div>
             <NButton type="primary" class="catalog-primary-btn catalog-primary-btn--upload" @click="showImport">
@@ -1322,6 +1300,16 @@ watch([currentPage, pageSize], () => {
   font-family: 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'Segoe UI', sans-serif;
 }
 
+/* 「上传」与「重置」是并排出现的一对操作按钮：几何尺寸与字重必须一致，只用填色区分主次。
+   两者的高度(40)/内距(0 20)/圆角(8)/字号(15)本就同值，此前差的正是下面这两项 ——
+   上传是 600 字重 + 88px 定宽，重置是默认 400 字重且宽度贴着文字，并排看像两套组件。 */
+.catalog-primary-btn,
+.catalog-ghost-btn {
+  --n-font-weight: 600 !important;
+  font-weight: 600;
+  min-width: 88px;
+}
+
 .catalog-primary-btn {
   --n-color: linear-gradient(180deg, var(--ui-accent-18) 0%, var(--ui-accent-19) 100%) !important;
   --n-color-hover: linear-gradient(180deg, var(--ui-accent-20) 0%, var(--ui-accent-21) 100%) !important;
@@ -1416,10 +1404,6 @@ watch([currentPage, pageSize], () => {
 .catalog-ghost-btn:focus-visible {
   outline: 2px solid var(--ui-accent-24);
   outline-offset: 2px;
-}
-
-.catalog-primary-btn--upload {
-  min-width: 88px;
 }
 
 /* ──── Filter Card ──── */
@@ -1551,16 +1535,26 @@ watch([currentPage, pageSize], () => {
   --n-td-color: transparent !important;
   --n-td-color-hover: var(--ui-border-23) !important;
   --n-border-color: var(--ui-border-4) !important;
-  --n-th-text-color: var(--ui-text-19) !important;
+  /* 表头文字改用角色令牌 --text-tertiary。
+     此前是 --ui-text-19，它在浅色主题的兼容映射里与正文的 --ui-text-20 一起落到 --text-primary
+     （见 ui-palette.css 的「兼容映射」段），深色下两者也只差 4% alpha
+     —— 所以表头与列表文字看起来是同一种颜色。 */
+  --n-th-text-color: var(--text-tertiary) !important;
   --n-td-text-color: var(--ui-text-20) !important;
   --n-th-font-weight: 600 !important;
   --n-font-size: 14px !important;
 }
 
 .catalog-data-table :deep(.n-data-table-th) {
-  background: linear-gradient(180deg, var(--ui-surface-20) 0%, var(--ui-surface-21) 100%) !important;
+  /* 表头底色改用仓库自己的表格表头令牌（system-page.css 的 --sys-tb-head-bg，全局可用）：
+     它在浅色下是主色 8% 的淡蓝，而原先的 ui-surface-20 是「白 94%」—— 浅色下等于没有底色。
+     深色下仍是原来的深藏青渐变，外观不变。 */
+  background: var(--sys-tb-head-bg) !important;
   font-size: 14px;
   padding: 15px 14px;
+  /* 与系统页表格同一套表头处理：轻字距 + 更实的下边框，强化表头与数据行的分界 */
+  letter-spacing: 0.2px;
+  border-bottom: 1px solid var(--ui-border-24) !important;
 }
 
 .catalog-data-table :deep(.n-data-table-td) {

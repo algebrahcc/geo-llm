@@ -39,7 +39,7 @@ const transitionName = computed(() => (reducedMotion.value === 'reduce' ? '' : t
       <div class="w-full max-w-420px">
         <div class="mb-18px flex-col flex-y-center">
           <SystemLogo class="size-56px" />
-          <h1 class="mt-14px text-22px login-title font-700">地理大模型辅助决策系统</h1>
+          <h1 class="mt-14px text-22px login-title font-700">地理环境分析系统升级原型</h1>
         </div>
 
         <NCard :bordered="false" class="login-card rd-14px">

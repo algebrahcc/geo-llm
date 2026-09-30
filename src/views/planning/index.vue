@@ -37,7 +37,8 @@ import type {
   PlanningRouteKey,
   PlanningRouteResultCard,
   PlanningRouteSettingsForm,
-  PlanningWaypoint
+  PlanningWaypoint,
+  PlotMarkerKind
 } from './modules/types';
 
 defineOptions({
@@ -64,7 +65,8 @@ interface PlanningViewerExposed {
   /** 事件排除：在地图上隐藏被排除的候选路线 */
   setExcludedRoutes: (excluded: PlanningRouteKey[], active?: PlanningRouteKey) => void;
   setRouteADetour: (enabled: boolean) => void;
-  drawBlockedCross: (item: { id: string; lon: number; lat: number; name: string; color?: string }) => void;
+  /** 事件标绘：按图标类型画断面/障碍等标识 */
+  drawEventMarker: (item: { id: string; lon: number; lat: number; name: string; kind: PlotMarkerKind }) => void;
   loadObstacleTiles: () => Promise<void>;
   showWaypoints: (waypoints: PlanningWaypoint[]) => void;
   setStartPoint: (longitude: number | null, latitude: number | null, name?: string) => void;
@@ -611,12 +613,17 @@ function handleGenerateRoute() {
   void handleRoutePlan();
 }
 
-/** 事件/点名标绘 -> 地图标绘并定位（AI 标绘层，同 id 重复标绘自动覆盖） */
+/**
+ * 事件/点名标绘 -> 地图标绘并定位（同 id 重复标绘自动覆盖）
+ *
+ * 带 kind 的走图标标绘（断裂/障碍等，只画图形不上文字）；
+ * 不带 kind 的是普通点名标绘，仍用点标记 + 名称。
+ */
 function handleRouteSituationPlot(plot: RouteSituationPlot) {
   const viewer = viewerRef.value;
   if (!viewer) return;
-  if (plot.marker === 'cross') {
-    viewer.drawBlockedCross({ id: plot.id, lon: plot.lon, lat: plot.lat, name: `${plot.label}`, color: plot.color });
+  if (plot.kind) {
+    viewer.drawEventMarker({ id: plot.id, lon: plot.lon, lat: plot.lat, name: plot.label, kind: plot.kind });
   } else {
     viewer.drawAiMark({ id: plot.id, lon: plot.lon, lat: plot.lat, name: plot.label, color: plot.color });
   }

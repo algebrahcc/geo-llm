@@ -297,7 +297,7 @@ function handleSubmit() {
     <!-- ══ 提交按钮（sticky底部） ══ -->
     <div v-show="!collapsed" class="submit-area">
       <button type="button" class="submit-btn" :disabled="running" @click="handleSubmit">
-        <span class="btn-text">{{ running ? 'AI 分析中...' : '提交给 AI 智能分析' }}</span>
+        <span class="btn-text">{{ running ? '分析中...' : '提交分析' }}</span>
       </button>
     </div>
   </div>
@@ -306,6 +306,18 @@ function handleSubmit() {
 <style scoped>
 /* ──── 根 ──── */
 .setting-panel {
+  /* ── 文字层级 ──
+     深色底的弱化用"白色 + 降不透明度"，不要用灰色（灰色会与底色糊在一起）。
+     此前面板里最要紧的两处恰恰最弱：字段标签 48% 白、水文区块提示 38% 白，
+     配上 10~11px 的小字号，基本读不出来 —— 这里一并提上来。 */
+  --set-text-1: rgb(255 255 255 / 95%);
+  --set-text-2: rgb(255 255 255 / 84%);
+  --set-text-3: rgb(255 255 255 / 70%);
+  --set-text-4: rgb(255 255 255 / 56%);
+
+  /* 字号：统一走全局字号阶 --font-*（取值与理由见 styles/css/global.css）。
+     本面板不再自定义字号，避免同一系统里出现两套比例。 */
+
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -323,15 +335,11 @@ function handleSubmit() {
   flex-shrink: 0;
 }
 
-.header-icon {
-  font-size: 16px;
-}
-
 .header-title {
   flex: 1;
-  font-size: 14px;
+  font-size: var(--font-xl);
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--set-text-1);
 }
 
 .header-actions {
@@ -343,14 +351,14 @@ function handleSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--font-xl);
+  color: var(--set-text-3);
   transition:
     background 0.18s,
     color 0.18s;
@@ -358,7 +366,7 @@ function handleSubmit() {
 
 .action-btn:hover {
   background: rgba(43, 107, 255, 0.15);
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--set-text-1);
 }
 
 /* ──── 滚动区 ──── */
@@ -366,7 +374,7 @@ function handleSubmit() {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 12px 14px 8px;
+  padding: 14px 16px 10px;
   scrollbar-width: thin;
   scrollbar-color: rgba(141, 184, 255, 0.24) transparent;
 }
@@ -397,9 +405,9 @@ function handleSubmit() {
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--set-text-3);
   background: rgba(255, 255, 255, 0.02);
   letter-spacing: 0.02em;
   border-left: 2px solid rgba(93, 140, 200, 0.45);
@@ -408,13 +416,13 @@ function handleSubmit() {
 }
 
 .section-label:hover {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--set-text-1);
 }
 
 .section-chevron {
   margin-left: auto;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.35);
+  font-size: var(--font-lg);
+  color: var(--set-text-4);
 }
 
 /* ──── 水文要素重点区块（仅字号与底色层级，黑白灰） ──── */
@@ -424,25 +432,25 @@ function handleSubmit() {
 }
 
 .section-label--hydrology {
-  font-size: 13px;
+  font-size: var(--font-lg);
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.94);
+  color: var(--set-text-1);
   background: rgba(93, 140, 200, 0.09);
   border-left: 2px solid rgba(120, 170, 230, 0.95);
 }
 
 .section-hint {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.38);
+  color: var(--set-text-3);
   letter-spacing: 0.04em;
 }
 
-/* 水文参数输入：字号略大 + 等宽数字 */
+/* 水文参数输入：字号再大一档 + 等宽数字（正文 15px，强调档 16px） */
 .field-input--accent {
-  font-size: 13px;
+  font-size: var(--font-md);
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--set-text-1);
   font-variant-numeric: tabular-nums;
 }
 
@@ -460,12 +468,13 @@ function handleSubmit() {
 }
 
 .section-body {
-  padding: 8px 12px 10px;
+  padding: 10px 12px 12px;
 }
 
 /* ──── 表单字段 ──── */
 .form-field {
-  margin-bottom: 6px;
+  /* 字号提上来后，标签与输入框之间需要更多留白 */
+  margin-bottom: 10px;
 }
 
 .form-field:last-child {
@@ -483,9 +492,9 @@ function handleSubmit() {
 
 .field-label {
   display: block;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.48);
-  margin-bottom: 3px;
+  font-size: var(--font-sm);
+  color: var(--set-text-3);
+  margin-bottom: 4px;
   font-weight: 500;
   letter-spacing: 0.01em;
 }
@@ -493,12 +502,12 @@ function handleSubmit() {
 .field-input,
 .field-textarea {
   width: 100%;
-  padding: 7px 10px;
+  padding: 9px 13px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.035);
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 12px;
+  color: var(--set-text-1);
+  font-size: var(--font-base);
   outline: none;
   transition:
     border-color 0.2s,
@@ -519,10 +528,16 @@ function handleSubmit() {
   background: rgba(93, 140, 200, 0.05);
 }
 
+/* 占位文字此前用的是浏览器默认灰：在深色输入框里几乎看不见，这里显式指定 */
+.field-input::placeholder,
+.field-textarea::placeholder {
+  color: var(--set-text-4);
+}
+
 .field-textarea {
   resize: vertical;
   font-family: inherit;
-  min-height: 48px;
+  min-height: 60px;
 }
 
 .field-input-with-icon {
@@ -538,7 +553,7 @@ function handleSubmit() {
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 14px;
+  font-size: var(--font-md);
   pointer-events: none;
   opacity: 0.6;
 }
@@ -553,9 +568,9 @@ function handleSubmit() {
 .resource-checkbox {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   cursor: pointer;
-  padding: 5px 9px;
+  padding: 7px 10px;
   border-radius: 7px;
   transition: background 0.15s;
   border: 1px solid transparent;
@@ -572,20 +587,20 @@ function handleSubmit() {
 
 .resource-checkbox input[type='checkbox'] {
   accent-color: #4a7dbd;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   cursor: pointer;
 }
 
 .checkbox-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--font-base);
+  color: var(--set-text-2);
   transition: color 0.15s;
 }
 
 .resource-checkbox--checked .checkbox-label {
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--set-text-1);
   font-weight: 500;
 }
 
@@ -603,12 +618,12 @@ function handleSubmit() {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 11px 16px;
+  padding: 13px 18px;
   border: none;
   border-radius: 8px;
   background: #3d6fb4;
   color: #fff;
-  font-size: 13px;
+  font-size: var(--font-md);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
@@ -627,9 +642,5 @@ function handleSubmit() {
   opacity: 0.6;
   cursor: not-allowed;
   box-shadow: none;
-}
-
-.btn-text {
-  font-size: 13px;
 }
 </style>

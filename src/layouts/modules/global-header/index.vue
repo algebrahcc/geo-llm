@@ -54,8 +54,9 @@ function openGlobe() {
       <GlobalBreadcrumb v-if="!appStore.isMobile" class="ml-12px" />
     </div>
     <div class="h-full flex-y-center justify-end header-actions">
-      <ButtonIcon icon="mdi:monitor-dashboard" tooltip-content="统计大屏" @click="openScreen" />
+      <!-- Web球：右侧动作组的第一项（组内最左） -->
       <ButtonIcon icon="mdi:earth" tooltip-content="Web球" @click="openGlobe" />
+      <ButtonIcon icon="mdi:monitor-dashboard" tooltip-content="统计大屏" @click="openScreen" />
       <FullScreen v-if="!appStore.isMobile" :full="isFullscreen" @click="toggle" />
       <ThemeSchemaSwitch
         v-if="themeStore.header.themeSchemaSwitch.visible"

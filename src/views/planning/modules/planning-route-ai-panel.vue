@@ -628,11 +628,13 @@ function handleStop() {
   --ai-violet: #a78bfa;
   --ai-violet-soft: rgb(167 139 250 / 13%);
 
-  /* ── 文本层级（白系为主，弱化用不透明度而非发灰，保证深色底可读） ── */
+  /* ── 文本层级 ──
+     弱化只用"白色 + 降不透明度"，不换灰色（灰色在深底上会与背景糊在一起）。
+     下限：说明性文字 ≥ 78%，元信息 ≥ 68% —— 与渡河场景同一套取值。 */
   --ai-text-1: rgb(255 255 255 / 97%);
-  --ai-text-2: rgb(255 255 255 / 88%);
-  --ai-text-3: rgb(255 255 255 / 75%);
-  --ai-text-4: rgb(255 255 255 / 62%);
+  --ai-text-2: rgb(255 255 255 / 90%);
+  --ai-text-3: rgb(255 255 255 / 78%);
+  --ai-text-4: rgb(255 255 255 / 68%);
 
   /* ── 面与线 ── */
   --ai-surface: rgb(255 255 255 / 2%);
@@ -701,12 +703,12 @@ function handleStop() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--ai-r-sm);
   background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-primary-deep) 100%);
   color: #fff;
-  font-size: 15px;
+  font-size: var(--font-xl);
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgb(74 125 189 / 28%);
 }
@@ -720,7 +722,7 @@ function handleStop() {
 }
 
 .header-title {
-  font-size: 14px;
+  font-size: var(--font-xl);
   font-weight: 700;
   color: var(--ai-text-1);
   letter-spacing: 0.01em;
@@ -730,7 +732,7 @@ function handleStop() {
 }
 
 .header-subtitle {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--ai-text-3);
   letter-spacing: 0.04em;
 }
@@ -739,7 +741,7 @@ function handleStop() {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   padding: 3px 10px;
   border-radius: 999px;
   font-weight: 600;
@@ -788,14 +790,14 @@ function handleStop() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: var(--ai-r-xs);
   background: var(--ai-surface-3);
   color: var(--ai-text-3);
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--font-xl);
   transition:
     background var(--ai-fast) var(--ai-ease),
     color var(--ai-fast) var(--ai-ease);
@@ -826,12 +828,12 @@ function handleStop() {
 }
 
 .progress-label {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--ai-text-3);
 }
 
 .progress-count {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--ai-text-2);
   font-variant-numeric: tabular-nums;
@@ -865,7 +867,7 @@ function handleStop() {
 
 .progress-status {
   margin-top: 6px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--ai-text-3);
   line-height: 1.5;
 }
@@ -893,14 +895,14 @@ function handleStop() {
 }
 
 .situation-chips__label {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--ai-text-3);
   flex-shrink: 0;
 }
 
 .situation-chip {
-  font-size: 11px;
+  font-size: var(--font-sm);
   padding: 2px 8px;
   border-radius: 4px;
   background: rgb(251 191 36 / 18%);
@@ -950,12 +952,12 @@ function handleStop() {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  max-width: 132px;
-  padding: 2px 7px;
+  max-width: 156px;
+  padding: 3px 9px;
   border-radius: var(--ai-r-xs);
   background: var(--ai-surface-2);
   border: 1px solid var(--ai-line);
-  font-size: 10px;
+  font-size: var(--font-xs);
   white-space: nowrap;
   overflow: hidden;
 }
@@ -985,7 +987,7 @@ function handleStop() {
 }
 
 .context-chevron {
-  font-size: 14px;
+  font-size: var(--font-lg);
   color: var(--ai-text-4);
   flex-shrink: 0;
   transition: transform var(--ai-base) var(--ai-ease);
@@ -1008,7 +1010,7 @@ function handleStop() {
   min-height: 0;
   min-width: 0;
   overflow-y: auto;
-  padding: 8px 12px;
+  padding: 10px 14px;
 }
 
 /* ─────────── 折叠区块 ─────────── */
@@ -1028,7 +1030,7 @@ function handleStop() {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 11px;
+  padding: 10px 12px;
   background: var(--ai-surface);
   cursor: pointer;
   user-select: none;
@@ -1046,14 +1048,14 @@ function handleStop() {
 
 .section-quick-title {
   flex: 1;
-  font-size: 13px;
+  font-size: var(--font-lg);
   font-weight: 700;
   color: var(--ai-text-1);
   letter-spacing: 0.02em;
 }
 
 .section-badge {
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 1px 6px;
   border-radius: 8px;
   background: var(--ai-accent-soft);
@@ -1073,7 +1075,7 @@ function handleStop() {
 }
 
 .section-chevron {
-  font-size: 14px;
+  font-size: var(--font-lg);
   color: var(--ai-text-4);
   transition: transform var(--ai-base) var(--ai-ease);
   flex-shrink: 0;
@@ -1084,7 +1086,7 @@ function handleStop() {
 }
 
 .section-body {
-  padding: 8px 11px 10px;
+  padding: 10px 12px 12px;
   border-top: 1px solid var(--ai-line);
 }
 
@@ -1103,8 +1105,8 @@ function handleStop() {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  padding: 4px 0;
-  font-size: 11px;
+  padding: 6px 0;
+  font-size: var(--font-sm);
   border-bottom: 1px solid rgb(255 255 255 / 3%);
 }
 
@@ -1147,13 +1149,13 @@ function handleStop() {
 }
 
 .step-dot {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--font-sm);
   border: 2px solid var(--ai-line-2);
   background: var(--ai-surface-2);
   transition: all 0.3s var(--ai-ease);
@@ -1172,7 +1174,7 @@ function handleStop() {
 }
 
 .dot-check {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
 }
 
@@ -1222,7 +1224,7 @@ function handleStop() {
 }
 
 .step-label {
-  font-size: 12px;
+  font-size: var(--font-base);
   color: var(--ai-text-2);
   font-weight: 500;
   flex: 1;
@@ -1238,7 +1240,7 @@ function handleStop() {
 }
 
 .step-status-tag {
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 1px 6px;
   border-radius: var(--ai-r-xs);
   font-weight: 600;
@@ -1268,13 +1270,13 @@ function handleStop() {
 }
 
 .kb-doc-count {
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 600;
   color: var(--ai-success);
 }
 
 .kb-detail {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--ai-text-3);
   line-height: 1.5;
 }
@@ -1292,29 +1294,29 @@ function handleStop() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: var(--ai-primary-soft);
   border: 1px solid var(--ai-primary-line);
   color: var(--ai-accent);
-  font-size: 20px;
-  margin-bottom: 10px;
+  font-size: 24px;
+  margin-bottom: 12px;
 }
 
 .empty-title {
-  margin: 0 0 4px;
-  font-size: 13px;
+  margin: 0 0 6px;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: var(--ai-text-1);
 }
 
 .empty-desc {
-  margin: 0 0 14px;
-  font-size: 11px;
+  margin: 0 0 16px;
+  font-size: var(--font-sm);
   color: var(--ai-text-3);
-  line-height: 1.6;
-  max-width: 280px;
+  line-height: var(--font-lh-body);
+  max-width: 320px;
 }
 
 .quick-asks {
@@ -1330,7 +1332,7 @@ function handleStop() {
   border-radius: 999px;
   background: var(--ai-primary-soft);
   color: var(--ai-accent);
-  font-size: 11px;
+  font-size: var(--font-sm);
   cursor: pointer;
   transition:
     background var(--ai-fast) var(--ai-ease),
@@ -1370,7 +1372,7 @@ function handleStop() {
 }
 
 .chat-divider span {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--ai-text-4);
   letter-spacing: 0.06em;
 }
@@ -1390,11 +1392,11 @@ function handleStop() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: var(--font-md);
   border: 1px solid var(--ai-line-2);
 }
 
@@ -1410,11 +1412,11 @@ function handleStop() {
 }
 
 .msg-bubble {
-  font-size: 12px;
-  padding: 7px 11px;
+  font-size: var(--font-base);
+  padding: 9px 13px;
   border-radius: var(--ai-r);
-  max-width: calc(100% - 40px);
-  line-height: 1.6;
+  max-width: calc(100% - 46px);
+  line-height: var(--font-lh-body);
   word-break: break-word;
 }
 
@@ -1469,12 +1471,12 @@ function handleStop() {
 .chat-input {
   flex: 1;
   min-width: 0;
-  padding: 9px 12px;
+  padding: 10px 14px;
   border: 1px solid var(--ai-line-2);
   border-radius: var(--ai-r);
   background: var(--ai-surface-2);
   color: var(--ai-text-1);
-  font-size: 12px;
+  font-size: var(--font-base);
   outline: none;
   transition:
     border-color var(--ai-base) var(--ai-ease),
@@ -1499,14 +1501,14 @@ function handleStop() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border: none;
   border-radius: var(--ai-r);
   background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-primary-deep) 100%);
   color: #fff;
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--font-xl);
   transition:
     opacity var(--ai-fast) var(--ai-ease),
     transform var(--ai-fast) var(--ai-ease),
@@ -1567,7 +1569,7 @@ function handleStop() {
   background: var(--ai-surface-3);
   padding: 1px 5px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-family: 'Consolas', monospace;
 }
 
@@ -1589,7 +1591,7 @@ function handleStop() {
   border-collapse: separate;
   border-spacing: 0;
   margin: 6px 0;
-  font-size: 11px;
+  font-size: var(--font-sm);
   width: 100%;
   border: 1px solid var(--ai-line-2);
   border-radius: var(--ai-r-xs);
@@ -1632,10 +1634,16 @@ function handleStop() {
 }
 
 .chat-md :deep(h1),
-.chat-md :deep(h2),
+.chat-md :deep(h2) {
+  font-size: var(--font-xl);
+  margin: 10px 0 5px;
+  color: var(--ai-text-1);
+}
+
+/* 标题必须明显大于正文（15px），否则层级消失 */
 .chat-md :deep(h3),
 .chat-md :deep(h4) {
-  font-size: 13px;
+  font-size: var(--font-lg);
   margin: 8px 0 4px;
   color: var(--ai-text-1);
 }
@@ -1655,14 +1663,14 @@ function handleStop() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border: 1px solid var(--ai-line-2);
   border-radius: var(--ai-r);
   background: var(--ai-surface-2);
   color: var(--ai-text-3);
   cursor: pointer;
-  font-size: 17px;
+  font-size: var(--font-xl);
   flex-shrink: 0;
   transition:
     border-color var(--ai-fast) var(--ai-ease),
@@ -1703,11 +1711,11 @@ function handleStop() {
   border: 1px solid var(--ai-line-2);
   border-radius: var(--ai-r-sm);
   background: var(--ai-surface-2);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .pending-attachment__icon {
-  font-size: 14px;
+  font-size: var(--font-lg);
   color: var(--ai-accent);
   flex-shrink: 0;
 }
@@ -1737,7 +1745,7 @@ function handleStop() {
   background: var(--ai-surface-3);
   color: var(--ai-text-3);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-sm);
   flex-shrink: 0;
   transition: all var(--ai-fast) var(--ai-ease);
 }
@@ -1785,7 +1793,7 @@ function handleStop() {
 }
 
 .msg-attachment__icon {
-  font-size: 17px;
+  font-size: var(--font-xl);
   flex-shrink: 0;
 }
 
@@ -1798,7 +1806,7 @@ function handleStop() {
 }
 
 .msg-attachment__name {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1806,13 +1814,13 @@ function handleStop() {
 }
 
 .msg-attachment__size {
-  font-size: 10px;
+  font-size: var(--font-xs);
   opacity: 0.75;
   font-variant-numeric: tabular-nums;
 }
 
 .msg-attachment__download {
-  font-size: 14px;
+  font-size: var(--font-lg);
   opacity: 0.8;
   flex-shrink: 0;
 }

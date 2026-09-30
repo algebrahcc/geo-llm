@@ -68,7 +68,7 @@ function toggleSection(key: string) {
               <div class="pick-input-row">
                 <NInput
                   :value="form.startName"
-                  size="small"
+                  size="medium"
                   placeholder="输入或点选起点"
                   @update:value="updateField('startName', $event)"
                 />
@@ -82,7 +82,7 @@ function toggleSection(key: string) {
               <div class="pick-input-row">
                 <NInput
                   :value="form.waypointName"
-                  size="small"
+                  size="medium"
                   placeholder="可选途经点"
                   @update:value="updateField('waypointName', $event)"
                 />
@@ -96,7 +96,7 @@ function toggleSection(key: string) {
               <div class="pick-input-row">
                 <NInput
                   :value="form.endName"
-                  size="small"
+                  size="medium"
                   placeholder="输入或点选终点"
                   @update:value="updateField('endName', $event)"
                 />
@@ -121,7 +121,7 @@ function toggleSection(key: string) {
               <NSelect
                 :value="form.routePreference"
                 :options="[...planningRoutePrefOptions]"
-                size="small"
+                size="medium"
                 @update:value="updateField('routePreference', $event)"
               />
             </div>
@@ -133,7 +133,7 @@ function toggleSection(key: string) {
                   :min="0"
                   :max="100"
                   :step="5"
-                  size="small"
+                  size="medium"
                   @update:value="updateField('timeWeight', $event)"
                 />
                 <span class="weight-val">{{ form.timeWeight }}%</span>
@@ -145,7 +145,7 @@ function toggleSection(key: string) {
                   :min="0"
                   :max="100"
                   :step="5"
-                  size="small"
+                  size="medium"
                   @update:value="updateField('distanceWeight', $event)"
                 />
                 <span class="weight-val">{{ form.distanceWeight }}%</span>
@@ -157,7 +157,7 @@ function toggleSection(key: string) {
                   :min="0"
                   :max="100"
                   :step="5"
-                  size="small"
+                  size="medium"
                   @update:value="updateField('riskWeight', $event)"
                 />
                 <span class="weight-val">{{ form.riskWeight }}%</span>
@@ -205,7 +205,7 @@ function toggleSection(key: string) {
               <NSelect
                 :value="form.roadGrade"
                 :options="[...planningRoadGradeOptions]"
-                size="small"
+                size="medium"
                 @update:value="updateField('roadGrade', $event)"
               />
             </div>
@@ -234,7 +234,7 @@ function toggleSection(key: string) {
               <NSelect
                 :value="form.taskType"
                 :options="[...planningTaskTypeOptions]"
-                size="small"
+                size="medium"
                 @update:value="updateField('taskType', $event)"
               />
             </div>
@@ -244,7 +244,7 @@ function toggleSection(key: string) {
                 <NSelect
                   :value="form.fleetScale"
                   :options="[...planningFleetScaleOptions]"
-                  size="small"
+                  size="medium"
                   @update:value="updateField('fleetScale', $event)"
                 />
               </div>
@@ -253,7 +253,7 @@ function toggleSection(key: string) {
                 <NSelect
                   :value="form.vehicleModel"
                   :options="[...planningVehicleModelOptions]"
-                  size="small"
+                  size="medium"
                   @update:value="updateField('vehicleModel', $event)"
                 />
               </div>
@@ -263,7 +263,7 @@ function toggleSection(key: string) {
               <NSelect
                 :value="form.arrivalDeadline"
                 :options="[...planningArrivalDeadlineOptions]"
-                size="small"
+                size="medium"
                 @update:value="updateField('arrivalDeadline', $event)"
               />
             </div>
@@ -277,7 +277,7 @@ function toggleSection(key: string) {
       <button type="button" class="submit-btn" :disabled="running" @click="emit('plan')">
         <SvgIcon v-if="running" icon="mdi:loading" class="btn-spin" />
         <SvgIcon v-else icon="mdi:lightning-bolt" />
-        {{ running ? '正在规划中...' : '提交给AI智能规划' }}
+        {{ running ? '规划中...' : '提交规划' }}
       </button>
     </div>
   </div>
@@ -285,10 +285,11 @@ function toggleSection(key: string) {
 
 <style scoped>
 .route-settings {
-  /* 文本层级（白系为主，弱化用不透明度而非发灰，保证深色底可读） */
+  /* 文本层级（弱化只用"白色 + 降不透明度"，不换灰色 —— 灰色在深底上会糊掉；
+     下限与渡河场景一致：说明性文字 ≥ 78%） */
   --sp-t1: rgb(255 255 255 / 97%);
-  --sp-t2: rgb(255 255 255 / 88%);
-  --sp-t3: rgb(255 255 255 / 75%);
+  --sp-t2: rgb(255 255 255 / 90%);
+  --sp-t3: rgb(255 255 255 / 78%);
   --sp-accent: #8db8ff;
   --sp-line: rgb(255 255 255 / 8%);
   --sp-line-2: rgb(255 255 255 / 13%);
@@ -322,13 +323,13 @@ function toggleSection(key: string) {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: var(--font-xl);
   font-weight: 700;
   color: var(--sp-t1);
 }
 
 .settings-title-icon {
-  font-size: 16px;
+  font-size: var(--font-xl);
   color: var(--sp-accent);
 }
 
@@ -351,7 +352,7 @@ function toggleSection(key: string) {
 }
 
 .settings-body {
-  padding: 12px 14px 14px;
+  padding: 14px 16px 16px;
 }
 
 /* 分区 */
@@ -374,11 +375,11 @@ function toggleSection(key: string) {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px;
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-lg);
   font-weight: 700;
   color: var(--sp-t1);
   transition: background 0.15s ease;
@@ -394,7 +395,7 @@ function toggleSection(key: string) {
 }
 
 .section-chevron {
-  font-size: 15px;
+  font-size: var(--font-lg);
   color: var(--sp-t3);
   transition: transform 0.2s ease;
 }
@@ -409,15 +410,15 @@ function toggleSection(key: string) {
 }
 
 .section-num {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   background: rgb(74 125 189 / 22%);
   color: var(--sp-accent);
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -444,7 +445,7 @@ function toggleSection(key: string) {
   background: rgb(52 211 153 / 8%);
   color: #34d399;
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--font-xl);
   flex-shrink: 0;
   transition: all 0.18s ease;
 }
@@ -468,15 +469,15 @@ function toggleSection(key: string) {
 /* 表单（标签为字段小标题：加粗白字，恒大于输入内容可读层级） */
 .form-label {
   display: block;
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--sp-t1);
-  margin-bottom: 5px;
+  margin-bottom: 6px;
   letter-spacing: 0.02em;
 }
 
 .form-group {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .form-group--half {
@@ -503,9 +504,9 @@ function toggleSection(key: string) {
 }
 
 .weight-label {
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--sp-t2);
-  min-width: 52px;
+  min-width: 66px;
   flex-shrink: 0;
 }
 
@@ -514,7 +515,7 @@ function toggleSection(key: string) {
 }
 
 .weight-val {
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--sp-accent);
   min-width: 32px;
@@ -540,12 +541,12 @@ function toggleSection(key: string) {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  height: 42px;
+  height: 48px;
   border: none;
   border-radius: 10px;
   background: linear-gradient(135deg, #4a7dbd 0%, #3d6fb4 100%);
   color: #fff;
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -584,12 +585,12 @@ function toggleSection(key: string) {
 
 .priority-pill {
   flex: 1;
-  padding: 7px 8px;
+  padding: 9px 10px;
   border: 1px solid var(--sp-line-2);
   border-radius: 8px;
   background: rgb(255 255 255 / 3%);
   color: var(--sp-t2);
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;

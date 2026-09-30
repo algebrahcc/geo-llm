@@ -899,7 +899,9 @@ function handleToggleResult() {
 
 .side-panel {
   position: fixed;
-  width: 380px;
+  /* 方案设置面板带头两列表单：字号提到 15px 后 380px 会挤（时间占位会被截断），
+     加宽到 420px 与规划场景的设置面板对齐 */
+  width: 420px;
   max-height: calc(100vh - 36px);
   display: flex;
   flex-direction: column;
@@ -1055,7 +1057,7 @@ function handleToggleResult() {
 
 @media (max-width: 1280px) {
   .side-panel {
-    width: 340px;
+    width: 380px;
   }
   .ai-panel-wrapper {
     width: 380px;

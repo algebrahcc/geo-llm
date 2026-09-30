@@ -196,12 +196,12 @@ function getSegmentColor(level: string): string {
 </template>
 
 <style scoped>
-/* 白系文字层级（弱化用不透明度而非发灰） */
+/* 白系文字层级（弱化用不透明度而非发灰；下限与两个面板一致：说明性 ≥ 78%） */
 .route-result-bar {
   --rb-t1: rgb(255 255 255 / 97%);
-  --rb-t2: rgb(255 255 255 / 88%);
-  --rb-t3: rgb(255 255 255 / 75%);
-  --rb-t4: rgb(255 255 255 / 62%);
+  --rb-t2: rgb(255 255 255 / 90%);
+  --rb-t3: rgb(255 255 255 / 78%);
+  --rb-t4: rgb(255 255 255 / 68%);
 
   --rb-accent: #8db8ff;
   --rb-line: rgb(255 255 255 / 8%);
@@ -226,7 +226,7 @@ function getSegmentColor(level: string): string {
   border: none;
   background: transparent;
   color: var(--rb-t2);
-  font-size: 14px;
+  font-size: var(--font-sm);
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
@@ -251,7 +251,7 @@ function getSegmentColor(level: string): string {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: var(--font-sm);
   font-weight: 700;
   color: var(--rb-t1);
   flex: 1;
@@ -263,7 +263,7 @@ function getSegmentColor(level: string): string {
 }
 
 .expand-all-btn {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 500;
   padding: 4px 10px;
   border-radius: 6px;
@@ -375,7 +375,7 @@ function getSegmentColor(level: string): string {
 }
 
 .plan-badge {
-  font-size: 11px;
+  font-size: var(--font-sm);
   padding: 2px 9px;
   border-radius: 4px;
   background: rgb(255 255 255 / 7%);
@@ -386,7 +386,7 @@ function getSegmentColor(level: string): string {
 }
 
 .card-tag {
-  font-size: 11px;
+  font-size: var(--font-sm);
   padding: 2px 8px;
   border-radius: 4px;
   font-weight: 600;
@@ -416,12 +416,12 @@ function getSegmentColor(level: string): string {
 
 .hint-chevron {
   margin-left: auto;
-  font-size: 15px;
+  font-size: var(--font-base);
   color: var(--rb-t3);
 }
 
 .plan-name {
-  font-size: 15px;
+  font-size: var(--font-base);
   font-weight: 700;
   color: var(--rb-t1);
   margin-bottom: 3px;
@@ -429,7 +429,7 @@ function getSegmentColor(level: string): string {
 }
 
 .card-subtitle {
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   color: var(--rb-t3);
   margin-bottom: 10px;
 }
@@ -455,7 +455,7 @@ function getSegmentColor(level: string): string {
 }
 
 .metric-value {
-  font-size: 17px;
+  font-size: var(--font-lg);
   font-weight: 700;
   color: var(--rb-t1);
   font-variant-numeric: tabular-nums;
@@ -471,7 +471,7 @@ function getSegmentColor(level: string): string {
 }
 
 .metric-label {
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   font-weight: 500;
   color: var(--rb-t3);
   letter-spacing: 0.06em;
@@ -491,7 +491,7 @@ function getSegmentColor(level: string): string {
   justify-content: center;
   gap: 4px;
   margin-top: 10px;
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   color: var(--rb-t3);
   transition: color 0.15s;
 }
@@ -517,7 +517,7 @@ function getSegmentColor(level: string): string {
   display: flex;
   align-items: baseline;
   gap: 7px;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   color: var(--rb-t2);
   line-height: 1.55;
 }
@@ -548,14 +548,14 @@ function getSegmentColor(level: string): string {
 }
 
 .traffic-title {
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 700;
   color: var(--rb-t1);
   letter-spacing: 0.02em;
 }
 
 .traffic-level {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   padding: 1px 8px;
   border-radius: 8px;
@@ -564,7 +564,7 @@ function getSegmentColor(level: string): string {
 
 .traffic-stat {
   flex: 1;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--rb-t3);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -581,7 +581,7 @@ function getSegmentColor(level: string): string {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   line-height: 1.45;
 }
 
@@ -620,7 +620,7 @@ function getSegmentColor(level: string): string {
 }
 
 .traffic-impact {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--rb-t2);
   line-height: 1.45;
 }

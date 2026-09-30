@@ -9,7 +9,8 @@ import type {
   PlanningPickedPoint,
   PlanningRouteKey,
   PlanningStatusInfo,
-  PlanningWaypoint
+  PlanningWaypoint,
+  PlotMarkerKind
 } from './types';
 
 defineOptions({
@@ -34,7 +35,7 @@ const {
   revealRoutes,
   setExcludedRoutes,
   setRouteADetour,
-  drawBlockedCross,
+  drawEventMarker,
   loadObstacleTiles,
   showWaypoints,
   setStartPoint,
@@ -87,10 +88,11 @@ defineExpose({
   revealRoutes: (routeKey: PlanningRouteKey) => revealRoutes(routeKey),
   /** 事件排除：隐藏被排除的候选路线 */
   setExcludedRoutes: (excluded: PlanningRouteKey[], active?: PlanningRouteKey) => setExcludedRoutes(excluded, active),
-  /** 成功桥中断：路线一切换为 A1 绕行线，并标绘红色叉号。 */
+  /** 成功桥中断：路线一切换为 A1 绕行线，并标绘断裂图标。 */
   setRouteADetour: (enabled: boolean) => setRouteADetour(enabled),
-  drawBlockedCross: (item: { id: string; lon: number; lat: number; name: string; color?: string }) =>
-    drawBlockedCross(item),
+  /** 事件标绘：按图标类型画断面/障碍等标识（无文字，见 marker-icons.ts） */
+  drawEventMarker: (item: { id: string; lon: number; lat: number; name: string; kind: PlotMarkerKind }) =>
+    drawEventMarker(item),
   /** 规划完成后加载三类障碍物瓦片及其可点击气泡。 */
   loadObstacleTiles,
   showWaypoints: (waypoints: PlanningWaypoint[]) => showWaypoints(waypoints),

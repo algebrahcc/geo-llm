@@ -221,71 +221,74 @@ onMounted(loadDatasets);
       </div>
     </div>
 
-    <NDrawer :show="drawerVisible" :width="440" placement="right" @update:show="drawerVisible = $event">
-      <NDrawerContent :title="editingKey ? '编辑集合' : '新建集合'" closable>
-        <NForm label-placement="top" :show-feedback="false">
-          <NFormItem label="集合名称">
-            <NInput v-model:value="form.label" placeholder="例如：两栖方向专题资料" />
-          </NFormItem>
-          <NFormItem label="集合说明">
-            <NInput v-model:value="form.description" type="textarea" :autosize="{ minRows: 4, maxRows: 6 }" />
-          </NFormItem>
-          <NFormItem label="检索方式">
-            <NSelect
-              v-model:value="form.searchMethod"
-              :options="[
-                { label: '语义检索', value: 'semantic_search' },
-                { label: '关键词检索', value: 'full_text_search' },
-                { label: '混合检索', value: 'hybrid_search' }
-              ]"
+    <!-- 观感统一走 AppDrawer（标题栏/主体滚动/底栏/表单样式一处定义） -->
+    <AppDrawer
+      :show="drawerVisible"
+      :title="editingKey ? '编辑集合' : '新建集合'"
+      subtitle="检索参数影响该集合的召回与排序"
+      :width="440"
+      @update:show="drawerVisible = $event"
+    >
+      <NForm label-placement="top" :show-feedback="false">
+        <NFormItem label="集合名称">
+          <NInput v-model:value="form.label" placeholder="例如：两栖方向专题资料" />
+        </NFormItem>
+        <NFormItem label="集合说明">
+          <NInput v-model:value="form.description" type="textarea" :autosize="{ minRows: 4, maxRows: 6 }" />
+        </NFormItem>
+        <NFormItem label="检索方式">
+          <NSelect
+            v-model:value="form.searchMethod"
+            :options="[
+              { label: '语义检索', value: 'semantic_search' },
+              { label: '关键词检索', value: 'full_text_search' },
+              { label: '混合检索', value: 'hybrid_search' }
+            ]"
+          />
+        </NFormItem>
+        <NFormItem label="召回数量 TopK">
+          <NInputNumber v-model:value="form.topK" :min="1" :max="50" />
+        </NFormItem>
+        <NFormItem label="相似度阈值">
+          <div class="flex items-center gap-10px">
+            <NSwitch v-model:checked="form.scoreThresholdEnabled" />
+            <NInputNumber
+              v-model:value="form.scoreThreshold"
+              :min="0"
+              :max="1"
+              :step="0.05"
+              :disabled="!form.scoreThresholdEnabled"
+              class="flex-1"
             />
-          </NFormItem>
-          <NFormItem label="召回数量 TopK">
-            <NInputNumber v-model:value="form.topK" :min="1" :max="50" />
-          </NFormItem>
-          <NFormItem label="相似度阈值">
-            <div class="flex items-center gap-10px">
-              <NSwitch v-model:checked="form.scoreThresholdEnabled" />
-              <NInputNumber
-                v-model:value="form.scoreThreshold"
-                :min="0"
-                :max="1"
-                :step="0.05"
-                :disabled="!form.scoreThresholdEnabled"
-                class="flex-1"
-              />
-            </div>
-          </NFormItem>
-          <NFormItem label="Rerank 重排序">
-            <div class="w-full">
-              <NSwitch v-model:checked="form.rerankingEnabled" />
-              <div v-if="form.rerankingEnabled" class="mt-10px flex flex-col gap-10px">
-                <NInput
-                  v-model:value="form.rerankingProvider"
-                  placeholder="模型提供方（插件标识），如 langgenius/cohere/rerank"
-                  clearable
-                />
-                <NInput
-                  v-model:value="form.rerankingModelName"
-                  placeholder="模型名，如 rerank-multilingual-v3.0"
-                  clearable
-                />
-                <p class="text-12px text-[var(--text-tertiary)]">
-                  启用后检索将使用该模型对召回结果重排序，需 Dify 已安装对应 Rerank 模型插件
-                </p>
-              </div>
-            </div>
-          </NFormItem>
-        </NForm>
-
-        <template #footer>
-          <div class="flex justify-end gap-8px">
-            <NButton @click="drawerVisible = false">取消</NButton>
-            <NButton type="primary" @click="handleSubmit">保存</NButton>
           </div>
-        </template>
-      </NDrawerContent>
-    </NDrawer>
+        </NFormItem>
+        <NFormItem label="Rerank 重排序">
+          <div class="w-full">
+            <NSwitch v-model:checked="form.rerankingEnabled" />
+            <div v-if="form.rerankingEnabled" class="mt-10px flex flex-col gap-10px">
+              <NInput
+                v-model:value="form.rerankingProvider"
+                placeholder="模型提供方（插件标识），如 langgenius/cohere/rerank"
+                clearable
+              />
+              <NInput
+                v-model:value="form.rerankingModelName"
+                placeholder="模型名，如 rerank-multilingual-v3.0"
+                clearable
+              />
+              <p class="text-13px text-[var(--text-tertiary)]">
+                启用后检索将使用该模型对召回结果重排序，需 Dify 已安装对应 Rerank 模型插件
+              </p>
+            </div>
+          </div>
+        </NFormItem>
+      </NForm>
+
+      <template #footer>
+        <NButton @click="drawerVisible = false">取消</NButton>
+        <NButton type="primary" @click="handleSubmit">保存</NButton>
+      </template>
+    </AppDrawer>
   </div>
 </template>
 

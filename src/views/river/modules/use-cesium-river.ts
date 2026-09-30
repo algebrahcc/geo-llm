@@ -21,6 +21,7 @@ import {
 } from 'cesium';
 import { riverFlowTemplate, riverPlanScenes, riverPlanSummaries, riverPresets } from '@/mock/river';
 import { sleep } from '@/utils/async';
+import { MAP_LABEL_SCALE, mapLabelFont } from '@/composables/cesium/label-style';
 import { unwrapResponseData } from '@/service/request/envelope';
 import type {
   RejectedRouteData,
@@ -207,10 +208,10 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
             verticalOrigin: VerticalOrigin.CENTER
           },
       label: {
-        // 超采样：2 倍字号栅格化 + scale 0.5 显示，消除高分屏下 Cesium 文字发虚
+        // 注记样式统一走 label-style（2 倍栅格化 + 0.5 缩放，显示 16px）
         text: labelText,
-        font: 'bold 24px Microsoft YaHei',
-        scale: 0.5,
+        font: mapLabelFont('bold'),
+        scale: MAP_LABEL_SCALE,
         fillColor: Color.WHITE,
         showBackground: true,
         backgroundColor: base.getColor('#050d18', 0.92),

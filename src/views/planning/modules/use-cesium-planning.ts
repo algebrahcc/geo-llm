@@ -16,6 +16,7 @@ import {
   type ImageryLayer,
   LabelStyle,
   Math as CesiumMath,
+  NearFarScalar,
   PolygonHierarchy,
   Rectangle,
   SingleTileImageryProvider,
@@ -28,8 +29,10 @@ import {
   planningRouteScenes,
   planningRouteSummaries
 } from '@/mock/planning';
+import { MAP_LABEL_SCALE, mapLabelFont } from '@/composables/cesium/label-style';
 import { unwrapResponseData } from '@/service/request/envelope';
 import { createToolNameMap } from '@/typings/cesium';
+import { getMarkerCanvas, MARKER_ICON_SIZE, MARKER_SYMBOL_COLOR } from './marker-icons';
 import type {
   PlanningInteractiveTool,
   PlanningLayerKey,
@@ -39,7 +42,8 @@ import type {
   PlanningRouteKey,
   PlanningStatusInfo,
   PlanningLineOverlay,
-  PlanningWaypoint
+  PlanningWaypoint,
+  PlotMarkerKind
 } from './types';
 
 interface UseCesiumPlanningOptions {
@@ -54,7 +58,8 @@ const toolNameMap = createToolNameMap<PlanningInteractiveTool>([
 ]);
 
 interface ObstacleTileDefinition {
-  id: string;
+  /** 瓦片标识 = 标绘图标类型（断桥/瓦砾/塌陷），保证瓦片与标绘用同一套图形语言 */
+  id: PlotMarkerKind;
   name: string;
   path: string;
   z: number;
@@ -64,13 +69,16 @@ interface ObstacleTileDefinition {
   minLat: number;
   maxLon: number;
   maxLat: number;
-  color: string;
+  // 不再逐条配色：标图习惯是"同性质同色、靠形状分类"，
+  // 三类障碍统一用军标红（形状分别见 marker-icons.ts）
 }
 
 /** public/data/obstacle 下的三张 18 级 XYZ 障碍识别结果瓦片。 */
 const OBSTACLE_TILES: readonly ObstacleTileDefinition[] = [
   {
-    id: 'broken-bridge',
+    // id 刻意与 PlotMarkerKind 的取值同名：瓦片与标绘共用同一个符号类型，
+    // 不再额外维护一套映射（旧写法是 broken-bridge，与类型名反序，容易配错）
+    id: 'bridge-broken',
     name: '断桥障碍',
     path: 'data/obstacle/broken_bridge/18/219515/112159.png',
     z: 18,
@@ -79,8 +87,7 @@ const OBSTACLE_TILES: readonly ObstacleTileDefinition[] = [
     minLon: 121.45837,
     minLat: 25.12579,
     maxLon: 121.45906,
-    maxLat: 25.12664,
-    color: '#ef4444'
+    maxLat: 25.12664
   },
   {
     id: 'rubble',
@@ -92,8 +99,7 @@ const OBSTACLE_TILES: readonly ObstacleTileDefinition[] = [
     minLon: 121.45974,
     minLat: 25.14477,
     maxLon: 121.46028,
-    maxLat: 25.14534,
-    color: '#f97316'
+    maxLat: 25.14534
   },
   {
     id: 'sinkhole',
@@ -105,8 +111,7 @@ const OBSTACLE_TILES: readonly ObstacleTileDefinition[] = [
     minLon: 121.56852,
     minLat: 25.07082,
     maxLon: 121.56873,
-    maxLat: 25.07098,
-    color: '#eab308'
+    maxLat: 25.07098
   }
 ];
 
@@ -139,7 +144,7 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
   const selectedRiskEntities: Entity[] = [];
   const selectedObstacleEntities: Entity[] = [];
   const waypointMarkerEntities: Entity[] = [];
-  const blockedCrossEntities = new Map<string, Entity>();
+  const eventMarkerEntities = new Map<string, Entity>();
   const obstacleTileLayers: ImageryLayer[] = [];
   const obstacleBubbleEntities = new Map<string, Entity>();
   const obstacleBubbleTargets = new Map<string, Rectangle>();
@@ -227,9 +232,10 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
       },
       label: {
         // 超采样：2 倍字号栅格化 + scale 0.5 显示，消除高分屏下文字发虚
+        // 注记样式统一走 label-style（2 倍栅格化 + 0.5 缩放，显示 16px）
         text: item.name,
-        font: '24px Microsoft YaHei',
-        scale: 0.5,
+        font: mapLabelFont(),
+        scale: MAP_LABEL_SCALE,
         fillColor: Color.WHITE,
         showBackground: true,
         backgroundColor: base.getColor('#050d18', 0.9),
@@ -285,7 +291,8 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
         },
         label: {
           text: `${index + 1}. ${wp.name}`,
-          font: '12px Microsoft YaHei',
+          font: mapLabelFont(),
+          scale: MAP_LABEL_SCALE,
           fillColor: Color.WHITE,
           showBackground: true,
           backgroundColor: base.getColor('#0f172a', 0.82),
@@ -426,34 +433,37 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     base.requestRender();
   }
 
-  /** 绘制始终醒目的红色叉号，表示桥梁/道路不可通行。 */
-  function drawBlockedCross(item: { id: string; lon: number; lat: number; name: string; color?: string }) {
+  /**
+   * 绘制事件标绘图标（断桥/道路中断/障碍/损毁/塌陷/拥堵，图形见 marker-icons.ts）。
+   *
+   * 此前这里画的是文字标签（"✕ 成功桥·断裂"）：把图形和名称挤在一句文字里，
+   * 既压住底图，缩放时又先糊成一团。现在只保留图形标绘 ——
+   * 名称留在 entity.name 上（供拾取与后续气泡使用），不再上屏。
+   */
+  function drawEventMarker(item: { id: string; lon: number; lat: number; name: string; kind: PlotMarkerKind }) {
     const viewer = viewerRef.value;
     if (!viewer) return;
-    const previous = blockedCrossEntities.get(item.id);
+    const previous = eventMarkerEntities.get(item.id);
     if (previous) viewer.entities.remove(previous);
 
     const entity = viewer.entities.add({
       id: item.id,
       name: item.name,
       position: Cartesian3.fromDegrees(item.lon, item.lat),
-      label: {
-        text: `✕  ${item.name}`,
-        font: 'bold 30px Microsoft YaHei',
-        scale: 0.72,
-        fillColor: base.getColor(item.color ?? '#ef4444'),
-        outlineColor: Color.WHITE,
-        outlineWidth: 3,
-        style: LabelStyle.FILL_AND_OUTLINE,
-        showBackground: true,
-        backgroundColor: base.getColor('#450a0a', 0.86),
+      billboard: {
+        image: getMarkerCanvas(item.kind),
+        width: MARKER_ICON_SIZE,
+        height: MARKER_ICON_SIZE,
+        // 标图符号以中心对准事件坐标（符号本身无地钉，故用 CENTER 而非 BOTTOM）
+        verticalOrigin: VerticalOrigin.CENTER,
         horizontalOrigin: HorizontalOrigin.CENTER,
-        verticalOrigin: VerticalOrigin.BOTTOM,
         heightReference: HeightReference.CLAMP_TO_GROUND,
-        disableDepthTestDistance: Number.POSITIVE_INFINITY
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        // 拉远时适度缩小，避免多个标绘在缩略视角下互相压盖
+        scaleByDistance: new NearFarScalar(2000, 1.0, 120000, 0.62)
       }
     });
-    blockedCrossEntities.set(item.id, entity);
+    eventMarkerEntities.set(item.id, entity);
     base.requestRender();
   }
 
@@ -508,29 +518,35 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
           id: entityId,
           name: item.name,
           position: Cartesian3.fromRadians(center.longitude, center.latitude),
-          point: {
-            pixelSize: 12,
-            color: base.getColor(item.color),
-            outlineColor: Color.WHITE,
-            outlineWidth: 2,
+          // 符号与事件标绘同一套军标（瓦片 id 即符号类型）
+          billboard: {
+            image: getMarkerCanvas(item.id),
+            width: MARKER_ICON_SIZE,
+            height: MARKER_ICON_SIZE,
             heightReference: HeightReference.CLAMP_TO_GROUND,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            verticalOrigin: VerticalOrigin.CENTER,
+            horizontalOrigin: HorizontalOrigin.CENTER
           },
           polyline: {
-            material: base.getColor(item.color),
+            // 识别范围框线同样用军标红（同性质同色，靠形状分类）
+            material: base.getColor(MARKER_SYMBOL_COLOR, 0.85),
             positions: positions,
             clampToGround: true,
             width: 3.0
           },
           label: {
             text: item.name,
-            font: 'bold 24px Microsoft YaHei',
-            scale: 0.55,
-            fillColor: Color.WHITE,
-            showBackground: true,
-            backgroundColor: base.getColor(item.color, 0.9),
-            backgroundPadding: new Cartesian2(12, 8),
-            pixelOffset: new Cartesian2(0, -24),
+            // 军标注记：统一走 label-style + 红字白勾边，不加底色 ——
+            // 此前的彩色底衬就是"气泡"，与标图风格不符
+            font: mapLabelFont('bold'),
+            scale: MAP_LABEL_SCALE,
+            fillColor: base.getColor(MARKER_SYMBOL_COLOR),
+            outlineColor: Color.WHITE,
+            outlineWidth: 3,
+            style: LabelStyle.FILL_AND_OUTLINE,
+            // 让开符号（符号居中，名称落在其上方）
+            pixelOffset: new Cartesian2(0, -MARKER_ICON_SIZE / 2 - 10),
             horizontalOrigin: HorizontalOrigin.CENTER,
             verticalOrigin: VerticalOrigin.BOTTOM,
             heightReference: HeightReference.CLAMP_TO_GROUND,
@@ -718,7 +734,7 @@ export function useCesiumPlanning(options: UseCesiumPlanningOptions = {}) {
     revealRoutes,
     setExcludedRoutes,
     setRouteADetour,
-    drawBlockedCross,
+    drawEventMarker,
     loadObstacleTiles,
     showWaypoints,
     setStartPoint,

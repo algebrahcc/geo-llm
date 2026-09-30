@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
+import AppDrawer from '@/components/common/app-drawer.vue';
 import type { KnowledgeEditFormModel } from './types';
 
 interface Props {
@@ -66,32 +67,35 @@ function handleSubmit() {
 </script>
 
 <template>
-  <NDrawer :show="visible" :width="440" placement="right" @update:show="emit('update:visible', $event)">
-    <NDrawerContent title="编辑文档" closable>
-      <NForm label-placement="top" :show-feedback="false">
-        <NFormItem label="文档名称">
-          <NInput v-model:value="form.name" />
-        </NFormItem>
-        <NFormItem label="来源">
-          <NInput v-model:value="form.source" />
-        </NFormItem>
-        <NFormItem label="审核人">
-          <NInput v-model:value="form.reviewer" />
-        </NFormItem>
-        <NFormItem label="标签">
-          <NInput v-model:value="tagsText" placeholder="多个标签用英文逗号分隔" />
-        </NFormItem>
-        <NFormItem label="摘要">
-          <NInput v-model:value="form.summary" type="textarea" :autosize="{ minRows: 4, maxRows: 6 }" />
-        </NFormItem>
-      </NForm>
+  <!-- 观感统一走 AppDrawer（标题栏/主体滚动/底栏/表单样式一处定义） -->
+  <AppDrawer
+    :show="props.visible"
+    title="编辑文档"
+    subtitle="维护文档的名称、来源、标签与摘要"
+    :width="440"
+    @update:show="emit('update:visible', $event)"
+  >
+    <NForm label-placement="top" :show-feedback="false">
+      <NFormItem label="文档名称">
+        <NInput v-model:value="form.name" />
+      </NFormItem>
+      <NFormItem label="来源">
+        <NInput v-model:value="form.source" />
+      </NFormItem>
+      <NFormItem label="审核人">
+        <NInput v-model:value="form.reviewer" />
+      </NFormItem>
+      <NFormItem label="标签">
+        <NInput v-model:value="tagsText" placeholder="多个标签用英文逗号分隔" />
+      </NFormItem>
+      <NFormItem label="摘要">
+        <NInput v-model:value="form.summary" type="textarea" :autosize="{ minRows: 4, maxRows: 6 }" />
+      </NFormItem>
+    </NForm>
 
-      <template #footer>
-        <div class="flex justify-end gap-8px">
-          <NButton @click="emit('update:visible', false)">取消</NButton>
-          <NButton type="primary" @click="handleSubmit">保存修改</NButton>
-        </div>
-      </template>
-    </NDrawerContent>
-  </NDrawer>
+    <template #footer>
+      <NButton @click="emit('update:visible', false)">取消</NButton>
+      <NButton type="primary" @click="handleSubmit">保存修改</NButton>
+    </template>
+  </AppDrawer>
 </template>

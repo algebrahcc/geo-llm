@@ -3,6 +3,7 @@ export interface ScreenKpiItem {
   label: string;
   value: number | string;
   unit?: string;
+  /** 环比增减量：翻牌器当前不展示（数值下方不再显示 +/-），字段保留以便日后恢复 */
   delta?: number;
 }
 
@@ -106,6 +107,14 @@ export interface ScreenGlobeFlyline {
   name: string;
 }
 
+/**
+ * 大屏地图散点数据 —— **当前未被任何页面使用**。
+ *
+ * 2026-09 已从统计大屏地图上移除：这批"任务节点"的数值没有单位、也没有业务来源，
+ * 即使补上标签、分档与图例，也只是把噪声包装得更精致。数据保留在这里，
+ * 待拿到真实口径（例如节点任务量、服务调用量）后，再连同"大小/颜色/动效各表示什么"
+ * 与图例一起设计 —— 不要直接接回地图。
+ */
 export const screenGlobePoints: ScreenGlobePoint[] = [
   { id: 'p1', name: '任务节点-台北', longitude: 121.52, latitude: 25.05, value: 86 },
   { id: 'p2', name: '任务节点-福州', longitude: 119.3, latitude: 26.08, value: 64 },
@@ -145,6 +154,12 @@ export interface ScreenHeatmapPoint {
   value: number;
 }
 
+/**
+ * 大屏地图热力数据 —— **当前未被任何页面使用**。
+ *
+ * 它曾以索引 0 加在影像层最底部，被不透明底图整个盖住、实际从未显示；
+ * 10 个点又全部挤在台北一带且没有口径。故与散点层一同移除。
+ */
 export const screenHeatmapPoints: ScreenHeatmapPoint[] = [
   { longitude: 121.5, latitude: 25.05, value: 0.9 },
   { longitude: 121.47, latitude: 25.1, value: 0.8 },

@@ -1,7 +1,7 @@
 {
   "name": "geo-llm",
   "version": "2.2.0",
-  "description": "Geo-LLM assisted decision prototype system. 基于 Vue3、Vite、TypeScript、NaiveUI、UnoCSS 的地理大模型辅助决策原型系统。",
+  "description": "Geographic environment analysis system. 基于 Vue3、Vite、TypeScript、NaiveUI、UnoCSS 的地理环境分析系统升级原型。",
   "keywords": [
     "TypeScript",
     "UnoCSS",

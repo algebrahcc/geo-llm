@@ -41,6 +41,7 @@ import {
 } from 'cesium';
 import MVTImageryProvider from 'mvt-imagery-provider';
 import type { StyleSpecification } from 'mvt-imagery-provider';
+import { MAP_LABEL_SCALE, mapLabelFont } from '@/composables/cesium/label-style';
 import { openStreetViewPanorama } from '@/components/cesium/street-view-panorama';
 import { openIntelDetailCard } from '@/components/cesium/intel-detail-card';
 
@@ -541,7 +542,9 @@ async function createVectorHandle(s: Api.DataService.DataServiceItem, viewer: Vi
       if (props.name) {
         entity.label = new LabelGraphics({
           text: String(props.name),
-          font: '12px "Microsoft YaHei", sans-serif',
+          // 服务图层名称与其它地图注记同尺寸（原为 12px）
+          font: mapLabelFont(),
+          scale: MAP_LABEL_SCALE,
           fillColor: Color.fromCssColorString('#eaf5ff'),
           showBackground: true,
           backgroundColor: Color.fromCssColorString('rgba(2, 10, 20, 0.78)'),

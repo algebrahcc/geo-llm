@@ -216,9 +216,9 @@ function toggleRejected() {
    ═══════════════════════════════════════════════════════════════ */
 .result-bar {
   --rb-t1: rgb(255 255 255 / 97%);
-  --rb-t2: rgb(255 255 255 / 88%);
-  --rb-t3: rgb(255 255 255 / 75%);
-  --rb-t4: rgb(255 255 255 / 62%);
+  --rb-t2: rgb(255 255 255 / 90%);
+  --rb-t3: rgb(255 255 255 / 78%);
+  --rb-t4: rgb(255 255 255 / 68%);
 
   --rb-primary: #4a7dbd;
   --rb-primary-bright: #7cb8ff;
@@ -248,7 +248,7 @@ function toggleRejected() {
 }
 
 .header-title {
-  font-size: 14px;
+  font-size: var(--font-sm);
   font-weight: 700;
   color: var(--rb-t1);
   flex-shrink: 0;
@@ -259,7 +259,7 @@ function toggleRejected() {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   padding: 3px 10px;
   border-radius: 999px;
   background: rgb(74 125 189 / 14%);
@@ -271,7 +271,7 @@ function toggleRejected() {
 
 .expand-all-btn {
   margin-left: auto;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 500;
   padding: 4px 10px;
   border-radius: 6px;
@@ -306,7 +306,7 @@ function toggleRejected() {
   background: rgb(255 255 255 / 6%);
   color: var(--rb-t2);
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--font-md);
   transition:
     background 0.18s,
     color 0.18s;
@@ -351,7 +351,7 @@ function toggleRejected() {
 }
 
 .empty-text {
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--rb-t2);
 }
 
@@ -436,7 +436,7 @@ function toggleRejected() {
 }
 
 .plan-badge {
-  font-size: 11px;
+  font-size: var(--font-sm);
   padding: 2px 9px;
   border-radius: 4px;
   background: rgb(255 255 255 / 7%);
@@ -447,7 +447,7 @@ function toggleRejected() {
 }
 
 .recommend-flag {
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 2px 8px;
   border-radius: 4px;
   color: #fff;
@@ -459,7 +459,7 @@ function toggleRejected() {
 }
 
 .plan-name {
-  font-size: 15px;
+  font-size: var(--font-base);
   font-weight: 700;
   color: var(--rb-t1);
   margin-bottom: 10px;
@@ -486,7 +486,7 @@ function toggleRejected() {
 }
 
 .chip-val {
-  font-size: 17px;
+  font-size: var(--font-lg);
   font-weight: 700;
   color: var(--rb-t1);
   font-variant-numeric: tabular-nums;
@@ -507,7 +507,7 @@ function toggleRejected() {
 }
 
 .chip-label {
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   font-weight: 500;
   color: var(--rb-t2);
   letter-spacing: 0.06em;
@@ -527,7 +527,7 @@ function toggleRejected() {
   justify-content: center;
   gap: 4px;
   margin-top: 10px;
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   color: var(--rb-t3);
   transition: color 0.15s;
 }
@@ -537,7 +537,7 @@ function toggleRejected() {
 }
 
 .hint-chevron {
-  font-size: 15px;
+  font-size: var(--font-base);
   color: var(--rb-t2);
 }
 
@@ -582,7 +582,7 @@ function toggleRejected() {
 
 /* 小标题：纯文字排版（不做侧边色条），字号恒大于下方正文 */
 .detail-label {
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 700;
   color: var(--rb-t1);
   margin-bottom: 5px;
@@ -591,7 +591,7 @@ function toggleRejected() {
 }
 
 .detail-text {
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   color: var(--rb-t2);
   line-height: 1.6;
 }
@@ -626,7 +626,7 @@ function toggleRejected() {
 }
 
 .detail-tag {
-  font-size: 11px;
+  font-size: var(--font-sm);
   padding: 2px 8px;
   border-radius: 4px;
   background: rgb(255 255 255 / 6%);
@@ -638,7 +638,7 @@ function toggleRejected() {
 .detail-list {
   margin: 0;
   padding-left: 0;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   color: var(--rb-t2);
   line-height: 1.6;
   list-style: none;
@@ -660,7 +660,7 @@ function toggleRejected() {
 }
 
 .cond-label {
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 700;
   color: var(--rb-t1);
   margin-right: 8px;
@@ -669,7 +669,7 @@ function toggleRejected() {
 }
 
 .cond-item {
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   color: var(--rb-t2);
   line-height: 1.6;
 }
@@ -704,19 +704,19 @@ function toggleRejected() {
 }
 
 .rejected-chevron {
-  font-size: 14px;
+  font-size: var(--font-sm);
   color: #fda4af;
 }
 
 .rejected-title {
   flex: 1;
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: #fda4af;
 }
 
 .rejected-hint {
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   color: var(--rb-t2);
   font-weight: 400;
 }
@@ -747,7 +747,7 @@ function toggleRejected() {
 }
 
 .rejected-locate {
-  font-size: 13px;
+  font-size: var(--font-base);
   color: var(--rb-t2);
   flex-shrink: 0;
   transition: color 0.15s;
@@ -769,7 +769,7 @@ function toggleRejected() {
 }
 
 .rejected-name {
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--rb-t1);
   flex-shrink: 0;
@@ -777,7 +777,7 @@ function toggleRejected() {
 
 .rejected-reason {
   flex: 1;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: #fca5a5;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -793,7 +793,7 @@ function toggleRejected() {
 }
 
 .rejected-calc {
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   color: var(--rb-t2);
   font-variant-numeric: tabular-nums;
 }

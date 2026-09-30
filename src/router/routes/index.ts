@@ -35,7 +35,11 @@ const customRoutes = [
   }
 ] as unknown as CustomRoute[];
 
-/** 典型场景分组：渡河工程保障 / 机动路线规划（子页均为 blank 布局的全屏地图页） */
+/**
+ * 典型场景分组：渡河工程保障 / 机动路线规划。
+ *
+ * 子项显式写 order：菜单排序不依赖数组顺序，日后增删项不会引起位置漂移。
+ */
 function createScenarioElegantRoute() {
   return {
     name: 'scenario',
@@ -54,7 +58,8 @@ function createScenarioElegantRoute() {
         component: 'view.river',
         meta: {
           title: '渡河工程保障',
-          icon: 'mdi:ferry'
+          icon: 'mdi:ferry',
+          order: 1
         }
       },
       {
@@ -63,7 +68,8 @@ function createScenarioElegantRoute() {
         component: 'view.planning',
         meta: {
           title: '机动路线规划',
-          icon: 'mdi:routes'
+          icon: 'mdi:routes',
+          order: 2
         }
       }
     ]
@@ -339,6 +345,8 @@ export function createStaticRoutes() {
     createScenarioElegantRoute() as unknown as ElegantRoute,
     createKnowledgeElegantRoute() as unknown as ElegantRoute,
     createAgentElegantRoute() as unknown as ElegantRoute,
+    // 剔除已由分组接管的顶层生成路由：river / planning 在「典型场景」下，
+    // knowledge / agent 各有自建分组 —— 否则它们会各自多出一个顶层菜单项
     ...generatedRoutes.filter(item => !['knowledge', 'agent', 'river', 'planning'].includes(item.name))
   ].forEach(item => {
     if (item.meta?.constant) {

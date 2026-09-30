@@ -13,6 +13,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AgentChatPanel: typeof import('./../components/agent/agent-chat-panel.vue')['default']
+    AppDrawer: typeof import('./../components/common/app-drawer.vue')['default']
     AppProvider: typeof import('./../components/common/app-provider.vue')['default']
     BeidouGridPanel: typeof import('./../components/cesium/beidou-grid-panel.vue')['default']
     BetterScroll: typeof import('./../components/custom/better-scroll.vue')['default']
@@ -90,6 +91,7 @@ declare module 'vue' {
 // For TSX support
 declare global {
   const AgentChatPanel: typeof import('./../components/agent/agent-chat-panel.vue')['default']
+  const AppDrawer: typeof import('./../components/common/app-drawer.vue')['default']
   const AppProvider: typeof import('./../components/common/app-provider.vue')['default']
   const BeidouGridPanel: typeof import('./../components/cesium/beidou-grid-panel.vue')['default']
   const BetterScroll: typeof import('./../components/custom/better-scroll.vue')['default']

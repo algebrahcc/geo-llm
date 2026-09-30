@@ -1,4 +1,15 @@
 <script setup lang="ts">
+/**
+ * 统计大屏中间地图容器
+ *
+ * 当前只渲染底图：原先叠加的「节点散点层」已移除 —— 那批点没有业务口径
+ * （名称是"任务节点-某地"、数值没有单位、也没有来源），即使补上标签、分档与图例，
+ * 也只是把噪声包装得更精致，观众依然读不出结论。
+ *
+ * 若日后要重新叠加图层，请先确认**数据来源与口径**（例如真实的服务调用量、
+ * 任务分布、要素覆盖度），再连同"大小/颜色/动效各表示什么"与图例一起设计；
+ * 缺少口径的图层不要加回来。
+ */
 import { onMounted } from 'vue';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { useScreenGlobe } from './use-screen-globe';

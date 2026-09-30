@@ -699,11 +699,16 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   --ai-violet: #a78bfa;
   --ai-violet-soft: rgb(167 139 250 / 13%);
 
-  /* ── 文本层级（白系为主，弱化用不透明度而非发灰，保证深色底可读） ── */
+  /* ── 文本层级 ──
+     弱化一律用"白色 + 降不透明度"，不要换成灰色：灰色在深底上会与背景糊在一起。
+     下限按实测卡住：说明性文字不低于 78%，元信息不低于 68% —— 再低就只在白底上成立。 */
   --ai-text-1: rgb(255 255 255 / 97%);
-  --ai-text-2: rgb(255 255 255 / 88%);
-  --ai-text-3: rgb(255 255 255 / 75%);
-  --ai-text-4: rgb(255 255 255 / 62%);
+  --ai-text-2: rgb(255 255 255 / 90%);
+  --ai-text-3: rgb(255 255 255 / 78%);
+  --ai-text-4: rgb(255 255 255 / 68%);
+
+  /* 字号：统一走全局字号阶 --font-*（取值与理由见 styles/css/global.css）。
+     本面板不再自定义字号，避免同一系统里出现两套比例。 */
 
   /* ── 面与线 ── */
   --ai-surface: rgb(255 255 255 / 2%);
@@ -772,12 +777,12 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--ai-r-sm);
   background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-primary-deep) 100%);
   color: #fff;
-  font-size: 15px;
+  font-size: var(--font-xl);
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgb(74 125 189 / 28%);
 }
@@ -791,7 +796,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .header-title {
-  font-size: 14px;
+  font-size: var(--font-xl);
   font-weight: 700;
   color: var(--ai-text-1);
   letter-spacing: 0.01em;
@@ -801,7 +806,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .header-subtitle {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--ai-text-3);
   letter-spacing: 0.04em;
 }
@@ -810,7 +815,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   padding: 3px 10px;
   border-radius: 999px;
   font-weight: 600;
@@ -864,14 +869,14 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: var(--ai-r-xs);
   background: var(--ai-surface-3);
   color: var(--ai-text-3);
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--font-xl);
   transition:
     background var(--ai-fast) var(--ai-ease),
     color var(--ai-fast) var(--ai-ease);
@@ -907,12 +912,12 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .progress-label {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--ai-text-3);
 }
 
 .progress-count {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--ai-text-2);
   font-variant-numeric: tabular-nums;
@@ -994,12 +999,12 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  max-width: 132px;
-  padding: 2px 7px;
+  max-width: 156px;
+  padding: 3px 9px;
   border-radius: var(--ai-r-xs);
   background: var(--ai-surface-2);
   border: 1px solid var(--ai-line);
-  font-size: 10px;
+  font-size: var(--font-xs);
   white-space: nowrap;
   overflow: hidden;
 }
@@ -1029,7 +1034,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .context-chevron {
-  font-size: 14px;
+  font-size: var(--font-lg);
   color: var(--ai-text-4);
   flex-shrink: 0;
   transition: transform var(--ai-base) var(--ai-ease);
@@ -1052,7 +1057,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   min-height: 0;
   min-width: 0;
   overflow-y: auto;
-  padding: 8px 12px;
+  padding: 10px 14px;
 }
 
 /* ─────────── 折叠区块 ─────────── */
@@ -1072,7 +1077,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 11px;
+  padding: 10px 12px;
   background: var(--ai-surface);
   cursor: pointer;
   user-select: none;
@@ -1090,14 +1095,14 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 
 .section-quick-title {
   flex: 1;
-  font-size: 13px;
+  font-size: var(--font-lg);
   font-weight: 700;
   color: var(--ai-text-1);
   letter-spacing: 0.02em;
 }
 
 .section-badge {
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 1px 6px;
   border-radius: 8px;
   background: var(--ai-accent-soft);
@@ -1125,7 +1130,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 .section-chevron,
 .doc-chevron,
 .param-more-chevron {
-  font-size: 14px;
+  font-size: var(--font-lg);
   color: var(--ai-text-4);
   transition: transform var(--ai-base) var(--ai-ease);
   flex-shrink: 0;
@@ -1138,7 +1143,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .section-body {
-  padding: 8px 11px 10px;
+  padding: 10px 12px 12px;
   border-top: 1px solid var(--ai-line);
 }
 
@@ -1157,8 +1162,8 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  padding: 4px 0;
-  font-size: 11px;
+  padding: 6px 0;
+  font-size: var(--font-sm);
   border-bottom: 1px solid rgb(255 255 255 / 3%);
 }
 
@@ -1196,7 +1201,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   background: transparent;
   color: var(--ai-accent);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-sm);
   transition:
     border-color var(--ai-fast) var(--ai-ease),
     color var(--ai-fast) var(--ai-ease);
@@ -1221,14 +1226,14 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .situation-chips__label {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--ai-text-3);
   flex-shrink: 0;
 }
 
 .situation-chip {
-  font-size: 11px;
+  font-size: var(--font-sm);
   padding: 2px 8px;
   border-radius: 4px;
   background: rgb(251 191 36 / 18%);
@@ -1252,18 +1257,18 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 20px;
+  width: 24px;
   flex-shrink: 0;
 }
 
 .step-dot {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--font-sm);
   border: 2px solid var(--ai-line-2);
   background: var(--ai-surface-2);
   transition: all 0.3s var(--ai-ease);
@@ -1282,7 +1287,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .dot-check {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
 }
 
@@ -1304,7 +1309,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 .step-line {
   flex: 1;
   width: 2px;
-  min-height: 18px;
+  min-height: 22px;
   background: var(--ai-line-2);
   margin: 4px 0;
   transition: background 0.3s var(--ai-ease);
@@ -1332,7 +1337,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .step-label {
-  font-size: 12px;
+  font-size: var(--font-base);
   color: var(--ai-text-2);
   font-weight: 500;
   flex: 1;
@@ -1348,7 +1353,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .step-status-tag {
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 1px 6px;
   border-radius: var(--ai-r-xs);
   font-weight: 600;
@@ -1371,7 +1376,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .step-tool {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--ai-accent);
   margin-top: 2px;
   opacity: 0.9;
@@ -1381,7 +1386,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 1px 6px;
   border-radius: 4px;
   background: var(--ai-surface-2);
@@ -1390,7 +1395,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .step-desc {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--ai-text-3);
   margin-top: 2px;
   line-height: 1.5;
@@ -1450,7 +1455,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .doc-name {
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 600;
   color: var(--ai-text-1);
   overflow: hidden;
@@ -1459,7 +1464,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .doc-category {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--ai-text-4);
 }
 
@@ -1471,7 +1476,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .doc-format {
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 1px 5px;
   border-radius: 4px;
   background: var(--ai-accent-soft);
@@ -1479,7 +1484,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .doc-match {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--ai-text-3);
 }
 
@@ -1506,7 +1511,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .snippet-title {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--ai-accent);
   min-width: 0;
@@ -1516,7 +1521,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .snippet-score-badge {
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 1px 5px;
   border-radius: 4px;
   background: var(--ai-surface-3);
@@ -1526,7 +1531,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .snippet-text {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--ai-text-3);
   line-height: 1.55;
   margin-bottom: 5px;
@@ -1554,7 +1559,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .score-label {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--ai-text-4);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -1573,29 +1578,29 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: var(--ai-primary-soft);
   border: 1px solid var(--ai-primary-line);
   color: var(--ai-accent);
-  font-size: 20px;
-  margin-bottom: 10px;
+  font-size: 24px;
+  margin-bottom: 12px;
 }
 
 .empty-title {
-  margin: 0 0 4px;
-  font-size: 13px;
+  margin: 0 0 6px;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: var(--ai-text-1);
 }
 
 .empty-desc {
-  margin: 0 0 14px;
-  font-size: 11px;
+  margin: 0 0 16px;
+  font-size: var(--font-sm);
   color: var(--ai-text-3);
-  line-height: 1.6;
-  max-width: 260px;
+  line-height: var(--font-lh-body);
+  max-width: 300px;
 }
 
 .quick-asks {
@@ -1611,7 +1616,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   border-radius: 999px;
   background: var(--ai-primary-soft);
   color: var(--ai-accent);
-  font-size: 11px;
+  font-size: var(--font-sm);
   cursor: pointer;
   transition:
     background var(--ai-fast) var(--ai-ease),
@@ -1651,7 +1656,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .chat-divider span {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--ai-text-4);
   letter-spacing: 0.06em;
 }
@@ -1671,11 +1676,11 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: var(--font-md);
   border: 1px solid var(--ai-line-2);
 }
 
@@ -1691,11 +1696,11 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .msg-bubble {
-  font-size: 12px;
-  padding: 7px 11px;
+  font-size: var(--font-base);
+  padding: 9px 13px;
   border-radius: var(--ai-r);
-  max-width: calc(100% - 40px);
-  line-height: 1.6;
+  max-width: calc(100% - 46px);
+  line-height: var(--font-lh-body);
   word-break: break-word;
 }
 
@@ -1715,8 +1720,8 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 /* 流式输出光标 */
 .stream-caret {
   display: inline-block;
-  width: 2px;
-  height: 12px;
+  width: 3px;
+  height: 16px;
   margin-left: 2px;
   vertical-align: text-bottom;
   background: var(--ai-accent);
@@ -1750,12 +1755,12 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 .chat-input {
   flex: 1;
   min-width: 0;
-  padding: 9px 12px;
+  padding: 10px 14px;
   border: 1px solid var(--ai-line-2);
   border-radius: var(--ai-r);
   background: var(--ai-surface-2);
   color: var(--ai-text-1);
-  font-size: 12px;
+  font-size: var(--font-base);
   outline: none;
   transition:
     border-color var(--ai-base) var(--ai-ease),
@@ -1780,14 +1785,14 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border: none;
   border-radius: var(--ai-r);
   background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-primary-deep) 100%);
   color: #fff;
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--font-xl);
   transition:
     opacity var(--ai-fast) var(--ai-ease),
     transform var(--ai-fast) var(--ai-ease),
@@ -1848,7 +1853,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   background: var(--ai-surface-3);
   padding: 1px 5px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-family: 'Consolas', monospace;
 }
 
@@ -1870,7 +1875,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   border-collapse: separate;
   border-spacing: 0;
   margin: 6px 0;
-  font-size: 11px;
+  font-size: var(--font-sm);
   width: 100%;
   border: 1px solid var(--ai-line-2);
   border-radius: var(--ai-r-xs);
@@ -1913,10 +1918,17 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .chat-md :deep(h1),
-.chat-md :deep(h2),
+.chat-md :deep(h2) {
+  font-size: var(--font-xl);
+  margin: 10px 0 5px;
+  color: var(--ai-text-1);
+}
+
+/* 标题必须明显大于正文（15px），否则层级消失 */
 .chat-md :deep(h3),
 .chat-md :deep(h4) {
-  font-size: 13px;
+  font-size: var(--font-lg);
+  font-weight: 700;
   margin: 8px 0 4px;
   color: var(--ai-text-1);
 }
@@ -1936,14 +1948,14 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border: 1px solid var(--ai-line-2);
   border-radius: var(--ai-r);
   background: var(--ai-surface-2);
   color: var(--ai-text-3);
   cursor: pointer;
-  font-size: 17px;
+  font-size: var(--font-xl);
   flex-shrink: 0;
   transition:
     border-color var(--ai-fast) var(--ai-ease),
@@ -1979,16 +1991,16 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  max-width: 220px;
-  padding: 4px 8px;
+  max-width: 260px;
+  padding: 6px 9px;
   border: 1px solid var(--ai-line-2);
   border-radius: var(--ai-r-sm);
   background: var(--ai-surface-2);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .pending-attachment__icon {
-  font-size: 14px;
+  font-size: var(--font-lg);
   color: var(--ai-accent);
   flex-shrink: 0;
 }
@@ -2010,15 +2022,15 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   border: none;
   border-radius: 50%;
   background: var(--ai-surface-3);
   color: var(--ai-text-3);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-sm);
   flex-shrink: 0;
   transition: all var(--ai-fast) var(--ai-ease);
 }
@@ -2066,7 +2078,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .msg-attachment__icon {
-  font-size: 17px;
+  font-size: var(--font-xl);
   flex-shrink: 0;
 }
 
@@ -2079,7 +2091,7 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .msg-attachment__name {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2087,13 +2099,13 @@ function getStepStatusLabel(status: AiAnalysisStep['status']) {
 }
 
 .msg-attachment__size {
-  font-size: 10px;
+  font-size: var(--font-xs);
   opacity: 0.75;
   font-variant-numeric: tabular-nums;
 }
 
 .msg-attachment__download {
-  font-size: 14px;
+  font-size: var(--font-lg);
   opacity: 0.8;
   flex-shrink: 0;
 }
