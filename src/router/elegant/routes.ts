@@ -151,6 +151,16 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'streetview',
+    path: '/streetview',
+    component: 'layout.base$view.streetview',
+    meta: {
+      title: 'streetview',
+      order: 4,
+      icon: 'mdi:street-view'
+    }
+  },
+  {
     name: 'system',
     path: '/system',
     component: 'layout.base',

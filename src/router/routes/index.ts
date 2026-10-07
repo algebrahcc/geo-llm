@@ -36,7 +36,7 @@ const customRoutes = [
 ] as unknown as CustomRoute[];
 
 /**
- * 典型场景分组：渡河工程保障 / 机动路线规划。
+ * 典型场景分组：渡河工程保障 / 机动路线规划 / 城市街景。
  *
  * 子项显式写 order：菜单排序不依赖数组顺序，日后增删项不会引起位置漂移。
  */
@@ -70,6 +70,17 @@ function createScenarioElegantRoute() {
           title: '机动路线规划',
           icon: 'mdi:routes',
           order: 2
+        }
+      },
+      {
+        // 城市街景：球上呈现街景点与街景路线，点开即是全景浮窗
+        name: 'scenario_streetview',
+        path: '/scenario/streetview',
+        component: 'view.streetview',
+        meta: {
+          title: '城市街景',
+          icon: 'mdi:street-view',
+          order: 3
         }
       }
     ]
@@ -345,9 +356,9 @@ export function createStaticRoutes() {
     createScenarioElegantRoute() as unknown as ElegantRoute,
     createKnowledgeElegantRoute() as unknown as ElegantRoute,
     createAgentElegantRoute() as unknown as ElegantRoute,
-    // 剔除已由分组接管的顶层生成路由：river / planning 在「典型场景」下，
+    // 剔除已由分组接管的顶层生成路由：river / planning / streetview 在「典型场景」下，
     // knowledge / agent 各有自建分组 —— 否则它们会各自多出一个顶层菜单项
-    ...generatedRoutes.filter(item => !['knowledge', 'agent', 'river', 'planning'].includes(item.name))
+    ...generatedRoutes.filter(item => !['knowledge', 'agent', 'river', 'planning', 'streetview'].includes(item.name))
   ].forEach(item => {
     if (item.meta?.constant) {
       constantRoutes.push(item);

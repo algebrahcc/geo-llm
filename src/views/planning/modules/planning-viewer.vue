@@ -2,6 +2,7 @@
 import { onMounted } from 'vue';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import CoordinateIndicator from '@/components/cesium/coordinate-indicator.vue';
+import FpsIndicator from '@/components/cesium/fps-indicator.vue';
 import { useCesiumPlanning } from './use-cesium-planning';
 import type {
   PlanningInteractiveTool,
@@ -145,6 +146,7 @@ defineExpose({
       :altitude="cursorCoordinates.altitude"
       :camera-height="cursorCoordinates.cameraHeight"
     />
+    <FpsIndicator :viewer="viewerRef" />
   </div>
 </template>
 

@@ -12,13 +12,14 @@
  */
 import { onMounted } from 'vue';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
+import FpsIndicator from '@/components/cesium/fps-indicator.vue';
 import { useScreenGlobe } from './use-screen-globe';
 
 defineOptions({
   name: 'ScreenGlobeViewer'
 });
 
-const { containerRef, initViewer, switchSceneMode } = useScreenGlobe();
+const { containerRef, viewerRef, initViewer, switchSceneMode } = useScreenGlobe();
 
 onMounted(async () => {
   await initViewer();
@@ -30,10 +31,19 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="containerRef" class="screen-globe-viewer"></div>
+  <div class="screen-globe-shell">
+    <div ref="containerRef" class="screen-globe-viewer"></div>
+    <FpsIndicator :viewer="viewerRef" :bottom="16" />
+  </div>
 </template>
 
 <style scoped>
+.screen-globe-shell {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
 .screen-globe-viewer {
   height: 100%;
   width: 100%;

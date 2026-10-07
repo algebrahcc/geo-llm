@@ -230,6 +230,8 @@ export function useScreenGlobe() {
 
   return {
     containerRef,
+    /** 暴露 Viewer 供帧率监测订阅 postRender（大屏没有坐标浮窗，帧率角标独立贴角） */
+    viewerRef,
     currentMode,
     initViewer,
     switchSceneMode

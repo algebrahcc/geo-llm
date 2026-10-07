@@ -14,6 +14,7 @@ import {
   BoundingSphere,
   Cartesian2,
   Cartesian3,
+  Cartographic,
   Cesium3DTileset,
   CesiumTerrainProvider,
   Color,
@@ -24,8 +25,10 @@ import {
   JulianDate,
   KmlDataSource,
   LabelGraphics,
+  Math as CesiumMath,
   Model,
   PointGraphics,
+  PointPrimitiveCollection,
   Rectangle,
   ScreenSpaceEventHandler,
   Transforms,
@@ -37,13 +40,27 @@ import {
   WebMercatorTilingScheme,
   type Entity,
   type ImageryProvider,
+  type PointPrimitive,
   type TerrainProvider
 } from 'cesium';
 import MVTImageryProvider from 'mvt-imagery-provider';
 import type { StyleSpecification } from 'mvt-imagery-provider';
 import { MAP_LABEL_SCALE, mapLabelFont } from '@/composables/cesium/label-style';
-import { openStreetViewPanorama } from '@/components/cesium/street-view-panorama';
+import { openStreetViewPanorama, type StreetViewPanoramaNeighbor } from '@/components/cesium/street-view-panorama';
 import { openIntelDetailCard } from '@/components/cesium/intel-detail-card';
+import type { StreetViewFilmstripItem } from '@/components/cesium/street-view-filmstrip';
+import { distanceMeters } from './streetview/geo';
+import { createPointIndex } from './streetview/point-index';
+import { registerStreetViewPicker, type StreetViewPickResult } from './streetview/pick-dispatcher';
+import { buildRouteOrder, DEFAULT_MAX_STEP_METERS } from './streetview/route-order';
+import { createStreetViewSourceOf } from './streetview/source-factory';
+import {
+  NEAREST_MAX_METERS,
+  StreetViewError,
+  parseStreetViewParams,
+  type StreetViewPoint,
+  type StreetViewSourceKind
+} from './streetview/service-api';
 
 /** 加载状态机 */
 export type ServiceLayerState = 'loading' | 'ready' | 'error';
@@ -52,6 +69,34 @@ export type ServiceLayerState = 'loading' | 'ready' | 'error';
 export interface ServiceLayerLegendItem {
   color: string;
   label?: string;
+}
+
+/** 街景服务元信息（图层条目副标题展示、验收时一眼看出是远程还是本地数据） */
+export interface StreetViewHandleMeta {
+  /** 数据来源：远程街景服务 / 前端本地目录 */
+  source: StreetViewSourceKind;
+  /** 街景点数量 */
+  points: number;
+  /** 道路顺序链（每条链上依次排列的点位下标），供球面绘制街景路线 */
+  chains: number[][];
+  /** 街景点坐标（与 chains 里的下标一一对应） */
+  coordinates: Array<[number, number]>;
+  /** 是否采用了推导出的道路顺序（false 表示退回原始顺序） */
+  ordered: boolean;
+}
+
+/**
+ * 街景浏览控制入口（仅 streetview 分类有）
+ *
+ * 存在的理由：场景页需要在球面上提供「开始浏览 / 上一处 / 下一处」，
+ * 而「当前走到哪、下一个是哪个」只有加载器内部知道（它持有道路顺序链），
+ * 因此把这几个动作作为能力挂在句柄上，而不是让页面自己去猜顺序。
+ */
+export interface StreetViewController {
+  /** 打开指定街景点；不传则打开漫游路线的第一个点 */
+  open(index?: number): void;
+  /** 相对当前点前进/后退；尚未打开任何点时从路线端点开始 */
+  step(delta: 1 | -1): void;
 }
 
 /** 服务图层句柄：状态机 + 图层操作（对标 TerriaJS Workbench 条目） */
@@ -69,6 +114,10 @@ export interface ServiceLayerHandle {
   layer?: ImageryLayer;
   /** 图例（复用 style/params 字段解析出的主色，供图层面板渲染图例） */
   legend?: ServiceLayerLegendItem[];
+  /** 街景服务元信息（仅 streetview 分类有） */
+  streetview?: StreetViewHandleMeta;
+  /** 街景浏览控制入口（仅 streetview 分类有） */
+  streetviewController?: StreetViewController;
   show(): void;
   hide(): void;
   remove(): void;
@@ -126,18 +175,27 @@ function flyToRectangle(viewer: Viewer, rect: Rectangle): void {
   viewer.camera.flyTo({ destination: rect, duration: FLY_DURATION });
 }
 
-/** 由一组 [lon, lat] 坐标求包围矩形（街景点定位用） */
+/**
+ * 由一组 [lon, lat] 坐标求包围矩形（街景点定位用）
+ *
+ * 刻意用单次遍历而非 `Math.min(...lons)`：展开运算符会把每个点变成一个实参，
+ * 城市级点集（十万级）会直接抛「Maximum call stack size exceeded」。
+ */
 function rectangleFromCoordinates(coordinates: Array<[number, number]>): Rectangle | undefined {
   if (coordinates.length === 0) return undefined;
-  const lons = coordinates.map(c => c[0]);
-  const lats = coordinates.map(c => c[1]);
+  let minLon = Number.POSITIVE_INFINITY;
+  let maxLon = Number.NEGATIVE_INFINITY;
+  let minLat = Number.POSITIVE_INFINITY;
+  let maxLat = Number.NEGATIVE_INFINITY;
+  for (let i = 0; i < coordinates.length; i += 1) {
+    const [lon, lat] = coordinates[i];
+    if (lon < minLon) minLon = lon;
+    if (lon > maxLon) maxLon = lon;
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+  }
   const pad = 0.002; // 稍作外扩，避免贴边
-  return Rectangle.fromDegrees(
-    Math.min(...lons) - pad,
-    Math.min(...lats) - pad,
-    Math.max(...lons) + pad,
-    Math.max(...lats) + pad
-  );
+  return Rectangle.fromDegrees(minLon - pad, minLat - pad, maxLon + pad, maxLat + pad);
 }
 
 function parseJson<T = Record<string, unknown>>(raw?: string): T | null {
@@ -174,7 +232,7 @@ function extractLegend(s: Api.DataService.DataServiceItem): ServiceLayerLegendIt
  * - external / 已带 http(s) → 原样
  * - internal 相对路径（如 /system/vector/tile/...）→ 拼接后端 Base URL
  */
-function resolveUrl(s: Api.DataService.DataServiceItem): string {
+export function resolveServiceUrl(s: Api.DataService.DataServiceItem): string {
   if (s.origin === 'external' || /^https?:\/\//.test(s.url)) {
     return s.url;
   }
@@ -256,7 +314,7 @@ function buildLayerHandle(s: Api.DataService.DataServiceItem, viewer: Viewer, la
 // ─── imagery 工厂 ───────────────────────────────────────
 
 async function createImageryProvider(s: Api.DataService.DataServiceItem): Promise<ImageryProvider> {
-  const url = resolveUrl(s);
+  const url = resolveServiceUrl(s);
   const params = parseJson<Record<string, string | number>>(s.params) || {};
   const rectangle = toRectangle(s);
   const minLevel = s.minZoom ?? 0;
@@ -306,7 +364,7 @@ async function createImageryHandle(s: Api.DataService.DataServiceItem, viewer: V
 // ─── terrain 工厂 ───────────────────────────────────────
 
 async function createTerrainHandle(s: Api.DataService.DataServiceItem, viewer: Viewer): Promise<ServiceLayerHandle> {
-  const url = resolveUrl(s);
+  const url = resolveServiceUrl(s);
   const params = parseJson<Record<string, unknown>>(s.params) || {};
   const originalProvider = viewer.terrainProvider;
   let provider: TerrainProvider;
@@ -357,7 +415,7 @@ async function createTerrainHandle(s: Api.DataService.DataServiceItem, viewer: V
 // ─── threed 工厂 ────────────────────────────────────────
 
 async function createTilesetHandle(s: Api.DataService.DataServiceItem, viewer: Viewer): Promise<ServiceLayerHandle> {
-  const url = resolveUrl(s);
+  const url = resolveServiceUrl(s);
   // 摆放位置（可选），兼容两种配置结构：
   // ① 表单差异字段：params.position = '{"lon":121.46,"lat":25.12,"height":-10}'（字符串或对象）
   // ② 顶层直写：params = {"lon":121.46,"lat":25.12,"height":-10}
@@ -464,7 +522,7 @@ function buildMvtStyle(s: Api.DataService.DataServiceItem): StyleSpecification {
   if (parsedStyle && parsedStyle.version === 8) {
     return parsedStyle;
   }
-  const tileUrl = resolveUrl(s);
+  const tileUrl = resolveServiceUrl(s);
   const params = parseJson<Record<string, string>>(s.params) || {};
   const sourceName = `service-${s.id}`;
   const sourceLayer = params.sourceLayer || 'vector';
@@ -518,7 +576,7 @@ async function createVectorHandle(s: Api.DataService.DataServiceItem, viewer: Vi
   if (s.type === 'mvt') {
     return createMvtHandle(s, viewer);
   }
-  const url = resolveUrl(s);
+  const url = resolveServiceUrl(s);
   const dataSource = s.type === 'kml' ? await KmlDataSource.load(url) : await GeoJsonDataSource.load(url);
   viewer.dataSources.add(dataSource);
 
@@ -608,209 +666,315 @@ async function createVectorHandle(s: Api.DataService.DataServiceItem, viewer: Vi
   return handle;
 }
 
-// ─── streetview 工厂（参考 xxfw 街景数据加载）────────────
+// ─── streetview 工厂（远程街景服务 / 本地静态目录，两来源同构）─────
 
-/** 街景服务接口路径约定（相对服务根地址 url，对齐 xxfw 后端 /streetview/api/*） */
-const STREETVIEW_POINTS_PATH = '/api/query/geojson/points';
-const STREETVIEW_NEAREST_PATH = '/api/nearest/point';
-const STREETVIEW_IMAGE_PATH = '/api/image';
+/** 街景点配色（与图层面板 streetview 分类色一致） */
+const STREETVIEW_POINT_COLOR = '#ff4d8d';
 
-/** 从 GeoJSON 递归提取 [lon, lat] 坐标（支持 MultiPoint / Point / Feature / FeatureCollection） */
-function extractStreetPointCoordinates(geojson: unknown): Array<[number, number]> {
-  const result: Array<[number, number]> = [];
-  const push = (coords: unknown): void => {
-    if (!Array.isArray(coords)) return;
-    if (typeof coords[0] === 'number') {
-      if (coords.length >= 2) result.push([Number(coords[0]), Number(coords[1])]);
-      return;
-    }
-    coords.forEach(push);
-  };
+/** 街景点基础尺寸（像素） */
+const STREETVIEW_POINT_SIZE = 11;
 
-  const g = geojson as
-    | {
-        type?: string;
-        coordinates?: unknown;
-        geometry?: { coordinates?: unknown };
-        features?: Array<{ geometry?: { coordinates?: unknown } }>;
-      }
-    | undefined;
-  if (!g || typeof g !== 'object') return result;
+/** 街景点基础颜色：抽成常量，因为高亮还原时要复用 */
+const STREETVIEW_POINT_BASE_COLOR = Color.fromCssColorString(STREETVIEW_POINT_COLOR).withAlpha(0.95);
 
-  if (g.type === 'FeatureCollection') {
-    g.features?.forEach(f => push(f?.geometry?.coordinates));
-    return result;
-  }
-  if (g.type === 'Feature') {
-    push(g.geometry?.coordinates);
-    return result;
-  }
-  // Point / MultiPoint / 裸坐标数组
-  push(g.coordinates ?? (Array.isArray(geojson) ? geojson : undefined));
-  return result;
-}
+/** 当前街景点的高亮配色（与系统主色一致） */
+const STREETVIEW_POINT_ACTIVE_COLOR = Color.fromCssColorString('#29a3ff').withAlpha(1);
 
-/** 从 nearest 接口返回中提取 geoid（兼容 {geoid} / {data:{geoid}} / {data:"geoid"}） */
-function extractGeoid(payload: unknown): string | undefined {
-  if (!payload || typeof payload !== 'object') return undefined;
-  const obj = payload as Record<string, unknown>;
-  if (typeof obj.geoid === 'string') return obj.geoid;
-  if (obj.data && typeof obj.data === 'object') {
-    const d = obj.data as Record<string, unknown>;
-    if (typeof d.geoid === 'string') return d.geoid;
-  }
-  if (typeof obj.data === 'string') return obj.data;
-  return undefined;
-}
+/** 定位街景点时的相机高度（米）：低空俯瞰，看得清街区走向 */
+const STREETVIEW_FOCUS_HEIGHT = 1200;
 
-async function fetchJson(url: string): Promise<unknown> {
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  return resp.json();
-}
+/** 本地街景的自动漫游步进（毫秒）：本地图片命中缓存后可稳定在这个节奏 */
+const STREETVIEW_AUTOPLAY_INTERVAL_MS = 2600;
 
-/** 由坐标查最近街景点，拼全景图 URL（nearest 端点要求必传查询参数 rid，lat/lon 为路径参数） */
-async function fetchNearestImage(
-  baseUrl: string,
-  lon: number,
-  lat: number,
-  rid: string,
-  level: string
-): Promise<{ imageUrl: string; geoid: string }> {
-  const nearestUrl = `${baseUrl}${STREETVIEW_NEAREST_PATH}/${lat}/${lon}?rid=${encodeURIComponent(rid)}`;
-  const payload = await fetchJson(nearestUrl);
-  const geoid = extractGeoid(payload);
-  if (!geoid) {
-    throw new Error('未找到附近街景点');
-  }
-  const imageUrl = `${baseUrl}${STREETVIEW_IMAGE_PATH}?level=${level}&geoid=${encodeURIComponent(geoid)}&rid=${encodeURIComponent(rid)}`;
-  return { imageUrl, geoid };
-}
+/** 画街景路线的最小链长：两三个点的碎片链画出来只是噪声 */
+const STREETVIEW_ROUTE_MIN_POINTS = 5;
 
-/** 点击街景点：打开全景查看器（右下角浮动面板），并支持 ←/→ 切换相邻街景点 */
-async function openNearestPanorama(
-  baseUrl: string,
-  lon: number,
-  lat: number,
-  pointIndex: number,
-  coordinates: Array<[number, number]>,
-  rid: string,
-  level: string,
-  s: Api.DataService.DataServiceItem
-): Promise<void> {
-  let currentIndex = pointIndex;
-  // 主地图上的加载指示（nearest + 首图请求期间）
-  const loading = window.$message?.loading(`正在获取「${s.name}」街景全景图…`, { duration: 0 });
-  // 网络抖动时自动重试一次，仍失败才提示
-  const fetchImageWithRetry = async (nLon: number, nLat: number) => {
-    try {
-      return await fetchNearestImage(baseUrl, nLon, nLat, rid, level);
-    } catch {
-      return await fetchNearestImage(baseUrl, nLon, nLat, rid, level);
-    }
-  };
-  try {
-    const { imageUrl, geoid } = await fetchImageWithRetry(lon, lat);
-    openStreetViewPanorama(imageUrl, {
-      title: s.name,
-      subtitle: `${geoid} · ${lon.toFixed(5)}, ${lat.toFixed(5)}`,
-      position: { index: pointIndex, total: coordinates.length },
-      // ←/→ 切换：取相邻坐标点 → nearest 解析 geoid → 拼全景图 URL
-      navigate: async delta => {
-        const nextIndex = currentIndex + delta;
-        if (nextIndex < 0 || nextIndex >= coordinates.length) return null;
-        const [nextLon, nextLat] = coordinates[nextIndex];
-        const next = await fetchImageWithRetry(nextLon, nextLat);
-        currentIndex = nextIndex;
-        return {
-          imageUrl: next.imageUrl,
-          subtitle: `${next.geoid} · ${nextLon.toFixed(5)}, ${nextLat.toFixed(5)}`,
-          index: nextIndex
-        };
-      }
-    });
-  } catch (e) {
-    window.$message?.error(`「${s.name}」街景全景图请求失败，请检查街景服务地址与网络后重试`);
-    console.error('[streetview] nearest 请求失败：', e);
-  } finally {
-    loading?.destroy();
-  }
-}
+/** 街景路线折线的数量上限：城市级点集可能有成百上千条碎片链，全画会拖慢渲染 */
+const STREETVIEW_ROUTE_MAX_LINES = 40;
 
-/** streetview:panorama 工厂：撒街景点 + 点击拾取最近街景全景图 */
-async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer: Viewer): Promise<ServiceLayerHandle> {
-  const baseUrl = resolveUrl(s).replace(/\/+$/, '');
-  const params = parseJson<Record<string, string | number>>(s.params) || {};
-  const rid = params.rid ? String(params.rid) : '';
-  const level = params.level ? String(params.level) : '4';
+/** 分片撒点的单帧预算（毫秒）：城市级点集不能一次性塞进单次任务，否则首屏明显卡顿 */
+const STREETVIEW_CHUNK_BUDGET_MS = 12;
 
-  if (!rid) {
-    throw new Error('街景服务缺少区域 ID（rid），请在「连接参数」中配置 {"rid":"..."}');
-  }
-
-  // 1) 拉取区域所有街景点（响应 data 为字符串化 GeoJSON）
-  const pointsUrl = `${baseUrl}${STREETVIEW_POINTS_PATH}?rid=${encodeURIComponent(rid)}`;
-  const payload = (await fetchJson(pointsUrl)) as Record<string, unknown>;
-  const geojsonStr = typeof payload?.data === 'string' ? payload.data : JSON.stringify(payload?.data ?? payload);
-  const coordinates = extractStreetPointCoordinates(JSON.parse(geojsonStr));
-  if (coordinates.length === 0) {
-    throw new Error('街景服务未返回任何街景点坐标');
-  }
-
-  // 2) 撒点：每个街景点一个 entity，经纬度/笛卡尔坐标登记到 Map 供点击拾取
-  const pointLatLon = new Map<string, { lon: number; lat: number; cartesian: Cartesian3; index: number }>();
-  const pointEntities: Entity[] = [];
-  coordinates.forEach(([lon, lat], index) => {
-    const id = `streetview-${s.id}-${index}`;
-    const cartesian = Cartesian3.fromDegrees(lon, lat, 0);
-    pointLatLon.set(id, { lon, lat, cartesian, index });
-    pointEntities.push(
-      viewer.entities.add({
-        id,
-        position: cartesian,
-        point: {
-          pixelSize: 11,
-          color: Color.fromCssColorString('#ff4d8d').withAlpha(0.95),
+/**
+ * 分片把街景点写入点图元集合。
+ *
+ * 为什么用 `PointPrimitiveCollection` 而不是逐点 Entity：Entity + PointGraphics 每点一个对象、
+ * 走动态几何更新，千级以上就明显掉帧；点图元是批渲染，城市级点集仍是单次绘制。
+ * 代价是点图元不支持 `heightReference` 贴地，因此用 `disableDepthTestDistance` 保证不被地形遮挡。
+ */
+async function addStreetPointsInChunks(
+  collection: PointPrimitiveCollection,
+  points: StreetViewPoint[]
+): Promise<PointPrimitive[]> {
+  const primitives: PointPrimitive[] = [];
+  await new Promise<void>(resolve => {
+    let index = 0;
+    const step = () => {
+      const deadline = performance.now() + STREETVIEW_CHUNK_BUDGET_MS;
+      while (index < points.length && performance.now() < deadline) {
+        const point = points[index];
+        const primitive = collection.add({
+          position: Cartesian3.fromDegrees(point.lon, point.lat, 0),
+          pixelSize: STREETVIEW_POINT_SIZE,
+          color: STREETVIEW_POINT_BASE_COLOR,
           outlineColor: Color.WHITE,
           outlineWidth: 1.5,
-          heightReference: HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: Number.POSITIVE_INFINITY
-        }
-      })
-    );
-  });
-
-  // 3) 点击拾取街景点 → 查最近街景全景图
-  const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-  handler.setInputAction((movement: ScreenSpaceEventHandler.PositionedEvent) => {
-    // 优先精确拾取街景点 entity
-    const picked = viewer.scene.pick(movement.position);
-    const entityId = (picked as { id?: { id?: unknown } } | undefined)?.id?.id;
-    let ll = pointLatLon.get(String(entityId));
-
-    // 兜底：未点中点时，反算地表点并命中距离阈值内的最近街景点
-    if (!ll) {
-      const cartesian = viewer.camera.pickEllipsoid(movement.position, viewer.scene.globe.ellipsoid);
-      if (cartesian) {
-        let best: { lon: number; lat: number; cartesian: Cartesian3; index: number } | undefined;
-        let bestDist = Number.POSITIVE_INFINITY;
-        for (const p of pointLatLon.values()) {
-          const d = Cartesian3.distance(cartesian, p.cartesian);
-          if (d < bestDist) {
-            bestDist = d;
-            best = p;
-          }
-        }
-        // 阈值 100 米内才触发，避免点击远处误弹全景
-        if (best && bestDist < 100) ll = best;
+        });
+        // 下标写在图元上：拾取时 O(1) 读回，替代原先遍历全部点算最近距离
+        primitive.id = index;
+        primitives.push(primitive);
+        index += 1;
       }
+      if (index < points.length) setTimeout(step, 0);
+      else resolve();
+    };
+    step();
+  });
+  return primitives;
+}
+
+/** streetview 工厂：撒街景点 + 点击拾取最近街景全景图（远程服务与本地目录同构） */
+async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer: Viewer): Promise<ServiceLayerHandle> {
+  const baseUrl = resolveServiceUrl(s);
+  const source = createStreetViewSourceOf(s, baseUrl);
+  const params = parseStreetViewParams(s.params);
+  const maxStepMeters = Number(params.maxStepMeters) > 0 ? Number(params.maxStepMeters) : DEFAULT_MAX_STEP_METERS;
+
+  // 1) 街景点：远程为区域全量点位，本地为 manifest/geojson 点位
+  const points = await source.fetchPoints();
+  const coordinates: Array<[number, number]> = points.map(point => [point.lon, point.lat]);
+
+  // 2) 道路顺序：接口不给拓扑（也不可扩展），前进/后退的顺序只能由坐标推导
+  const order = buildRouteOrder(coordinates, { maxStepMeters });
+
+  // 3) 撒点：点图元批渲染 + 分片，避免城市级点集阻塞主线程
+  const collection = viewer.scene.primitives.add(new PointPrimitiveCollection());
+  const primitives = await addStreetPointsInChunks(collection, points);
+
+  // 4) 就近索引：点击未命中图元时用它兜底（邻域查找，不再全量遍历）
+  const pointsIndex = createPointIndex(coordinates);
+
+  /** 当前街景点下标（-1 表示尚未打开任何全景） */
+  let currentIndex = -1;
+  /** 当前高亮的图元下标（用于还原上一个高亮） */
+  let highlightedIndex = -1;
+
+  function subtitleOf(point: StreetViewPoint, geoid: string): string {
+    return `${geoid} · ${point.lon.toFixed(5)}, ${point.lat.toFixed(5)}`;
+  }
+
+  /** 高亮当前街景点：点图元可逐点改样式，改完请求一帧（场景是按需渲染） */
+  function highlight(index: number): void {
+    if (highlightedIndex === index) return;
+    const previous = primitives[highlightedIndex];
+    if (previous) {
+      previous.pixelSize = STREETVIEW_POINT_SIZE;
+      previous.color = STREETVIEW_POINT_BASE_COLOR;
+      previous.outlineWidth = 1.5;
+    }
+    highlightedIndex = index;
+    const current = primitives[index];
+    if (current) {
+      current.pixelSize = STREETVIEW_POINT_SIZE * 1.8;
+      current.color = STREETVIEW_POINT_ACTIVE_COLOR;
+      current.outlineWidth = 2.5;
+    }
+    viewer.scene.requestRender();
+  }
+
+  /** 把相机定位到某个街景点（切换时跟随、浮窗「定位」按钮共用） */
+  function focusOn(index: number, fly = true): void {
+    const point = points[index];
+    if (!point) return;
+    highlight(index);
+    if (!fly || viewer.isDestroyed()) {
+      viewer.scene.requestRender();
+      return;
+    }
+    viewer.camera.flyTo({
+      destination: Cartesian3.fromDegrees(point.lon, point.lat, STREETVIEW_FOCUS_HEIGHT),
+      duration: FLY_DURATION
+    });
+  }
+
+  // 5) 街景路线：把推导出的链画成折线。只有散点时看不出「沿哪条路走」，
+  //    而这条线正是「前进/后退」的实际走向，验收时一眼就能对上。
+  const routeEntities: Entity[] = [];
+  order.chains
+    .filter(chain => chain.length >= STREETVIEW_ROUTE_MIN_POINTS)
+    .slice(0, STREETVIEW_ROUTE_MAX_LINES)
+    .forEach(chain => {
+      const positions = chain.map(index => Cartesian3.fromDegrees(coordinates[index][0], coordinates[index][1], 0));
+      routeEntities.push(
+        viewer.entities.add({
+          polyline: {
+            positions,
+            width: 3,
+            material: Color.fromCssColorString(STREETVIEW_POINT_COLOR).withAlpha(0.6),
+            clampToGround: true
+          }
+        })
+      );
+    });
+
+  // 6) 漫游路线与胶片条
+  //    漫游路线取最长的一条链（其余散链多是零散点位）；胶片条只有本地目录能提供 ——
+  //    远程服务要逐个问 nearest 才知道 geoid，枚举全量会把服务打爆。
+  const longestChain = order.chains.reduce<number[]>(
+    (longest, chain) => (chain.length > longest.length ? chain : longest),
+    []
+  );
+  let filmstripItems: StreetViewFilmstripItem[] | undefined;
+  const filmstripPositionOf = new Map<number, number>();
+  if (typeof source.imageUrlOf === 'function') {
+    const imageUrlOf = source.imageUrlOf.bind(source);
+    filmstripItems = longestChain.map((pointIndex, position) => {
+      filmstripPositionOf.set(pointIndex, position);
+      const point = points[pointIndex];
+      return { thumbnailUrl: imageUrlOf(point) ?? '', label: point.geoid };
+    });
+  }
+
+  /** 沿链取相对位置的点位下标（只算不改状态，供预取使用） */
+  function neighborIndexAt(fromIndex: number, delta: number): number | undefined {
+    const location = order.locate.get(fromIndex);
+    if (!location) return undefined;
+    return order.chains[location.chain][location.pos + delta];
+  }
+
+  /** 由点位组装浮窗切换结果（含行进方位与胶片位置） */
+  function neighborOf(pointIndex: number, imageUrl: string, geoid: string): StreetViewPanoramaNeighbor {
+    return {
+      imageUrl,
+      subtitle: subtitleOf(points[pointIndex], geoid),
+      index: pointIndex,
+      heading: order.bearing.get(pointIndex) ?? null,
+      filmstripIndex: filmstripPositionOf.get(pointIndex)
+    };
+  }
+
+  /**
+   * 打开指定街景点的全景。
+   *
+   * 只开一次浮窗：前进/后退、胶片跳转都复用同一个 PSV 实例（回调驱动），
+   * 否则每切一次就重建 WebGL 上下文，切换会明显发卡。
+   */
+  async function openPanoramaAt(targetIndex: number): Promise<void> {
+    const point = points[targetIndex];
+    if (!point) return;
+    currentIndex = targetIndex;
+    focusOn(targetIndex);
+    const loading = window.$message?.loading(`正在获取「${s.name}」街景全景图…`, { duration: 0 });
+    try {
+      const image = await source.resolveImage(point.lon, point.lat);
+      openStreetViewPanorama(image.imageUrl, {
+        title: s.name,
+        subtitle: subtitleOf(point, image.geoid),
+        position: { index: targetIndex, total: points.length },
+        heading: order.bearing.get(targetIndex) ?? null,
+        navigate: delta => navigateBy(delta),
+        prefetch: delta => prefetchImage(delta),
+        locate: () => focusOn(currentIndex),
+        filmstrip: filmstripItems,
+        filmstripIndex: filmstripPositionOf.get(targetIndex),
+        jumpTo: position => jumpToFilmstrip(position),
+        autoPlayIntervalMs: source.kind === 'local' ? STREETVIEW_AUTOPLAY_INTERVAL_MS : undefined
+      });
+    } catch (e) {
+      const reason = e instanceof StreetViewError ? e.message : '街景全景图请求失败，请检查数据服务地址与网络';
+      window.$message?.error(`「${s.name}」${reason}`);
+      console.error('[streetview] 打开全景失败：', e);
+    } finally {
+      loading?.destroy();
+    }
+  }
+
+  /**
+   * ←/→ 前进/后退：沿街景链取下一个点。
+   *
+   * 用链内位置步进而不是数组下标 ±1：原始数组顺序与路网无关，
+   * 按它走会出现「跳过一个街区」的跳跃（见 route-order.ts 的推导理由）。
+   */
+  async function navigateBy(delta: 1 | -1): Promise<StreetViewPanoramaNeighbor | null> {
+    const nextIndex = neighborIndexAt(currentIndex, delta);
+    if (nextIndex === undefined) return null;
+    const point = points[nextIndex];
+    const image = await source.resolveImage(point.lon, point.lat);
+    currentIndex = nextIndex;
+    focusOn(nextIndex);
+    return neighborOf(nextIndex, image.imageUrl, image.geoid);
+  }
+
+  /** 预取下一张（不动当前位置，只为切换提速） */
+  async function prefetchImage(delta: 1 | -1): Promise<string | null> {
+    const nextIndex = neighborIndexAt(currentIndex, delta);
+    if (nextIndex === undefined) return null;
+    const point = points[nextIndex];
+    const image = await source.resolveImage(point.lon, point.lat);
+    return image.imageUrl;
+  }
+
+  /** 胶片点击：跳到漫游路线上的第 position 个街景点 */
+  async function jumpToFilmstrip(position: number): Promise<StreetViewPanoramaNeighbor | null> {
+    const targetIndex = longestChain[position];
+    if (targetIndex === undefined) return null;
+    const point = points[targetIndex];
+    const image = await source.resolveImage(point.lon, point.lat);
+    currentIndex = targetIndex;
+    focusOn(targetIndex);
+    return neighborOf(targetIndex, image.imageUrl, image.geoid);
+  }
+
+  // 6) 点击拾取：登记到 Viewer 的共享分发器（多街景服务同时启用时只打开最近的一个）
+  function hitTest(position: Cartesian2): StreetViewPickResult | null {
+    // 优先精确拾取点图元：下标直接写在图元 id 上，O(1)
+    const picked = viewer.scene.pick(position) as { id?: unknown } | undefined;
+    const pickedIndex = typeof picked?.id === 'number' ? picked.id : -1;
+    if (pickedIndex >= 0 && pickedIndex < points.length) {
+      return { index: pickedIndex, distance: 0 };
     }
 
-    if (!ll) return;
-    void openNearestPanorama(baseUrl, ll.lon, ll.lat, ll.index, coordinates, rid, level, s);
-  }, ScreenSpaceEventType.LEFT_CLICK);
+    // 兜底：点在点位之间落下时用网格索引就近取点（容差内才触发，避免点远处也弹全景）
+    const cartesian = viewer.camera.pickEllipsoid(position, viewer.scene.globe.ellipsoid);
+    if (!cartesian) return null;
+    const cartographic = Cartographic.fromCartesian(cartesian);
+    const lon = CesiumMath.toDegrees(cartographic.longitude);
+    const lat = CesiumMath.toDegrees(cartographic.latitude);
+    const index = pointsIndex.findNearest(lon, lat, NEAREST_MAX_METERS);
+    if (index < 0) return null;
+    const point = points[index];
+    return { index, distance: distanceMeters(lon, lat, point.lon, point.lat) };
+  }
 
-  // 4) 句柄
+  const unregisterPicker = registerStreetViewPicker(viewer, {
+    id: s.id,
+    hitTest,
+    open: index => void openPanoramaAt(index)
+  });
+
+  /** 场景页的「开始浏览 / 上一处 / 下一处」：顺序只在加载器内部可知，故作为能力对外 */
+  const controller: StreetViewController = {
+    open(index?: number) {
+      const target = index ?? longestChain[0] ?? -1;
+      if (target >= 0) void openPanoramaAt(target);
+    },
+    step(delta: 1 | -1) {
+      if (currentIndex < 0) {
+        const start = delta === 1 ? longestChain[0] : longestChain[longestChain.length - 1];
+        if (start !== undefined) void openPanoramaAt(start);
+        return;
+      }
+      const next = neighborIndexAt(currentIndex, delta);
+      if (next === undefined) {
+        window.$message?.info(delta === 1 ? '已是最后一处街景' : '已是第一处街景');
+        return;
+      }
+      void openPanoramaAt(next);
+    }
+  };
+
+  // 7) 句柄
   const handle: ServiceLayerHandle = {
     id: s.id,
     category: s.category,
@@ -818,26 +982,31 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
     name: s.name,
     state: 'ready',
     visible: true,
+    streetview: {
+      source: source.kind,
+      points: points.length,
+      chains: order.chains,
+      coordinates,
+      ordered: order.derived
+    },
+    streetviewController: controller,
     show() {
-      pointEntities.forEach(e => {
-        e.show = true;
-      });
+      collection.show = true;
       this.visible = true;
     },
     hide() {
-      pointEntities.forEach(e => {
-        e.show = false;
-      });
+      collection.show = false;
       this.visible = false;
     },
     remove() {
-      handler.destroy();
+      unregisterPicker();
       if (!viewer.isDestroyed()) {
-        pointEntities.forEach(e => viewer.entities.remove(e));
+        routeEntities.forEach(entity => viewer.entities.remove(entity));
+        viewer.scene.primitives.remove(collection);
       }
     },
     setOpacity() {
-      /* 街景点为点实体，不支持整体透明度 */
+      /* 街景点为批渲染点图元，不支持整体透明度 */
     },
     flyTo() {
       const rect = parseExtentRectangle(s);
@@ -846,7 +1015,7 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
         return;
       }
       // 无 extent 时飞到街景点集合的包围范围
-      const pointsRect = rectangleFromCoordinates(coordinates);
+      const pointsRect = rectangleFromCoordinates(points.map(point => [point.lon, point.lat]));
       if (pointsRect) {
         flyToRectangle(viewer, pointsRect);
       } else {
@@ -926,6 +1095,8 @@ export async function loadService(
     proxy.flyTo = real.flyTo;
     proxy.layer = real.layer;
     proxy.legend = real.legend;
+    proxy.streetview = real.streetview;
+    proxy.streetviewController = real.streetviewController;
     proxy.state = 'ready';
     if (keepVisible) proxy.show();
     else proxy.hide();

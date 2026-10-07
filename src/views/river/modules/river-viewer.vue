@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import CoordinateIndicator from '@/components/cesium/coordinate-indicator.vue';
+import FpsIndicator from '@/components/cesium/fps-indicator.vue';
 import { useCesiumRiver } from './use-cesium-river';
 import type { RejectedRouteData, RiverInteractiveTool, RiverLayerKey, RiverPlanKey, RiverStatusInfo } from './types';
 
@@ -126,6 +127,7 @@ defineExpose({
       :altitude="cursorCoordinates.altitude"
       :camera-height="cursorCoordinates.cameraHeight"
     />
+    <FpsIndicator :viewer="viewerRef" />
   </div>
 </template>
 

@@ -187,6 +187,7 @@ const routeMap: RouteMap = {
   "planning": "/planning",
   "river": "/river",
   "screen": "/screen",
+  "streetview": "/streetview",
   "system": "/system",
   "system_log": "/system/log",
   "system_menu": "/system/menu",

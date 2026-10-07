@@ -263,7 +263,14 @@ function onDragEnd(): void {
                 {{ entry.handle.name }}
               </span>
             </div>
-            <span class="layer-sub">{{ categoryLabel(entry.handle.category) }} · {{ entry.handle.type }}</span>
+            <span class="layer-sub">
+              {{ categoryLabel(entry.handle.category) }} · {{ entry.handle.type }}
+              <!-- 街景条目补出规模与来源：台北/新北两条并列时，靠这一行就能区分 -->
+              <template v-if="entry.handle.streetview">
+                · {{ entry.handle.streetview.source === 'local' ? '本地数据' : '在线服务' }} ·
+                {{ entry.handle.streetview.points }} 个街景点
+              </template>
+            </span>
 
             <!-- 失败行：行内给出原因与恢复入口（错误全是网络/地址类，重试是最有效的动作） -->
             <div v-if="entry.handle.state === 'error'" class="layer-error">

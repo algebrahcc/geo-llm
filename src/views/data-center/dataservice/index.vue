@@ -15,6 +15,7 @@ import {
 } from 'naive-ui';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import EmptyState from '@/components/common/empty-state.vue';
+import StreetviewSelfcheck from './modules/streetview-selfcheck.vue';
 import type { DataTableColumns, FormInst, FormRules, PaginationProps, SelectOption } from 'naive-ui';
 import {
   fetchDataServicePage,
@@ -352,16 +353,47 @@ const FORM_SCHEMA: Record<string, DynamicField[]> = {
       placeholder: '完整 Mapbox StyleSpecification JSON（不填则用默认色板）'
     }
   ],
+  // 街景支持两种数据来源：在线服务（另配 rid）与前端本地目录（public/data 下的静态文件）。
+  // 「服务地址」是唯一的开关：http(s) = 在线服务，相对路径 = 本地目录（见 public/data/streetview/README.md）。
   'streetview:panorama': [
     {
       key: 'rid',
-      label: '区域 ID (rid)',
+      label: '区域 ID（rid，在线服务必填）',
       component: 'input',
       target: 'params',
-      required: true,
-      placeholder: '街景区域 ID，如 3954a767b86a00508479ada030546344'
+      placeholder: '在线街景服务的区域 ID；本地目录模式留空'
     },
-    { key: 'level', label: '全景图级别 (level, 默认 4)', component: 'number', target: 'params', min: 0, max: 6 }
+    {
+      key: 'level',
+      label: '全景图级别（在线，默认 4）',
+      component: 'number',
+      target: 'params',
+      min: 0,
+      max: 6
+    },
+    {
+      key: 'pointsFile',
+      label: '本地点位文件',
+      component: 'input',
+      target: 'params',
+      placeholder: '本地目录用，默认 points.geojson（存在 manifest.json 时优先）'
+    },
+    {
+      key: 'imageTemplate',
+      label: '本地图片模板',
+      component: 'input',
+      target: 'params',
+      placeholder: '本地目录用，默认 pano/{geoid}.jpg'
+    },
+    {
+      key: 'maxStepMeters',
+      label: '相邻点最大间距（米）',
+      component: 'number',
+      target: 'params',
+      min: 5,
+      max: 500,
+      placeholder: '默认 40；点位稀疏时调大'
+    }
   ],
   'analysis:api': [
     {
@@ -612,6 +644,22 @@ async function confirmDelete(row: Api.DataService.DataServiceItem) {
   }
 }
 
+// ===== 街景自检 =====
+const selfcheckVisible = ref(false);
+const selfcheckTarget = ref<Api.DataService.DataServiceItem | null>(null);
+
+/**
+ * 街景自检只对「街景」分类开放。
+ *
+ * 通用的「测试连接」只探一个 HTTP 状态码，而街景是三步链路
+ * （点位查询 → 就近取图 → 全景图），任何一步断了都表现为「球上点不动」，
+ * 所以它需要一个能分步计时、并给出可执行建议的自检入口。
+ */
+function openStreetviewSelfcheck(row: Api.DataService.DataServiceItem) {
+  selfcheckTarget.value = row;
+  selfcheckVisible.value = true;
+}
+
 // ===== 测试连接 =====
 const connectVisible = ref(false);
 const connecting = ref(false);
@@ -769,6 +817,13 @@ const columns = computed<DataTableColumns<Api.DataService.DataServiceItem>>(() =
         h('div', { class: 'action-icon-btn', 'data-tooltip': '测试连接', onClick: () => testConnect(row) }, [
           h(SvgIcon, { icon: 'mdi:lan-connect' })
         ]),
+        row.category === 'streetview'
+          ? h(
+              'div',
+              { class: 'action-icon-btn', 'data-tooltip': '街景自检', onClick: () => openStreetviewSelfcheck(row) },
+              [h(SvgIcon, { icon: 'mdi:map-search-outline' })]
+            )
+          : null,
         h('div', { class: 'action-icon-btn', 'data-tooltip': '编辑', onClick: () => openEdit(row) }, [
           h(SvgIcon, { icon: 'mdi:pencil-outline' })
         ]),
@@ -942,7 +997,7 @@ onMounted(() => loadList(true));
               <NFormItem label="服务地址" path="url" class="ds-form-item--wide">
                 <NInput
                   v-model:value="formData.url"
-                  placeholder="http(s)://...（internal 可为相对路径，如 /system/vector/tile/1）"
+                  placeholder="在线服务填 http(s)://...；本地街景目录填相对路径，如 data/streetview/taipei"
                 />
               </NFormItem>
               <NFormItem label="坐标系">
@@ -1196,6 +1251,9 @@ onMounted(() => loadList(true));
         </div>
       </div>
     </NModal>
+
+    <!-- 街景自检：分步验证 点位查询 → 就近取图 → 全景图请求 -->
+    <StreetviewSelfcheck v-model:show="selfcheckVisible" :service="selfcheckTarget" />
   </div>
 </template>
 

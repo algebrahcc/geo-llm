@@ -41,6 +41,7 @@ declare module "@elegant-router/types" {
     "planning": "/planning";
     "river": "/river";
     "screen": "/screen";
+    "streetview": "/streetview";
     "system": "/system";
     "system_log": "/system/log";
     "system_menu": "/system/menu";
@@ -99,6 +100,7 @@ declare module "@elegant-router/types" {
     | "planning"
     | "river"
     | "screen"
+    | "streetview"
     | "system"
   >;
 
@@ -139,6 +141,7 @@ declare module "@elegant-router/types" {
     | "planning"
     | "river"
     | "screen"
+    | "streetview"
     | "system_log"
     | "system_menu"
     | "system_online"
