@@ -10,18 +10,20 @@
  */
 import { onMounted } from 'vue';
 import CoordinateIndicator from '@/components/cesium/coordinate-indicator.vue';
-import FpsIndicator from '@/components/cesium/fps-indicator.vue';
+import { useDraggable } from '@/composables/use-draggable';
 import { useCesiumStreetview } from './use-cesium-streetview';
 
 defineOptions({
   name: 'StreetviewViewer'
 });
 
+// 面板可拖动：默认停在「返回主页」按钮下方，用户可拖到顺手的位置
+const { style: panelStyle, dragging, onDragStart } = useDraggable({ anchor: 'left', initialX: 12, initialY: 68 });
+
 const emit = defineEmits<{ ready: [] }>();
 
 const {
   containerRef,
-  viewerRef,
   cursorCoordinates,
   cities,
   activeCity,
@@ -46,45 +48,63 @@ onMounted(async () => {
   <div class="sv-shell">
     <div ref="containerRef" class="sv-stage" />
 
-    <aside class="sv-panel">
-      <header class="sv-panel__head">
-        <span class="sv-panel__title">城市街景</span>
-        <span v-if="activeCity" class="sv-panel__count">
+    <aside class="sv-panel" :style="panelStyle">
+      <!-- 标题栏（兼作拖动抓手） -->
+      <header
+        class="sv-header"
+        :class="{ 'sv-header--grabbing': dragging }"
+        title="按住拖动面板"
+        @mousedown="onDragStart"
+      >
+        <span class="sv-header__title">城市街景</span>
+        <span v-if="activeCity" class="sv-header__meta">
           {{ activeCity.pointCount === null ? '加载中…' : `${activeCity.pointCount} 个街景点` }}
         </span>
       </header>
 
-      <ul class="sv-cities">
-        <li v-for="city in cities" :key="city.id">
-          <button
-            type="button"
-            class="sv-city"
-            :class="{ 'sv-city--active': city.id === activeCityId }"
-            @click="selectCity(city.id)"
-          >
-            <span class="sv-city__name">{{ city.name }}</span>
-            <span class="sv-city__meta">
-              <span class="sv-city__tag">{{ city.sourceLabel }}</span>
-              <span v-if="city.pointCount !== null" class="sv-city__points">{{ city.pointCount }} 点</span>
-            </span>
-          </button>
-        </li>
-      </ul>
+      <div class="sv-body">
+        <!-- ══ 数据源 ══ -->
+        <section class="sv-section">
+          <div class="sv-section__label">街景数据源</div>
+          <ul class="sv-cities">
+            <li v-for="city in cities" :key="city.id">
+              <button
+                type="button"
+                class="sv-city"
+                :class="{ 'sv-city--active': city.id === activeCityId }"
+                @click="selectCity(city.id)"
+              >
+                <span class="sv-city__name">{{ city.name }}</span>
+                <span class="sv-city__meta">
+                  <span class="sv-city__tag">{{ city.sourceLabel }}</span>
+                  <span v-if="city.pointCount !== null" class="sv-city__points">{{ city.pointCount }} 点</span>
+                </span>
+              </button>
+            </li>
+          </ul>
+        </section>
 
-      <p v-if="loading" class="sv-panel__hint">正在读取街景服务…</p>
-      <p v-else-if="errorText" class="sv-panel__error">{{ errorText }}</p>
-      <p v-else class="sv-panel__hint">点击球上街景点，或按「开始浏览」进入全景</p>
+        <!-- ══ 浏览控制 ══ -->
+        <section class="sv-section">
+          <div class="sv-section__label">浏览控制</div>
+          <div class="sv-section__body">
+            <p v-if="loading" class="sv-hint">正在读取街景服务…</p>
+            <p v-else-if="errorText" class="sv-hint sv-hint--error">{{ errorText }}</p>
+            <p v-else class="sv-hint">点击球上街景点，或按「开始浏览」进入全景</p>
 
-      <div class="sv-actions">
-        <button type="button" class="sv-btn sv-btn--primary" :disabled="!canBrowse" @click="startBrowse">
-          开始浏览
-        </button>
-        <button type="button" class="sv-btn" :disabled="!canBrowse" @click="step(-1)">上一处</button>
-        <button type="button" class="sv-btn" :disabled="!canBrowse" @click="step(1)">下一处</button>
-        <button type="button" class="sv-btn" :disabled="!canBrowse" @click="flyToActive">定位</button>
+            <div class="sv-actions">
+              <button type="button" class="sv-btn sv-btn--primary" :disabled="!canBrowse" @click="startBrowse">
+                开始浏览
+              </button>
+              <button type="button" class="sv-btn" :disabled="!canBrowse" @click="step(-1)">上一处</button>
+              <button type="button" class="sv-btn" :disabled="!canBrowse" @click="step(1)">下一处</button>
+              <button type="button" class="sv-btn" :disabled="!canBrowse" @click="flyToActive">定位</button>
+            </div>
+          </div>
+        </section>
+
+        <p class="sv-foot">球面连线为推导出的街景路线，前进/后退沿该路线步进；全景浮窗内也可用 ←/→ 切换。</p>
       </div>
-
-      <p class="sv-panel__tip">球面连线为推导出的街景路线，前进/后退沿该路线步进；全景浮窗内也可用 ←/→ 切换。</p>
     </aside>
 
     <CoordinateIndicator
@@ -93,11 +113,15 @@ onMounted(async () => {
       :altitude="cursorCoordinates.altitude"
       :camera-height="cursorCoordinates.cameraHeight"
     />
-    <FpsIndicator :viewer="viewerRef" />
   </div>
 </template>
 
 <style scoped>
+/*
+ * 视觉与渡河场景的方案设置面板一致（river-setting-panel.vue）：
+ * 面板底 #0e1626 + 10px 圆角 + 大投影；内容用「分区」（左侧 2px 蓝条）组织；
+ * 文字用「白色 + 降不透明度」分档，字号走全局字号阶 --font-*（不再自定 px 字号）。
+ */
 .sv-shell {
   position: relative;
   height: 100%;
@@ -117,171 +141,238 @@ onMounted(async () => {
   display: none !important;
 }
 
+/* 位置由 useDraggable 的 inline style 给出，此处不写死 top/left */
 .sv-panel {
+  --sv-text-1: rgb(255 255 255 / 95%);
+  --sv-text-2: rgb(255 255 255 / 84%);
+  --sv-text-3: rgb(255 255 255 / 70%);
+  --sv-text-4: rgb(255 255 255 / 56%);
+  --sv-bar: rgb(93 140 200 / 45%);
+  --sv-blue-bg: rgb(43 107 255 / 15%);
+
   position: absolute;
-  top: 16px;
-  left: 16px;
-  width: 236px;
-  padding: 12px 14px 14px;
-  border: 1px solid rgba(43, 131, 255, 0.32);
-  border-radius: 8px;
-  background: rgba(4, 19, 40, 0.9);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.42);
-  color: rgba(214, 237, 255, 0.92);
-  backdrop-filter: blur(8px);
-}
-
-.sv-panel__head {
+  z-index: 10;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  flex-direction: column;
+  width: 340px;
+  max-height: calc(100% - 90px);
+  overflow: hidden;
+  color: var(--sv-text-2);
+  font-size: var(--font-sm);
+  background: #0e1626;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgb(0 0 0 / 45%);
+}
+
+/* 标题栏（兼作拖动抓手） */
+.sv-header {
+  display: flex;
+  flex-shrink: 0;
   gap: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(92, 184, 255, 0.2);
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgb(255 255 255 / 6%);
+  cursor: grab;
+  user-select: none;
 }
 
-.sv-panel__title {
-  font-size: 13px;
+.sv-header--grabbing {
+  cursor: grabbing;
+}
+
+.sv-header__title {
+  font-size: var(--font-xl);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  color: var(--sv-text-1);
 }
 
-.sv-panel__count {
-  font-family: 'DIN', Consolas, monospace;
-  font-size: 11px;
-  color: rgba(147, 196, 255, 0.75);
+.sv-header__meta {
+  margin-left: auto;
+  color: var(--sv-text-4);
+  font-size: var(--font-xs);
+}
+
+.sv-body {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px 12px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(141 184 255 / 24%) transparent;
+}
+
+.sv-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sv-body::-webkit-scrollbar-thumb {
+  background: rgb(141 184 255 / 24%);
+  border-radius: 999px;
+}
+
+/* ── 分区（对齐 river 的 .form-section / .section-label）── */
+.sv-section {
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 5%);
+  border-radius: 10px;
+}
+
+.sv-section__label {
+  padding: 9px 12px;
+  color: var(--sv-text-3);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgb(255 255 255 / 2%);
+  border-left: 2px solid var(--sv-bar);
+}
+
+.sv-section__body {
+  padding: 10px 12px 12px;
 }
 
 .sv-cities {
-  margin: 10px 0 0;
-  padding: 0;
-  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   max-height: 208px;
+  padding: 6px;
+  margin: 0;
   overflow-y: auto;
+  list-style: none;
 }
 
 .sv-city {
-  width: 100%;
+  position: relative;
   display: flex;
+  gap: 10px;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid rgba(45, 111, 183, 0.32);
-  border-radius: 6px;
-  background: rgba(6, 25, 50, 0.68);
-  color: #cbe3ff;
-  font-size: 13px;
+  width: 100%;
+  height: 38px;
+  padding: 0 8px 0 10px;
+  color: var(--sv-text-1);
+  font-size: var(--font-sm);
   text-align: left;
   cursor: pointer;
-  transition: all 0.18s ease;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+}
+
+.sv-city::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 2px;
+  background: transparent;
+  content: '';
 }
 
 .sv-city:hover {
-  border-color: rgba(70, 176, 255, 0.55);
-  color: #eaf5ff;
+  background: rgb(255 255 255 / 4%);
 }
 
 .sv-city--active {
-  border-color: #29a3ff;
-  background: rgba(41, 163, 255, 0.16);
-  box-shadow: 0 0 0 1px rgba(41, 163, 255, 0.45);
+  background: rgb(43 107 255 / 12%);
+}
+
+.sv-city--active::before {
+  background: #3b82f6;
 }
 
 .sv-city__name {
-  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sv-city__meta {
   display: flex;
+  flex: none;
+  gap: 8px;
   align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
 }
 
 .sv-city__tag {
-  padding: 1px 6px;
-  border-radius: 8px;
-  background: rgba(43, 131, 255, 0.16);
-  color: #8db8ff;
-  font-size: 10px;
+  padding: 0 6px;
+  color: var(--sv-text-4);
+  font-size: var(--font-xs);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 5px;
 }
 
 .sv-city__points {
-  font-family: 'DIN', Consolas, monospace;
-  font-size: 11px;
-  color: rgba(147, 196, 255, 0.75);
+  color: var(--sv-text-4);
+  font-size: var(--font-xs);
 }
 
-.sv-panel__hint,
-.sv-panel__error,
-.sv-panel__tip {
-  margin: 10px 0 0;
-  font-size: 11px;
-  line-height: 1.6;
-  color: rgba(147, 196, 255, 0.68);
+.sv-hint {
+  margin: 0 0 10px;
+  color: var(--sv-text-4);
+  font-size: var(--font-xs);
+  line-height: var(--font-lh-body);
 }
 
-.sv-panel__error {
-  color: #ff8a95;
-}
-
-.sv-panel__tip {
-  padding-top: 10px;
-  border-top: 1px solid rgba(92, 184, 255, 0.18);
-}
-
-.sv-panel__credit {
-  margin: 6px 0 0;
-  font-size: 10px;
-  line-height: 1.5;
-  color: rgba(147, 196, 255, 0.45);
+.sv-hint--error {
+  color: rgb(255 160 155 / 90%);
 }
 
 .sv-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
 }
 
 .sv-btn {
-  padding: 7px 10px;
-  border: 1px solid rgba(45, 111, 183, 0.4);
-  border-radius: 6px;
-  background: rgba(6, 25, 50, 0.7);
-  color: #cbe3ff;
-  font-size: 12px;
+  padding: 9px 0;
+  color: var(--sv-text-2);
+  font-size: var(--font-sm);
   cursor: pointer;
-  transition: all 0.18s ease;
+  background: rgb(255 255 255 / 6%);
+  border: 1px solid transparent;
+  border-radius: 7px;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    border-color 0.18s;
 }
 
 .sv-btn:hover:not(:disabled) {
-  color: #eaf5ff;
-  border-color: rgba(70, 176, 255, 0.6);
+  color: var(--sv-text-1);
+  background: rgb(255 255 255 / 10%);
 }
 
 .sv-btn:disabled {
-  opacity: 0.45;
+  color: var(--sv-text-4);
   cursor: not-allowed;
+  background: rgb(255 255 255 / 3%);
 }
 
 .sv-btn--primary {
-  border-color: rgba(70, 176, 255, 0.55);
-  background: rgba(41, 163, 255, 0.18);
-  color: #8dc4ff;
+  color: var(--sv-text-1);
+  background: rgb(43 107 255 / 30%);
+  border-color: rgb(93 140 200 / 50%);
+}
+
+.sv-btn--primary:hover:not(:disabled) {
+  background: rgb(43 107 255 / 42%);
+}
+
+.sv-foot {
+  margin: 0;
+  color: var(--sv-text-4);
+  font-size: var(--font-xs);
+  line-height: var(--font-lh-body);
 }
 
 @media (max-width: 640px) {
   .sv-panel {
-    left: 8px;
-    top: 8px;
     width: calc(100% - 16px);
-    max-height: 46%;
-    overflow-y: auto;
+    max-height: 60%;
   }
 }
 </style>

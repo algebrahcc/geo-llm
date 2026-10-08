@@ -25,7 +25,7 @@ const typeCards = [
   },
   {
     value: 3,
-    icon: 'mdi:workflow-outline',
+    icon: 'mdi:sitemap-outline',
     label: '工作流',
     desc: '拖拽编排的流程式应用，精确控制执行逻辑',
     accent: 'var(--ui-sem-green)'

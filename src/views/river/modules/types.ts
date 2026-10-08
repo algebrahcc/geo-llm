@@ -119,7 +119,24 @@ export interface KnowledgeHitDisplay {
   }>;
 }
 
-/** 底部方案卡片 */
+/**
+ * 渡场筛选依据的一项。
+ *
+ * 筛的是"场地"：每个候选渡场按这些维度逐项对照阈值给出结论与得分，
+ * 展开卡片时逐条列出，对应筛选报告里的"筛选依据"。
+ */
+export interface CrossingSiteCriterion {
+  /** 维度（河宽 / 流速窗口 / …） */
+  label: string;
+  /** 勘察实测值 */
+  value: string;
+  /** 对照阈值的结论 */
+  verdict: string;
+  /** 该项得分（0~100） */
+  score: number;
+}
+
+/** 底部方案卡片（比较对象是渡场，工法作为该渡场的推荐方式） */
 export interface CrossingPlanCard {
   rank: number;
   key: RiverPlanKey;
@@ -136,6 +153,20 @@ export interface CrossingPlanCard {
   advantages: string[];
   risks: string[];
   conditions: string[];
+  /**
+   * 以下为渡场筛选相关字段。
+   *
+   * 设为可选：`crossing-engineer` 的计算路径产出的是"方式方案"（没有渡场概念），
+   * 缺这些字段时结果栏退回按方式展示，不强制两条链路数据结构完全一致。
+   */
+  /** 渡场名称（筛选结果的比较对象） */
+  siteName?: string;
+  /** 推荐优先级 */
+  priority?: '推荐' | '备选' | '应急';
+  /** 综合评分（0~100） */
+  totalScore?: number;
+  /** 筛选依据逐项 */
+  criteria?: CrossingSiteCriterion[];
 }
 
 /** 已淘汰方式的路线数据（供地图渲染与结果栏展示） */

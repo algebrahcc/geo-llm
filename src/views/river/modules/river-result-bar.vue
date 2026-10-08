@@ -15,6 +15,8 @@ const props = defineProps<{
 
 type Emits = import('@/typings/panel-emits').SelectablePanelEmits<RiverPlanKey> & {
   'select-rejected': [id: string];
+  /** 生成方案报告（含地图附图，可打印/存档） */
+  'generate-report': [];
 };
 
 const emit = defineEmits<Emits>();
@@ -42,16 +44,39 @@ function toggleExpandAll() {
 function toggleRejected() {
   showRejected.value = !showRejected.value;
 }
+
+/** 优先级 → 徽标配色后缀（推荐 / 备选 / 应急） */
+function priorityTone(priority: CrossingPlanCard['priority']): 'recommend' | 'backup' | 'emergency' {
+  if (priority === '推荐') return 'recommend';
+  if (priority === '备选') return 'backup';
+  return 'emergency';
+}
 </script>
 
 <template>
   <div class="result-bar" :class="{ 'result-bar--collapsed': collapsed }">
     <!-- ── 标题栏 ── -->
     <div class="bar-header">
-      <span class="header-title">渡河方案推荐</span>
-      <span v-if="confidence > 0" class="confidence-badge">置信度 {{ confidence }}%</span>
-      <button v-if="plans.length > 0 && !collapsed" type="button" class="expand-all-btn" @click="toggleExpandAll">
-        {{ allExpanded ? '折叠全部' : '展开全部' }}
+      <span class="header-title">渡场筛选结果</span>
+      <span v-if="confidence > 0" class="confidence-badge" :title="`分析置信度 ${confidence}%`">{{ confidence }}%</span>
+      <button
+        v-if="plans.length > 0 && !collapsed"
+        type="button"
+        class="expand-all-btn"
+        :title="allExpanded ? '折叠全部' : '展开全部'"
+        @click="toggleExpandAll"
+      >
+        {{ allExpanded ? '折叠' : '展开' }}
+      </button>
+      <button
+        v-if="plans.length > 0 && !collapsed"
+        type="button"
+        class="report-btn"
+        title="生成可汇报/存档的方案报告（含矢量地图附图）"
+        @click="emit('generate-report')"
+      >
+        <SvgIcon icon="mdi:file-chart-outline" />
+        <span>生成报告</span>
       </button>
       <div class="header-actions">
         <button type="button" class="action-btn" title="折叠" @click="emit('toggle-collapse')">
@@ -117,14 +142,23 @@ function toggleRejected() {
                 <div class="card-header-top">
                   <div class="card-identity">
                     <span class="plan-badge">{{ plan.label }}</span>
-                    <span v-if="plan.isRecommended" class="recommend-flag">主推</span>
+                    <span
+                      v-if="plan.priority"
+                      class="priority-flag"
+                      :class="`priority-flag--${priorityTone(plan.priority)}`"
+                    >
+                      {{ plan.priority }}
+                    </span>
+                    <span v-else-if="plan.isRecommended" class="recommend-flag">主推</span>
+                    <span v-if="plan.totalScore !== undefined" class="score-chip">综合 {{ plan.totalScore }}</span>
                   </div>
                   <SvgIcon
                     class="hint-chevron"
                     :icon="allExpanded || expandedCard === plan.rank ? 'mdi:chevron-up' : 'mdi:chevron-down'"
                   />
                 </div>
-                <div class="plan-name">{{ plan.title }}</div>
+                <div class="plan-name">{{ plan.siteName ?? plan.title }}</div>
+                <div v-if="plan.siteName" class="plan-subname">推荐方式：{{ plan.title }}</div>
 
                 <!-- 关键指标条（重点因素：数值大字加粗，标签小字置灰） -->
                 <div class="metric-strip">
@@ -240,40 +274,55 @@ function toggleRejected() {
 /* ──── 标题栏 ──── */
 .bar-header {
   display: flex;
-  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
   gap: 8px;
+  align-items: center;
   padding: 8px 14px;
   border-bottom: 1px solid var(--rb-line);
-  flex-shrink: 0;
 }
 
+/*
+ * 标题栏（结果栏宽 380px）：标题可压缩、其余元素不换行。
+ *
+ * 之前徽标没设 flex-shrink/nowrap，标题栏一挤「置信度 93%」就折成两行、
+ * 把整条标题栏撑高。这里标题改为"可省略"（空间不足时截断而非换行），
+ * 徽标与按钮一律 nowrap + 不收缩。
+ */
 .header-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--rb-t1);
   font-size: var(--font-sm);
   font-weight: 700;
-  color: var(--rb-t1);
-  flex-shrink: 0;
   letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .confidence-badge {
   display: flex;
-  align-items: center;
+  flex-shrink: 0;
   gap: 5px;
-  font-size: var(--font-sm);
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgb(74 125 189 / 14%);
+  align-items: center;
+  padding: 2px 8px;
   color: #a8c8f5;
+  font-size: var(--font-xs);
   font-weight: 600;
-  border: 1px solid rgb(124 184 255 / 35%);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  background: rgb(74 125 189 / 14%);
+  border: 1px solid rgb(124 184 255 / 35%);
+  border-radius: 999px;
 }
 
 .expand-all-btn {
+  flex-shrink: 0;
+  padding: 4px 10px;
   margin-left: auto;
   font-size: var(--font-sm);
   font-weight: 500;
-  padding: 4px 10px;
   border-radius: 6px;
   border: 1px solid var(--rb-line-2);
   background: rgb(255 255 255 / 5%);
@@ -809,5 +858,60 @@ function toggleRejected() {
   opacity: 0;
   padding-top: 0;
   padding-bottom: 0;
+}
+/* ── 生成报告按钮（标题栏主操作，蓝色强调） ── */
+.report-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 5px;
+  align-items: center;
+  padding: 4px 10px;
+  color: rgb(255 255 255 / 92%);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  background: rgb(43 107 255 / 28%);
+  border: 1px solid rgb(93 140 200 / 45%);
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.report-btn:hover {
+  background: rgb(43 107 255 / 42%);
+}
+
+/* ── 渡场筛选：优先级徽标 / 综合评分 / 依据表 ── */
+.priority-flag {
+  padding: 1px 6px;
+  font-size: var(--font-xs);
+  border-radius: 4px;
+}
+
+.priority-flag--recommend {
+  color: #06261a;
+  background: #4fc98a;
+}
+
+.priority-flag--backup {
+  color: rgb(255 255 255 / 88%);
+  background: rgb(255 255 255 / 16%);
+}
+
+.priority-flag--emergency {
+  color: #2a1c05;
+  background: #d8a24a;
+}
+
+.score-chip {
+  color: rgb(255 255 255 / 56%);
+  font-family: ui-monospace, consolas, monospace;
+  font-size: var(--font-xs);
+}
+
+.plan-subname {
+  margin-top: 3px;
+  color: rgb(255 255 255 / 56%);
+  font-size: var(--font-xs);
 }
 </style>

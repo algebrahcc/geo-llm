@@ -187,13 +187,15 @@ const routeMap: RouteMap = {
   "planning": "/planning",
   "river": "/river",
   "screen": "/screen",
+  "situation": "/situation",
   "streetview": "/streetview",
   "system": "/system",
   "system_log": "/system/log",
   "system_menu": "/system/menu",
   "system_online": "/system/online",
   "system_role": "/system/role",
-  "system_user": "/system/user"
+  "system_user": "/system/user",
+  "underground": "/underground"
 };
 
 /**

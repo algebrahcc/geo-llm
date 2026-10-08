@@ -27,6 +27,10 @@ export interface IntelDetectionBox {
   class_name: string;
   confidence: number;
   bbox: number[];
+  /** 外形轮廓：[[x, y], ...] 归一化 0-1；无轮廓时缺省，卡片退回只画识别框 */
+  polygon?: number[][] | null;
+  /** 轮廓来源：seg=分割掩膜 / approx=框内近似 */
+  polygon_source?: string | null;
 }
 
 export interface IntelDetail {
@@ -55,6 +59,9 @@ export interface IntelDetail {
   /** 使用的模型（military / road） */
   model?: string;
 }
+
+/** SVG 命名空间（轮廓绘制走 createElementNS，SVG 元素不能用 createElement 创建） */
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
 interface ActiveCard {
   close: () => void;
@@ -115,6 +122,13 @@ function ensureStyle() {
       z-index: 3;
     }
     .idc-overlay__dbox--low { border-style: dashed; opacity: .8; }
+    /* 外形轮廓：viewBox 为 0-1 单位方，vector-effect 保证描边粗细不被非等比拉伸 */
+    .idc-overlay__doutline {
+      position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
+    }
+    .idc-overlay__dpoly {
+      fill: rgba(255, 255, 255, .1); stroke-width: 1.5px; vector-effect: non-scaling-stroke;
+    }
     .idc-overlay__dbox-tag {
       position: absolute; top: -20px; left: -2px;
       font-size: 11px; font-weight: 600; color: #fff;
@@ -298,10 +312,32 @@ export function openIntelDetailCard(detail: IntelDetail): void {
     imageEl.addEventListener('load', layoutBoxes);
     if (imageEl.complete) layoutBoxes();
 
-    // 点击图片显示/隐藏检测框
+    // 外形轮廓：与识别框同一开关。归一化坐标（0-1）直接进 viewBox，与图片渲染区域一一对应，
+    // 因此不需要像识别框那样监听 load 重算像素位置。
+    const withOutline = boxes.filter(d => (d.polygon?.length ?? 0) > 2);
+    let outlineEl: SVGSVGElement | null = null;
+    if (withOutline.length > 0) {
+      const svg = document.createElementNS(SVG_NS, 'svg');
+      svg.setAttribute('class', 'idc-overlay__doutline');
+      svg.setAttribute('viewBox', '0 0 1 1');
+      svg.setAttribute('preserveAspectRatio', 'none');
+      withOutline.forEach(d => {
+        const poly = document.createElementNS(SVG_NS, 'polygon');
+        poly.setAttribute('class', 'idc-overlay__dpoly');
+        poly.setAttribute('points', (d.polygon ?? []).map(([x, y]) => `${x},${y}`).join(' '));
+        poly.setAttribute('stroke', classColor(d.class_name_zh || d.class_name));
+        svg.appendChild(poly);
+      });
+      frame.appendChild(svg);
+      outlineEl = svg;
+    }
+
+    // 点击图片显示/隐藏检测框与轮廓
     imageEl.style.cursor = 'pointer';
+    const hasOutline = outlineEl !== null;
     const updateHint = () => {
-      imageEl.title = showingBoxes ? '点击隐藏检测框' : '点击显示检测框';
+      const target = hasOutline ? '检测框与轮廓' : '检测框';
+      imageEl.title = showingBoxes ? `点击隐藏${target}` : `点击显示${target}`;
     };
     updateHint();
     imageEl.addEventListener('click', () => {
@@ -309,6 +345,7 @@ export function openIntelDetailCard(detail: IntelDetail): void {
       boxEls.forEach(b => {
         b.el.style.display = showingBoxes ? 'block' : 'none';
       });
+      if (outlineEl) outlineEl.style.display = showingBoxes ? 'block' : 'none';
       updateHint();
     });
   }

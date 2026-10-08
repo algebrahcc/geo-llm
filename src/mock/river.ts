@@ -427,7 +427,18 @@ export const crossingPlanCards: CrossingPlanCard[] = [
     keyEquipment: ['冲锋舟×8', '重型浮桥1套', '工兵作业车×4'],
     advantages: ['渡河速度最快，可在3小时内完成', '混合编组灵活性强', '狮子头高地观察条件好'],
     risks: ['涨落潮时流速增大，须利用平潮窗口', '东岸登陆须避开红树林保育区北缘'],
-    conditions: ['平潮窗口流速<1.5m/s', '能见度>5km', '风力<4级']
+    conditions: ['平潮窗口流速<1.5m/s', '能见度>5km', '风力<4级'],
+    siteName: '关渡大桥上游 1km 渡场',
+    priority: '推荐',
+    totalScore: 89,
+    criteria: [
+      { label: '河宽', value: '491m', verdict: '满足门桥漕渡（≤600m）', score: 92 },
+      { label: '流速窗口', value: '平潮 0.6~1.2 m/s', verdict: '满足架设（<1.5m/s）', score: 95 },
+      { label: '水深', value: '主槽 8.2m', verdict: '满足门桥吃水', score: 88 },
+      { label: '河床承载', value: '中砂夹淤泥 60kPa', verdict: '适宜锚定与桥脚支撑', score: 85 },
+      { label: '进出路通联', value: '西岸 40t 可达 / 东岸需引导', verdict: '基本满足重装通行', score: 82 },
+      { label: '岸滩与遮蔽', value: '狮子头高地可观察、滩地可集结', verdict: '集结点与观察条件有利', score: 90 }
+    ]
   },
   {
     rank: 2,
@@ -444,7 +455,18 @@ export const crossingPlanCards: CrossingPlanCard[] = [
     keyEquipment: ['重型浮桥2套', '舟桥器材32套', '架桥坦克×2'],
     advantages: ['通行能力最强，适合重装部队', '浮桥稳定性好', '可多段并行'],
     risks: ['架设时间较长，桥位暴露于主槽', '社子岛地势低洼，纵深机动受限'],
-    conditions: ['河宽<600m', '水深<12m', '岸滩坡度<8°']
+    conditions: ['河宽<600m', '水深<12m', '岸滩坡度<8°'],
+    siteName: '社子岛头—五股段渡场',
+    priority: '备选',
+    totalScore: 76,
+    criteria: [
+      { label: '河宽', value: '520m', verdict: '满足浮桥分段架设', score: 86 },
+      { label: '流速窗口', value: '平潮 0.8~1.4 m/s', verdict: '满足架设（<1.5m/s）', score: 84 },
+      { label: '水深', value: '主槽 9.6m', verdict: '浮桥吃水偏紧', score: 72 },
+      { label: '河床承载', value: '淤泥夹砂 45kPa', verdict: '锚定条件偏弱', score: 68 },
+      { label: '进出路通联', value: '五股器材场可达 / 社子岛纵深受限', verdict: '部分满足', score: 70 },
+      { label: '岸滩与遮蔽', value: '低洼易积水、隐蔽性一般', verdict: '需先行排水与伪装', score: 74 }
+    ]
   },
   {
     rank: 3,
@@ -461,6 +483,17 @@ export const crossingPlanCards: CrossingPlanCard[] = [
     keyEquipment: ['冲锋舟×16', '无人机×4', '登陆艇×3'],
     advantages: ['部署最快，机动灵活', '对岸滩要求低', '隐蔽性好'],
     risks: ['单次运力有限', '重装备无法渡河', '河口强潮区须严格按窗口行动'],
-    conditions: ['平潮窗口流速<1.5m/s', '人员轻装', '天气良好']
+    conditions: ['平潮窗口流速<1.5m/s', '人员轻装', '天气良好'],
+    siteName: '关渡大桥下游渡船头—竹围渡场',
+    priority: '应急',
+    totalScore: 70,
+    criteria: [
+      { label: '河宽', value: '470m', verdict: '满足冲锋舟梯队直渡', score: 80 },
+      { label: '流速窗口', value: '下游感潮更强 1.5~2.4 m/s', verdict: '可作业窗口短', score: 58 },
+      { label: '水深', value: '5.4m', verdict: '满足舟艇航行', score: 82 },
+      { label: '河床承载', value: '砂质 70kPa', verdict: '承载力良好', score: 84 },
+      { label: '进出路通联', value: '渡船头可下水 / 竹围多点登陆', verdict: '满足轻装通行', score: 86 },
+      { label: '岸滩与遮蔽', value: '岸段开阔、观通条件差', verdict: '暴露风险较高', score: 60 }
+    ]
   }
 ];

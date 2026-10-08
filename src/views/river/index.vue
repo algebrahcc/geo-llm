@@ -11,6 +11,9 @@ import type { ServiceLayerHandle } from '@/composables/cesium/service-loader';
 import RiverAiAssistantPanel from './modules/river-ai-assistant-panel.vue';
 import RiverResultBar from './modules/river-result-bar.vue';
 import RiverSettingPanel from './modules/river-setting-panel.vue';
+import RiverSurveyPanel from './modules/river-survey-panel.vue';
+import { buildRiverReportHtml } from './modules/river-report';
+import { surveyReport } from '@/mock/river-survey';
 import SceneToolbar from '@/components/common/scene-toolbar.vue';
 import type { SceneToolbarItem } from '@/components/common/scene-toolbar.vue';
 import AgentChatPanel from '@/components/agent/agent-chat-panel.vue';
@@ -57,6 +60,8 @@ interface ViewerExpose {
   rotate: () => void;
   pitch: () => void;
   exportScreenshot: () => void;
+  /** 取当前视角画面（不下载），报告附图用 */
+  captureMapImage: () => string | null;
   toggleViewMode: () => void;
   loadVectorLayer: (id: string, name: string, sourceType?: string) => Promise<void>;
   flyToVector: (id: string, name?: string) => Promise<void>;
@@ -92,6 +97,9 @@ const beidouViewer = computed<Viewer | null>(() => viewerRef.value?.getViewer() 
 // 进入渡河场景默认展开：左侧方案助手 + 右侧方案设置（可从两侧工具栏收起）
 const settingVisible = ref(true);
 const aiPanelVisible = ref(true);
+/** 渡场勘察报告面板（默认关闭：演示时从左侧按钮打开，先看报告再进设置） */
+const surveyVisible = ref(false);
+const surveyCollapsed = ref(false);
 const agentPanelVisible = ref(false);
 const resultVisible = ref(false);
 const layerPanelVisible = ref(false);
@@ -108,6 +116,8 @@ const layerCollapsed = ref(false);
 // ──── 面板拖拽 ────
 // 方案助手面板靠左（让开左侧工具栏 62px），方案设置面板靠右（让开右侧工具栏 72px）
 const settingDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 18 });
+// 勘察报告与设置面板同侧：演示动线是「先看报告 → 一键回填设置」，两块面板并排更顺手
+const surveyDrag = useDraggable({ anchor: 'right', initialX: 72, initialY: 18 });
 const aiDrag = useDraggable({ anchor: 'left', initialX: 62, initialY: 18 });
 const agentDrag = useDraggable({ anchor: 'right', initialX: 18, initialY: 72 });
 // 智能体面板宽高（默认 520×660，右下角可拖拽缩放）
@@ -521,6 +531,61 @@ function handleToggleSetting() {
   }
 }
 
+function handleToggleSurveyPanel() {
+  if (surveyVisible.value) surveyCollapsed.value = !surveyCollapsed.value;
+  else {
+    surveyVisible.value = true;
+    surveyCollapsed.value = false;
+  }
+}
+
+function handleSurveyClose() {
+  surveyVisible.value = false;
+}
+
+/**
+ * 生成渡河方案报告并在新窗口打开。
+ *
+ * 附图取三维场景的当前视角画面（此时标绘已渲染在球面上，所以是"矢量地图附图"）；
+ * 取图用 captureMapImage（只取不下载），避免生成报告时往浏览器下载目录里丢一个 png。
+ * 报告自带打印样式，用户在新窗口里「打印 → 另存为 PDF」即得 A4 版式文件。
+ */
+function handleGenerateReport() {
+  const mapImage = viewerRef.value?.captureMapImage?.() ?? null;
+  const html = buildRiverReportHtml({
+    form: settingForm.value,
+    survey: surveyReport,
+    plans: planCards.value,
+    mapImage,
+    generatedAt: new Date()
+  });
+
+  const win = window.open('', '_blank');
+  if (!win) {
+    window.$message?.warning('浏览器拦截了新窗口，请允许弹出窗口后重试');
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+  window.$message?.success('报告已生成，可在新窗口打印或另存为 PDF');
+}
+
+/**
+ * 把勘察报告提取的要素回填到方案设置。
+ *
+ * 只覆盖由勘察数据决定的字段（河宽/水深/流速/河床质），其余保持用户已填内容——
+ * 报告是数据来源，不应把任务名称、兵力这些决策项也一并冲掉。
+ */
+function handleSurveyApply(patch: Partial<CrossingSettingForm>) {
+  settingForm.value = { ...settingForm.value, ...patch };
+  // 回填后收起报告、展开设置面板：两块面板同侧会互相遮挡，
+  // 且用户要看的正是"设置里的字段被填上了"这个结果
+  surveyCollapsed.value = true;
+  settingVisible.value = true;
+  settingCollapsed.value = false;
+  window.$message?.success('已按勘察报告回填：河宽、水深、流速、河床质');
+}
+
 function handleToggleAiPanel() {
   if (aiPanelVisible.value) aiCollapsed.value = !aiCollapsed.value;
   else {
@@ -649,6 +714,20 @@ function handleToggleResult() {
             <button
               type="button"
               class="side-btn"
+              :class="{ 'side-btn--active': surveyVisible && !surveyCollapsed }"
+              @click="handleToggleSurveyPanel"
+            >
+              <SvgIcon icon="mdi:file-search-outline" />
+            </button>
+          </template>
+          <span>渡场勘察报告</span>
+        </NTooltip>
+
+        <NTooltip placement="right">
+          <template #trigger>
+            <button
+              type="button"
+              class="side-btn"
               :class="{ 'side-btn--active': aiPanelVisible && !aiCollapsed }"
               @click="handleToggleAiPanel"
             >
@@ -704,6 +783,24 @@ function handleToggleResult() {
             @submit="handleSubmitAnalysis"
             @toggle-collapse="settingCollapsed = !settingCollapsed"
             @close="handleSettingClose"
+          />
+        </ScenePanel>
+      </Transition>
+
+      <!-- ══════ 右侧：渡场勘察报告面板（无人机/无人船回传报告 → 要素提取） ══════ -->
+      <Transition name="panel-slide-right">
+        <ScenePanel v-if="surveyVisible" class="side-panel survey-panel-wrapper" :style="surveyDrag.style.value">
+          <template #header>
+            <div class="panel-drag-handle" @mousedown="surveyDrag.onDragStart">
+              <span class="drag-dots">⋮⋮</span>
+              <span>勘察报告</span>
+            </div>
+          </template>
+          <RiverSurveyPanel
+            :collapsed="surveyCollapsed"
+            @toggle-collapse="surveyCollapsed = !surveyCollapsed"
+            @close="handleSurveyClose"
+            @apply-to-form="handleSurveyApply"
           />
         </ScenePanel>
       </Transition>
@@ -821,6 +918,7 @@ function handleToggleResult() {
             :active-key="activePlanKey"
             :rejected="rejectedWays"
             :active-rejected-id="activeRejectedId"
+            @generate-report="handleGenerateReport"
             @select="handlePlanSelect"
             @select-rejected="handleRejectedSelect"
             @toggle-collapse="resultCollapsed = !resultCollapsed"
@@ -913,6 +1011,10 @@ function handleToggleResult() {
   z-index: 21;
 }
 .ai-panel-wrapper {
+  width: 420px;
+}
+/* 勘察报告与 AI 助手同宽：两者都要放长文本与图，窄了读不动 */
+.survey-panel-wrapper {
   width: 420px;
 }
 .layer-panel-wrapper {

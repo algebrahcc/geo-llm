@@ -79,8 +79,31 @@ function createScenarioElegantRoute() {
         component: 'view.streetview',
         meta: {
           title: '城市街景',
-          icon: 'mdi:street-view',
+          // MDI 图标集中没有名为 street-view 的图标（只有 google-street-view），用后者否则菜单图标空缺
+          icon: 'mdi:google-street-view',
           order: 3
+        }
+      },
+      {
+        // 地下空间：本地三维模型清单 + 剖切浏览（剖开楼板看内部结构）
+        name: 'scenario_underground',
+        path: '/scenario/underground',
+        component: 'view.underground',
+        meta: {
+          title: '地下空间',
+          icon: 'mdi:cube-scan',
+          order: 4
+        }
+      },
+      {
+        // 环境研判：框选区域 → 规则算通过性/关键节点/断堵卡/通路适宜等级 → 模型归纳质疑 → 复核归档
+        name: 'scenario_situation',
+        path: '/scenario/situation',
+        component: 'view.situation',
+        meta: {
+          title: '环境研判',
+          icon: 'mdi:map-search-outline',
+          order: 5
         }
       }
     ]
@@ -356,9 +379,11 @@ export function createStaticRoutes() {
     createScenarioElegantRoute() as unknown as ElegantRoute,
     createKnowledgeElegantRoute() as unknown as ElegantRoute,
     createAgentElegantRoute() as unknown as ElegantRoute,
-    // 剔除已由分组接管的顶层生成路由：river / planning / streetview 在「典型场景」下，
+    // 剔除已由分组接管的顶层生成路由：river / planning / streetview / underground / situation 在「典型场景」下，
     // knowledge / agent 各有自建分组 —— 否则它们会各自多出一个顶层菜单项
-    ...generatedRoutes.filter(item => !['knowledge', 'agent', 'river', 'planning', 'streetview'].includes(item.name))
+    ...generatedRoutes.filter(
+      item => !['knowledge', 'agent', 'river', 'planning', 'streetview', 'underground', 'situation'].includes(item.name)
+    )
   ].forEach(item => {
     if (item.meta?.constant) {
       constantRoutes.push(item);

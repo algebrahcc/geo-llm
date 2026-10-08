@@ -48,7 +48,6 @@ import type { StyleSpecification } from 'mvt-imagery-provider';
 import { MAP_LABEL_SCALE, mapLabelFont } from '@/composables/cesium/label-style';
 import { openStreetViewPanorama, type StreetViewPanoramaNeighbor } from '@/components/cesium/street-view-panorama';
 import { openIntelDetailCard } from '@/components/cesium/intel-detail-card';
-import type { StreetViewFilmstripItem } from '@/components/cesium/street-view-filmstrip';
 import { distanceMeters } from './streetview/geo';
 import { createPointIndex } from './streetview/point-index';
 import { registerStreetViewPicker, type StreetViewPickResult } from './streetview/pick-dispatcher';
@@ -58,6 +57,7 @@ import {
   NEAREST_MAX_METERS,
   StreetViewError,
   parseStreetViewParams,
+  type StreetViewImage,
   type StreetViewPoint,
   type StreetViewSourceKind
 } from './streetview/service-api';
@@ -99,6 +99,24 @@ export interface StreetViewController {
   step(delta: 1 | -1): void;
 }
 
+/**
+ * 三维模型元信息（仅 threed 分类有）
+ *
+ * 为什么把 Cesium 对象直接挂在句��上：剖切、标高换算、相机预设都需要 `primitive.boundingSphere`
+ * 与摆放点坐标，这些只有加载器知道；页面若自行反推会与加载器的摆放逻辑重复，两边一旦不一致
+ * 就会出现「滑杆拖到底切不到模型」。
+ */
+export interface ThreedHandleMeta {
+  /** 被加载的三维对象（GLB → Model，3D Tiles → Cesium3DTileset） */
+  primitive: Model | Cesium3DTileset;
+  /** 摆放点（局部坐标原点对应的经纬高）；未配置摆放时为 undefined */
+  anchor?: { lon: number; lat: number; height: number };
+  /** 模型包围球半径（米，局部坐标） */
+  radius: number;
+  /** 模型标高范围（世界坐标米）；来自 params.elevation，缺省用包围球近似 */
+  elevation?: { min: number; max: number };
+}
+
 /** 服务图层句柄：状态机 + 图层操作（对标 TerriaJS Workbench 条目） */
 export interface ServiceLayerHandle {
   id: number;
@@ -118,6 +136,8 @@ export interface ServiceLayerHandle {
   streetview?: StreetViewHandleMeta;
   /** 街景浏览控制入口（仅 streetview 分类有） */
   streetviewController?: StreetViewController;
+  /** 三维模型元信息（仅 threed 分类有，供剖切与标高换算使用） */
+  threed?: ThreedHandleMeta;
   show(): void;
   hide(): void;
   remove(): void;
@@ -452,6 +472,26 @@ async function createTilesetHandle(s: Api.DataService.DataServiceItem, viewer: V
     primitive = await Cesium3DTileset.fromUrl(url, modelMatrix ? { modelMatrix } : undefined);
   }
   viewer.scene.primitives.add(primitive);
+
+  /**
+   * 解析模型标高范围（params.elevation）。
+   *
+   * 为什么需要它：GLB 的几何原点在自身局部坐标，模型可能整体位于地面以下几十米
+   * （如地下停车场），而 `boundingSphere` 只是相对摆放点的球体。缺了真实标高范围，
+   * 剖切滑杆会按「摆放点 ± 半径」映射，切出来的标高与楼层标签全部对不上。
+   * 离线量测模型 Z 区间后填在这里即可，形如 `{"min":-600,"max":22}`。
+   */
+  const elevation = (() => {
+    const raw = parsedParams?.elevation;
+    const conf =
+      typeof raw === 'string'
+        ? parseJson<{ min?: number; max?: number }>(raw)
+        : (raw as { min?: number; max?: number } | undefined);
+    const min = Number(conf?.min);
+    const max = Number(conf?.max);
+    return Number.isFinite(min) && Number.isFinite(max) && max > min ? { min, max } : undefined;
+  })();
+
   const handle: ServiceLayerHandle = {
     id: s.id,
     category: s.category,
@@ -459,6 +499,12 @@ async function createTilesetHandle(s: Api.DataService.DataServiceItem, viewer: V
     name: s.name,
     state: 'ready',
     visible: true,
+    threed: {
+      primitive,
+      anchor: positionLonLat,
+      radius: primitive.boundingSphere?.radius ?? 0,
+      elevation
+    },
     show() {
       primitive.show = true;
       this.visible = true;
@@ -683,9 +729,6 @@ const STREETVIEW_POINT_ACTIVE_COLOR = Color.fromCssColorString('#29a3ff').withAl
 /** 定位街景点时的相机高度（米）：低空俯瞰，看得清街区走向 */
 const STREETVIEW_FOCUS_HEIGHT = 1200;
 
-/** 本地街景的自动漫游步进（毫秒）：本地图片命中缓存后可稳定在这个节奏 */
-const STREETVIEW_AUTOPLAY_INTERVAL_MS = 2600;
-
 /** 画街景路线的最小链长：两三个点的碎片链画出来只是噪声 */
 const STREETVIEW_ROUTE_MIN_POINTS = 5;
 
@@ -818,23 +861,11 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
       );
     });
 
-  // 6) 漫游路线与胶片条
-  //    漫游路线取最长的一条链（其余散链多是零散点位）；胶片条只有本地目录能提供 ——
-  //    远程服务要逐个问 nearest 才知道 geoid，枚举全量会把服务打爆。
+  // 6) 漫游路线：取最长的一条链（其余散链多是零散点位）
   const longestChain = order.chains.reduce<number[]>(
     (longest, chain) => (chain.length > longest.length ? chain : longest),
     []
   );
-  let filmstripItems: StreetViewFilmstripItem[] | undefined;
-  const filmstripPositionOf = new Map<number, number>();
-  if (typeof source.imageUrlOf === 'function') {
-    const imageUrlOf = source.imageUrlOf.bind(source);
-    filmstripItems = longestChain.map((pointIndex, position) => {
-      filmstripPositionOf.set(pointIndex, position);
-      const point = points[pointIndex];
-      return { thumbnailUrl: imageUrlOf(point) ?? '', label: point.geoid };
-    });
-  }
 
   /** 沿链取相对位置的点位下标（只算不改状态，供预取使用） */
   function neighborIndexAt(fromIndex: number, delta: number): number | undefined {
@@ -843,21 +874,36 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
     return order.chains[location.chain][location.pos + delta];
   }
 
-  /** 由点位组装浮窗切换结果（含行进方位与胶片位置） */
+  /**
+   * 取某个点位的全景图。
+   *
+   * 本地源能由 geoid 直接拼出地址，就不必再用坐标反查最近点——点已经拿在手里时，
+   * 反查是纯多余的环节，多一次索引查找就多一个可能失败的入口（这正是之前
+   * 「切换街景点失败」最可疑的一段）。远程源仍必须走 nearest：
+   * 只有服务端知道 geoid 与图片的映射。
+   */
+  async function imageOf(point: StreetViewPoint): Promise<StreetViewImage> {
+    if (source.imageUrlOf) {
+      const direct = source.imageUrlOf(point);
+      if (direct) return { imageUrl: direct, geoid: point.geoid };
+    }
+    return source.resolveImage(point.lon, point.lat);
+  }
+
+  /** 由点位组装浮窗切换结果（含行进方位） */
   function neighborOf(pointIndex: number, imageUrl: string, geoid: string): StreetViewPanoramaNeighbor {
     return {
       imageUrl,
       subtitle: subtitleOf(points[pointIndex], geoid),
       index: pointIndex,
-      heading: order.bearing.get(pointIndex) ?? null,
-      filmstripIndex: filmstripPositionOf.get(pointIndex)
+      heading: order.bearing.get(pointIndex) ?? null
     };
   }
 
   /**
    * 打开指定街景点的全景。
    *
-   * 只开一次浮窗：前进/后退、胶片跳转都复用同一个 PSV 实例（回调驱动），
+   * 只开一次浮窗：前进/后退都复用同一个 PSV 实例（回调驱动），
    * 否则每切一次就重建 WebGL 上下文，切换会明显发卡。
    */
   async function openPanoramaAt(targetIndex: number): Promise<void> {
@@ -867,19 +913,14 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
     focusOn(targetIndex);
     const loading = window.$message?.loading(`正在获取「${s.name}」街景全景图…`, { duration: 0 });
     try {
-      const image = await source.resolveImage(point.lon, point.lat);
+      const image = await imageOf(point);
       openStreetViewPanorama(image.imageUrl, {
         title: s.name,
         subtitle: subtitleOf(point, image.geoid),
         position: { index: targetIndex, total: points.length },
         heading: order.bearing.get(targetIndex) ?? null,
         navigate: delta => navigateBy(delta),
-        prefetch: delta => prefetchImage(delta),
-        locate: () => focusOn(currentIndex),
-        filmstrip: filmstripItems,
-        filmstripIndex: filmstripPositionOf.get(targetIndex),
-        jumpTo: position => jumpToFilmstrip(position),
-        autoPlayIntervalMs: source.kind === 'local' ? STREETVIEW_AUTOPLAY_INTERVAL_MS : undefined
+        prefetch: delta => prefetchImage(delta)
       });
     } catch (e) {
       const reason = e instanceof StreetViewError ? e.message : '街景全景图请求失败，请检查数据服务地址与网络';
@@ -900,7 +941,7 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
     const nextIndex = neighborIndexAt(currentIndex, delta);
     if (nextIndex === undefined) return null;
     const point = points[nextIndex];
-    const image = await source.resolveImage(point.lon, point.lat);
+    const image = await imageOf(point);
     currentIndex = nextIndex;
     focusOn(nextIndex);
     return neighborOf(nextIndex, image.imageUrl, image.geoid);
@@ -910,20 +951,8 @@ async function createStreetViewHandle(s: Api.DataService.DataServiceItem, viewer
   async function prefetchImage(delta: 1 | -1): Promise<string | null> {
     const nextIndex = neighborIndexAt(currentIndex, delta);
     if (nextIndex === undefined) return null;
-    const point = points[nextIndex];
-    const image = await source.resolveImage(point.lon, point.lat);
+    const image = await imageOf(points[nextIndex]);
     return image.imageUrl;
-  }
-
-  /** 胶片点击：跳到漫游路线上的第 position 个街景点 */
-  async function jumpToFilmstrip(position: number): Promise<StreetViewPanoramaNeighbor | null> {
-    const targetIndex = longestChain[position];
-    if (targetIndex === undefined) return null;
-    const point = points[targetIndex];
-    const image = await source.resolveImage(point.lon, point.lat);
-    currentIndex = targetIndex;
-    focusOn(targetIndex);
-    return neighborOf(targetIndex, image.imageUrl, image.geoid);
   }
 
   // 6) 点击拾取：登记到 Viewer 的共享分发器（多街景服务同时启用时只打开最近的一个）
@@ -1096,6 +1125,7 @@ export async function loadService(
     proxy.layer = real.layer;
     proxy.legend = real.legend;
     proxy.streetview = real.streetview;
+    proxy.threed = real.threed;
     proxy.streetviewController = real.streetviewController;
     proxy.state = 'ready';
     if (keepVisible) proxy.show();

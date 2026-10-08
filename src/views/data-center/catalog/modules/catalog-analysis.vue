@@ -6,10 +6,12 @@ import type { CatalogItem } from '@/mock/catalog';
 import { getGlobalImageryUrl, getOnlineImageryConfig, isOnlineImagery } from '@/utils/imagery';
 import {
   fetchCatalogPreview,
+  fetchModelEvalReport,
   fetchVisionModels,
   postObstacleDetect,
   postObstacleDetectCatalog
 } from '@/service/api/vision';
+import { useIntelExtract } from '@/composables/intel/use-intel-extract';
 import { classColor, confLevel } from '@/utils/detect-colors';
 import OlMap from 'ol/Map';
 import View from 'ol/View';
@@ -195,6 +197,45 @@ function toggleDetection(i: number) {
   activeDetectionIdx.value = activeDetectionIdx.value === i ? null : i;
 }
 
+// ─── 外形轮廓叠加（指标 6 条款 (6)） ───
+/** 是否显示轮廓：默认开，识别框仍在，两者叠加便于判断轮廓贴合度 */
+const showOutline = ref(true);
+
+/** 带轮廓的目标数（服务端标注 polygon_count，前端同口径自算一次用于即时反馈） */
+const polygonCount = computed(
+  () => detectResult.value?.detections.filter(item => (item.polygon?.length ?? 0) > 2).length ?? 0
+);
+
+/**
+ * 轮廓来源。
+ *
+ * 同一张图可能混有分割与近似两类结果（例如分割掩膜缺失的目标），此时按「近似」标注，
+ * 避免把近似轮廓当成精确轮廓展示给判读人员。
+ */
+const outlineSourceLabel = computed(() => {
+  const sources = new Set(
+    (detectResult.value?.detections ?? [])
+      .filter(item => (item.polygon?.length ?? 0) > 2)
+      .map(item => item.polygonSource ?? 'approx')
+  );
+  if (sources.size === 0) return '';
+  if (sources.size > 1) return '混合';
+  return sources.has('seg') ? '分割' : '近似';
+});
+
+/** 当前筛选下、带轮廓的目标 */
+const outlineDetections = computed(() => visibleDetections.value.filter(item => (item.d.polygon?.length ?? 0) > 2));
+
+/**
+ * 轮廓点集（SVG points 字符串）。
+ *
+ * 直接用归一化坐标：叠加层是 viewBox="0 0 1 1" 的 SVG，与图像渲染区域一一对应，
+ * 因此不需要再按显示尺寸换算，图像缩放/换视图都不会错位。
+ */
+function polygonPoints(d: Api.Vision.Detection): string {
+  return (d.polygon ?? []).map(([x, y]) => `${x},${y}`).join(' ');
+}
+
 // ─── 检测框叠加层定位：按 object-fit contain 计算图像实际渲染区域 ───
 const frameContainerRef = ref<HTMLElement | null>(null);
 const imgRef = ref<HTMLImageElement | null>(null);
@@ -322,6 +363,144 @@ async function handleRunDetect() {
   classFilter.value = 'all';
   activeDetectionIdx.value = null;
   hoverDetectionIdx.value = null;
+  // 上一次的情报成果属于上一张图，必须清空，避免把旧情报的图层地址挂到新结果上
+  resetIntelState();
+}
+
+// ==================== 指标口径（目标类型准确率 / 外形轮廓误差） ====================
+/**
+ * 界面上的两项指标不现场计算，而是回放离线评测报告。
+ *
+ * 原因：指标定义在甲方测试集上（准确率≥90%、轮廓误差≤20%），现场跑一遍既没有真值也算不出账；
+ * 回放同一份报告文件，评审时口径与数字都能对上。
+ */
+const evalReport = ref<Api.Vision.EvalReport | null>(null);
+const isEvalLoading = ref(false);
+const evalError = ref('');
+
+/** 拉取当前模型的评测报告；未评测时置空（界面显示「未评测」而不是报错） */
+async function loadEvalReport(model: string): Promise<void> {
+  isEvalLoading.value = true;
+  evalError.value = '';
+  evalReport.value = null;
+  const res = await fetchModelEvalReport(model);
+  isEvalLoading.value = false;
+  if (res.error) {
+    const err = res.error as unknown as { msg?: string; message?: string };
+    evalError.value = err?.msg || err?.message || '评测报告读取失败';
+    return;
+  }
+  evalReport.value = res.data?.evaluated ? (res.data.report ?? null) : null;
+}
+
+/** 指标摘要（准确率 + 两套轮廓误差口径） */
+const evalMetrics = computed(() => {
+  const report = evalReport.value;
+  if (!report) return null;
+  return {
+    accuracy: report.accuracy ?? null,
+    accuracyPass: report.thresholds?.accuracy_pass ?? false,
+    iou: report.contour_iou?.mean_error ?? null,
+    iouPass: report.thresholds?.contour_iou_pass ?? false,
+    boundary: report.contour_boundary?.mean_error ?? null,
+    samples: report.contour_iou?.samples ?? 0,
+    images: report.images ?? 0
+  };
+});
+
+// 切模型即换口径：不同模型的准确率/轮廓误差不能混着看
+watch(
+  selectedAnalysisType,
+  model => {
+    if (isRealModelKey(model)) void loadEvalReport(model);
+  },
+  { immediate: true }
+);
+
+// ==================== 情报成果（保存为情报 → 登记数据服务） ====================
+const {
+  saving: intelSaving,
+  registering: intelRegistering,
+  savedIntel,
+  saveError: intelSaveError,
+  serviceId: intelServiceId,
+  saveIntel,
+  registerAsService,
+  reset: resetIntel
+} = useIntelExtract();
+/** 情报操作提示（保存/登记结果文案） */
+const intelNotice = ref('');
+/** 情报图层地址（保存后回填，供复制与登记） */
+const intelLayerUrl = ref('');
+
+function resetIntelState(): void {
+  resetIntel();
+  intelNotice.value = '';
+  intelLayerUrl.value = '';
+}
+
+/**
+ * 情报点锚点：目录数据取 bbox 中心。
+ *
+ * 目录影像覆盖一定范围，中心点即本次检测的合理落点，用户无需手工在地图上点选；
+ * 本地上传的图片没有空间参考，交给服务端判定为「不出图」，不在这里编造坐标。
+ */
+function intelAnchor(): [number, number] | null {
+  const bbox = props.item?.bbox;
+  if (!bbox || bbox.length !== 4) return null;
+  return [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2];
+}
+
+/**
+ * 目录 id 转数值。
+ *
+ * 目录模块的 id 是字符串（便于 mock 数据用语义 id），而情报接口按 Long 接收；
+ * 非纯数字（本地 mock 目录）时直接丢弃：宁可少一个溯源字段，也不要整单因类型转换失败。
+ */
+function toNumericCatalogId(id?: string): number | undefined {
+  if (!id || !/^\d+$/.test(id)) return undefined;
+  return Number(id);
+}
+
+async function handleSaveIntel(): Promise<void> {
+  if (!detectResult.value) return;
+  intelNotice.value = '';
+  const fromCatalog = detectSource.value === 'catalog';
+  const anchor = fromCatalog ? intelAnchor() : null;
+  const intel = await saveIntel({
+    source: detectSource.value,
+    catalogId: fromCatalog ? toNumericCatalogId(props.item?.id) : undefined,
+    longitude: anchor?.[0],
+    latitude: anchor?.[1],
+    result: detectResult.value
+  });
+  if (!intel) {
+    intelNotice.value = intelSaveError.value;
+    return;
+  }
+  intelLayerUrl.value = intel.geojsonUrl;
+  intelNotice.value =
+    intel.longitude === null || intel.longitude === undefined
+      ? '情报已保存到数据管理（该影像无空间范围，未生成地图点）'
+      : '情报已保存到数据管理，可登记为数据服务后在上图查看';
+}
+
+async function handleRegisterIntelService(): Promise<void> {
+  const res = await registerAsService();
+  intelNotice.value = res.message;
+  if (res.ok) {
+    intelLayerUrl.value = savedIntel.value?.geojsonUrl ?? '';
+  }
+}
+
+function copyIntelLayerUrl(): void {
+  if (!intelLayerUrl.value) return;
+  navigator.clipboard
+    .writeText(intelLayerUrl.value)
+    .then(() => {
+      intelNotice.value = '图层地址已复制，可粘贴到数据服务地址栏';
+    })
+    .catch(err => console.error('复制图层地址失败', err));
 }
 
 /** 目录数据直通：后端经存储抽象层（minio/local）读对象内容送检，无需重新上传 */
@@ -810,6 +989,24 @@ onBeforeUnmount(() => {
               <SvgIcon icon="mdi:radar" />
               {{ realModelMeta[selectedAnalysisType]?.label || 'AI 检测' }}
             </span>
+            <!-- 指标口径：回放离线评测报告（目标类型准确率 / 外形轮廓误差），未评测时明确提示 -->
+            <span
+              v-if="isDetectMode"
+              class="detect-eval"
+              :class="{
+                'detect-eval--pass': evalMetrics?.accuracyPass && evalMetrics?.iouPass,
+                'detect-eval--fail': evalMetrics && (!evalMetrics.accuracyPass || !evalMetrics.iouPass)
+              }"
+            >
+              <template v-if="isEvalLoading">指标加载中…</template>
+              <template v-else-if="evalMetrics">
+                准确率
+                {{ evalMetrics.accuracy === null ? '—' : `${(evalMetrics.accuracy * 100).toFixed(1)}%` }}
+                · 轮廓 {{ evalMetrics.iou === null ? '—' : `${(evalMetrics.iou * 100).toFixed(1)}%` }}
+                <span class="detect-eval__note">IoU 口径 · n={{ evalMetrics.samples }}</span>
+              </template>
+              <template v-else>{{ evalError || '未评测（需离线评测生成报告）' }}</template>
+            </span>
             <div class="detect-toolbar__source">
               <button
                 class="detect-source-btn"
@@ -833,7 +1030,7 @@ onBeforeUnmount(() => {
             <input
               ref="fileInputRef"
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff,.tif,.tiff"
+              accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff,.tif,.tiff,.img"
               class="detect-toolbar__file-input"
               @change="handleFileChange"
             />
@@ -860,6 +1057,18 @@ onBeforeUnmount(() => {
                 style="width: 110px"
               />
             </div>
+            <button
+              v-if="detectResult && polygonCount > 0"
+              type="button"
+              class="detect-outline-btn"
+              :class="{ 'detect-outline-btn--active': showOutline }"
+              :title="`${polygonCount} 个目标带外形轮廓（来源：${outlineSourceLabel}），点击切换显示`"
+              @click="showOutline = !showOutline"
+            >
+              <SvgIcon icon="mdi:vector-polygon" />
+              轮廓 {{ polygonCount }}
+              <span class="detect-outline-btn__src">{{ outlineSourceLabel }}</span>
+            </button>
             <NButton
               type="primary"
               size="small"
@@ -907,12 +1116,28 @@ onBeforeUnmount(() => {
                     </span>
                   </div>
                 </template>
+                <!-- 外形轮廓：归一化坐标直接进 viewBox（0-1），与图像渲染区域一一对应，缩放不错位 -->
+                <svg
+                  v-if="showOutline && viewMode === 'overlay' && outlineDetections.length"
+                  class="doutline"
+                  viewBox="0 0 1 1"
+                  preserveAspectRatio="none"
+                >
+                  <polygon
+                    v-for="x in outlineDetections"
+                    :key="x.i"
+                    class="doutline__poly"
+                    :class="{ 'doutline__poly--active': activeDetectionIdx === x.i || hoverDetectionIdx === x.i }"
+                    :points="polygonPoints(x.d)"
+                    :style="{ stroke: classColor(x.d.classNameZh || x.d.className) }"
+                  />
+                </svg>
               </div>
               <NEmpty
                 v-else
                 :description="
                   detectSource === 'catalog'
-                    ? '点击「开始检测」分析当前目录数据（支持 jpg/png/webp/tif，≤200MB）'
+                    ? '点击「开始检测」分析当前目录数据（支持 jpg/png/webp/img/tif，≤200MB）'
                     : '上传图片后开始检测'
                 "
                 class="detect-image__empty"
@@ -943,7 +1168,50 @@ onBeforeUnmount(() => {
                   {{ detectResult.detections.length }} 个目标 · {{ detectResult.inferenceMs }}ms ·
                   {{ detectResult.width }}×{{ detectResult.height }}
                 </span>
+                <span v-if="polygonCount > 0" class="detect-result__outline">
+                  <SvgIcon icon="mdi:vector-polygon" />
+                  轮廓 {{ polygonCount }}（{{ outlineSourceLabel }}）
+                </span>
               </div>
+
+              <!-- 情报成果：把识别结果落成可检索、可上图的情报对象（类型/位置/数量/分布） -->
+              <div v-if="detectResult && detectResult.detections.length" class="intel-action">
+                <button
+                  type="button"
+                  class="intel-action__btn"
+                  :disabled="intelSaving"
+                  title="保存本次识别：服务端生成类别分布、情报点锚点与可上图的情报图层"
+                  @click="handleSaveIntel"
+                >
+                  <SvgIcon :icon="intelSaving ? 'mdi:loading' : 'mdi:content-save-outline'" />
+                  {{ intelSaving ? '保存中…' : savedIntel ? '再存一份' : '保存为情报' }}
+                </button>
+                <button
+                  v-if="savedIntel"
+                  type="button"
+                  class="intel-action__btn intel-action__btn--ghost"
+                  :disabled="intelRegistering"
+                  title="登记为矢量/GeoJSON 内部服务，启用后即可在场景页加载该情报图层"
+                  @click="handleRegisterIntelService"
+                >
+                  <SvgIcon icon="mdi:layers-triple" />
+                  {{ intelRegistering ? '登记中…' : intelServiceId ? '已登记为服务' : '登记为数据服务' }}
+                </button>
+                <template v-if="savedIntel">
+                  <input
+                    class="intel-action__url"
+                    readonly
+                    :value="intelLayerUrl"
+                    title="点击复制图层地址"
+                    @click="copyIntelLayerUrl"
+                  />
+                  <span class="intel-action__meta">
+                    情报 #{{ savedIntel.id }} · 目标 {{ savedIntel.detectionCount }} · 轮廓
+                    {{ savedIntel.polygonCount }}
+                  </span>
+                </template>
+              </div>
+              <p v-if="intelNotice" class="intel-action__notice">{{ intelNotice }}</p>
               <!-- 类别统计筛选 chips -->
               <div v-if="classStats.length" class="detect-result__chips">
                 <button
@@ -1811,6 +2079,174 @@ onBeforeUnmount(() => {
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
   }
+}
+
+/* ── 指标口径徽标（准确率 / 轮廓误差，绿=达标、橙=未达标） ── */
+.detect-eval {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 4px;
+  background: rgb(255 255 255 / 5%);
+  color: #9fb3c8;
+  font-size: 11px;
+
+  &--pass {
+    border-color: rgb(126 231 135 / 45%);
+    color: #b6f0bd;
+  }
+
+  &--fail {
+    border-color: rgb(240 184 102 / 45%);
+    color: #f0b866;
+  }
+
+  &__note {
+    color: #7f9cbb;
+    font-size: 10px;
+  }
+}
+
+/* ── 外形轮廓叠加（与虚线识别框区分：实线描边 + 半透明填充） ── */
+.doutline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+
+  &__poly {
+    fill: rgb(255 255 255 / 10%);
+    stroke-width: 1.5px;
+    /* viewBox 是 0-1 单位方，缺此声明描边会被非等比拉伸成粗细不均 */
+    vector-effect: non-scaling-stroke;
+    transition: fill 0.15s ease;
+
+    &--active {
+      fill: rgb(255 255 255 / 22%);
+      stroke-width: 2.5px;
+    }
+  }
+}
+
+.detect-outline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid rgba(41, 163, 255, 0.35);
+  border-radius: 4px;
+  background: rgba(2, 14, 30, 0.6);
+  color: #8db8ff;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease;
+
+  &:hover {
+    border-color: rgba(41, 163, 255, 0.7);
+    color: #cfe6ff;
+  }
+
+  &--active {
+    border-color: rgba(126, 231, 135, 0.6);
+    background: rgba(126, 231, 135, 0.12);
+    color: #b6f0bd;
+  }
+
+  &__src {
+    padding: 0 4px;
+    border-radius: 3px;
+    background: rgb(255 255 255 / 10%);
+    font-size: 10px;
+  }
+}
+
+.detect-result__outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  color: #8db8ff;
+  font-size: 11px;
+}
+
+/* ── 情报成果操作条 ── */
+.intel-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(41, 163, 255, 0.22);
+  border-radius: 6px;
+  background: rgba(4, 20, 44, 0.5);
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border: 1px solid rgba(41, 163, 255, 0.45);
+    border-radius: 4px;
+    background: rgba(41, 163, 255, 0.16);
+    color: #cfe6ff;
+    font-size: 12px;
+    cursor: pointer;
+    transition:
+      background 0.18s ease,
+      border-color 0.18s ease;
+
+    &:hover:not(:disabled) {
+      border-color: rgba(41, 163, 255, 0.75);
+      background: rgba(41, 163, 255, 0.28);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    &--ghost {
+      border-color: rgba(126, 231, 135, 0.4);
+      background: rgba(126, 231, 135, 0.12);
+      color: #b6f0bd;
+
+      &:hover:not(:disabled) {
+        border-color: rgba(126, 231, 135, 0.7);
+        background: rgba(126, 231, 135, 0.22);
+      }
+    }
+  }
+
+  &__url {
+    flex: 1;
+    min-width: 180px;
+    padding: 4px 8px;
+    border: 1px dashed rgba(41, 163, 255, 0.35);
+    border-radius: 4px;
+    background: rgba(2, 14, 30, 0.6);
+    color: #8db8ff;
+    font-family: Consolas, Menlo, monospace;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  &__meta {
+    color: #7f9cbb;
+    font-size: 11px;
+  }
+}
+
+.intel-action__notice {
+  margin-top: 6px;
+  color: #7ee787;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 /* ── Keyframes ── */

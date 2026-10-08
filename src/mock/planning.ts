@@ -25,7 +25,7 @@ export const planningDefaultLayers = [
   {
     key: 'selected-route',
     label: '当前路线',
-    icon: 'mdi:route',
+    icon: 'mdi:routes',
     description: '高亮显示当前选中的推荐路线',
     visible: true
   },
@@ -60,7 +60,7 @@ export const planningDefaultLayers = [
   {
     key: 'waypoints',
     label: '途经点标记',
-    icon: 'mdi:waypoints',
+    icon: 'mdi:transit-connection-variant',
     description: '机动方案中的途经点位置标记',
     visible: true
   }

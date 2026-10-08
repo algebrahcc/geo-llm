@@ -9,6 +9,20 @@ export function fetchVisionModels() {
 }
 
 /**
+ * 模型评测报告（后端 GET /api/vision/eval/report）
+ *
+ * 回放该模型最新一次离线评测结果：目标类型准确率与两套轮廓误差口径。
+ * 未评测时 `evaluated=false` —— 这是正常状态，不代表接口出错。
+ */
+export function fetchModelEvalReport(model: string) {
+  return request<Api.Vision.EvalReportPayload>({
+    url: '/api/vision/eval/report',
+    method: 'get',
+    params: { model }
+  });
+}
+
+/**
  * 图像目标检测（后端 POST /api/vision/obstacle-detect，multipart）
  *
  * @param file 图片文件（jpg/png/webp 等）

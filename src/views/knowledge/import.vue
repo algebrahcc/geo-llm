@@ -45,8 +45,13 @@ const datasetOptions = computed(() =>
   }))
 );
 
-/** 支持的上传格式（对齐 Dify 文档上传） */
-const ACCEPT_FORMATS = '.pdf,.docx,.md,.markdown,.txt,.csv,.xlsx,.xls,.html,.htm';
+/**
+ * 支持的上传格式
+ *
+ * 一期条款 (2) 要求文本侧至少支持 TXT / DOC / HTML / PDF 四种，故在 Dify 文档上传
+ * 允许的格式之外补入旧版 `.doc`（解析仍走 Dify，二进制 doc 解析失败时会返回明确错误）。
+ */
+const ACCEPT_FORMATS = '.pdf,.doc,.docx,.md,.markdown,.txt,.csv,.xlsx,.xls,.html,.htm';
 const ACCEPT_HINT = 'PDF · Word · Markdown · TXT · CSV · Excel · HTML';
 
 /** 将分段方式 + 索引模式映射为 Dify 的索引模式与切片规则（economy 不支持自定义分块，Dify 限制） */

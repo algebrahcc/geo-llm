@@ -98,6 +98,8 @@ export interface CesiumBaseReturn {
 
   /** 导出截图 */
   exportScreenshot: (filename: string) => void;
+  /** 取当前视角画布数据（不下载），供报告附图使用 */
+  captureDataUrl: () => string | null;
 
   /** 2D / 3D 视图切换 */
   is2dMode: Ref<boolean>;
@@ -314,6 +316,7 @@ export function useCesiumBase(): CesiumBaseReturn {
     rotate: scene.rotate,
     pitch: scene.pitch,
     exportScreenshot: scene.exportScreenshot,
+    captureDataUrl: scene.captureDataUrl,
     is2dMode,
     toggleViewMode: scene.toggleViewMode
   };

@@ -99,6 +99,13 @@ export interface Scene {
     extraFields: () => T
   ): (cartesian?: unknown | null) => BaseStatusInfo & T;
   exportScreenshot(filename: string): void;
+  /**
+   * 取当前视角的画布数据（PNG dataURL），不触发下载。
+   *
+   * 与 exportScreenshot 同一套渲染与取图逻辑，区别只在"要不要落盘"：
+   * 报告附图需要把图嵌进文档里，直接下载反而多余。
+   */
+  captureDataUrl(): string | null;
 }
 
 /** 与现状一致的默认值 */
@@ -393,6 +400,19 @@ export function createScene(options: SceneOptions): Scene {
     }
   }
 
+  function captureDataUrl(): string | null {
+    const port = viewer;
+    if (!port || !alive()) return null;
+    try {
+      // 强制同步渲染，确保画布内容是最新的（与 exportScreenshot 同理）
+      port.scene.render();
+      return port.canvas.toDataURL('image/png');
+    } catch (error) {
+      console.error('[Screenshot] 抓取画布失败:', error);
+      return null;
+    }
+  }
+
   return {
     container,
     deps,
@@ -422,6 +442,7 @@ export function createScene(options: SceneOptions): Scene {
     getCartesianFromScreen,
     computeBaseStatus,
     createEmitStatus,
-    exportScreenshot
+    exportScreenshot,
+    captureDataUrl
   };
 }

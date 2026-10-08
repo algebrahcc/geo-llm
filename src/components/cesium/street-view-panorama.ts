@@ -23,12 +23,6 @@ import { CompassPlugin } from '@photo-sphere-viewer/compass-plugin';
 import '@photo-sphere-viewer/core/index.css';
 import '@photo-sphere-viewer/compass-plugin/index.css';
 import { enableOverlayDrag, resetOverlayPosition } from '@/components/cesium/overlay-drag';
-import {
-  createFilmstrip,
-  type StreetViewFilmstripHandle,
-  type StreetViewFilmstripItem
-} from '@/components/cesium/street-view-filmstrip';
-import { createFpsStats } from '@/composables/cesium/fps-stats';
 
 export interface StreetViewPanoramaNeighbor {
   /** 街景点的全景图 URL */
@@ -39,8 +33,6 @@ export interface StreetViewPanoramaNeighbor {
   index?: number;
   /** 行进方位（度，0=正北）：切换后按此朝向前方 */
   heading?: number | null;
-  /** 胶片条高亮位置（本地数据可与点位一一对应） */
-  filmstripIndex?: number;
 }
 
 export interface StreetViewPanoramaOptions {
@@ -64,16 +56,6 @@ export interface StreetViewPanoramaOptions {
   prefetch?: (delta: 1 | -1) => Promise<string | null>;
   /** 初始朝向（度，0=正北）：迎面看向道路前方 */
   heading?: number | null;
-  /** 定位到当前街景点（球面相机跟随 + 当前点高亮），不传则不显示定位按钮 */
-  locate?: () => void;
-  /** 胶片条数据（本地街景数据可列举；远程大数据集不要传，DOM 撑不住） */
-  filmstrip?: StreetViewFilmstripItem[];
-  /** 胶片初始高亮 */
-  filmstripIndex?: number;
-  /** 胶片点击：跳到指定点位（与 navigate 同构，只切换全景，不重建浮窗） */
-  jumpTo?: (filmstripIndex: number) => Promise<StreetViewPanoramaNeighbor | null>;
-  /** 自动漫游步进（毫秒），不传则不显示自动漫游按钮 */
-  autoPlayIntervalMs?: number;
 }
 
 interface ActivePanorama {
@@ -86,22 +68,22 @@ let active: ActivePanorama | null = null;
 /** 注入一次全局样式（避免每次打开重复注入） */
 let styleInjected = false;
 
-/** 帧率低于该值时高亮（考核指标：不低于 30FPS） */
-const FPS_THRESHOLD = 30;
-
 function ensureStyle() {
   if (styleInjected) return;
   styleInjected = true;
   const css = `
+    /* 与渡河场景的面板同一套外观：深蓝底 + 10px 圆角 + 大投影，
+       文字「白色 + 降不透明度」分档，图标按钮 32×32 浅底、hover 蓝。
+       注意这里注入的是全局样式，可放心使用全局字号阶 --font-*。 */
     .svp-overlay {
       position: fixed; right: 70px; bottom: 18px; z-index: 99999;
-      width: min(620px, calc(100vw - 140px)); height: min(64vh, 700px);
-      background: rgba(2, 10, 20, 0.96);
-      border: 1px solid rgba(43, 131, 255, 0.35);
-      border-radius: 12px; overflow: hidden;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      width: min(660px, calc(100vw - 140px)); height: min(64vh, 720px);
+      background: #0a0f1c;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 10px; overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .45);
       display: flex; flex-direction: column;
-      animation: svp-fade .18s ease;
+      animation: svp-fade .15s ease;
     }
     .svp-overlay--fullscreen {
       right: 0; bottom: 0;
@@ -110,46 +92,46 @@ function ensureStyle() {
     }
     .svp-overlay__bar {
       position: relative; z-index: 3;
-      display: flex; align-items: center; gap: 8px;
-      padding: 12px 16px;
-      background: linear-gradient(180deg, rgba(5, 24, 46, .98), rgba(5, 24, 46, .7));
-      border-bottom: 1px solid rgba(43, 131, 255, .3);
-      color: #eaf5ff;
+      display: flex; align-items: center; gap: 10px;
+      height: 46px; padding: 0 8px 0 14px;
+      background: #0e1626;
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+      color: rgb(255 255 255 / 95%);
     }
-    .svp-overlay__title { font-size: 14px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; }
+    .svp-overlay__title { font-size: var(--font-lg); font-weight: 700; white-space: nowrap; }
     .svp-overlay__subtitle {
-      font-size: 12px; color: rgba(147, 196, 255, .7);
-      font-family: 'Consolas', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      max-width: 190px;
+      font-size: var(--font-xs); color: rgb(255 255 255 / 56%);
+      font-family: ui-monospace, consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 210px;
     }
     .svp-overlay__spacer { flex: 1; }
     .svp-overlay__position {
-      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px;
-      background: rgba(43, 131, 255, .15); color: #8db8ff;
-      font-family: 'Consolas', monospace; white-space: nowrap;
+      font-size: var(--font-xs); padding: 2px 7px; border-radius: 6px;
+      background: rgba(255, 255, 255, .06); color: rgb(255 255 255 / 70%);
+      font-family: ui-monospace, consolas, monospace; white-space: nowrap;
     }
-    .svp-overlay__fps {
-      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px;
-      background: rgba(43, 131, 255, .12); color: #8db8ff;
-      font-family: 'Consolas', monospace; white-space: nowrap;
-      transition: color .2s ease, background .2s ease;
+    /* 到头提示：叠加在画面中下方，短暂出现后淡出（不占标题栏） */
+    .svp-overlay__flash {
+      position: absolute; left: 50%; bottom: 28px; z-index: 2;
+      padding: 7px 14px; border-radius: 8px;
+      background: rgba(8, 12, 22, .82); color: rgb(255 255 255 / 92%);
+      font-size: var(--font-sm); white-space: nowrap;
+      opacity: 0; transform: translateX(-50%);
+      transition: opacity .2s ease;
+      pointer-events: none;
     }
-    .svp-overlay__fps--low {
-      color: #ffb04d; background: rgba(255, 176, 77, .14);
-      animation: svp-breathe 1.6s ease-in-out infinite;
-    }
-    .svp-overlay__hint { font-size: 12px; color: rgba(147, 196, 255, .55); white-space: nowrap; }
+    .svp-overlay__flash--show { opacity: 1; }
     .svp-overlay__btn {
-      width: 32px; height: 32px; border-radius: 6px; border: 1px solid rgba(45, 111, 183, .35);
-      background: rgba(6, 25, 50, .7); color: #cbe3ff; cursor: pointer;
-      display: grid; place-items: center; transition: all .2s ease; flex-shrink: 0;
+      width: 32px; height: 32px; border-radius: 6px; border: none;
+      background: rgba(255, 255, 255, .06); color: rgb(255 255 255 / 70%);
+      font-size: var(--font-xl); cursor: pointer;
+      display: grid; place-items: center; flex-shrink: 0;
+      transition: background .18s, color .18s;
     }
-    .svp-overlay__btn:hover { color: #29a3ff; border-color: rgba(70, 176, 255, .5); }
-    .svp-overlay__btn:active { transform: scale(.94); }
-    .svp-overlay__btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .svp-overlay__btn:hover { color: rgb(255 255 255 / 95%); background: rgba(43, 107, 255, .15); }
+    .svp-overlay__btn:disabled { opacity: .35; cursor: not-allowed; }
     .svp-overlay__btn--active {
-      color: #29a3ff; border-color: rgba(70, 176, 255, .6);
-      background: rgba(41, 163, 255, .16);
+      color: rgb(255 255 255 / 95%); background: rgba(43, 107, 255, .30);
     }
     .svp-overlay__stage {
       position: relative; flex: 1; min-height: 0; overflow: hidden;
@@ -158,11 +140,10 @@ function ensureStyle() {
     .svp-overlay__error {
       position: absolute; inset: 0; z-index: 2;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-      color: rgba(203, 227, 255, .8); font-size: 13px; text-align: center; padding: 24px;
-      background: rgba(2, 10, 20, .55);
+      color: rgb(255 255 255 / 70%); font-size: var(--font-sm); text-align: center; padding: 24px;
+      background: rgba(10, 15, 28, .85);
     }
     @keyframes svp-fade { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes svp-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .62; } }
   `;
   const style = document.createElement('style');
   style.id = 'street-view-panorama-style';
@@ -175,19 +156,10 @@ export function closeStreetViewPanorama(): void {
   active = null;
 }
 
+/** 标题栏只保留四个动作的图标（翻页、全屏、关闭） */
 const ICONS = {
   prev: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>',
   next: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg>',
-  play: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
-  pause:
-    '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>',
-  north:
-    '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2l4 9h-2.5v11h-3V11H8z"/></svg>',
-  zoomIn:
-    '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg>',
-  zoomOut: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 13H5v-2h14z"/></svg>',
-  locate:
-    '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm9 3h-2.06A7 7 0 0013 5.06V3h-2v2.06A7 7 0 005.06 11H3v2h2.06A7 7 0 0011 18.94V21h2v-2.06A7 7 0 0018.94 13H21z"/></svg>',
   fullscreen:
     '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
   close:
@@ -213,6 +185,25 @@ function preloadImage(url: string): void {
 
 function normalizeHeading(heading: number): number {
   return ((heading % 360) + 360) % 360;
+}
+
+/**
+ * 把抛出的任意值转成可读文案。
+ *
+ * PSV 在图片加载失败时抛的是 `Event`（不是 Error），直接 `String(error)` 会得到
+ * 「[object Event]」，用户与排查者都读不出信息，所以这里分类翻译。
+ */
+function describeError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object') {
+    const target = error as { type?: unknown; target?: { src?: unknown } };
+    if (target.type) {
+      const src = typeof target.target?.src === 'string' ? `（${target.target.src}）` : '';
+      return `图片加载失败${src}`;
+    }
+  }
+  return '未知错误，请查看浏览器控制台';
 }
 
 export function openStreetViewPanorama(imageUrl: string, options: StreetViewPanoramaOptions = {}): void {
@@ -249,18 +240,7 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
   }
   if (options.position) {
     positionEl.textContent = `${options.position.index + 1} / ${options.position.total}`;
-    bar.append(positionEl);
   }
-
-  const fpsEl = document.createElement('span');
-  fpsEl.className = 'svp-overlay__fps';
-  fpsEl.textContent = 'FPS --';
-  fpsEl.title = '当前主线程帧率（低于 30 会高亮）';
-
-  const hint = document.createElement('span');
-  hint.className = 'svp-overlay__hint';
-  const HINT_TEXT = canNavigate ? '←/→ 前进后退 · 拖动旋转 · Esc 关闭' : '拖动旋转 · 滚轮缩放 · Esc 关闭';
-  hint.textContent = HINT_TEXT;
 
   function makeButton(icon: string, titleText: string, onClick: () => void): HTMLButtonElement {
     const button = document.createElement('button');
@@ -272,17 +252,15 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
     return button;
   }
 
+  /**
+   * 标题栏只保留四个动作：上一处 / 下一处 / 全屏 / 关闭。
+   *
+   * 原先还塞了自动漫游、正北复位、缩放加减、球上定位，一共九个按钮加一句操作提示，
+   * 400px 宽的标题栏根本放不下——溢出被 `overflow: hidden` 裁掉后，
+   * 最右侧的关闭按钮就看不见了。缩放用滚轮、旋转用拖动、Esc 关闭都已足够。
+   */
   const prevBtn = makeButton(ICONS.prev, '上一处街景 (←)', () => void switchTo(-1));
   const nextBtn = makeButton(ICONS.next, '下一处街景 (→)', () => void switchTo(1));
-  const autoBtn = options.autoPlayIntervalMs
-    ? makeButton(ICONS.play, '开始自动漫游', () => toggleAutoPlay())
-    : undefined;
-  const northBtn = makeButton(ICONS.north, '正北复位', () => resetToNorth());
-  const zoomOutBtn = makeButton(ICONS.zoomOut, '缩小 (-)', () => viewer?.zoomOut(1));
-  const zoomInBtn = makeButton(ICONS.zoomIn, '放大 (+)', () => viewer?.zoomIn(1));
-  const locateBtn = options.locate
-    ? makeButton(ICONS.locate, '在三维球上定位当前街景点', () => options.locate?.())
-    : undefined;
 
   const fullscreenBtn = makeButton(ICONS.fullscreen, '全屏 / 退出全屏', () => {
     overlay.classList.toggle('svp-overlay--fullscreen');
@@ -292,10 +270,11 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
 
   const closeBtn = makeButton(ICONS.close, '关闭 (Esc)', () => close());
 
-  [prevBtn, nextBtn, autoBtn, northBtn, zoomOutBtn, zoomInBtn, locateBtn].forEach(button => {
-    if (button) bar.append(button);
-  });
-  bar.append(titleEl, subtitleEl, spacer, hint, fpsEl, fullscreenBtn, closeBtn);
+  // 顺序：标题 / 副标题 —— 位置指示、翻页、全屏、关闭（动作集中在右侧）
+  bar.append(titleEl, subtitleEl, spacer);
+  if (options.position) bar.append(positionEl);
+  if (canNavigate) bar.append(prevBtn, nextBtn);
+  bar.append(fullscreenBtn, closeBtn);
 
   const stage = document.createElement('div');
   stage.className = 'svp-overlay__stage';
@@ -306,18 +285,6 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
 
   overlay.append(bar, stage);
   document.body.appendChild(overlay);
-
-  // ─── 胶片条（可选：本地街景数据可列举整条路线） ─────
-  let filmstrip: StreetViewFilmstripHandle | null = null;
-  let currentFilmstripIndex = options.filmstripIndex ?? -1;
-  if (options.filmstrip && options.filmstrip.length > 0 && typeof options.jumpTo === 'function') {
-    filmstrip = createFilmstrip({
-      items: options.filmstrip,
-      activeIndex: currentFilmstripIndex >= 0 ? currentFilmstripIndex : 0,
-      onSelect: index => void jumpToFilmstrip(index)
-    });
-    overlay.append(filmstrip.element);
-  }
 
   // 标题栏可拖拽移动卡片
   bar.style.cursor = 'grab';
@@ -330,8 +297,6 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
   let switching = false;
   /** 切换序号：只接受最新一次请求的结果，避免连点造成「跳着走」 */
   let switchSeq = 0;
-  let autoPlayTimer: number | undefined;
-  let fpsHandle: number | undefined;
 
   function showError(message: string) {
     const existing = viewerContainer.querySelector<HTMLElement>('.svp-overlay__error');
@@ -348,18 +313,14 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
   function setNavDisabled(disabled: boolean) {
     prevBtn.disabled = disabled;
     nextBtn.disabled = disabled;
-    if (autoBtn) autoBtn.disabled = disabled;
   }
 
   function close() {
     if (closed) return;
     closed = true;
     clearTimeout(hintTimer);
-    if (autoPlayTimer !== undefined) window.clearInterval(autoPlayTimer);
-    if (fpsHandle !== undefined) cancelAnimationFrame(fpsHandle);
     window.removeEventListener('keydown', onKeydown);
     disposeDrag();
-    filmstrip?.destroy();
     viewer?.destroy();
     viewer = null;
     overlay.remove();
@@ -386,11 +347,6 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
   }
 
   // ─── 切换、预取与朝向 ──────────────────────────────
-  function resetToNorth(): void {
-    // PSV 的 yaw 以图像水平中心为 0：数据未带定向元数据时，约定图像中心即正北
-    void viewer?.animate({ yaw: '0deg', pitch: 0, speed: '360ms' });
-  }
-
   function applyHeading(heading?: number | null): void {
     if (!viewer || heading === undefined || heading === null) return;
     void viewer.animate({ yaw: `${normalizeHeading(heading)}deg`, pitch: 0, speed: '360ms' });
@@ -399,10 +355,6 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
   async function applyNeighbor(neighbor: StreetViewPanoramaNeighbor): Promise<void> {
     subtitleEl.textContent = neighbor.subtitle ?? '';
     if (neighbor.index !== undefined) updatePosition(neighbor.index);
-    if (neighbor.filmstripIndex !== undefined) {
-      currentFilmstripIndex = neighbor.filmstripIndex;
-      filmstrip?.setActive(currentFilmstripIndex);
-    }
     await viewer?.setPanorama(neighbor.imageUrl);
     applyHeading(neighbor.heading);
   }
@@ -434,92 +386,38 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
       }
       await applyNeighbor(next);
       prefetchNext();
-    } catch {
-      showError('切换街景点失败，请稍后重试');
+    } catch (error) {
+      // 兜底提示必须带上真实原因：这条分支既可能是「取不到图」，也可能是
+      // PSV 解码失败或调用方抛的业务错误，只写一句「切换失败」会让排查无从下手
+      console.error('[street-view] 切换街景点失败：', error);
+      showError(`切换街景点失败：${describeError(error)}`);
     } finally {
       switching = false;
       if (!closed) setNavDisabled(false);
     }
   }
 
-  async function jumpToFilmstrip(index: number): Promise<void> {
-    if (!options.jumpTo || switching || closed) return;
-    if (index === currentFilmstripIndex) return;
-    switching = true;
-    setNavDisabled(true);
-    const seq = ++switchSeq;
-    try {
-      const next = await options.jumpTo(index);
-      if (seq !== switchSeq || closed) return;
-      if (!next) {
-        flashHint('该位置没有可用的街景');
-        return;
-      }
-      await applyNeighbor({ ...next, filmstripIndex: next.filmstripIndex ?? index });
-      prefetchNext();
-    } catch {
-      showError('切换街景点失败，请稍后重试');
-    } finally {
-      switching = false;
-      if (!closed) setNavDisabled(false);
-    }
-  }
-
-  // ─── 自动漫游 ──────────────────────────────────────
-  function toggleAutoPlay(): void {
-    if (autoPlayTimer !== undefined) {
-      window.clearInterval(autoPlayTimer);
-      autoPlayTimer = undefined;
-      autoBtn?.classList.remove('svp-overlay__btn--active');
-      if (autoBtn) autoBtn.innerHTML = ICONS.play;
-      if (autoBtn) autoBtn.title = '开始自动漫游';
-      return;
-    }
-    const interval = options.autoPlayIntervalMs ?? 2500;
-    autoBtn?.classList.add('svp-overlay__btn--active');
-    if (autoBtn) autoBtn.innerHTML = ICONS.pause;
-    if (autoBtn) autoBtn.title = '暂停自动漫游';
-    autoPlayTimer = window.setInterval(() => void switchTo(1), interval);
-  }
-
-  function stopAutoPlay(): void {
-    if (autoPlayTimer === undefined) return;
-    window.clearInterval(autoPlayTimer);
-    autoPlayTimer = undefined;
-    autoBtn?.classList.remove('svp-overlay__btn--active');
-    if (autoBtn) autoBtn.innerHTML = ICONS.play;
-    if (autoBtn) autoBtn.title = '开始自动漫游';
-  }
-
-  /** 到头提示：临时改 hint 文案后恢复；自动漫游同时停下 */
+  /**
+   * 到头提示：叠加在画面中下方一秒多后自动淡出。
+   *
+   * 不再复用标题栏里的文字位（标题栏已不再放操作说明），也避免为此常驻一段提示文字。
+   */
   let hintTimer: ReturnType<typeof setTimeout> | undefined;
+  let hintEl: HTMLDivElement | null = null;
   function flashHint(text: string) {
-    if (autoPlayTimer !== undefined) stopAutoPlay();
+    if (!hintEl) {
+      hintEl = document.createElement('div');
+      hintEl.className = 'svp-overlay__flash';
+      stage.appendChild(hintEl);
+    }
     clearTimeout(hintTimer);
-    hint.textContent = text;
-    hint.style.color = 'rgba(255, 196, 87, .9)';
-    hintTimer = setTimeout(() => {
-      hint.textContent = HINT_TEXT;
-      hint.style.color = '';
-    }, 1600);
+    hintEl.textContent = text;
+    hintEl.classList.add('svp-overlay__flash--show');
+    hintTimer = setTimeout(() => hintEl?.classList.remove('svp-overlay__flash--show'), 1600);
   }
 
   window.addEventListener('keydown', onKeydown);
   active = { close };
-
-  // ─── 帧率采样（主线程可用性读数） ──────────────────
-  const fps = createFpsStats();
-  function startFpsSampling() {
-    const loop = () => {
-      if (closed) return;
-      fps.tick(performance.now());
-      const read = fps.read();
-      fpsEl.textContent = `FPS ${Math.round(read.current)}`;
-      fpsEl.classList.toggle('svp-overlay__fps--low', read.current > 0 && read.current < FPS_THRESHOLD);
-      fpsHandle = requestAnimationFrame(loop);
-    };
-    fpsHandle = requestAnimationFrame(loop);
-  }
 
   // ─── 创建 PSV 查看器（含方位罗盘） ─────────────────
   try {
@@ -534,8 +432,9 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
       plugins: [CompassPlugin.withConfig({ size: '64px' })]
     });
 
+    // 带上具体地址：缺文件与被跨域拦下的处置方式不同，只写「加载失败」看不出该去修哪边
     viewer.addEventListener('panorama-error', () => {
-      showError('全景图加载失败，请检查数据地址及跨域（CORS）配置');
+      showError(`全景图加载失败：${imageUrl}（文件不存在或跨域被拦）`);
     });
 
     // 初始朝向直接落位（不做动画，避免打开时先转到别处再转回来）
@@ -545,7 +444,6 @@ export function openStreetViewPanorama(imageUrl: string, options: StreetViewPano
 
     // 打开即预取下一张，第一次按「下一处」通常已是缓存命中
     prefetchNext();
-    startFpsSampling();
   } catch (e) {
     // 构造失败（如浏览器不支持 WebGL）
     console.error('[street-view] Photo Sphere Viewer 初始化失败：', e);

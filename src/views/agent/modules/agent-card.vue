@@ -23,7 +23,7 @@ const typeMeta = computed(() => {
     case 2:
       return { label: '智能体', icon: 'mdi:robot-outline' };
     case 3:
-      return { label: '工作流', icon: 'mdi:workflow' };
+      return { label: '工作流', icon: 'mdi:sitemap-outline' };
     default:
       return { label: '未知', icon: 'mdi:help-circle-outline' };
   }

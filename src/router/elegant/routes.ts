@@ -151,13 +151,21 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'situation',
+    path: '/situation',
+    component: 'layout.base$view.situation',
+    meta: {
+      title: 'situation'
+    }
+  },
+  {
     name: 'streetview',
     path: '/streetview',
     component: 'layout.base$view.streetview',
     meta: {
       title: 'streetview',
       order: 4,
-      icon: 'mdi:street-view'
+      icon: 'mdi:google-street-view'
     }
   },
   {
@@ -222,5 +230,13 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       }
     ]
+  },
+  {
+    name: 'underground',
+    path: '/underground',
+    component: 'layout.base$view.underground',
+    meta: {
+      title: 'underground'
+    }
   }
 ];

@@ -21,7 +21,7 @@ export interface AgentFileCapability {
 const ICON_BY_TYPE: Record<number, string> = {
   1: 'mdi:chat',
   2: 'mdi:robot',
-  3: 'mdi:workflow'
+  3: 'mdi:sitemap-outline'
 };
 
 const TOOL_BY_TYPE: Record<number, string[]> = {

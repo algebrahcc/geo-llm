@@ -41,6 +41,7 @@ declare module "@elegant-router/types" {
     "planning": "/planning";
     "river": "/river";
     "screen": "/screen";
+    "situation": "/situation";
     "streetview": "/streetview";
     "system": "/system";
     "system_log": "/system/log";
@@ -48,6 +49,7 @@ declare module "@elegant-router/types" {
     "system_online": "/system/online";
     "system_role": "/system/role";
     "system_user": "/system/user";
+    "underground": "/underground";
   };
 
   /**
@@ -100,8 +102,10 @@ declare module "@elegant-router/types" {
     | "planning"
     | "river"
     | "screen"
+    | "situation"
     | "streetview"
     | "system"
+    | "underground"
   >;
 
   /**
@@ -141,12 +145,14 @@ declare module "@elegant-router/types" {
     | "planning"
     | "river"
     | "screen"
+    | "situation"
     | "streetview"
     | "system_log"
     | "system_menu"
     | "system_online"
     | "system_role"
     | "system_user"
+    | "underground"
   >;
 
   /**

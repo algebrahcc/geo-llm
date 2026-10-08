@@ -465,6 +465,8 @@ export function useCesiumRiver(options: UseCesiumRiverOptions = {}) {
     generateMark,
     startAnalysis,
     exportScreenshot: () => base.exportScreenshot(`river-plan-${activePlan}.png`),
+    /** 取当前视角画面（不下载），供报告附图使用 */
+    captureMapImage: () => base.captureDataUrl(),
     showPlan,
     showRejectedRoutes,
     clearRejectedEntities,

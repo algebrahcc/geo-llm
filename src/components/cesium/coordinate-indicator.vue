@@ -30,30 +30,30 @@ defineOptions({ name: 'CoordinateIndicator' });
 </template>
 
 <style scoped>
+/* 与渡河场景面板同一套外观：深蓝实底 + 细白边 + 白色分档文字（不用玻璃与发光） */
 .coordinate-indicator {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
+  right: 14px;
+  bottom: 14px;
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 10px;
-  border: 1px solid rgba(92, 184, 255, 0.32);
-  border-radius: 4px;
-  background: rgba(4, 19, 40, 0.84);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
-  color: rgba(214, 237, 255, 0.9);
-  font-family: 'DIN', Consolas, monospace;
-  font-size: 12px;
+  gap: 10px;
+  padding: 7px 11px;
+  background: rgb(14 22 38 / 92%);
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 8px;
+  box-shadow: 0 3px 12px rgb(0 0 0 / 35%);
+  color: rgb(255 255 255 / 84%);
+  font-family: ui-monospace, consolas, monospace;
+  font-size: var(--font-xs);
   line-height: 1;
   pointer-events: none;
-  backdrop-filter: blur(6px);
 }
 
 .coordinate-indicator__divider {
   width: 1px;
   height: 12px;
-  background: rgba(120, 190, 255, 0.28);
+  background: rgb(255 255 255 / 14%);
 }
 </style>

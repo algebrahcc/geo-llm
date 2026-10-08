@@ -104,7 +104,8 @@ const allowedFormats = computed(() => {
       key: ['vec', 'pipe', 'hydro', 'poi', 'battlefield', 'obstacle'],
       formats: ['shp', 'geojson', 'json', 'gml', 'kml', 'gpkg']
     },
-    { key: ['corpus-text', 'plan'], formats: ['txt', 'md', 'pdf', 'doc', 'docx'] },
+    // 文本类对齐一期指标要求：TXT / DOC / HTML / PDF 四种（htm 与 html 同格式）
+    { key: ['corpus-text', 'plan'], formats: ['txt', 'md', 'pdf', 'doc', 'docx', 'html', 'htm'] },
     { key: ['hydro-station', 'bf-climate'], formats: ['csv', 'xlsx', 'json'] }
   ];
   for (const r of roots) {

@@ -29,7 +29,7 @@ const filterOptions = [
   { value: 'all', label: '全部', icon: 'mdi:apps' },
   { value: 'chat', label: '聊天助手', icon: 'mdi:chat-outline' },
   { value: 'agent-chat', label: '智能体', icon: 'mdi:robot-outline' },
-  { value: 'workflow', label: '工作流', icon: 'mdi:workflow' }
+  { value: 'workflow', label: '工作流', icon: 'mdi:sitemap-outline' }
 ] as const;
 
 const showCreate = ref(false);

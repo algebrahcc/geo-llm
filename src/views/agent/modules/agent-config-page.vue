@@ -432,7 +432,7 @@ const apiKeyColumns: DataTableColumns<Api.Dify.DifyAppApiKey> = [
               </div>
               <NButton type="primary" size="small" @click="handleOpenConsole">
                 <template #icon>
-                  <SvgIcon icon="mdi:workflow" />
+                  <SvgIcon icon="mdi:sitemap-outline" />
                 </template>
                 前往编排画布
               </NButton>

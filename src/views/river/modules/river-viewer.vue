@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import CoordinateIndicator from '@/components/cesium/coordinate-indicator.vue';
-import FpsIndicator from '@/components/cesium/fps-indicator.vue';
 import { useCesiumRiver } from './use-cesium-river';
 import type { RejectedRouteData, RiverInteractiveTool, RiverLayerKey, RiverPlanKey, RiverStatusInfo } from './types';
 
@@ -34,6 +33,7 @@ const {
   generateMark,
   startAnalysis,
   exportScreenshot,
+  captureMapImage,
   showPlan,
   showRejectedRoutes,
   clearRejectedEntities,
@@ -85,6 +85,8 @@ defineExpose({
   generateMark,
   startAnalysis: (planKey: RiverPlanKey, onStep?: (index: number) => void) => startAnalysis(planKey, onStep),
   exportScreenshot,
+  /** 取当前视角画面（不下载），报告附图用 */
+  captureMapImage,
   showPlan,
   showRejectedRoutes: (routes: RejectedRouteData[]) => showRejectedRoutes(routes),
   clearRejectedEntities: () => clearRejectedEntities(),
@@ -127,7 +129,6 @@ defineExpose({
       :altitude="cursorCoordinates.altitude"
       :camera-height="cursorCoordinates.cameraHeight"
     />
-    <FpsIndicator :viewer="viewerRef" />
   </div>
 </template>
 

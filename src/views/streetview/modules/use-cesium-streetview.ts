@@ -21,9 +21,9 @@ import { fetchEnabledDataServices } from '@/service/api/dataservice';
  * 有后端配置时再按 url 去重，不重复出现。
  */
 const LOCAL_PRESETS: Array<{ dir: string; name: string }> = [
-  { dir: 'kaohsiung', name: '高雄街景（真实·Mapillary）' },
-  { dir: 'taipei', name: '台北街景（本地示例）' },
-  { dir: 'newtaipei', name: '新北街景（本地示例）' }
+  { dir: 'kaohsiung', name: '高雄街景' },
+  { dir: 'taipei', name: '台北街景' },
+  { dir: 'newtaipei', name: '新北街景' }
 ];
 
 /** 把本地预设包装成数据服务条目的形状：id 用负数，避免与后端记录冲突 */
